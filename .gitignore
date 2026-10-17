@@ -17,3 +17,7 @@ apps/desktop/src-tauri/target/
 
 .DS_Store
 Thumbs.db
+
+# Generated Tauri icons (regenerate via pnpm --filter @par/desktop exec tauri icon)
+apps/desktop/src-tauri/icons/*
+!apps/desktop/src-tauri/icons/README.md
