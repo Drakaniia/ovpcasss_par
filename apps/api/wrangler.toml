@@ -1,0 +1,34 @@
+name = "par-api"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Serves the apps/web build on the same origin as the API (spec §7.1).
+# SPA fallback is handled here, so the Worker never sees unmatched client routes.
+[assets]
+directory = "../web/build"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "par-db"
+database_id = "replace-with-environment-database-id"
+migrations_dir = "../../packages/db/migrations"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "par-attachments"
+
+[[queues.producers]]
+binding = "EMAIL_QUEUE"
+queue = "par-email"
+
+[[queues.consumers]]
+queue = "par-email"
+max_retries = 5
+dead_letter_queue = "par-email-dlq"
+
+[vars]
+ALLOWED_EMAIL_DOMAINS = "example.edu"
+EMAIL_PROVIDER = "resend"

@@ -1,0 +1,23 @@
+{
+  "name": "@par/email",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@par/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@par/config": "workspace:*",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

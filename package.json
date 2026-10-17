@@ -1,0 +1,33 @@
+{
+  "name": "par-system",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @par/db db:generate",
+    "db:migrate": "pnpm --filter @par/db db:migrate",
+    "check:structure": "node scripts/check-structure.mjs",
+    "verify": "pnpm check:structure && pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.13.0",
+    "eslint-plugin-svelte": "3.23.1",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "prettier-plugin-svelte": "4.1.1",
+    "turbo": "2.11.9",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.2"
+  }
+}

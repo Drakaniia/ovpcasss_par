@@ -1,0 +1,6 @@
+# Copy to .dev.vars for `wrangler dev`. Never commit real values (spec §10).
+SESSION_SECRET=replace-me
+R2_ACCOUNT_ID=replace-me
+R2_ACCESS_KEY_ID=replace-me
+R2_SECRET_ACCESS_KEY=replace-me
+EMAIL_API_KEY=replace-me

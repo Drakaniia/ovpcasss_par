@@ -1,0 +1,60 @@
+@layer components {
+  /* ---------- Auth and account forms (phase 01) ---------- */
+
+  .form-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .form-submit {
+    width: 100%;
+  }
+
+  .auth-switch {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin: 0;
+    text-align: center;
+  }
+
+  .form-alert {
+    align-items: flex-start;
+    background: var(--status-danger-bg);
+    border: 1px solid var(--status-danger-fg);
+    border-radius: var(--radius-card);
+    color: var(--status-danger-fg);
+    display: flex;
+    font-size: 13px;
+    gap: 8px;
+    line-height: 1.45;
+    padding: 12px 14px;
+  }
+
+  .form-alert-body {
+    flex: 1;
+  }
+
+  .form-alert a,
+  .form-alert button {
+    color: inherit;
+    font-weight: 500;
+    text-decoration: underline;
+  }
+
+  .spin {
+    animation: spin 900ms linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}

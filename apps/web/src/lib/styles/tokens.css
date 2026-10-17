@@ -1,0 +1,106 @@
+/*
+ * Design tokens from docs/spec/par-ui-ux-spec.md §4.
+ * Components consume semantic tokens, never raw hex. Raw brand values appear
+ * only here. Hex values are sampled from the seal and await the brand guide.
+ */
+:root {
+  color-scheme: light;
+
+  --brand-navy-900: #0b1733;
+  --brand-navy-800: #152452;
+  --brand-navy-700: #1e3372;
+  --brand-navy-100: #e7ebf5;
+  --brand-gold-600: #b8862b;
+  --brand-gold-400: #d9ae5f;
+  --brand-gold-100: #f7efdc;
+  --brand-maroon-800: #7a1f1f;
+  --brand-maroon-100: #f5e6e6;
+
+  --surface-page: #f6f7f9;
+  --surface-card: #ffffff;
+  --surface-paper: #fbf8f2;
+  --surface-auth: #fbf8f2;
+  --text-auth: #111827;
+  --surface-topbar: #0b1733;
+  --border: #dde2ea;
+  --text-primary: #111827;
+  --text-secondary: #5b6472;
+  --text-disabled: #9aa3b2;
+  --text-paper: #111827;
+  --text-on-topbar: #ffffff;
+  --text-topbar-muted: #c9d2e5;
+  --topbar-border: #24345c;
+  --topbar-hover: rgb(255 255 255 / 8%);
+
+  --primary: #152452;
+  --primary-hover: #1e3372;
+  --on-primary: #ffffff;
+  --on-danger: #ffffff;
+  --primary-subtle: #e7ebf5;
+  --link: #152452;
+  --focus-ring: #1e3372;
+  --row-hover: #f8fafc;
+  --row-selected: #e7ebf5;
+
+  --status-neutral-bg: #eef1f5;
+  --status-neutral-fg: #5b6472;
+  --status-info-bg: #dbeafe;
+  --status-info-fg: #1d4ed8;
+  --status-danger-bg: #f5e6e6;
+  --status-danger-fg: #7a1f1f;
+  --status-gold-bg: #f7efdc;
+  --status-gold-fg: #7a5a12;
+  --status-success-bg: #dcfce7;
+  --status-success-fg: #166534;
+
+  --font-ui: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-document: georgia, 'Times New Roman', serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', consolas, monospace;
+
+  --radius-card: 6px;
+  --radius-badge: 4px;
+  --shadow-card: 0 1px 2px rgb(11 23 51 / 6%);
+  --shadow-raised: 0 8px 24px rgb(11 23 51 / 16%);
+  --backdrop: rgb(11 23 51 / 45%);
+  /* Print always uses light values, whatever the screen theme. */
+  --print-surface: #ffffff;
+  --print-text: #111827;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --surface-page: #0b1220;
+    --surface-card: #111a2e;
+    --surface-auth: #0b1220;
+    --text-auth: #e6eaf2;
+    --border: #24304a;
+    --text-primary: #e6eaf2;
+    --text-secondary: #a7b0c2;
+    --text-disabled: #6b7688;
+
+    --primary: #6c8ae4;
+    --primary-hover: #8aa4ee;
+    --on-primary: #0b1220;
+    --primary-subtle: #1b2a46;
+    --link: #8aa4ee;
+    --focus-ring: #8aa4ee;
+    --row-hover: #16213a;
+    --row-selected: #1b2a46;
+
+    --status-neutral-bg: #1e2738;
+    --status-neutral-fg: #c3cad8;
+    --status-info-bg: #17294d;
+    --status-info-fg: #9bb8ff;
+    --status-danger-bg: #3a1d22;
+    --status-danger-fg: #f0a8ad;
+    --status-gold-bg: #33280f;
+    --status-gold-fg: #e8c27a;
+    --status-success-bg: #12301f;
+    --status-success-fg: #86d9a4;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 40%);
+    --shadow-raised: 0 8px 24px rgb(0 0 0 / 55%);
+  }
+}

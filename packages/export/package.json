@@ -1,0 +1,24 @@
+{
+  "name": "@par/export",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@par/shared": "workspace:*",
+    "pdf-lib": "1.17.1"
+  },
+  "devDependencies": {
+    "@par/config": "workspace:*",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}
