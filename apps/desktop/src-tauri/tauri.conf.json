@@ -25,5 +25,11 @@
   "bundle": {
     "active": true,
     "targets": ["nsis", "msi"]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [],
+      "pubkey": ""
+    }
   }
 }
