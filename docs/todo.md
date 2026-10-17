@@ -1,0 +1,1 @@
+extract color pallete of the image in the chatgpt
