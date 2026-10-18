@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PagePlaceholder from '$lib/components/PagePlaceholder.svelte';
+  import ReferenceDataPage from '$lib/features/admin/presentation/ReferenceDataPage.svelte';
 </script>
 
-<PagePlaceholder title="Reference data" phase="04" />
+<ReferenceDataPage />
