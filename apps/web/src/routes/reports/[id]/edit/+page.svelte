@@ -1,5 +1,10 @@
 <script lang="ts">
-  import PagePlaceholder from '$lib/components/PagePlaceholder.svelte';
+  import { page } from '$app/state';
+
+  import EditReturnedPage from '$lib/features/reports/presentation/EditReturnedPage.svelte';
 </script>
 
-<PagePlaceholder title="Edit returned report" phase="07" />
+<!-- A different report is a different page: remount rather than reuse state. -->
+{#key page.params.id}
+  <EditReturnedPage id={page.params.id ?? ''} />
+{/key}

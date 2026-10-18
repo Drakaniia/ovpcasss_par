@@ -96,6 +96,26 @@ export function sectionTabsFor(section: NavId | null, role: Role | null | undefi
   }
 }
 
+/**
+ * Section tabs keep the section's filters (UI phase 05): switching tabs inside
+ * Reports preserves the active filters and restarts at page 1.
+ */
+export function tabHref(href: string, currentSearch: string): string {
+  const [path, query = ''] = href.split('?');
+  const tab = new URLSearchParams(query).get('tab');
+  const next = new URLSearchParams();
+
+  if (tab) next.set('tab', tab);
+
+  for (const [key, value] of new URLSearchParams(currentSearch)) {
+    if (key === 'tab' || key === 'page') continue;
+    next.set(key, value);
+  }
+
+  const search = next.toString();
+  return search ? `${path}?${search}` : path;
+}
+
 /** Compare a tab href with the current location, including its `tab` parameter. */
 export function isTabActive(href: string, pathname: string, search: string): boolean {
   const [path, query = ''] = href.split('?');

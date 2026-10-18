@@ -2,15 +2,17 @@
   import { Plus } from '@lucide/svelte';
   import { page } from '$app/state';
 
-  import { activeNavId, isTabActive, sectionTabsFor } from '$lib/navigation/navigation';
+  import { activeNavId, isTabActive, sectionTabsFor, tabHref } from '$lib/navigation/navigation';
   import { session } from '$lib/session/session.svelte';
 
   const section = $derived(activeNavId(page.url.pathname));
   const role = $derived(session.user?.role ?? null);
   const tabs = $derived(sectionTabsFor(section, role));
+  /** The wizard is a focused task page; it has no app-level tab row (phase 06 §2). */
+  const isWizard = $derived(page.url.pathname === '/reports/new');
 </script>
 
-{#if tabs.length > 1}
+{#if tabs.length > 1 && !isWizard}
   <div class="tab-row">
     <div class="tab-inner">
       <nav class="tabs" aria-label="Section">
@@ -18,7 +20,7 @@
           <a
             class="tab"
             class:is-active={isTabActive(tab.href, page.url.pathname, page.url.search)}
-            href={tab.href}
+            href={tabHref(tab.href, page.url.search)}
             aria-current={isTabActive(tab.href, page.url.pathname, page.url.search)
               ? 'page'
               : undefined}>{tab.label}</a

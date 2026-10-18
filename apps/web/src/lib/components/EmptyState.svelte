@@ -9,7 +9,8 @@
   }: {
     title: string;
     description: string;
-    action?: { label: string; href: string };
+    /** `onclick` lets a page act in place (for example, open a drawer) instead of linking away. */
+    action?: { label: string; href?: string; onclick?: () => void };
     /** Outline keeps a filtered-empty page free of a filled primary button. */
     actionVariant?: 'primary' | 'outline';
   } = $props();
@@ -22,7 +23,13 @@
   <h2 class="empty-title">{title}</h2>
   <p class="empty-description">{description}</p>
   {#if action}
-    <a class="btn btn-{actionVariant}" href={action.href}>{action.label}</a>
+    {#if action.href}
+      <a class="btn btn-{actionVariant}" href={action.href}>{action.label}</a>
+    {:else}
+      <button class="btn btn-{actionVariant}" type="button" onclick={action.onclick}>
+        {action.label}
+      </button>
+    {/if}
   {/if}
 </div>
 

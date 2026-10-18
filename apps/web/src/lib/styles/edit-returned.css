@@ -1,0 +1,193 @@
+@layer components {
+  /* ---------- Edit returned report (phase 07) ---------- */
+
+  .edit-returned-page .superseded {
+    align-items: flex-start;
+    background: var(--status-neutral-bg);
+    border-radius: var(--radius-card);
+    color: var(--text-secondary);
+    display: flex;
+    font-size: 13px;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+  }
+
+  .edit-returned-page .superseded p {
+    margin: 0 0 4px;
+  }
+
+  .edit-returned-page .superseded a,
+  .edit-returned-page .link,
+  .edit-returned-page .error-summary a {
+    color: var(--link);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .edit-returned-page .link {
+    font-size: 13px;
+  }
+
+  .edit-returned-page .link:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  /* Flagged fields render inside the phase 06 field components (`flagged` prop),
+     so the maroon edge and the word travel together and no CSS reaches in. */
+
+  .edit-returned-page .callout {
+    background: var(--status-danger-bg);
+    border: 1px solid color-mix(in srgb, var(--brand-maroon-800) 24%, transparent);
+    border-left: 3px solid var(--brand-maroon-800);
+    border-radius: var(--radius-card);
+    margin-bottom: 20px;
+    padding: 14px 16px;
+  }
+
+  .edit-returned-page .callout-head {
+    align-items: flex-start;
+    display: flex;
+    gap: 10px;
+  }
+
+  .edit-returned-page .callout-icon {
+    color: var(--brand-maroon-800);
+    display: inline-flex;
+    padding-top: 2px;
+  }
+
+  .edit-returned-page .callout-head h2 {
+    color: var(--status-danger-fg);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  .edit-returned-page .callout-date {
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin: 2px 0 0;
+  }
+
+  .edit-returned-page .comment {
+    font-size: 14px;
+    line-height: 1.55;
+    margin: 10px 0 0;
+    white-space: pre-line;
+  }
+
+  .edit-returned-page .flagged {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .edit-returned-page .flagged-title {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .edit-returned-page .flagged ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .edit-returned-page .error-summary h2 {
+    font-size: 14px;
+    margin: 0 0 8px;
+  }
+
+  .edit-returned-page .error-summary ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+
+  .edit-returned-page .error-summary li + li {
+    margin-top: 4px;
+  }
+
+  .edit-returned-page .leave-dialog {
+    max-width: 480px;
+  }
+
+  .edit-returned-page .leave-dialog .dialog-body {
+    color: var(--text-secondary);
+    margin: 8px 0 0;
+  }
+
+  .edit-returned-page .leave-dialog .dialog-actions {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    margin-top: 24px;
+  }
+
+  .edit-returned-page .leave-dialog .right {
+    display: flex;
+    gap: 8px;
+  }
+
+  .edit-returned-page .leave-dialog .discard {
+    color: var(--status-danger-fg);
+    font-size: 13px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* ---------- Loading ---------- */
+
+  .edit-returned-page .editor-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .edit-returned-page .editor-skeleton .line {
+    height: 12px;
+  }
+
+  .edit-returned-page .editor-skeleton .title {
+    height: 26px;
+    width: 46%;
+  }
+
+  .edit-returned-page .editor-skeleton .meta {
+    width: 24%;
+  }
+
+  .edit-returned-page .editor-skeleton .skeleton-callout {
+    border-radius: var(--radius-card);
+    height: 92px;
+  }
+
+  .edit-returned-page .editor-skeleton .skeleton-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-top: 12px;
+    max-width: 760px;
+  }
+
+  .edit-returned-page .editor-skeleton .skeleton-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .edit-returned-page .editor-skeleton .heading {
+    width: 30%;
+  }
+
+  .edit-returned-page .editor-skeleton .input {
+    border-radius: var(--radius-card);
+    height: 32px;
+  }
+}

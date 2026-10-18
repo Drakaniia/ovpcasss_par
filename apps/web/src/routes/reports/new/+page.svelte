@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PagePlaceholder from '$lib/components/PagePlaceholder.svelte';
+  import ReportWizardPage from '$lib/features/reports/presentation/ReportWizardPage.svelte';
 </script>
 
-<PagePlaceholder title="New post-activity report" phase="06" />
+<ReportWizardPage />

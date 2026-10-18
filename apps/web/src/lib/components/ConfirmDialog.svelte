@@ -6,6 +6,7 @@
     title,
     description,
     confirmLabel = 'Confirm',
+    cancelLabel = 'Cancel',
     tone = 'default',
     onconfirm,
     oncancel,
@@ -14,6 +15,7 @@
     title: string;
     description?: string;
     confirmLabel?: string;
+    cancelLabel?: string;
     tone?: 'default' | 'destructive';
     onconfirm?: () => void;
     oncancel?: () => void;
@@ -63,7 +65,7 @@
 
   <div class="dialog-actions">
     <button class="btn btn-outline" type="button" bind:this={cancelButton} onclick={cancel}>
-      Cancel
+      {cancelLabel}
     </button>
     <button
       class={tone === 'destructive' ? 'btn btn-danger' : 'btn btn-primary'}

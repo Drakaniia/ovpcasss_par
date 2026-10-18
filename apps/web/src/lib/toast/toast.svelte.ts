@@ -4,10 +4,16 @@
  */
 export type ToastKind = 'success' | 'error';
 
+export type ToastOptions = {
+  /** Shows a copy action, used for the tracking number on submit. */
+  copy?: string;
+};
+
 export type ToastItem = {
   id: number;
   kind: ToastKind;
   message: string;
+  copyText?: string;
 };
 
 const DURATION_MS = 4000;
@@ -18,9 +24,9 @@ export const toasts = $state<ToastItem[]>([]);
 let nextId = 1;
 const timers: Record<number, ReturnType<typeof setTimeout>> = {};
 
-export function showToast(kind: ToastKind, message: string): void {
+export function showToast(kind: ToastKind, message: string, options: ToastOptions = {}): void {
   const id = nextId++;
-  toasts.push({ id, kind, message });
+  toasts.push({ id, kind, message, ...(options.copy ? { copyText: options.copy } : {}) });
 
   while (toasts.length > MAX_VISIBLE) {
     dismissToast(toasts[0].id);
@@ -41,6 +47,6 @@ export function dismissToast(id: number): void {
 }
 
 export const toast = {
-  success: (message: string) => showToast('success', message),
-  error: (message: string) => showToast('error', message),
+  success: (message: string, options?: ToastOptions) => showToast('success', message, options),
+  error: (message: string, options?: ToastOptions) => showToast('error', message, options),
 };

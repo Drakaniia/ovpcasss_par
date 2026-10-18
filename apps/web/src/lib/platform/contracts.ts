@@ -26,6 +26,8 @@ export interface FilePicker {
 }
 
 export interface Platform {
+  /** Which shell is running. Pending-sync rows are a desktop-only affordance (§7.4). */
+  shell: 'web' | 'desktop';
   drafts: DraftStore;
   tokens: SecureTokenStore;
   files: FilePicker;

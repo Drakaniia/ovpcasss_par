@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { activeNavId, isTabActive, navItemsFor, sectionTabsFor } from './navigation';
+import { activeNavId, isTabActive, navItemsFor, sectionTabsFor, tabHref } from './navigation';
 
 const labels = (role: Parameters<typeof navItemsFor>[0]) =>
   navItemsFor(role).map((item) => item.label);
@@ -57,6 +57,23 @@ describe('sectionTabsFor', () => {
       'Exports',
     ]);
     expect(sectionTabsFor('admin', 'ADMIN')).toHaveLength(3);
+  });
+});
+
+describe('tabHref', () => {
+  it('keeps report filters when the tab changes and restarts at page 1', () => {
+    expect(
+      tabHref('/reports?tab=drafts', '?tab=all&type=OFF_CAMPUS&campus=c1&page=3&size=50'),
+    ).toBe('/reports?tab=drafts&type=OFF_CAMPUS&campus=c1&size=50');
+  });
+
+  it('takes the All tab back to a clean path', () => {
+    expect(tabHref('/reports', '?tab=drafts&q=cleanup&page=2')).toBe('/reports?q=cleanup');
+  });
+
+  it('leaves other sections unchanged when the URL has no filters', () => {
+    expect(tabHref('/admin/users', '')).toBe('/admin/users');
+    expect(tabHref('/search', '')).toBe('/search');
   });
 });
 

@@ -14,7 +14,7 @@
     '12': 'global tools',
     '13': 'audit log',
     '14': 'exports',
-    '15': 'desktop and offline',
+    '15': 'desktop shell',
     '16': 'quality pass',
   } as const;
 

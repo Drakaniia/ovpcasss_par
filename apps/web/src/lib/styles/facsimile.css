@@ -1,0 +1,168 @@
+@layer components {
+  /* ---------- Report facsimile (phase 08) ---------- */
+
+  /* The rail is sticky and scrolls on its own when it outgrows the viewport. */
+  .facsimile-rail {
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    padding-right: 2px;
+    position: sticky;
+    scrollbar-gutter: stable;
+    top: 24px;
+  }
+
+  .rail-section {
+    background: var(--surface-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 14px;
+  }
+
+  .rail-heading {
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    margin: 0 0 10px;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 1279px) {
+    .facsimile-rail {
+      max-height: none;
+      overflow: visible;
+      position: static;
+    }
+  }
+
+  /* Print preview is a paper view: the application chrome steps aside. */
+  body:has(.print-preview) .app-header,
+  body:has(.print-preview) .tab-row,
+  body:has(.print-preview) .skip-link,
+  body:has(.print-preview) .foundation-notice {
+    display: none;
+  }
+
+  body:has(.print-preview) .page-content {
+    max-width: none;
+  }
+
+}
+
+/* The preview sheet is the paper: the document fills it instead of sitting
+   inside a second card. Unlayered so it beats the component's own rule. */
+.print-preview .print-sheet {
+  background: var(--surface-paper);
+  color: var(--text-paper);
+}
+
+/* Three classes outweigh Svelte's scoped `.facsimile-document.svelte-…`. */
+.print-preview .print-sheet .facsimile-document {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  max-width: none;
+  padding: 0;
+}
+
+/* Print is unlayered so it beats component rules whatever order Vite emits. */
+@page {
+  size: A4 portrait;
+  margin: 15mm;
+}
+
+@media print {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    background: var(--print-surface) !important;
+    color: var(--print-text) !important;
+  }
+
+  .app-header,
+  .tab-row,
+  .skip-link,
+  .foundation-notice,
+  .print-toolbar,
+  .facsimile-header,
+  .facsimile-rail,
+  .stepper-above,
+  .report-history,
+  #review-history,
+  .screen-only {
+    display: none !important;
+  }
+
+  .page-content {
+    margin: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .facsimile-document {
+    background: var(--print-surface) !important;
+    border: 0 !important;
+    color: var(--print-text) !important;
+    font-size: 11pt;
+    box-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .gold-rule {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .print-sheet {
+    background: var(--print-surface) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+  }
+
+  /* 11 pt is the print document size; the scoped component rules are `!important`-proof. */
+  .facsimile-document :is(dt, dd, .narrative, .comment, .signature-name, .signature-label, .signature-date, .empty) {
+    font-size: 11pt !important;
+    line-height: 1.45;
+  }
+
+  .facsimile-document .section-heading {
+    font-size: 9pt !important;
+  }
+
+  .facsimile-document .office {
+    font-size: 10pt !important;
+  }
+
+  .facsimile-document .doc-type {
+    font-size: 14pt !important;
+  }
+
+  .facsimile-document .doc-title {
+    font-size: 15pt !important;
+    margin-bottom: 12pt;
+  }
+
+  /* Never break a heading away from its section or a signature from its line. */
+  .doc-section,
+  .signatures,
+  .reference-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .section-heading {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+}

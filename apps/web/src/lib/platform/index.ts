@@ -17,6 +17,7 @@ export async function createPlatform(): Promise<Platform> {
     ]);
 
     return {
+      shell: 'desktop',
       drafts: drafts.createDraftStore(),
       tokens: tokens.createTokenStore(),
       files: files.createFilePicker(),
@@ -30,6 +31,7 @@ export async function createPlatform(): Promise<Platform> {
   ]);
 
   return {
+    shell: 'web',
     drafts: drafts.createDraftStore(),
     tokens: tokens.createTokenStore(),
     files: files.createFilePicker(),
