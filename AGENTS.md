@@ -78,7 +78,7 @@ desktop → nothing from apps
   route file.
 - The API is the only door to D1/R2. The web app talks to `/api/v1` through
   `src/lib/api/http.ts` (`apiFetch`, `ApiError`, cookie credentials).
-- Shell differences (offline drafts, token store, file dialog) go behind
+- Shell differences (local drafts, token store, file dialog) go behind
   `src/lib/platform/contracts.ts` with `platform/web/` and `platform/tauri/`
   implementations. Tauri adapters are lazily imported so the browser never
   downloads them — keep it that way.

@@ -13,7 +13,7 @@ not_found_handling = "single-page-application"
 [[d1_databases]]
 binding = "DB"
 database_name = "par-db"
-database_id = "replace-with-environment-database-id"
+database_id = "0f8f8484-9e44-4341-8913-df8258531c81"
 migrations_dir = "../../packages/db/migrations"
 
 [[r2_buckets]]
