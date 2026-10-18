@@ -35,6 +35,14 @@ export type Classification = (typeof CLASSIFICATIONS)[number];
 export const LEVELS = ['GRADUATE', 'UNDERGRADUATE'] as const;
 export type Level = (typeof LEVELS)[number];
 
+/** Program levels include doctorate and law, which the report level does not. */
+export const PROGRAM_LEVELS = ['UNDERGRADUATE', 'GRADUATE', 'DOCTORATE', 'LAW'] as const;
+export type ProgramLevel = (typeof PROGRAM_LEVELS)[number];
+
+/** Terms use 1 and 2 to match the export contract; Summer is a named third term. */
+export const SEMESTERS = [1, 2, 'SUMMER'] as const;
+export type Semester = (typeof SEMESTERS)[number];
+
 export const UNIT_KINDS = [
   'COLLEGE',
   'GRADUATE_SCHOOL_GROUP',
