@@ -26,8 +26,8 @@ also builds `ReportTable`, the sortable table primitive that phases 09, 10, and
 - Table conventions from foundation §4.1 apply: sticky header, 40 px rows,
   monospace tracking numbers/dates, row click opens, ⋯ stops propagation, no
   checkbox column.
-- Drafts never show a tracking number; render an em dash and an "On this device"
-  chip when the draft is local-only.
+- Drafts never show a tracking number; render an em dash, whether the draft is
+  server-side or exists only on this device.
 
 ---
 
@@ -66,7 +66,7 @@ also builds `ReportTable`, the sortable table primitive that phases 09, 10, and
 
 | Column        | Notes                                                                 |
 | ------------- | --------------------------------------------------------------------- |
-| Tracking no.  | Monospace; `—` for drafts; "On this device" chip when local-only      |
+| Tracking no.  | Monospace; `—` for drafts (device-only drafts are plain `DRAFT` rows) |
 | Title         | Two-line clamp, 320 px max; row link                                  |
 | Type          | Off-campus / Educational tour / In-campus                             |
 | Status        | `StatusBadge` (§ foundation 2.2)                                      |
@@ -96,15 +96,13 @@ also builds `ReportTable`, the sortable table primitive that phases 09, 10, and
   date, never Tracking no., Title, Status, or ⋯.
 - No bulk selection or checkbox column in v1.
 
-### Pending-sync rows (desktop only)
+### Device-only drafts
 
-- Rows saved on this device appear **first**, regardless of sort, with a
-  gold-left-border and the chip "On this device — waiting to send".
-- The row has no tracking number until the server issues one; show `—`.
-- Row click opens the edit page. Do not offer Delete for a row that is actively
-  sending; disable it with an adjacent reason.
-- Web builds render none of this; a failed request gets the standard error state.
-  The full offline mechanics are phase 15.
+- A draft that exists only on this device appears **first**, regardless of sort,
+  as an ordinary `DRAFT` row: `—` for the tracking number, no chip, no colour
+  treatment.
+- Row click opens the edit page. Delete removes the local copy, the same as any
+  other draft.
 
 ---
 
@@ -156,8 +154,8 @@ Each tab states what will appear there and names the next action:
       change; deleted last row falls back a page.
 - [ ] Per-tab empty states match the copy table and show the right action.
 - [ ] Below 1280 px column priority is Type → Activity date, never Title/Status/⋯.
-- [ ] Desktop pending-sync rows appear first with the gold border and chip; web
-      renders no offline affordance.
+- [ ] A device-only draft appears first as a plain `DRAFT` row with `—` and no
+      queue chip.
 - [ ] Loading, error, and filtered-empty states are implemented.
 - [ ] `pnpm lint`, `pnpm typecheck`, and `pnpm build` results reported.
 
@@ -165,7 +163,6 @@ Each tab states what will appear there and names the next action:
 
 - The wizard (phase 06) and edit page (phase 07).
 - Queue tables (phase 09), repository (phase 10), exports preview (phase 14).
-- Outbox sync, tray status, and nav badges (phase 15).
 - Bulk actions and column customization.
 
 ## 9. Open questions

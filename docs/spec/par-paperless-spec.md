@@ -9,7 +9,7 @@ Sources: `OVPCASSS-PAPERLESS_PROCESS_FOR_PAR.xlsx` / `.md` and the interview dec
 
 Replace the paper Post-Activity Report (PAR) process of OVPCASSS with a paperless system. The system covers submission, validation, review, endorsement, approval, acknowledgement, storage, search, and audit trail (the 22-step process in the source file), and produces the three monitoring sheets the office currently maintains by hand in Excel.
 
-Delivery is a **hybrid**: one SvelteKit web app, also wrapped in **Tauri** as a Windows desktop app with offline drafts. The backend is **Cloudflare** (Workers + D1 + R2).
+Delivery is a **hybrid**: one SvelteKit web app, also wrapped in **Tauri** as a Windows desktop app. The backend is **Cloudflare** (Workers + D1 + R2).
 
 **In scope for v1**
 
@@ -22,7 +22,7 @@ Delivery is a **hybrid**: one SvelteKit web app, also wrapped in **Tauri** as a 
 - Admin management of users and reference data (campus, college, program, etc.)
 - Email notifications
 - Append-only audit trail
-- Desktop app with offline drafts
+- Desktop app (local drafts, native file dialog, print)
 
 **Out of scope for v1 (revisit later)**
 
@@ -50,7 +50,7 @@ Delivery is a **hybrid**: one SvelteKit web app, also wrapped in **Tauri** as a 
 | Approval           | Single approver per report                                                      |
 | Approval signature | Uploaded or drawn signature image placed on the acknowledgement                 |
 | Notifications      | Email (Cloudflare Email Service or Resend, behind an interface)                 |
-| Offline            | Desktop app keeps drafts offline and syncs when back online                     |
+| Offline            | Drafts persist locally on both shells; submitting requires connectivity (no outbox queue in v1) |
 | Sync conflicts     | Drafts are local-only until submitted; server wins once submitted               |
 | Tracking number    | Per-type prefix + year + sequence, e.g. `OFF-2026-0001`                         |
 | Monitoring sheets  | System generates the three sheets as Excel exports                              |
@@ -159,10 +159,9 @@ Tooling: Node 22 LTS, pnpm, Turborepo tasks `dev`, `build`, `lint`, `typecheck`,
 
 - Tauri 2, Windows targets (NSIS or MSI installer; WebView2 runtime handled by the installer).
 - `frontendDist` points to the `apps/web` build output; no separate UI code.
-- **Offline drafts:** a `DraftStore` implementation backed by local SQLite (Tauri SQL plugin) storing draft form data and queued attachment file paths. The web build uses a no-op or IndexedDB implementation so the app still works, just without offline.
-- **Sync behavior** (matches the "server wins once submitted" decision):
-  - Drafts exist only on the device until the user presses Submit.
-  - Submit while offline puts the report in a local **outbox**; it is uploaded automatically when connectivity returns (attachments first via presigned URLs, then the report submission call).
+- **Local drafts:** a `DraftStore` implementation backed by local SQLite (Tauri SQL plugin) storing draft form data. The web build uses IndexedDB behind the same interface, so a draft survives a reload or a restart on both shells.
+- **Submit behavior** (matches the "server wins once submitted" decision):
+  - Drafts exist only on the device until the user presses Submit, and submitting requires connectivity: the server validates, issues the tracking number, and moves the report to `SUBMITTED`. A failed submit keeps the draft and shows the standard error state; there is no offline outbox, so nothing is queued and nothing syncs in the background.
   - For a report that was **returned for revision**, the client downloads the server copy and records its `version`. Local edits are a draft on top of that version. On resubmit, if the server `version` differs, the API responds `409` and the client discards the local changes and shows the server copy, with the user's unsent text preserved in a "recover my edits" panel.
 - **Auth on desktop:** bearer session token kept in the OS credential store (Tauri keyring/stronghold plugin), not in webview storage.
 - **API origin:** the API must allow the Tauri webview origins (`http://tauri.localhost` on Windows, `tauri://localhost` on macOS later) in CORS. Verify exact origins at scaffold time.
@@ -193,7 +192,7 @@ Separate D1/R2/Queue resources for **staging** and **production**. Preview deplo
 - Zod validation on every input; consistent error envelope `{ error: { code, message, details? } }`.
 - Auth middleware resolves the session; role/permission middleware per route.
 - Pagination (cursor or page/limit) on all list endpoints.
-- Idempotency key support on submit to make the offline outbox retry-safe.
+- Idempotency key support on submit, so a retried submit cannot create a duplicate report.
 
 ### 7.3 Endpoint groups (initial)
 
@@ -347,7 +346,7 @@ All tables: `id` (ULID/UUID text), `created_at`, `updated_at` (UTC ISO text). So
 
 - `audit_events` (append-only, indexed by entity and time)
 - `email_outbox`: kind, to, payload, status, attempts, last_error (visibility into queued/failed mail)
-- `idempotency_keys`: key, user_id, request_hash, response (for offline outbox retries)
+- `idempotency_keys`: key, user_id, request_hash, response (so a retried submit cannot duplicate a report)
 
 Indexes: `reports(status, type)`, `reports(owner_user_id)`, `reports(tracking_number)` unique, FTS5 virtual table for search, `audit_events(entity_id, created_at)`.
 
@@ -405,7 +404,7 @@ Indexes: `reports(status, type)`, `reports(owner_user_id)`, `reports(tracking_nu
 | Unit            | Vitest                                                           | state machine, tracking number logic, Zod schemas, export column mapping |
 | API integration | Vitest with the Cloudflare Workers pool (Miniflare, local D1/R2) | auth flow, role enforcement, transitions, presign/confirm                |
 | E2E (web)       | Playwright                                                       | register → approve role → submit → review → endorse → approve → export   |
-| Desktop smoke   | Tauri build + WebDriver/Playwright against webview (basic)       | launch, login, offline draft create, outbox sync                         |
+| Desktop smoke   | Tauri build + WebDriver/Playwright against webview (basic)       | launch, sign in, draft survives restart, print preview                   |
 | Migrations      | CI job applying all migrations to a fresh D1                     | no drift between Drizzle schema and migrations                           |
 
 Acceptance anchor: every one of the 22 steps in the source process maps to at least one automated test.
@@ -443,7 +442,7 @@ Observability: Workers Logs and `wrangler tail`, structured JSON logs without PI
 | M4 Review and approval | Queues, return/endorse/approve, comments, signature, acknowledgement PDF, notifications                                           |
 | M5 Repository          | Search, filters, report timeline, audit viewer                                                                                    |
 | M6 Monitoring exports  | Three Excel exports matching the source sheets                                                                                    |
-| M7 Desktop offline     | `DraftStore` on SQLite, outbox sync, 409 handling, installer, signed auto-update                                                  |
+| M7 Desktop shell       | `DraftStore` on SQLite, OS credential store, file dialog, print in the webview, installer, signed auto-update                     |
 | M8 Hardening and pilot | Security review, load test, backups/restore drill, runbooks, pilot with OVPCASSS                                                  |
 
 **M0 definition of done:** `pnpm install && pnpm dev` starts web + API locally; `pnpm build` produces the web build, Worker bundle and a Windows Tauri installer; CI is green on a trivial PR with a preview URL; staging deploy works.

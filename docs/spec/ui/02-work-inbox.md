@@ -94,9 +94,6 @@ your approval**. Render only the sections the role can have.
 - Compact table: Title (2-line clamp), Type, Updated (relative, exact timestamp
   on `title`), Completeness meter with percentage text.
 - Row click opens `/reports/[id]/edit`.
-- Desktop pending-sync rows follow phase 15: gold left border, chip "On this
-  device — waiting to send". Do not build the offline mechanics here; leave the
-  row slot.
 
 ### 3.3 Waiting on the office
 
@@ -189,7 +186,6 @@ not exist. This is a **derived** spec; confirm copy before shipping.
 
 - Queue pages and decision actions (phase 09).
 - Report table filters/tabs (phase 05).
-- Offline outbox mechanics and nav badge (phase 15).
 - Notification list (phase 11); Recent activity is report events, not the inbox.
 
 ## 8. Open questions

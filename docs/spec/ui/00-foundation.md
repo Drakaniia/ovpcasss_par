@@ -53,7 +53,7 @@ SaaS tool and not a literal scan of a form.
 5. **Paper where it matters.** The facsimile earns serif type, cream stock, and
    ruled sections; the chrome stays a modern application.
 6. **One screen, one primary action.** One filled navy button per page.
-7. **No dead ends.** Empty, offline, denied, error states name the next action.
+7. **No dead ends.** Empty, failed, denied, error states name the next action.
 8. **Keyboard is a shortcut, never a requirement.**
 
 ---

@@ -210,8 +210,8 @@ Appended below the Password card on `/profile` (phase 01 page).
 - Missing signature: drawer opens with the notice and disabled primary (above).
 - Attachments still uploading: decisions are blocked with an adjacent reason
   "Attachments are still uploading."
-- Offline (desktop): decisions require the server; show the standard failed-action
-  alert, never queue a decision in the outbox.
+- Decisions always require the server: a failed request shows the standard
+  failed-action alert. Nothing is queued for later.
 
 ---
 

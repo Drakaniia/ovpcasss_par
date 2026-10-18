@@ -64,7 +64,7 @@ generic SaaS tool and not like a literal scan of a form.
    and ruled sections; the chrome around it stays a modern application.
 6. **One screen, one primary action.** Each page has exactly one filled navy
    button; everything else is outline, ghost, or in the row menu.
-7. **No dead ends.** Empty, offline, denied, and error states always name the
+7. **No dead ends.** Empty, failed, denied, and error states always name the
    next action and link to it.
 8. **Keyboard is a shortcut, never a requirement.** Every shortcut has a visible
    mouse path.
@@ -394,7 +394,7 @@ and survive refresh.
 
 | Column        | Notes                                                            |
 | ------------- | ---------------------------------------------------------------- |
-| Tracking no.  | Monospace; `—` for drafts; "On this device" chip when local-only |
+| Tracking no.  | Monospace; `—` for drafts (including device-only ones)        |
 | Title         | Two-line clamp, 320 px max; row link                             |
 | Type          | Off-campus / Educational tour / In-campus                        |
 | Status        | Badge (§4.2)                                                     |
@@ -407,8 +407,8 @@ and survive refresh.
 - Row click opens `/reports/[id]`; drafts open `/reports/[id]/edit` directly
   (the facsimile for a draft is not useful).
 - Pagination: 25 per page, "Showing 1–25 of 84", page size selector (25/50/100).
-- Pending-sync rows appear first with a gold-left-border chip "On this device —
-  waiting to send" (desktop only).
+- Drafts that exist only on this device appear first as ordinary `DRAFT` rows
+  with `—` for the tracking number; there is no queue chip or colour treatment.
 - Empty states: **All** — "No reports yet" + Create report; **Drafts** — "No
   drafts"; **Returned** — "Nothing returned"; **Approved** — "No approved
   reports yet". Each states what will appear there.
@@ -477,9 +477,10 @@ Behavior:
   comments stand alone. Do not invent flags.
 - Action bar (sticky bottom): "Save changes" (outline), "Resubmit report"
   (navy), and a "Discard local changes" text action.
-- 409 conflict (desktop outbox after offline edits): modal "This report changed
-  while you were offline", side-by-side server copy vs local text, actions
-  "Use server version" and "Copy my edits" (clipboard). Never silently discard.
+- 409 conflict (the report changed on the server since this copy was loaded):
+  modal "This report changed while you were editing", side-by-side server copy vs
+  local text, actions "Use server version" and "Copy my edits" (clipboard). Never
+  silently discard and never merge.
 
 ### 7.7 Report facsimile — record mode (`/reports/[id]`)
 
@@ -837,20 +838,18 @@ truth and the UI maps statuses 1:1.
 - Preview: PDFs and images open in a new tab via a short-lived signed URL; office
   files download.
 
-### 8.6 Offline and desktop
+### 8.6 Desktop shell
 
-- The Tauri shell owns status: window title and tray tooltip ("Online",
-  "Offline — 2 reports waiting"), plus a native menu item "Pending uploads" that
-  navigates to `/reports?tab=drafts`.
-- No persistent in-page offline banner. The only in-page moment is at submit:
-  button becomes "Save to outbox", and a toast says "Saved on this device. We
-  will send it when you are back online."
-- Queued reports appear at the top of My reports and in the Reports nav badge
-  count. The row shows "On this device — waiting to send" and, once online, a
-  brief "Sending…" then the issued tracking number.
+- Desktop is the same SvelteKit bundle in a Tauri window. Drafts persist locally
+  on both shells: IndexedDB on the web, SQLite on the desktop.
+- There is no offline outbox in v1. Submitting a report requires connectivity: a
+  failed submit keeps the draft and shows the standard error state, and the user
+  retries when the connection returns. No banner, no connectivity status in the
+  window title or tray, no "Pending uploads" menu item, no nav badge.
+- Desktop-only capabilities: the session token lives in the OS credential store,
+  the file dialog streams uploads from disk, and the facsimile prints through the
+  webview with the same print CSS as the browser.
 - Conflict (409): the modal in §7.6; never merge silently.
-- Web build never shows offline affordances; a failed request gets the standard
-  error state.
 
 ### 8.7 Notifications and toasts
 
@@ -944,23 +943,16 @@ flowchart LR
   N --> I
 ```
 
-### 9.3 Offline sync (desktop)
+### 9.3 Submit
 
 ```mermaid
 flowchart TD
-  A[Submit] --> B{Online?}
-  B -- yes --> C[Upload attachments]
-  C --> D[Submit report]
-  D --> E[Tracking number issued]
-  B -- no --> F[Saved to local outbox]
-  F --> G[Reports nav badge and row chip]
-  G --> H{Connectivity returns}
-  H --> I[Upload attachments in order]
-  I --> J[Submit with idempotency key]
-  J --> K{409 version conflict?}
-  K -- no --> E
-  K -- yes --> L[Recover my edits dialog]
-  L --> M[Use server version or copy edits]
+  A[Submit] --> B[Upload attachments]
+  B --> C[Validate and submit with idempotency key]
+  C --> D[Tracking number issued]
+  C -- 409 --> E[Recover my edits dialog]
+  E --> F[Use server version or copy edits]
+  C -- network failure --> G[Standard error state; the draft is kept]
 ```
 
 ### 9.4 Status state diagram
@@ -1078,7 +1070,7 @@ survive 375 px).
 | M4        | Facsimile (record + print), stepper, next-step strip, comment thread, decide drawer, signature pad, acknowledgement download                                      |
 | M5        | Queues + master–detail, repository filters, notifications inbox, audit timeline and admin audit page, shortcut help                                               |
 | M6        | Exports form + preview table + download states                                                                                                                    |
-| M7        | Desktop-only: tray/menu status, outbox rows, conflict dialog, print preview inside the webview                                                                    |
+| M7        | Desktop-only: SQLite drafts, OS credential store, file dialog, print preview inside the webview                                                                   |
 | M8        | Accessibility audit, 200% zoom pass, contrast verification, print fidelity check                                                                                  |
 
 Ordering rule: **tokens and primitives before pages** (M0–M1); **one page per

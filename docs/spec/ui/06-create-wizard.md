@@ -28,8 +28,8 @@ step, one primary action per step, and nothing is ever lost.
   top of the step linking to the first invalid field.
 - Never invent field limits, required-ness, or options. Options come from
   reference data; required-ness comes from the API/Zod contract.
-- Desktop offline submit is phase 15. In the web build, a failed submit shows the
-  standard error state; do not add an offline banner here.
+- A failed submit shows the standard error state and keeps the draft; do not add
+  an offline banner or queue the report for later.
 
 ---
 
@@ -266,7 +266,6 @@ Rail card (sticky; collapsed meter below 1280 px):
 ## 9. Out of scope
 
 - Edit-returned screen and resubmit (phase 07).
-- Desktop outbox/offline submit (phase 15).
 - Server-side validation rules, file type allowlist contents, and attachment
   requirement seeding (backend).
 - Rich-text formatting, autosave to a server draft on every keystroke, and

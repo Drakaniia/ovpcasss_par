@@ -127,7 +127,7 @@ Print or export to PDF from an APPROVED report and a non-approved report:
       or motivational filler.
 - [ ] Official terminology throughout: Post-Activity Report, tracking number,
       endorsement, approval, return, personnel in-charge, SDG.
-- [ ] Every empty/error/denied/offline state names the next action and links to
+- [ ] Every empty/error/denied/failed state names the next action and links to
       it; no dead ends.
 - [ ] Dates: `14 Mar 2026` in tables; `14 March 2026, 9:12 AM` in prose; all
       Asia/Manila; API values UTC; tracking numbers monospace and copyable.
@@ -150,7 +150,7 @@ step:
 2. **Reviewer/approver:** queue → preview/full report → endorse → approval queue
    → approve with signature → repository search → export.
 3. **Admin:** approve a role → reference data edit → audit inspection; plus a
-   desktop offline submit → reconnect → conflict path.
+   desktop session: draft → restart → draft restored → print preview.
 
 - [ ] Each flow completes without console errors, unexpected 4xx/5xx, or dead
       ends.
@@ -158,8 +158,8 @@ step:
 - [ ] Notifications and nav counts reflect actions within one navigation.
 - [ ] Role boundaries hold: Submitter never sees Queues/Repository/Admin; Admin
       cannot review/approve without the role; self-protection on users holds.
-- [ ] Offline (desktop only): queue → restart → reconnect → conflict modal →
-      resolve, with no duplicate report.
+- [ ] Desktop shell: the token comes from the OS credential store, a draft
+      survives a restart, and a failed submit keeps the draft.
 
 ---
 

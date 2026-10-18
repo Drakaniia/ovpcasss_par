@@ -49,7 +49,7 @@ they do not change any decision in it. If a phase file disagrees with
 | 12  | [`12-global-tools.md`](./12-global-tools.md)                 | M5        | Shortcut help, command palette (derived)                                                                                             | 00             |
 | 13  | [`13-admin-audit.md`](./13-admin-audit.md)                   | M5        | `/admin/audit`                                                                                                                       | 00             |
 | 14  | [`14-exports.md`](./14-exports.md)                           | M6        | `/exports`                                                                                                                           | 00, 05, 08     |
-| 15  | [`15-desktop-offline.md`](./15-desktop-offline.md)           | M7        | Tauri status, outbox rows, conflict reuse, print in webview                                                                          | 05, 06, 07, 08 |
+| 15  | [`15-desktop-shell.md`](./15-desktop-shell.md)               | M7        | SQLite drafts, OS credential store, file dialog, print in the webview                                                                | 01, 06, 07, 08 |
 | 16  | [`16-quality-pass.md`](./16-quality-pass.md)                 | M8        | Cross-screen audit: a11y, zoom, contrast, print                                                                                      | all            |
 
 Suggested order: 00 → 01, 02, 03 (parallel-safe) → 04 → 05 → 06 → 07, 08
@@ -66,7 +66,7 @@ Suggested order: 00 → 01, 02, 03 (parallel-safe) → 04 → 05 → 06 → 07, 
 | M4        | Facsimile (record + print), stepper, next-step strip, comments, decision drawer, signature, acknowledgement        | 08–09       |
 | M5        | Queues + master–detail, repository, notifications, audit page, shortcut help                                       | 09–13       |
 | M6        | Exports form, preview, download states                                                                             | 14          |
-| M7        | Desktop tray/menu status, outbox rows, conflict dialog, print in webview                                           | 15          |
+| M7        | SQLite drafts, OS credential store, file dialog, print in the webview                                              | 15          |
 | M8        | Accessibility audit, 200% zoom, contrast, print fidelity                                                           | 16          |
 
 ## Non-negotiables for every run
@@ -82,7 +82,7 @@ Suggested order: 00 → 01, 02, 03 (parallel-safe) → 04 → 05 → 06 → 07, 
    interactive height, 32 px minimum touch target.
 6. **Official terminology.** Use the form and export vocabulary verbatim
    (Post-Activity Report, tracking number, endorsement, approval, return).
-7. **No dead ends.** Every empty, error, denied, and offline state names the next
+7. **No dead ends.** Every empty, error, denied, and failed state names the next
    action and links to it.
 8. **Keyboard is a shortcut, never a requirement.** Every shortcut has a visible
    mouse path, and single-letter shortcuts are suppressed while typing.
@@ -139,11 +139,11 @@ Suggested order: 00 → 01, 02, 03 (parallel-safe) → 04 → 05 → 06 → 07, 
 | §8.1–§8.2 facsimile structure, status/next step               | 08                                    |
 | §8.3–§8.4 tables, forms                                       | 00 (used by all)                      |
 | §8.5 attachments                                              | 06                                    |
-| §8.6 offline and desktop                                      | 15                                    |
+| §8.6 desktop shell                                            | 15                                    |
 | §8.7 notifications and toasts                                 | 00 (surfaces), 11 (inbox)             |
 | §8.8 loading, empty, error                                    | 00                                    |
 | §8.9 keyboard shortcuts                                       | 00 (table), 12 (help + palette)       |
-| §9 flows                                                      | 00 (state), 06, 09, 15                |
+| §9 flows                                                      | 00 (state), 06, 09                    |
 | §10 component inventory                                       | 00 (ownership table), each phase      |
 | §11 accessibility and content                                 | 00, verified in 16                    |
 | §12 responsive behavior                                       | 00, verified in 16                    |

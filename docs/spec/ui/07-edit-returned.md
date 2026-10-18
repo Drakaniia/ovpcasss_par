@@ -16,7 +16,11 @@ in a conflict.
 
 - Role: the owning SUBMITTER only. Anyone else gets permission denied; a report
   that is not returned or resubmitted redirects to the facsimile — this page is
-  not an alternate editor for drafts or approved reports.
+  not an alternate editor for approved reports.
+- The owner's own **draft** opens here as well, because `par-ui-ux-spec.md`
+  §7.4 puts it at this route ("drafts open `/reports/[id]/edit` directly"). The
+  phase 06 wizard renders in place of the returned-report editor and owns that
+  form, its save, and its submit; nothing in §3–§5 below applies to it.
 - One primary action: **Resubmit report** (navy). **Save changes** is outline;
   **Discard local changes** is a text action and appears only when local changes
   exist.
@@ -108,11 +112,9 @@ When the API returns `field_ids` with the return comment:
 
 ## 4. Conflict (409)
 
-Reached when a desktop outbox edit is submitted against a newer server version
-(and reused by phase 15).
+Reached when the report changed on the server after this copy was loaded.
 
-- Modal title: "This report changed while you were offline". If the client was
-  online, use "This report changed while you were editing".
+- Modal title: "This report changed while you were editing".
 - Body: side-by-side **Server version** and **Your edits** for the fields that
   differ. Narrative and long text scroll within their columns. Show the server
   version's `version`/timestamp and who changed it when the API supplies it.
@@ -130,7 +132,8 @@ Reached when a desktop outbox edit is submitted against a newer server version
 - Loading: skeleton header, callout, and field groups.
 - Report not found / no access: the shared 404 copy ("This report does not exist
   or you do not have access").
-- Not returned: redirect to the facsimile; do not render an empty editor.
+- Not returned and not the owner's draft: redirect to the facsimile; do not
+  render an empty editor.
 - Returned but superseded (someone else resubmitted or it was approved): show a
   read-only notice with a link to the facsimile; disable the editor.
 - Save failure: inline alert, form intact.
@@ -143,7 +146,8 @@ Reached when a desktop outbox edit is submitted against a newer server version
 ## 6. Acceptance checklist
 
 - [ ] Only the owning SUBMITTER can edit; others get permission denied.
-- [ ] A non-returned report redirects to the facsimile, not an empty editor.
+- [ ] A non-returned report redirects to the facsimile, not an empty editor
+      (a draft is the exception: the wizard serves it at this route, §7.4).
 - [ ] Header shows tracking number (copyable), title, status, and "Returned by
       <role> · date".
 - [ ] Latest return comment renders in a maroon callout with author, role, and
@@ -168,7 +172,7 @@ Reached when a desktop outbox edit is submitted against a newer server version
 
 ## 7. Out of scope
 
-- Draft editing (the wizard owns drafts).
+- Draft editing behaviour (the wizard owns drafts; this route only mounts it).
 - Reviewer/approver decisions (phase 09).
 - Server conflict resolution logic and versioning (backend).
 - Editing approved reports. Once approved, a report is terminal in v1.

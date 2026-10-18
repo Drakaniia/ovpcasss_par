@@ -166,8 +166,8 @@ card can be appended below Password without a redesign.
 - Submit failures: inline alert at the top of the card with the request id only
   when the API supplies one; Retry where retry is safe (resend, sign in), never
   for validation.
-- Network failure on web: standard error copy, not an offline banner (desktop
-  offline behavior belongs to phase 15).
+- Network failure: standard error copy, not an offline banner; the draft is kept
+  and the user retries when the connection returns.
 - Disabled resend shows the reason adjacent ("Available in 42 s"), never a
   tooltip alone.
 - All pages keep a visible focus ring, logical tab order, and Enter submit.
