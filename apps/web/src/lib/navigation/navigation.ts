@@ -1,8 +1,8 @@
-import type { Role } from '@par/shared';
+import { actsAs, type Role } from '@par/shared';
 
 /**
  * Role-filtered top navigation and section tabs (UI spec §5.1–§5.2).
- * Admin never gains review or approval destinations by being Admin.
+ * Admin stands in for every role, so it reaches every destination.
  */
 export type NavId = 'home' | 'reports' | 'queues' | 'repository' | 'admin';
 
@@ -37,11 +37,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
 
 export function navItemsFor(role: Role | null | undefined): NavItem[] {
   if (!role) return [];
-  return NAV_ITEMS.filter((item) => item.roles.includes(role));
+  return NAV_ITEMS.filter((item) => item.roles.some((expected) => actsAs(role, expected)));
 }
 
 export function canSearchRepository(role: Role | null | undefined): boolean {
-  return role === 'REVIEWER' || role === 'APPROVER' || role === 'ADMIN';
+  return actsAs(role, 'REVIEWER') || actsAs(role, 'APPROVER');
 }
 
 export function activeNavId(pathname: string): NavId | null {
@@ -76,8 +76,8 @@ export function sectionTabsFor(section: NavId | null, role: Role | null | undefi
       ];
     case 'queues': {
       const tabs: SectionTab[] = [];
-      if (role === 'REVIEWER') tabs.push({ label: 'Review', href: '/review' });
-      if (role === 'APPROVER') tabs.push({ label: 'Approval', href: '/approval' });
+      if (actsAs(role, 'REVIEWER')) tabs.push({ label: 'Review', href: '/review' });
+      if (actsAs(role, 'APPROVER')) tabs.push({ label: 'Approval', href: '/approval' });
       return tabs;
     }
     case 'repository':
@@ -89,6 +89,7 @@ export function sectionTabsFor(section: NavId | null, role: Role | null | undefi
       return [
         { label: 'Users', href: '/admin/users' },
         { label: 'Reference data', href: '/admin/reference-data' },
+        { label: 'Import workbook', href: '/admin/import' },
         { label: 'Audit', href: '/admin/audit' },
       ];
     default:

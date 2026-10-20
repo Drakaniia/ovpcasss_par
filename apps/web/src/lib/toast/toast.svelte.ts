@@ -4,9 +4,16 @@
  */
 export type ToastKind = 'success' | 'error';
 
+export type ToastAction = {
+  label: string;
+  run: () => void;
+};
+
 export type ToastOptions = {
   /** Shows a copy action, used for the tracking number on submit. */
   copy?: string;
+  /** Shows one follow-up action, e.g. revealing a downloaded export's folder. */
+  action?: ToastAction;
 };
 
 export type ToastItem = {
@@ -14,9 +21,13 @@ export type ToastItem = {
   kind: ToastKind;
   message: string;
   copyText?: string;
+  actionLabel?: string;
+  runAction?: () => void;
 };
 
 const DURATION_MS = 4000;
+/* Action toasts stay long enough to be read and clicked. */
+const ACTION_DURATION_MS = 8000;
 const MAX_VISIBLE = 3;
 
 export const toasts = $state<ToastItem[]>([]);
@@ -26,13 +37,22 @@ const timers: Record<number, ReturnType<typeof setTimeout>> = {};
 
 export function showToast(kind: ToastKind, message: string, options: ToastOptions = {}): void {
   const id = nextId++;
-  toasts.push({ id, kind, message, ...(options.copy ? { copyText: options.copy } : {}) });
+  toasts.push({
+    id,
+    kind,
+    message,
+    ...(options.copy ? { copyText: options.copy } : {}),
+    ...(options.action ? { actionLabel: options.action.label, runAction: options.action.run } : {}),
+  });
 
   while (toasts.length > MAX_VISIBLE) {
     dismissToast(toasts[0].id);
   }
 
-  timers[id] = setTimeout(() => dismissToast(id), DURATION_MS);
+  timers[id] = setTimeout(
+    () => dismissToast(id),
+    options.action ? ACTION_DURATION_MS : DURATION_MS,
+  );
 }
 
 export function dismissToast(id: number): void {

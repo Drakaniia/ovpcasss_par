@@ -1,0 +1,248 @@
+/*
+ * The isometric routing line on the auth screen. The drawing is injected as
+ * markup, so its layer styles are global and scoped by the .par-line wrapper.
+ * Tones come from the design tokens: paper is the card, ink is navy, and gold
+ * marks the one impression the reader should watch.
+ */
+.par-line {
+  --anatomy-paper: var(--surface-card);
+  --anatomy-face: #ffffff;
+  --anatomy-top: #fbf9f3;
+  --anatomy-shade-0: #beb7a6;
+  --anatomy-shade-1: #cdc6b5;
+  --anatomy-shade-2: #dbd5c6;
+  --anatomy-shade-3: #e8e3d5;
+  --anatomy-lit-top: #fbf3e0;
+  --anatomy-lit-shade: #ecdfc2;
+  --anatomy-hi: #14203c;
+  --anatomy-mid: #5c667e;
+  --anatomy-lo: #9aa2b2;
+  --anatomy-faint: #d7d9df;
+  --anatomy-lit: #b8862b;
+  --anatomy-dot: #14203c;
+  --anatomy-weight: 0.75px;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card-lg);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px 28px 24px;
+}
+
+.par-line-title {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.par-line-svg {
+  display: block;
+  height: auto;
+  overflow: visible;
+  width: 100%;
+}
+
+.par-line-svg path,
+.par-line-svg circle {
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------- Solids: four tones by facing, a lighter top ---------- */
+.iso-fill {
+  fill: var(--anatomy-paper);
+  stroke: none;
+}
+
+.iso-shade,
+.iso-top {
+  stroke: none;
+}
+
+.iso-top {
+  fill: var(--anatomy-top);
+}
+
+.iso-shade[data-shade='0'] {
+  fill: var(--anatomy-shade-0);
+}
+
+.iso-shade[data-shade='1'] {
+  fill: var(--anatomy-shade-1);
+}
+
+.iso-shade[data-shade='2'] {
+  fill: var(--anatomy-shade-2);
+}
+
+.iso-shade[data-shade='3'] {
+  fill: var(--anatomy-shade-3);
+}
+
+.iso-solid[data-lit] > .iso-fill {
+  fill: var(--anatomy-face);
+}
+
+.iso-solid[data-lit] > .iso-top {
+  fill: var(--anatomy-lit-top);
+}
+
+.iso-solid[data-lit] > .iso-shade {
+  fill: var(--anatomy-lit-shade);
+}
+
+.iso-solid[data-lit] > .iso-edge {
+  stroke: var(--anatomy-lit);
+}
+
+/* ---------- Lines ---------- */
+.iso-line {
+  fill: none;
+  stroke: var(--anatomy-lo);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: var(--anatomy-weight);
+}
+
+.iso-line[data-tone='hi'] {
+  stroke: var(--anatomy-hi);
+}
+
+.iso-line[data-tone='mid'] {
+  stroke: var(--anatomy-mid);
+}
+
+.iso-line[data-tone='lo'] {
+  stroke: var(--anatomy-lo);
+}
+
+.iso-line[data-tone='faint'] {
+  stroke: var(--anatomy-faint);
+}
+
+.iso-line[data-tone='lit'] {
+  stroke: var(--anatomy-lit);
+}
+
+.iso-line[data-tone='paper'] {
+  stroke: var(--anatomy-paper);
+}
+
+.iso-mark[data-tone='mid'] {
+  fill: var(--anatomy-mid);
+  opacity: 0.82;
+  stroke: none;
+}
+
+.iso-mark[data-tone='lit'] {
+  fill: var(--anatomy-lit);
+  opacity: 0.88;
+  stroke: none;
+}
+
+.iso-shadow {
+  fill: #1a2438;
+  filter: blur(2.4px);
+  opacity: 0.16;
+  stroke: none;
+}
+
+.iso-dots circle {
+  fill: var(--anatomy-dot);
+  stroke: none;
+}
+
+.iso-dots[data-tone='hi'] circle {
+  opacity: 0.85;
+}
+
+.iso-dots[data-tone='mid'] circle {
+  opacity: 0.45;
+}
+
+.iso-dots[data-tone='lo'] circle {
+  opacity: 0.22;
+}
+
+/* ---------- Panel controls ---------- */
+.par-line-stations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.par-line-station {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  padding: 5px 12px;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.par-line-station:hover {
+  background: var(--primary-subtle);
+  border-color: color-mix(in srgb, var(--primary) 34%, transparent);
+  color: var(--text-primary);
+}
+
+.par-line-station:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.par-line-readout {
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 14px;
+}
+
+.par-line-status {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 4px 14px;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.par-line-number {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.par-line-caption {
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 0;
+  min-height: 3.9em;
+}
+
+.sr-only {
+  border: 0;
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}

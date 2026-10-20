@@ -1,19 +1,29 @@
 import type {
   Account,
   AcknowledgementResponse,
+  AdminAuditListQuery,
+  AdminAuditListResponse,
   AdminUser,
   AdminUserListQuery,
   AdminUserListResponse,
   AttachmentUrlResponse,
+  AuditEventDetail,
   AuthConfig,
   ChangePasswordInput,
   ConfirmAttachmentInput,
   ConfirmAttachmentResponse,
+  DecisionNoteInput,
   ForgotPasswordInput,
   InboxResponse,
   LoginInput,
   LoginResult,
   MonitoringExportRequest,
+  MonitoringImportResponse,
+  MonitoringPreviewResponse,
+  NotificationListQuery,
+  NotificationListResponse,
+  NotificationReadAllResponse,
+  NotificationReadResponse,
   PresignRequest,
   PresignResponse,
   ReferenceEntityKey,
@@ -24,19 +34,28 @@ import type {
   ReportListResponse,
   ReportPdfResponse,
   ReportValidationResponse,
+  RepositoryQuery,
+  RepositorySearchResponse,
+  QueueListQuery,
+  QueueListResponse,
   ReferenceInputMap,
   ReferenceItemMap,
   ReferenceListResponse,
   RegisterInput,
   ResendVerificationInput,
   ResetPasswordInput,
+  ReturnReportInput,
   Role,
+  SignatureState,
+  SignatureUploadInput,
+  SignatureUrl,
   SubmitReportResponse,
+  UnreadNotificationCount,
   UpdateProfileInput,
   VerifyEmailInput,
 } from '@par/shared';
 
-import { apiFetch } from './http';
+import { apiDownload, apiFetch, apiUpload } from './http';
 
 /** Drops empty filters so the URL only carries what the user chose. */
 function queryString<T extends object>(query: T): string {
@@ -44,6 +63,11 @@ function queryString<T extends object>(query: T): string {
 
   for (const [key, value] of Object.entries(query)) {
     if (value === undefined || value === '') continue;
+    if (Array.isArray(value)) {
+      if (value.length === 0) continue;
+      params.set(key, value.join(','));
+      continue;
+    }
     params.set(key, String(value));
   }
 
@@ -77,6 +101,22 @@ export const api = {
   },
   inbox: {
     get: () => apiFetch<InboxResponse>('/me/inbox'),
+  },
+  /**
+   * The signed-in account's own inbox (UI spec §7.13). Never carries a user id:
+   * the server reads the recipient from the session.
+   */
+  notifications: {
+    list: (query: NotificationListQuery) => {
+      const search = queryString(query);
+      return apiFetch<NotificationListResponse>(`/me/notifications${search ? `?${search}` : ''}`);
+    },
+    unreadCount: () => apiFetch<UnreadNotificationCount>('/me/notifications/unread-count'),
+    /** Marks one row read; the response carries the fresh count for the bell. */
+    markRead: (id: string) =>
+      apiFetch<NotificationReadResponse>(`/me/notifications/${id}/read`, { method: 'POST' }),
+    markAllRead: () =>
+      apiFetch<NotificationReadAllResponse>('/me/notifications/read-all', { method: 'POST' }),
   },
   reports: {
     /** My reports, already scoped by the server to what the caller may see (§7.4). */
@@ -157,6 +197,60 @@ export const api = {
       apiFetch<Account>('/me', { method: 'PATCH', body: JSON.stringify(input) }),
     changePassword: (input: ChangePasswordInput) =>
       apiFetch<void>('/me/password', { method: 'POST', body: JSON.stringify(input) }),
+    /** Approver signature image; the returned state is what the approval gate reads. */
+    saveSignature: (input: SignatureUploadInput) =>
+      apiFetch<SignatureState>('/me/signature', { method: 'PUT', body: JSON.stringify(input) }),
+    removeSignature: () => apiFetch<SignatureState>('/me/signature', { method: 'DELETE' }),
+    /** Short-lived preview URL; the stored object key never reaches the page. */
+    signatureUrl: () => apiFetch<SignatureUrl>('/me/signature/url'),
+  },
+  /**
+   * Repository search (UI spec §7.11). Role-gated server-side to Reviewer,
+   * Approver, and Admin, and scoped to reports the caller may see.
+   */
+  search: {
+    repository: (query: RepositoryQuery) => {
+      const search = queryString(query);
+      return apiFetch<RepositorySearchResponse>(`/search${search ? `?${search}` : ''}`);
+    },
+  },
+  /** The two decision queues (UI spec §7.9). Role-gated server-side. */
+  queues: {
+    review: (query: QueueListQuery) => {
+      const search = queryString(query);
+      return apiFetch<QueueListResponse>(`/review/queue${search ? `?${search}` : ''}`);
+    },
+    approval: (query: QueueListQuery) => {
+      const search = queryString(query);
+      return apiFetch<QueueListResponse>(`/approval/queue${search ? `?${search}` : ''}`);
+    },
+  },
+  /**
+   * Decisions (project spec §7.3). Each returns the report as it now stands, so
+   * the UI updates the badge, the stepper, and the history from the response
+   * instead of assuming the transition.
+   */
+  decisions: {
+    endorse: (id: string, input: DecisionNoteInput) =>
+      apiFetch<ReportDetail>(`/reports/${id}/endorse`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    approve: (id: string, input: DecisionNoteInput) =>
+      apiFetch<ReportDetail>(`/reports/${id}/approve`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    return: (id: string, input: ReturnReportInput) =>
+      apiFetch<ReportDetail>(`/reports/${id}/return`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    returnForRevision: (id: string, input: ReturnReportInput) =>
+      apiFetch<ReportDetail>(`/reports/${id}/return-for-revision`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
   },
   admin: {
     users: {
@@ -195,12 +289,38 @@ export const api = {
       activate: <E extends ReferenceEntityKey>(entity: E, id: string) =>
         apiFetch<ReferenceItemMap[E]>(`/ref/${entity}/${id}/activate`, { method: 'POST' }),
     },
+    audit: {
+      list: (query: AdminAuditListQuery = { page: 1, limit: 50 }) => {
+        const search = queryString(query);
+        return apiFetch<AdminAuditListResponse>(`/audit${search ? `?${search}` : ''}`);
+      },
+      get: (id: string) => apiFetch<AuditEventDetail>(`/audit/${id}`),
+    },
   },
   exports: {
+    preview: (query: MonitoringExportRequest) => {
+      const params = new URLSearchParams({
+        type: query.type,
+        schoolYear: query.schoolYear,
+        semester: String(query.semester),
+        includeInProgress: String(query.includeInProgress),
+      });
+      return apiFetch<MonitoringPreviewResponse>(`/exports/monitoring/preview?${params}`);
+    },
     monitoring: (input: MonitoringExportRequest) =>
-      apiFetch<ArrayBuffer>('/exports/monitoring', {
+      apiDownload('/exports/monitoring', {
         method: 'POST',
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify(input),
       }),
+    template: () => apiDownload('/exports/monitoring/template'),
+  },
+  /** Admin-only migration path for an existing monitoring workbook. */
+  imports: {
+    monitoring: (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiUpload<MonitoringImportResponse>('/imports/monitoring', form);
+    },
   },
 };

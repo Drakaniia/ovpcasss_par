@@ -12,12 +12,18 @@
     title,
     subtitle,
     onclose,
+    beforeClose,
     children,
   }: {
     open?: boolean;
     title: string;
     subtitle?: string;
     onclose?: () => void;
+    /**
+     * Veto for a close the user did not mean to confirm; phase 09 uses it to ask
+     * before discarding a comment draft. Returning false keeps the drawer open.
+     */
+    beforeClose?: () => boolean;
     children: Snippet;
   } = $props();
 
@@ -31,6 +37,12 @@
     if (!open && dialog.open) dialog.close();
   });
 
+  /** Escape, the ×, the overlay, and Cancel all leave through here. */
+  function requestClose() {
+    if (beforeClose && !beforeClose()) return;
+    close();
+  }
+
   function close() {
     open = false;
     onclose?.();
@@ -43,7 +55,11 @@
   aria-labelledby={titleId}
   oncancel={(event) => {
     event.preventDefault();
-    close();
+    requestClose();
+  }}
+  onclick={(event) => {
+    // A modal click on the backdrop targets the dialog element itself.
+    if (event.target === event.currentTarget) requestClose();
   }}
 >
   <header class="drawer-head">
@@ -53,7 +69,7 @@
         <p class="drawer-subtitle">{subtitle}</p>
       {/if}
     </div>
-    <button class="drawer-close" type="button" aria-label="Close" onclick={close}>
+    <button class="drawer-close" type="button" aria-label="Close" onclick={requestClose}>
       <X size={18} aria-hidden="true" />
     </button>
   </header>

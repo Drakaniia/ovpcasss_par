@@ -1,9 +1,14 @@
-import type { FilePicker } from '../contracts';
+import { invoke } from '@tauri-apps/api/core';
+
+import type { FilePicker, PickedFile } from '../contracts';
 
 /**
- * Uses the Tauri dialog plugin so desktop uploads can stream from disk instead
- * of through the webview (spec §6). Implemented in M7.
+ * The native file dialog (phase 15 §2). Rust returns each file's path, size,
+ * and type, so the uploader can validate at pick time and stream the bytes
+ * from disk instead of asking the webview to hold them.
  */
 export function createFilePicker(): FilePicker {
-  throw new Error('Tauri file picker is not implemented yet (M7)');
+  return {
+    pick: () => invoke<PickedFile[]>('pick_attachments'),
+  };
 }

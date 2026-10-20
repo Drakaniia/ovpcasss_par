@@ -1,106 +1,90 @@
 /*
- * Design tokens from docs/spec/par-ui-ux-spec.md §4.
- * Components consume semantic tokens, never raw hex. Raw brand values appear
- * only here. Hex values are sampled from the seal and await the brand guide.
+ * Design tokens. Sampled from the auth-screen reference sheet: warm off-white
+ * paper, deep navy primary, gold seal accent. Light only — no dark mode.
+ * Components consume semantic tokens, never raw hex; raw brand values appear
+ * only here.
  */
 :root {
   color-scheme: light;
 
-  --brand-navy-900: #0b1733;
-  --brand-navy-800: #152452;
-  --brand-navy-700: #1e3372;
-  --brand-navy-100: #e7ebf5;
+  --brand-navy-900: #0f1a33;
+  --brand-navy-800: #1e2c52;
+  --brand-navy-700: #2c3f70;
+  --brand-navy-100: #e9edf6;
   --brand-gold-600: #b8862b;
-  --brand-gold-400: #d9ae5f;
-  --brand-gold-100: #f7efdc;
-  --brand-maroon-800: #7a1f1f;
-  --brand-maroon-100: #f5e6e6;
+  --brand-gold-400: #d3a44f;
+  --brand-gold-100: #f6efdd;
+  --brand-maroon-800: #9e2a2a;
+  --brand-maroon-100: #fbeaea;
 
-  --surface-page: #f6f7f9;
+  --surface-page: #f5f4f1;
   --surface-card: #ffffff;
-  --surface-paper: #fbf8f2;
-  --surface-auth: #fbf8f2;
-  --text-auth: #111827;
-  --surface-topbar: #0b1733;
-  --border: #dde2ea;
-  --text-primary: #111827;
-  --text-secondary: #5b6472;
-  --text-disabled: #9aa3b2;
-  --text-paper: #111827;
+  --surface-paper: #faf8f4;
+  --surface-auth: #faf8f4;
+  --text-auth: #14203c;
+  /* Auth-corner diagonal accents (login reference sheet). */
+  --auth-band: #dbe2f0;
+  --surface-topbar: #0f1a33;
+  --border: #e4e1da;
+  /* Loading placeholders. `--border` is a hairline: as a fill it sits at 1.3:1
+     and vanishes under a pulse, so skeletons get their own wash and sheen. */
+  --skeleton-base: #d8d4cb;
+  --skeleton-rest: #e3dfd7;
+  --text-primary: #14203c;
+  --text-secondary: #5b6272;
+  --text-disabled: #9aa1ad;
+  --text-paper: #14203c;
   --text-on-topbar: #ffffff;
-  --text-topbar-muted: #c9d2e5;
-  --topbar-border: #24345c;
+  --text-topbar-muted: #c8cfe0;
+  --topbar-border: #26355c;
   --topbar-hover: rgb(255 255 255 / 8%);
 
-  --primary: #152452;
-  --primary-hover: #1e3372;
+  --primary: #1e2c52;
+  --primary-hover: #2c3f70;
   --on-primary: #ffffff;
   --on-danger: #ffffff;
-  --primary-subtle: #e7ebf5;
-  --link: #152452;
-  --focus-ring: #1e3372;
-  --row-hover: #f8fafc;
-  --row-selected: #e7ebf5;
+  --primary-subtle: #e9edf6;
+  --link: #1e2c52;
+  --focus-ring: #2c3f70;
+  --row-hover: #f8f7f5;
+  --row-selected: #e9edf6;
 
-  --status-neutral-bg: #eef1f5;
-  --status-neutral-fg: #5b6472;
-  --status-info-bg: #dbeafe;
+  /* Stale queue items (UI spec §4.1); added by phase 09 for the age column. */
+  --warning-700: #92400e;
+
+  --status-neutral-bg: #eef0f3;
+  --status-neutral-fg: #5b6272;
+  --status-info-bg: #dbe7fb;
   --status-info-fg: #1d4ed8;
-  --status-danger-bg: #f5e6e6;
-  --status-danger-fg: #7a1f1f;
-  --status-gold-bg: #f7efdc;
+  --status-danger-bg: #fbeaea;
+  --status-danger-fg: #9e2a2a;
+  --status-gold-bg: #f6efdd;
   --status-gold-fg: #7a5a12;
-  --status-success-bg: #dcfce7;
-  --status-success-fg: #166534;
+  --status-success-bg: #e8f6ee;
+  --status-success-fg: #1a7a43;
 
-  --font-ui: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-ui: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-document: georgia, 'Times New Roman', serif;
   --font-mono: ui-monospace, 'Cascadia Mono', consolas, monospace;
 
+  /* Desktop window chrome (spec §6). The close reds are the system pair. */
+  --window-close-hover: #c42b1c;
+  --window-close-active: #b0261a;
+  --topbar-active: rgb(255 255 255 / 14%);
+  --titlebar-height: 44px;
+  --window-control-width: 46px;
+  --window-control-height: 32px;
+  --menu-panel-width: 240px;
+  /* 1 / webview zoom, so the titlebar keeps its drawn size at any scale. */
+  --chrome-inverse: 1;
+
   --radius-card: 6px;
+  --radius-card-lg: 14px;
   --radius-badge: 4px;
-  --shadow-card: 0 1px 2px rgb(11 23 51 / 6%);
-  --shadow-raised: 0 8px 24px rgb(11 23 51 / 16%);
-  --backdrop: rgb(11 23 51 / 45%);
-  /* Print always uses light values, whatever the screen theme. */
+  --shadow-card: 0 1px 2px rgb(15 26 51 / 6%);
+  --shadow-raised: 0 8px 24px rgb(15 26 51 / 16%);
+  --backdrop: rgb(15 26 51 / 45%);
+  /* Print always uses light values. */
   --print-surface: #ffffff;
-  --print-text: #111827;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-
-    --surface-page: #0b1220;
-    --surface-card: #111a2e;
-    --surface-auth: #0b1220;
-    --text-auth: #e6eaf2;
-    --border: #24304a;
-    --text-primary: #e6eaf2;
-    --text-secondary: #a7b0c2;
-    --text-disabled: #6b7688;
-
-    --primary: #6c8ae4;
-    --primary-hover: #8aa4ee;
-    --on-primary: #0b1220;
-    --primary-subtle: #1b2a46;
-    --link: #8aa4ee;
-    --focus-ring: #8aa4ee;
-    --row-hover: #16213a;
-    --row-selected: #1b2a46;
-
-    --status-neutral-bg: #1e2738;
-    --status-neutral-fg: #c3cad8;
-    --status-info-bg: #17294d;
-    --status-info-fg: #9bb8ff;
-    --status-danger-bg: #3a1d22;
-    --status-danger-fg: #f0a8ad;
-    --status-gold-bg: #33280f;
-    --status-gold-fg: #e8c27a;
-    --status-success-bg: #12301f;
-    --status-success-fg: #86d9a4;
-
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 40%);
-    --shadow-raised: 0 8px 24px rgb(0 0 0 / 55%);
-  }
+  --print-text: #14203c;
 }

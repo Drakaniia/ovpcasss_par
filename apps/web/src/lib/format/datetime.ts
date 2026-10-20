@@ -1,4 +1,4 @@
-const TIME_ZONE = 'Asia/Manila';
+export const TIME_ZONE = 'Asia/Manila';
 
 /** Tables use `20 Mar 2026`; prose uses `20 March 2026, 9:00 AM` (UI spec §11). */
 const tableDateFormatter = new Intl.DateTimeFormat('en-GB', {
@@ -51,6 +51,12 @@ export function formatDateTime(isoString: string): string {
   return `${proseDateFormatter.format(date)}, ${proseTimeFormatter.format(date)}`;
 }
 
+export function formatLongDate(isoString: string): string {
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return '';
+  return proseDateFormatter.format(date);
+}
+
 /** 24-hour clock in Asia/Manila; used by the wizard's autosave status. */
 export function formatTime(isoString: string): string {
   return clockFormatter.format(new Date(isoString));
@@ -71,20 +77,14 @@ export function parseTypedDate(text: string): string | null {
   if (month === -1) return null;
 
   const date = new Date(Date.UTC(year, month, day));
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month ||
-    date.getUTCDate() !== day
-  ) {
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month || date.getUTCDate() !== day) {
     return null;
   }
 
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-function tableDateParts(
-  isoString: string,
-): { day: string; month: string; year: string } | null {
+function tableDateParts(isoString: string): { day: string; month: string; year: string } | null {
   const date = new Date(isoString);
   if (Number.isNaN(date.getTime())) return null;
 

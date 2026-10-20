@@ -1,5 +1,5 @@
 <div class="document-layout" aria-busy="true">
-  <span class="sr-only">Loading</span>
+  <span class="sr-only" role="status">Loading the report</span>
   <div class="paper" aria-hidden="true">
     <div class="skeleton line heading"></div>
     <div class="skeleton line subheading"></div>
@@ -49,7 +49,6 @@
   }
 
   .line {
-    background: color-mix(in srgb, var(--text-paper) 12%, transparent);
     height: 12px;
   }
 
@@ -78,7 +77,6 @@
   }
 
   .block {
-    background: var(--border);
     border-radius: var(--radius-card);
     height: 120px;
   }

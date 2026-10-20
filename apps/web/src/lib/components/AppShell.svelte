@@ -1,13 +1,38 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
 
-  import AppHeader from '$lib/components/AppHeader.svelte';
-  import SectionTabs from '$lib/components/SectionTabs.svelte';
+  import CommandPalette from '$lib/components/CommandPalette.svelte';
+  import ShortcutHelpDialog from '$lib/components/ShortcutHelpDialog.svelte';
+  import { installAccelerators } from '$lib/features/window-chrome/application/accelerators';
+  import { registerBuiltinCommands } from '$lib/features/window-chrome/application/builtin-commands';
+  import { chromeState } from '$lib/features/window-chrome/application/chrome-store.svelte';
+  import AboutDialog from '$lib/features/window-chrome/presentation/AboutDialog.svelte';
+  import CloseGuardDialog from '$lib/features/window-chrome/presentation/CloseGuardDialog.svelte';
+  import NavigationRow from '$lib/features/window-chrome/presentation/NavigationRow.svelte';
+  import TitleBar from '$lib/features/window-chrome/presentation/TitleBar.svelte';
+  import ZoomIndicator from '$lib/features/window-chrome/presentation/ZoomIndicator.svelte';
   import { canSearchRepository } from '$lib/navigation/navigation';
   import { session } from '$lib/session/session.svelte';
   import { focusSearchField, installGlobalShortcuts } from '$lib/shortcuts/keyboard';
 
   let { children } = $props();
+
+  /** Only one global tool is open at a time: opening one closes the other (phase 12 §5). */
+  let helpOpen = $state(false);
+  let paletteOpen = $state(false);
+
+  onMount(() => {
+    // The window itself is wired once in the root layout; this route-level part
+    // is the command set and its keyboard path.
+    const disposeCommands = registerBuiltinCommands();
+    const stopAccelerators = installAccelerators({ controllable: () => chromeState.controllable });
+
+    return () => {
+      stopAccelerators();
+      disposeCommands();
+    };
+  });
 
   $effect(() =>
     installGlobalShortcuts({
@@ -20,6 +45,25 @@
       palette: () => window.dispatchEvent(new CustomEvent('par:palette')),
     }),
   );
+
+  $effect(() => {
+    const openHelp = () => {
+      paletteOpen = false;
+      helpOpen = true;
+    };
+    const openPalette = () => {
+      helpOpen = false;
+      paletteOpen = true;
+    };
+
+    window.addEventListener('par:shortcuts', openHelp);
+    window.addEventListener('par:palette', openPalette);
+
+    return () => {
+      window.removeEventListener('par:shortcuts', openHelp);
+      window.removeEventListener('par:palette', openPalette);
+    };
+  });
 </script>
 
 <a class="skip-link" href="#content">Skip to content</a>
@@ -27,11 +71,17 @@
 <div class="foundation-notice">This system is designed for screens 1024 px and wider.</div>
 
 <div class="app-shell">
-  <AppHeader />
-  <SectionTabs />
+  <TitleBar />
+  <NavigationRow />
   <main id="content" tabindex="-1" class="page-content">
     {@render children()}
   </main>
+
+  <AboutDialog />
+  <CloseGuardDialog />
+  <ZoomIndicator />
+  <ShortcutHelpDialog bind:open={helpOpen} />
+  <CommandPalette bind:open={paletteOpen} />
 </div>
 
 <style>

@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { Check, Copy, X } from '@lucide/svelte';
+  import { Check, Copy, FolderOpen, X } from '@lucide/svelte';
 
   import { dismissToast, toasts, type ToastItem } from '$lib/toast/toast.svelte';
+
+  let { children } = $props();
 
   let copiedId = $state<number | null>(null);
 
@@ -17,6 +19,7 @@
 </script>
 
 <div class="toast-region" aria-live="polite" aria-relevant="additions">
+  {@render children?.()}
   {#each toasts as item (item.id)}
     <div class="toast toast-{item.kind}" role="status">
       <span class="toast-message">{item.message}</span>
@@ -34,6 +37,19 @@
             <Copy size={14} aria-hidden="true" />
             Copy
           {/if}
+        </button>
+      {/if}
+      {#if item.actionLabel}
+        <button
+          class="toast-action"
+          type="button"
+          onclick={() => {
+            item.runAction?.();
+            dismissToast(item.id);
+          }}
+        >
+          <FolderOpen size={14} aria-hidden="true" />
+          {item.actionLabel}
         </button>
       {/if}
       <button
@@ -79,7 +95,24 @@
     white-space: nowrap;
   }
 
-  .copy:hover {
+  .toast-action {
+    align-items: center;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    display: inline-flex;
+    flex: none;
+    font-size: 11px;
+    font-weight: 600;
+    gap: 4px;
+    height: 24px;
+    padding: 0 6px;
+    white-space: nowrap;
+  }
+
+  .copy:hover,
+  .toast-action:hover {
     background: var(--surface-page);
     color: var(--text-primary);
   }

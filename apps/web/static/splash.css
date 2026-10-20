@@ -1,0 +1,140 @@
+/*
+ * Startup splash (docs/spec/startup-splash-spec.md §6).
+ *
+ * This page is copied verbatim into the desktop bundle, so it cannot import
+ * the app stylesheet. The five values below mirror
+ * apps/web/src/lib/styles/tokens.css — keep them in sync.
+ */
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 100 900;
+  /* swap: a missing or slow font never delays the first frame. */
+  font-display: swap;
+  src: url('/fonts/montserrat-latin.woff2') format('woff2');
+}
+
+:root {
+  --surface-paper: #faf8f4; /* --surface-paper */
+  --text-primary: #14203c; /* --text-primary */
+  --brand-navy-700: #2c3f70; /* --brand-navy-700 */
+  --brand-navy-100: #e9edf6; /* --brand-navy-100 */
+  --font-ui: 'Montserrat', system-ui, 'Segoe UI', sans-serif; /* --font-ui */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--surface-paper);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  /* The dissolve runs on the whole page; 140 ms matches the Rust handoff. */
+  transition: opacity 140ms ease-out;
+}
+
+html.is-leaving body {
+  opacity: 0;
+}
+
+.splash {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  height: 100%;
+  padding: 0 32px;
+}
+
+.splash-logo {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+}
+
+.splash-wordmark {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.splash-track {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  width: 356px;
+  height: 2px;
+  transform: translateX(-50%);
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--brand-navy-100);
+}
+
+.splash-sweep {
+  display: block;
+  width: 30%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-navy-700);
+  animation: splash-sweep 1.15s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+/* Settle once on entry; the sweep carries the wait from there. */
+.splash-logo,
+.splash-wordmark {
+  animation: splash-settle 280ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+}
+
+@keyframes splash-settle {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* The segment is 30% of the track, so 333% carries it fully past the right edge. */
+@keyframes splash-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(333%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
+
+  .splash-logo,
+  .splash-wordmark {
+    animation: none;
+  }
+
+  /* Parked a quarter of the way along the track. */
+  .splash-sweep {
+    animation: none;
+    transform: translateX(83%);
+  }
+}

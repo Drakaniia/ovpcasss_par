@@ -18,8 +18,10 @@ export default defineConfig({
   server: {
     port: 5173,
     // Web users hit the API on the same origin in production (spec §7.1).
+    // changeOrigin must stay false: the Worker's CSRF guard compares the Origin
+    // header to Host, so rewriting Host to :8787 would 403 every cookie write.
     proxy: {
-      '/api': 'http://localhost:8787',
+      '/api': { target: 'http://localhost:8787', changeOrigin: false },
     },
   },
 });

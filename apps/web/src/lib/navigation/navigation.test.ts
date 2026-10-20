@@ -15,8 +15,8 @@ describe('navItemsFor', () => {
     expect(labels('APPROVER')).toEqual(['Home', 'Reports', 'Queues', 'Repository']);
   });
 
-  it('does not give admin queues or review capability', () => {
-    expect(labels('ADMIN')).toEqual(['Home', 'Reports', 'Repository', 'Admin']);
+  it('gives admin every destination, including the queues', () => {
+    expect(labels('ADMIN')).toEqual(['Home', 'Reports', 'Queues', 'Repository', 'Admin']);
   });
 
   it('renders no destinations when signed out', () => {
@@ -48,7 +48,10 @@ describe('sectionTabsFor', () => {
   it('filters queue tabs by role', () => {
     expect(sectionTabsFor('queues', 'REVIEWER').map((tab) => tab.label)).toEqual(['Review']);
     expect(sectionTabsFor('queues', 'APPROVER').map((tab) => tab.label)).toEqual(['Approval']);
-    expect(sectionTabsFor('queues', 'ADMIN')).toEqual([]);
+    expect(sectionTabsFor('queues', 'ADMIN').map((tab) => tab.label)).toEqual([
+      'Review',
+      'Approval',
+    ]);
   });
 
   it('shows repository and admin tabs', () => {
@@ -56,7 +59,12 @@ describe('sectionTabsFor', () => {
       'Search',
       'Exports',
     ]);
-    expect(sectionTabsFor('admin', 'ADMIN')).toHaveLength(3);
+    expect(sectionTabsFor('admin', 'ADMIN').map((tab) => tab.label)).toEqual([
+      'Users',
+      'Reference data',
+      'Import workbook',
+      'Audit',
+    ]);
   });
 });
 

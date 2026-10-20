@@ -151,6 +151,48 @@
     color: var(--text-disabled);
   }
 
+  /*
+   * Native dropdown trigger (phase 00). The popup list itself is the platform's,
+   * but the control matches the editable dropdown: same chevron drawn from
+   * `currentColor`, same hover edge, same focus ring on top of the base outline.
+   */
+  .select {
+    appearance: none;
+    background-image:
+      linear-gradient(45deg, transparent 50%, currentColor 50%),
+      linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position:
+      calc(100% - 15px) 52%,
+      calc(100% - 10px) 52%;
+    background-repeat: no-repeat;
+    background-size:
+      5px 5px,
+      5px 5px;
+    cursor: pointer;
+    padding-right: 30px;
+    transition:
+      border-color 120ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .select:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--text-primary) 22%, var(--border));
+  }
+
+  .select:focus-visible {
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 16%, transparent);
+  }
+
+  .select:disabled {
+    cursor: not-allowed;
+  }
+
+  .select option {
+    background: var(--surface-card);
+    color: var(--text-primary);
+  }
+
   .field-hint {
     color: var(--text-secondary);
     font-size: 12px;
@@ -277,15 +319,24 @@
     padding: 3px 5px;
   }
 
+  /* One loading placeholder for the whole app. Motion is a slow breath in the
+     fill colour, not an opacity fade: a fade let the block dissolve, and a
+     gradient sheen made each bar's highlight depend on its own width. */
   .skeleton {
-    animation: skeleton-pulse 1.4s ease-in-out infinite;
-    background: var(--border);
-    border-radius: 4px;
+    animation: skeleton-breath 1.8s ease-in-out infinite;
+    background-color: var(--skeleton-base);
+    border-radius: var(--radius-badge);
   }
 
-  @keyframes skeleton-pulse {
+  @keyframes skeleton-breath {
     50% {
-      opacity: 0.45;
+      background-color: var(--skeleton-rest);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton {
+      animation: none;
     }
   }
 
@@ -293,12 +344,14 @@
     background: var(--backdrop);
   }
 
+  /* Tailwind's preflight resets the UA `margin: auto`, so centre dialogs explicitly. */
   .dialog {
     background: var(--surface-card);
     border: 0;
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-raised);
     color: var(--text-primary);
+    margin: auto;
     max-width: 440px;
     padding: 24px;
     width: calc(100vw - 48px);

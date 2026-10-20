@@ -15,6 +15,10 @@
     top: 24px;
   }
 
+  html.desktop-shell .facsimile-rail {
+    scrollbar-gutter: auto;
+  }
+
   .rail-section {
     background: var(--surface-card);
     border: 1px solid var(--border);
@@ -50,7 +54,6 @@
   body:has(.print-preview) .page-content {
     max-width: none;
   }
-
 }
 
 /* The preview sheet is the paper: the document fills it instead of sitting
@@ -131,7 +134,8 @@
   }
 
   /* 11 pt is the print document size; the scoped component rules are `!important`-proof. */
-  .facsimile-document :is(dt, dd, .narrative, .comment, .signature-name, .signature-label, .signature-date, .empty) {
+  .facsimile-document
+    :is(dt, dd, .narrative, .comment, .signature-name, .signature-label, .signature-date, .empty) {
     font-size: 11pt !important;
     line-height: 1.45;
   }

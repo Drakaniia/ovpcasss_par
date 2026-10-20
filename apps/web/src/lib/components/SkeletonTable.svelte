@@ -5,7 +5,7 @@
 </script>
 
 <div class="table-scroll" aria-busy="true">
-  <span class="sr-only">Loading</span>
+  <span class="sr-only" role="status">Loading</span>
   <table class="data-table" aria-hidden="true">
     <thead>
       <tr>

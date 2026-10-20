@@ -2,6 +2,7 @@ import type { Account, Role, UserStatus } from '@par/shared';
 
 import { api } from '$lib/api/client';
 import { ApiError } from '$lib/api/http';
+import { forgetSessionToken, restoreSessionToken } from '$lib/platform/session-token';
 
 /**
  * Signed-in user. Phase 01 loads it from `GET /me`; the shell and pages only
@@ -16,6 +17,8 @@ export type SessionUser = {
   campusUnit: string | null;
   contactNumber: string | null;
   unreadNotifications?: number;
+  /** Approver signature on file; the approval drawer gates on this (phase 09). */
+  hasSignature?: boolean;
 };
 
 export const session = $state<{ user: SessionUser | null }>({ user: null });
@@ -37,6 +40,7 @@ function toSessionUser(account: Account): SessionUser {
     campusUnit: account.campusUnit ?? null,
     contactNumber: account.contactNumber ?? null,
     unreadNotifications: account.unreadNotifications,
+    hasSignature: account.hasSignature,
   };
 }
 
@@ -59,6 +63,9 @@ export function clearSession(): void {
 export async function loadSession(force = false): Promise<SessionUser | null> {
   if (loaded && !force) return session.user;
   if (inflight) return inflight;
+
+  // Desktop reads its credential-store token before the first authenticated call.
+  await restoreSessionToken();
 
   inflight = api.profile
     .get()
@@ -83,9 +90,20 @@ export async function signOut(): Promise<void> {
   try {
     await api.auth.logout();
   } catch {
-    // The cookie is cleared server-side when possible; local state clears anyway.
+    // The session is cleared server-side when possible; local state clears anyway.
   }
+  await forgetSessionToken();
   clearSession();
+}
+
+/**
+ * Moves the bell's number without reloading the account (phase 11 §3). Every
+ * read response carries the server's count, so the badge reconciles instead of
+ * guessing.
+ */
+export function setUnreadNotifications(unreadCount: number): void {
+  if (!session.user) return;
+  session.user.unreadNotifications = unreadCount;
 }
 
 export function initialsFor(fullName: string): string {
