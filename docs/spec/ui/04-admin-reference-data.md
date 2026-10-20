@@ -22,8 +22,10 @@ nothing is hardcoded once this phase ships.
 - Tables follow foundation §4.1; forms follow §4.2.
 - Deactivate is a soft delete. There is **no hard delete** in the UI: reports and
   exports reference these rows, so removal would break history.
-- Seeded rows carry a **Seeded** chip. Seeded rows can be edited and deactivated,
-  never deleted; the chip explains why.
+- Every row is the office's official list, so no entry is marked as "seeded".
+  Rows whose values came from the source workbook are edited and deactivated
+  exactly like rows added in the app; the stored `is_seeded` flag stays in the
+  data model and is never rendered.
 - Ordering uses `sort_order`. Drag handles appear only if the API supports a
   reorder operation; otherwise ordering is a numeric field in the drawer and the
   table sorts by it.
@@ -44,8 +46,8 @@ nothing is hardcoded once this phase ships.
 │  Campuses                                                [ + Add entry ]      │
 │  ┌──────────────────────────────────────────────────────────────────────┐    │
 │  │ CODE   NAME                       ENTRIES   ORDER   STATUS      ⋯     │    │
-│  │ MAIN   Main Campus                15        1       Active      [Seeded] │ │
-│  │ SAT    Satellite Campuses         0        2       Active      [Seeded] │ │
+│  │ MAIN   Main Campus                15        1       Active            │    │
+│  │ SAT    Satellite Campuses         0        2       Active            │    │
 │  └──────────────────────────────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -55,7 +57,7 @@ nothing is hardcoded once this phase ships.
   requirements**. Tabs are URL state (`?entity=units`).
 - Section header repeats the entity name and holds **+ Add entry**.
 - Table is compact: code (if the entity has one), name/title, the entity-specific
-  columns below, order, status, ⋯. Seeded chip sits next to the name.
+  columns below, order, status, ⋯. The name cell carries no origin marker.
 - Default sort: `sort_order` ascending, then name. Status filter defaults to
   Active with an "Show inactive" toggle; inactive rows are visible but muted and
   labelled, never hidden without a way to find them.
@@ -99,8 +101,8 @@ nothing is hardcoded once this phase ships.
 1. Title: "Add campus" / "Edit campus" (or "Add entry" when generic).
 2. Entity fields in a single column, labels above.
 3. Order field with helper text "Lower numbers appear first."
-4. Active toggle, default on. For a seeded row, a **Seeded** chip and a line:
-   "Seeded from the source workbook. Deactivate rather than delete."
+4. Active toggle, default on. No origin note: a row copied from the source
+   workbook and a row added here are edited the same way.
 5. Footer: **Save entry** (navy) and **Deactivate** (maroon text/outline, only for
    active rows). Cancel is a ghost action.
 
@@ -140,7 +142,7 @@ Behavior:
 - [ ] Only ADMIN can open the page; others see permission denied.
 - [ ] All eight entity tabs exist in the specified order and are URL state.
 - [ ] Each tab shows the specified columns and drawer fields.
-- [ ] Seeded rows show the Seeded chip and cannot be hard-deleted.
+- [ ] No entry carries an origin marker; no row can be hard-deleted.
 - [ ] Deactivate is the only removal action, and it confirms with consequence
       text; deactivated rows are visible via the inactive toggle and still resolve
       in existing reports.
@@ -148,8 +150,8 @@ Behavior:
       reorder.
 - [ ] Duplicate names/codes/SDG numbers warn before save and name the existing
       entry.
-- [ ] Codes are uppercase/trimmed; seeded trailing whitespace is not
-      reintroduced.
+- [ ] Codes are uppercase/trimmed; the trailing whitespace found in the source
+      workbook is not reintroduced.
 - [ ] SDG numbers are unique 1–17 and immutable after creation.
 - [ ] Terms expose the current term and block deactivating a term in use with an
       adjacent reason.

@@ -1,0 +1,103 @@
+# File uploads
+
+Owner: OVPCASSS system administrator. Scope: the attachment pipeline (spec §7.8),
+the R2 bucket behind it, and the credentials that make it work.
+
+## How an upload works
+
+1. The client asks `POST /api/v1/reports/:id/attachments/presign` for a URL. The
+   API checks access, report state, the 25 MB limit, and the extension/MIME
+   allowlist, then mints a SigV4 URL for `reports/<reportId>/<uuid>` and records a
+   `PENDING` row.
+2. The browser or the desktop shell PUTs the file **straight to R2**. The file
+   never passes through the Worker.
+3. The client calls `confirm`. The API HEADs the object, checks the stored size
+   and content type, hashes it, and marks the row `CONFIRMED`.
+4. Downloads go through `GET /reports/:id/attachments/:attachmentId/url`, which
+   returns a short-lived presigned GET. The bucket is never public.
+5. The hourly cron deletes `PENDING` rows older than 24 hours with their objects.
+
+## What the script does
+
+`pnpm provision` (or `node scripts/provision-cloud.mjs`) is a dry run; add
+`--apply` to create missing resources. It reads the names from
+`apps/api/wrangler.toml`, so renaming a bucket or queue there is enough.
+
+Automated:
+
+| Step                          | Command behind it                                  |
+| ----------------------------- | -------------------------------------------------- |
+| R2 bucket                     | `wrangler r2 bucket create par-attachments`         |
+| R2 CORS                       | `wrangler r2 bucket cors set ... --file`            |
+| Email queue + dead-letter     | `wrangler queues create par-email` / `par-email-dlq` |
+| D1 database                   | `wrangler d1 list` / `d1 create`, uuid written back |
+| `SESSION_SECRET` (generated)  | `wrangler secret put`, only when absent             |
+| `R2_ACCOUNT_ID` (detected)    | `wrangler secret put`, only when absent             |
+| `apps/api/.dev.vars` local dev | generated from `.dev.vars.example` when missing    |
+| D1 migrations (remote)        | `wrangler d1 migrations apply par-db --remote` with `--migrate` |
+
+An existing secret is never overwritten: rotating `SESSION_SECRET` signs every
+user out and needs to be a deliberate act (see `key-rotation.md`).
+
+## What only you can do
+
+These need a browser at a vendor; the script prints them at the end.
+
+1. **R2 API token.** Cloudflare dashboard → R2 → Manage API tokens → Create, with
+   Object Read & Write limited to `par-attachments`. Then:
+   ```bash
+   pnpm --filter @par/api exec wrangler secret put R2_ACCESS_KEY_ID
+   pnpm --filter @par/api exec wrangler secret put R2_SECRET_ACCESS_KEY
+   ```
+   Without these, presign answers `503 STORAGE_UNAVAILABLE` and the uploader says
+   storage is not configured.
+2. **Resend key and sending domain.** `resend.com` → API keys →
+   `wrangler secret put EMAIL_API_KEY`; verify `buksu.edu.ph` and replace the test
+   sender in `EMAIL_FROM` (spec §14 Q15).
+3. **Google OAuth client**, optional. Credentials → OAuth client (Web) with the
+   JavaScript origin and redirect URI for each environment; both values are
+   secrets, and the sign-in button stays hidden until they are set.
+4. **Production origins in `apps/api/r2-cors.json`.** The policy ships with
+   localhost, the Tauri origin, `*.workers.dev`, and `*.buksu.edu.ph`. Narrow it
+   to the real origin once the custom domain is fixed, then rerun
+   `pnpm provision --apply`.
+5. **Deploy.** Secrets and CORS are not code: nothing reaches production until
+   `pnpm --filter @par/web build && pnpm --filter @par/api exec wrangler deploy`.
+
+## Checks that prove it works
+
+```bash
+pnpm verify                                              # rules and routes
+pnpm --filter @par/api exec wrangler r2 bucket cors list par-attachments
+pnpm --filter @par/api exec wrangler secret list
+```
+
+Then, signed in, upload one PDF from the wizard, one from the desktop shell, and
+one 26 MB file (that one must be refused with the size message, not a network
+error).
+
+## Local development
+
+`wrangler dev` emulates R2 locally, and a presigned URL would address the real
+S3 endpoint, which the emulated bucket knows nothing about. So presign answers
+with `mode: "proxy"` and a same-origin URL on the Worker whenever the signing
+values are absent or still say `replace-me`; the Worker then stores the bytes in
+the emulated bucket and the whole upload works with no R2 API token. Keep real
+keys out of `.dev.vars` so this stays true.
+
+Downloads already fall back to an authenticated in-app URL on loopback, so a
+local upload can be opened again without leaving the machine.
+
+One shell-specific caveat: the desktop build streams from disk through Rust with
+a bearer token, and the proxy URL expects the session cookie, so a proxy-mode
+upload from the Tauri dev shell fails with `401`. Use the web shell locally.
+
+## Troubleshooting
+
+| Symptom                          | Cause                                                          |
+| -------------------------------- | -------------------------------------------------------------- |
+| `503 STORAGE_UNAVAILABLE`        | No longer returned for a missing token; if seen, the Worker predates the proxy fallback |
+| Upload fails immediately, no row | CORS policy missing on the bucket: rerun `pnpm provision --apply` |
+| `UPLOAD_NOT_FOUND` at confirm    | A cancelled or interrupted PUT, or presign against a bucket the Worker cannot read |
+| `UPLOAD_SIZE_MISMATCH`           | The file changed between presign and upload                    |
+| `UPLOAD_TYPE_NOT_ALLOWED`        | The stored content type is not on the allowlist                |

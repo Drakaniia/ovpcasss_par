@@ -61,13 +61,24 @@ Suggested order: 00 → 01, 02, 03 (parallel-safe) → 04 → 05 → 06 → 07, 
 | --------- | ------------------------------------------------------------------------------------------------------------------ | ----------- |
 | M0        | Tokens, `AppHeader`, `SectionTabs`, auth layout, placeholder replacement, optional dev gallery                     | 00          |
 | M1        | Auth pages, awaiting approval, inbox skeleton, profile account/password, admin users, toast/empty/error primitives | 01–03       |
-| M2        | Reference-data tabs, entry drawer, seeded chips                                                                    | 04          |
+| M2        | Reference-data tabs, entry drawer, runtime dropdowns                                                               | 04          |
 | M3        | Reports table, 4-step wizard, uploader, autosave, edit-returned, completeness checklist                            | 05–07       |
 | M4        | Facsimile (record + print), stepper, next-step strip, comments, decision drawer, signature, acknowledgement        | 08–09       |
 | M5        | Queues + master–detail, repository, notifications, audit page, shortcut help                                       | 09–13       |
 | M6        | Exports form, preview, download states                                                                             | 14          |
 | M7        | SQLite drafts, OS credential store, file dialog, print in the webview                                              | 15          |
 | M8        | Accessibility audit, 200% zoom, contrast, print fidelity                                                           | 16          |
+
+### Refinement track (after M8)
+
+[`../ui-redesign-spec.md`](../ui-redesign-spec.md) refines every screen
+00–16 onto one contained-surface system: spacing/radius/elevation/z-index tokens,
+a shared `PageHeader` and `.panel` contract, tokenised controls, and a height model
+that removes the `calc(100vh - Npx)` pattern. It is delivered as runs R0–R6 and
+does not renumber phases. Where it disagrees with a phase file on presentation,
+the phase file still wins on scope; where it disagrees on tokens or shared
+primitives, this track wins, because it supersedes the phase-00 values named in
+its §7.2.
 
 ## Non-negotiables for every run
 

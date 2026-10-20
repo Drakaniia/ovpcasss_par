@@ -1,51 +1,7 @@
 # OVPCASSS Paperless Process for Post-Activity Report (PAR)
 
 ## PAR Process
-
-1. User logs into the paperless submission system.
-2. User selects the completed activity.
-3. User fills out the electronic Post-Activity Report form.
-4. User uploads the required supporting documents and attachments.
-5. System validates the completeness of the report and attachments.
-6. If incomplete, the system returns the form to the user for completion.
-7. If complete, the user submits the report electronically.
-8. System generates a unique report reference number and records the submission date and time.
-9. System notifies the designated OVPCASSS personnel of the submitted report.
-10. Designated personnel reviews the report and supporting documents.
-11. If corrections are required, the report is returned to the user with comments.
-12. User revises and resubmits the report.
-13. Designated personnel reviews the revised report.
-14. If the report meets the requirements, it is endorsed to the authorized approving officer.
-15. Authorized approving officer reviews and approves the report electronically.
-16. If further corrections are required, the report is returned to the user for revision.
-17. System records the approval date and the name of the approving officer.
-18. System generates a digital acknowledgement or confirmation of the approved report.
-19. System stores the approved report and supporting documents in the electronic repository.
-20. Authorized personnel can search, view, and retrieve the report when needed.
-21. System maintains an audit trail of submissions, revisions, reviews, and approvals.
-22. Process ends upon the successful approval and electronic storage of the Post-Activity Report.
-
-## Off-Campus Monitoring Sheet
-
-_LOCAL OFF-CAMPUS ACTIVITIES MONITORING ______ SEMESTER, SY _________
-
-| No. | Date Received | Tracking Number | Classification of Off / In Campus Activity | Campus | College | Department | Office | Graduate / Undergraduate | Title of the Activity | SDG | Date of the Activity | Location | Total Number of Students | Total Number of PIC | Name of Personnel In-charge | PIC Email / Contact Number | Date Completed |
-| --- | ------------- | --------------- | ------------------------------------------ | ------ | ------- | ---------- | ------ | ------------------------ | --------------------- | --- | -------------------- | -------- | ------------------------ | ------------------- | --------------------------- | -------------------------- | -------------- |
-
-## Educational Tour Monitoring Sheet
-
-_LOCAL OFF-CAMPUS ACTIVITIES MONITORING ______ SEMESTER, SY _________
-
-| No. | Date Received | Tracking Number | Classification of Off / In Campus Activity | Campus | College | Department | Office | Graduate / Undergraduate | Title of the Activity | SDG | Date of the Activity | Location | Total Number of Students | Total Number of PIC | Name of Personnel In-charge | PIC Email / Contact Number | Date Completed |
-| --- | ------------- | --------------- | ------------------------------------------ | ------ | ------- | ---------- | ------ | ------------------------ | --------------------- | --- | -------------------- | -------- | ------------------------ | ------------------- | --------------------------- | -------------------------- | -------------- |
-
-## In-Campus Monitoring Sheet
-
-_IN-CAMPUS MONITORING ______ SEMESTER, SY __________
-
-| No. | Date Received | Tracking Number | Classification of Off Campus Activity | Campus | College | Department | Office | Graduate / Undergraduate | Title of the Activity | SDG | Date of the Activity | Location | Total Number of Students | Total Number of PIC | Name of Personnel In-charge | PIC Email / Contact Number | Date Completed |
-| --- | ------------- | --------------- | ------------------------------------- | ------ | ------- | ---------- | ------ | ------------------------ | --------------------- | --- | -------------------- | -------- | ------------------------ | ------------------- | --------------------------- | -------------------------- | -------------- |
-
+ 
 ## Dropdown Lists
 
 ### Campus

@@ -37,29 +37,29 @@ Delivery is a **hybrid**: one SvelteKit web app, also wrapped in **Tauri** as a 
 
 ## 2. Decisions locked in during the interview
 
-| Area               | Decision                                                                        |
-| ------------------ | ------------------------------------------------------------------------------- |
-| Frontend           | SvelteKit + TypeScript, `adapter-static` (SPA mode)                             |
-| Desktop            | Tauri, **Windows only for now**, other OSes later                               |
-| API                | Hono on Cloudflare Workers, REST, Zod validation                                |
-| Database           | Cloudflare D1 (SQLite) + Drizzle ORM                                            |
-| File storage       | Cloudflare R2 with signed URLs                                                  |
-| Auth               | University email + password, built in-app                                       |
-| Account creation   | Self-registration limited to a university email domain; admin approves the role |
-| Roles              | Submitter, Reviewer (OVPCASSS), Approver, Admin                                 |
-| Approval           | Single approver per report                                                      |
-| Approval signature | Uploaded or drawn signature image placed on the acknowledgement                 |
-| Notifications      | Email (Cloudflare Email Service or Resend, behind an interface)                 |
+| Area               | Decision                                                                                        |
+| ------------------ | ----------------------------------------------------------------------------------------------- |
+| Frontend           | SvelteKit + TypeScript, `adapter-static` (SPA mode)                                             |
+| Desktop            | Tauri, **Windows only for now**, other OSes later                                               |
+| API                | Hono on Cloudflare Workers, REST, Zod validation                                                |
+| Database           | Cloudflare D1 (SQLite) + Drizzle ORM                                                            |
+| File storage       | Cloudflare R2 with signed URLs                                                                  |
+| Auth               | University email + password, built in-app                                                       |
+| Account creation   | Self-registration limited to a university email domain; admin approves the role                 |
+| Roles              | Submitter, Reviewer (OVPCASSS), Approver, Admin                                                 |
+| Approval           | Single approver per report                                                                      |
+| Approval signature | Uploaded or drawn signature image placed on the acknowledgement                                 |
+| Notifications      | Email (Cloudflare Email Service or Resend, behind an interface)                                 |
 | Offline            | Drafts persist locally on both shells; submitting requires connectivity (no outbox queue in v1) |
-| Sync conflicts     | Drafts are local-only until submitted; server wins once submitted               |
-| Tracking number    | Per-type prefix + year + sequence, e.g. `OFF-2026-0001`                         |
-| Monitoring sheets  | System generates the three sheets as Excel exports                              |
-| Student data       | Counts only in form fields (names/IDs may still appear inside attachments)      |
-| Dropdowns          | Admin-editable at runtime, seeded from the source spreadsheet                   |
-| Attachments        | Any common file type, up to 25 MB each                                          |
-| Monorepo           | pnpm workspaces + Turborepo                                                     |
-| Environments       | Local, staging, production, plus a preview deployment per pull request          |
-| PAR form fields    | The 18 monitoring-sheet columns plus narrative and attachments                  |
+| Sync conflicts     | Drafts are local-only until submitted; server wins once submitted                               |
+| Tracking number    | Per-type prefix + year + sequence, e.g. `OFF-2026-0001`                                         |
+| Monitoring sheets  | System generates the three sheets as Excel exports                                              |
+| Student data       | Counts only in form fields (names/IDs may still appear inside attachments)                      |
+| Dropdowns          | Admin-editable at runtime, seeded from the source spreadsheet                                   |
+| Attachments        | Any common file type, up to 25 MB each                                                          |
+| Monorepo           | pnpm workspaces + Turborepo                                                                     |
+| Environments       | Local, staging, production, plus a preview deployment per pull request                          |
+| PAR form fields    | The 18 monitoring-sheet columns plus narrative and attachments                                  |
 
 ---
 
@@ -366,12 +366,12 @@ Indexes: `reports(status, type)`, `reports(owner_user_id)`, `reports(tracking_nu
 | Capability                                  | Submitter | Reviewer | Approver | Admin |
 | ------------------------------------------- | :-------: | :------: | :------: | :---: |
 | Register / sign in                          |     ✓     |    ✓     |    ✓     |   ✓   |
-| Create and edit own draft / returned report |     ✓     |          |          |       |
-| Submit / resubmit own report                |     ✓     |          |          |       |
+| Create and edit own draft / returned report |     ✓     |          |          |   ✓   |
+| Submit / resubmit own report                |     ✓     |          |          |   ✓   |
 | View own reports                            |     ✓     |    ✓     |    ✓     |   ✓   |
 | View all reports and attachments            |           |    ✓     |    ✓     |   ✓   |
-| Review, comment, return, endorse            |           |    ✓     |          |       |
-| Approve or return endorsed reports          |           |          |    ✓     |       |
+| Review, comment, return, endorse            |           |    ✓     |          |   ✓   |
+| Approve or return endorsed reports          |           |          |    ✓     |   ✓   |
 | Upload own signature image                  |           |          |    ✓     |       |
 | Export monitoring sheets                    |           |    ✓     |    ✓     |   ✓   |
 | Manage users and roles                      |           |          |          |   ✓   |
@@ -379,8 +379,11 @@ Indexes: `reports(status, type)`, `reports(owner_user_id)`, `reports(tracking_nu
 | View audit log                              |           |          |          |   ✓   |
 
 - One role per user in v1.
-- Admin does **not** implicitly review or approve; those actions need the corresponding role.
-- A user can never act on their own report as reviewer or approver.
+- Admin stands in for every role (owner decision, 2026-10-20): it may create and
+  submit reports and make reviewer and approver decisions, so a small office can
+  run the whole process with one administrator account.
+- A user can never act on their own report as reviewer or approver, whatever
+  role they hold.
 
 ---
 

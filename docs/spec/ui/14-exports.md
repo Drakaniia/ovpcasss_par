@@ -54,7 +54,7 @@ form and a live preview that shows exactly what will be downloaded.
 
 | Control                     | Behavior                                                                                                                               |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Sheet                       | Radio: Off-campus / Educational tour / In-campus. Default Off-campus. Determines sheet name, title line, tracking prefix, and columns. |
+| Sheet                       | Radio: Off-campus / Educational tour / In-campus. Default Off-campus. Determines which sheet carries the rows; the other two ship blank. |
 | Semester                    | Select from `ref_terms`; default the current term.                                                                                     |
 | School year                 | Select from `ref_terms`; default the current school year.                                                                              |
 | Include in-progress reports | Checkbox; off by default. Adds `SUBMITTED` and `ENDORSED` rows with Date Completed blank.                                              |
@@ -97,6 +97,10 @@ form and a live preview that shows exactly what will be downloaded.
 
 - **Download .xlsx** requests the workbook for the exact current selection
   (sheet type, term, include-in-progress).
+- The workbook is the office's full sheet set in source order — OFF-CAMPUS,
+  EDUCATIONAL TOUR, IN-CAMPUS. The selected sheet carries the rows; the other
+  two are the office's blank sheets for the same term, so the file filed is the
+  file the office keeps.
 - Button shows "Preparing…" and is disabled while the request runs; the label
   then returns.
 - If **Include in-progress reports** is checked, the first download after
