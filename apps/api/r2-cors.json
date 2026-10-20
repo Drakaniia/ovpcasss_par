@@ -1,0 +1,21 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": [
+          "http://localhost:5173",
+          "http://127.0.0.1:5173",
+          "http://localhost:8787",
+          "http://tauri.localhost",
+          "https://tauri.localhost",
+          "https://*.workers.dev",
+          "https://*.buksu.edu.ph"
+        ],
+        "methods": ["PUT", "GET", "HEAD"],
+        "headers": ["content-type"]
+      },
+      "exposeHeaders": ["etag"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}

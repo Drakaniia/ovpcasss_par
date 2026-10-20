@@ -5,10 +5,13 @@ compatibility_flags = ["nodejs_compat"]
 
 # Serves the apps/web build on the same origin as the API (spec §7.1).
 # SPA fallback is handled here, so the Worker never sees unmatched client routes.
+# API paths must reach the Worker first: a browser navigation (Google OAuth start,
+# downloads) sends Accept: text/html and would otherwise get the SPA fallback.
 [assets]
 directory = "../web/build"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
 
 [[d1_databases]]
 binding = "DB"
@@ -29,6 +32,20 @@ queue = "par-email"
 max_retries = 5
 dead_letter_queue = "par-email-dlq"
 
+# Cron times are UTC (18:30 UTC is 02:30 Asia/Manila). The hourly sweep removes
+# expired sessions/tokens, closed rate-limit windows, and uploads nothing
+# confirmed within 24 hours; the daily job writes the D1 export to R2
+# (spec §7.1, §7.8, §10). Keep these in step with apps/api/src/cron/scheduled.ts.
+[triggers]
+crons = ["17 * * * *", "30 18 * * *"]
+
 [vars]
-ALLOWED_EMAIL_DOMAINS = "example.edu"
+ALLOWED_EMAIL_DOMAINS = "buksu.edu.ph,student.buksu.edu.ph"
+# Addresses that skip role approval and start as an active Admin once their email
+# is verified. Keep it short; remove an entry after the account is set up.
+BOOTSTRAP_ADMIN_EMAILS = "ovpcasss@buksu.edu.ph,2401117078@student.buksu.edu.ph"
+R2_BUCKET_NAME = "par-attachments"
 EMAIL_PROVIDER = "resend"
+# Sender for outbound mail. Resend's test sender only reaches the account
+# owner; replace it with the verified sending domain before launch (spec §14 Q15).
+EMAIL_FROM = "OVPCASSS PAR <ovpcasss@buksu.edu.ph>"

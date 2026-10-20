@@ -3,4 +3,18 @@ SESSION_SECRET=replace-me
 R2_ACCOUNT_ID=replace-me
 R2_ACCESS_KEY_ID=replace-me
 R2_SECRET_ACCESS_KEY=replace-me
+# Resend API key; EMAIL_PROVIDER in wrangler.toml selects the adapter (spec §7.9).
+# Set EMAIL_PROVIDER=console in .dev.vars to print outbound mail (including
+# verification links) to the `wrangler dev` console instead of sending it.
 EMAIL_API_KEY=replace-me
+# Verified sender. Resend's onboarding@resend.dev only delivers to the account
+# owner's own address, so use it for local tests and the domain address for real.
+EMAIL_FROM="OVPCASSS PAR <onboarding@resend.dev>"
+# Bootstrap admins live in wrangler.toml [vars] (BOOTSTRAP_ADMIN_EMAILS); list one
+# address per line here only to override them locally.
+# BOOTSTRAP_ADMIN_EMAILS="ovpcasss@buksu.edu.ph"
+# Google OAuth client (optional; the login button appears when both are set).
+# In the Google console use JavaScript origin http://localhost:5173 and
+# redirect URI http://localhost:5173/api/v1/auth/google/callback.
+GOOGLE_CLIENT_ID=replace-me
+GOOGLE_CLIENT_SECRET=replace-me
