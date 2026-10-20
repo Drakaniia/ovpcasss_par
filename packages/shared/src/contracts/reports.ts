@@ -40,6 +40,11 @@ export type ReportDraftForm = Partial<ReportFormInput>;
 export interface ReportDraft {
   /** Local id, available the moment the wizard opens. */
   id: string;
+  /**
+   * Account this device copy belongs to. A device draft is never listed for
+   * another account, even on a shared computer.
+   */
+  ownerUserId?: string;
   /** Server draft id, set once the API has persisted the draft. */
   serverId?: string;
   version: number;
@@ -48,11 +53,6 @@ export interface ReportDraft {
   step?: number;
   form: ReportDraftForm;
 }
-
-export const returnReportSchema = z.object({
-  comments: z.string().min(1).max(4000),
-});
-export type ReturnReportInput = z.infer<typeof returnReportSchema>;
 
 /* ---------- My reports list (UI spec §7.4) ---------- */
 
@@ -77,6 +77,16 @@ const pageSizeSchema = z.union([
 ]);
 
 /**
+ * Query strings reach the Worker as text (`?size=25`), so the page size is
+ * coerced before the allowed values are checked. Responses keep the strict
+ * number schema above.
+ */
+const pageSizeQuerySchema = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() !== '' ? Number(value) : value),
+  pageSizeSchema,
+);
+
+/**
  * Filters, tab, sort, and paging live in the URL (`?tab=all&type=OFF_CAMPUS`),
  * so a shared view reproduces exactly what the sender saw.
  */
@@ -85,13 +95,19 @@ export const reportListQuerySchema = z.object({
   type: z.enum(REPORT_TYPES).optional(),
   campus: idSchema.optional(),
   term: idSchema.optional(),
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  from: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  to: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   q: z.string().trim().max(120).optional(),
   sort: z.enum(REPORT_SORT_FIELDS).default('updated'),
   dir: z.enum(SORT_DIRECTIONS).default('desc'),
   page: z.coerce.number().int().min(1).default(1),
-  size: pageSizeSchema.default(REPORT_PAGE_SIZES[0]),
+  size: pageSizeQuerySchema.default(REPORT_PAGE_SIZES[0]),
 });
 export type ReportListQuery = z.infer<typeof reportListQuerySchema>;
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   acknowledgementResponseSchema,
   reportDetailSchema,
+  reportListQuerySchema,
   reportPdfResponseSchema,
 } from './reports';
 
@@ -88,12 +89,31 @@ describe('reportDetailSchema', () => {
   });
 });
 
+describe('reportListQuerySchema', () => {
+  it('reads the page size from the query string the page sends', () => {
+    const parsed = reportListQuerySchema.parse({ size: '50', page: '2' });
+
+    expect(parsed.size).toBe(50);
+    expect(parsed.page).toBe(2);
+  });
+
+  it('defaults the page size when the query omits it', () => {
+    expect(reportListQuerySchema.parse({}).size).toBe(25);
+  });
+
+  it('rejects a page size the table cannot show', () => {
+    expect(reportListQuerySchema.safeParse({ size: '30' }).success).toBe(false);
+  });
+});
+
 describe('reportPdfResponseSchema', () => {
   it('carries one of the three watermark values', () => {
-    expect(reportPdfResponseSchema.parse({ url: 'https://signed', watermark: 'NOT_APPROVED' }))
-      .toMatchObject({ watermark: 'NOT_APPROVED' });
-    expect(reportPdfResponseSchema.safeParse({ url: 'https://signed', watermark: 'DRAFTED' }).success)
-      .toBe(false);
+    expect(
+      reportPdfResponseSchema.parse({ url: 'https://signed', watermark: 'NOT_APPROVED' }),
+    ).toMatchObject({ watermark: 'NOT_APPROVED' });
+    expect(
+      reportPdfResponseSchema.safeParse({ url: 'https://signed', watermark: 'DRAFTED' }).success,
+    ).toBe(false);
   });
 });
 

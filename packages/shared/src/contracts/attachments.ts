@@ -27,11 +27,20 @@ export const attachmentSchema = z.object({
 });
 export type Attachment = z.infer<typeof attachmentSchema>;
 
+/**
+ * Where to send the bytes. `presigned` is a direct R2 PUT (spec §7.8); `proxy`
+ * is the API itself, used when object-storage signing is not configured (local
+ * `wrangler dev`), where the file takes the same route but through the Worker.
+ */
+export const PRESIGN_MODES = ['presigned', 'proxy'] as const;
+export type PresignMode = (typeof PRESIGN_MODES)[number];
+
 /** Presigned direct-to-R2 upload; the client PUTs the file to `uploadUrl`. */
 export const presignResponseSchema = z.object({
   attachmentId: idSchema,
   uploadUrl: z.string().min(1),
   method: z.string().default('PUT'),
+  mode: z.enum(PRESIGN_MODES).default('presigned'),
   headers: z.record(z.string(), z.string()).optional(),
 });
 export type PresignResponse = z.infer<typeof presignResponseSchema>;
