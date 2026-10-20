@@ -15,7 +15,7 @@ pnpm --filter @par/web --filter @par/api dev        # browser work: web :5173 ->
 pnpm --filter @par/desktop dev                      # desktop; its beforeDevCommand starts web+api
 pnpm build                                          # every package, Tauri included (Windows only)
 pnpm turbo run build --filter=!@par/desktop         # the build CI runs
-pnpm verify                                         # check:structure -> lint -> typecheck -> test
+pnpm verify                                         # lint -> typecheck -> test
 pnpm --filter @par/web exec vitest run <path>       # one test file, no full turbo pass
 pnpm db:generate                                    # drizzle-kit generate into packages/db/migrations
 pnpm db:migrate                                     # wrangler d1 migrations apply --local

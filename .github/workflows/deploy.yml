@@ -85,7 +85,9 @@ jobs:
 
       # Migrations before the Worker that needs them (spec §12).
       - name: Apply D1 migrations
-        run: pnpm --filter @par/db exec wrangler d1 migrations apply par-db --remote
+        run: >-
+          pnpm --filter @par/db exec wrangler d1 migrations apply par-db --remote
+          --config ../../apps/api/wrangler.toml
 
       - name: Deploy Worker
         run: pnpm --filter @par/api exec wrangler deploy

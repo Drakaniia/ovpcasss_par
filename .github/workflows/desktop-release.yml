@@ -69,6 +69,12 @@ jobs:
           "VERSION_CONFIG=$conf" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8NoBOM
           Write-Host "Stamping app version $version (from tag $tag)"
 
+      # Icons are gitignored, so a fresh checkout has none; the Windows bundlers
+      # (MSI in particular) refuse to build without the generated .ico.
+      - name: Generate icons
+        working-directory: apps/desktop
+        run: pnpm exec tauri icon ../../apps/web/static/brand/ovpcasss-logo.png --fit contain
+
       - name: Build, sign, and publish
         uses: tauri-apps/tauri-action@v0
         env:

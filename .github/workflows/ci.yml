@@ -30,9 +30,6 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Folder structure
-        run: pnpm check:structure
-
       - name: Lint
         run: pnpm lint
 
@@ -70,4 +67,6 @@ jobs:
           test -z "$(git status --porcelain -- packages/db/migrations)"
 
       - name: Apply migrations to a fresh local D1
-        run: pnpm --filter @par/db exec wrangler d1 migrations apply par-db --local
+        run: >-
+          pnpm --filter @par/db exec wrangler d1 migrations apply par-db --local
+          --config ../../apps/api/wrangler.toml

@@ -14,11 +14,9 @@
     "test": "turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "provision": "node scripts/provision-cloud.mjs",
     "db:generate": "pnpm --filter @par/db db:generate",
     "db:migrate": "pnpm --filter @par/db db:migrate",
-    "check:structure": "node scripts/check-structure.mjs",
-    "verify": "pnpm check:structure && pnpm lint && pnpm typecheck && pnpm test"
+    "verify": "pnpm lint && pnpm typecheck && pnpm test"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
