@@ -1,0 +1,86 @@
+name: Desktop release
+
+# The updater endpoint points at `releases/latest/download/latest.json`, so a
+# published release is immediately the update every desktop install sees.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CI: 'true'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify
+        run: pnpm verify
+
+      # The tag is the release identity, so it is also the app version. Without
+      # this, the committed 0.0.0 names the installers and fills latest.json,
+      # and the updater compares a new release against 0.0.0 forever.
+      # `--config` merges deeply, so this also turns on updater artifacts only
+      # in CI: a local build needs no signing key.
+      - name: Derive app version from tag
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag -replace '^v', ''
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Tag '$tag' is not a plain vX.Y.Z version. The Windows bundlers require major.minor.build, and the updater compares this against latest.json."
+          }
+          # Forward slashes only: tauri-action parses args with string-argv,
+          # which would swallow backslashes as escape characters.
+          $conf = (Join-Path $env:RUNNER_TEMP 'release.conf.json') -replace '\\', '/'
+          @{
+            version = $version
+            bundle = @{ createUpdaterArtifacts = $true }
+          } | ConvertTo-Json -Compress | Set-Content $conf -Encoding utf8NoBOM
+          "VERSION_CONFIG=$conf" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8NoBOM
+          Write-Host "Stamping app version $version (from tag $tag)"
+
+      - name: Build, sign, and publish
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          args: --config ${{ env.VERSION_CONFIG }}
+          tagName: ${{ github.ref_name }}
+          releaseName: 'OVPCASSS Paperless PAR ${{ github.ref_name }}'
+          releaseBody: 'Signed Windows installers. The desktop app updates itself from this release.'
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true

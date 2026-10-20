@@ -9,6 +9,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CI: 'true'
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -41,3 +44,30 @@ jobs:
 
       - name: Build
         run: pnpm turbo run build --filter=!@par/desktop
+
+  migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # A schema edit without a generated migration ships code that expects a
+      # column D1 does not have. Generating must leave the folder untouched.
+      - name: Schema and migrations agree
+        run: |
+          pnpm db:generate
+          test -z "$(git status --porcelain -- packages/db/migrations)"
+
+      - name: Apply migrations to a fresh local D1
+        run: pnpm --filter @par/db exec wrangler d1 migrations apply par-db --local

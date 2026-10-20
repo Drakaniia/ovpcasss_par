@@ -1,0 +1,91 @@
+name: Deploy
+
+# Preview per pull request, and production only from a release tag or a manual
+# run with the `production` environment's approval. Merging to main does not
+# deploy: there is no staging resource set yet (spec §12), so an automatic
+# deploy from main would publish straight to production.
+
+on:
+  pull_request:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CI: 'true'
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web assets
+        run: pnpm --filter @par/web build
+
+      # `versions upload` keeps production traffic on the current version and
+      # gives this commit its own URL. It needs one prior `wrangler deploy`.
+      - name: Upload preview version
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: >-
+          pnpm --filter @par/api exec wrangler versions upload
+          --preview-alias pr-${{ github.event.number }}
+
+      - name: Preview not configured
+        if: env.CLOUDFLARE_API_TOKEN == ''
+        run: echo "::notice::Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to publish preview URLs."
+
+  production:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # The environment's protection rules are the human review step for a deploy.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify
+        run: pnpm verify
+
+      - name: Build web assets
+        run: pnpm --filter @par/web build
+
+      # Migrations before the Worker that needs them (spec §12).
+      - name: Apply D1 migrations
+        run: pnpm --filter @par/db exec wrangler d1 migrations apply par-db --remote
+
+      - name: Deploy Worker
+        run: pnpm --filter @par/api exec wrangler deploy
