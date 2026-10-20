@@ -83,6 +83,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
+          # No lockfile in apps/desktop, so tauri-action defaults to npm there.
+          tauriScript: pnpm exec tauri
           args: --config ${{ env.VERSION_CONFIG }}
           tagName: ${{ github.ref_name }}
           releaseName: 'OVPCASSS Paperless PAR ${{ github.ref_name }}'
