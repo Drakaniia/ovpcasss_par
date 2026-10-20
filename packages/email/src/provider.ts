@@ -13,4 +13,4 @@ export interface EmailProvider {
   send(message: EmailMessage): Promise<void>;
 }
 
-export type EmailProviderKind = 'resend' | 'cloudflare';
+export type EmailProviderKind = 'resend' | 'cloudflare' | 'console';

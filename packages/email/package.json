@@ -16,6 +16,7 @@
     "@par/shared": "workspace:*"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "5.20261016.1",
     "@par/config": "workspace:*",
     "typescript": "6.0.3",
     "vitest": "5.0.5"
