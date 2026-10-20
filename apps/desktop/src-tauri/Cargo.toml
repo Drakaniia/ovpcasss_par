@@ -20,6 +20,23 @@ tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-updater = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+keyring = { version = "3", features = ["windows-native"] }
+mime_guess = "2"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
+tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "sync", "time"] }
+tokio-util = { version = "0.7", features = ["io"] }
+futures-util = "0.3"
+# Pinned to the version Tauri already resolves (Cargo.lock) so there is only one
+# `windows` in the graph; the window procedure needs Shell for the window subclass.
+windows = { version = "0.62.2", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Dwm",
+  "Win32_Graphics_Gdi",
+  "Win32_UI_Shell",
+  "Win32_UI_HiDpi",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_WindowsAndMessaging",
+] }
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
