@@ -14,9 +14,10 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "wrangler d1 migrations apply par-db --local"
+    "db:migrate": "wrangler d1 migrations apply par-db --local --config ../../apps/api/wrangler.toml"
   },
   "dependencies": {
+    "@par/shared": "workspace:*",
     "drizzle-orm": "0.45.4"
   },
   "devDependencies": {

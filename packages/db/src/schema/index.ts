@@ -1,5 +1,5 @@
 /**
- * Drizzle schema, split into four modules when M2 starts (spec §8):
+ * Drizzle schema, split into modules as milestones land (spec §8):
  *
  *   identity.ts        users, sessions, email_tokens
  *   reference-data.ts  ref_campuses, ref_units, ref_programs, ref_departments,
@@ -12,4 +12,8 @@
  * Every table carries id, created_at, updated_at; reference data and users
  * also carry deleted_at. audit_events is append-only.
  */
-export {};
+export * from './identity';
+export * from './notifications';
+export * from './operations';
+export * from './reference-data';
+export * from './reports';

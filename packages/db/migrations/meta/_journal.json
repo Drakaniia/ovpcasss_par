@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1792329988651,
+      "tag": "0000_smooth_princess_powerful",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1792333879187,
+      "tag": "0001_striped_komodo",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792334298289,
+      "tag": "0002_equal_roland_deschain",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792337319386,
+      "tag": "0003_overrated_overlord",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792410436868,
+      "tag": "0004_swift_the_renegades",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792419051511,
+      "tag": "0005_red_synch",
+      "breakpoints": true
+    }
+  ]
+}
