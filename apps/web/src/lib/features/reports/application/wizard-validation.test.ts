@@ -100,19 +100,13 @@ describe('step 2 validation', () => {
   });
 
   it('catches an end date before the start date', () => {
-    const errors = validateStep(
-      2,
-      validForm({ endDate: '2026-03-11', endText: '11 Mar 2026' }),
-    );
+    const errors = validateStep(2, validForm({ endDate: '2026-03-11', endText: '11 Mar 2026' }));
 
     expect(errors.endDate).toBe('The end date must be on or after the start date.');
   });
 
   it('allows a single-day activity', () => {
-    const errors = validateStep(
-      2,
-      validForm({ endDate: '2026-03-12', endText: '12 Mar 2026' }),
-    );
+    const errors = validateStep(2, validForm({ endDate: '2026-03-12', endText: '12 Mar 2026' }));
 
     expect(errors).toEqual({});
   });
@@ -160,9 +154,7 @@ describe('step 3 validation', () => {
 
 describe('step 4 validation', () => {
   it('requires a narrative', () => {
-    expect(validateStep(4, validForm({ narrative: '   ' })).narrative).toBe(
-      'Enter the narrative.',
-    );
+    expect(validateStep(4, validForm({ narrative: '   ' })).narrative).toBe('Enter the narrative.');
   });
 
   it('accepts a complete narrative', () => {
@@ -182,9 +174,7 @@ describe('blur validation', () => {
   it('catches an end date before the start date on the end date alone', () => {
     const form = validForm({ startDate: '2026-03-13', endDate: '2026-03-12' });
 
-    expect(validateField('endDate', form)).toBe(
-      'The end date must be on or after the start date.',
-    );
+    expect(validateField('endDate', form)).toBe('The end date must be on or after the start date.');
     expect(validateField('startDate', form)).toBeUndefined();
   });
 
@@ -196,9 +186,7 @@ describe('blur validation', () => {
 
     expect(validateField('pic.p1.name', form)).toBe('Enter the name.');
     expect(validateField('pic.p1.email', form)).toBe('Enter a valid email address.');
-    expect(validateField('pic.p1.phone', form)).toBe(
-      'Use digits, spaces, +, -, and parentheses.',
-    );
+    expect(validateField('pic.p1.phone', form)).toBe('Use digits, spaces, +, -, and parentheses.');
   });
 
   it('maps a control id back to its field, including Other (specify)', () => {
@@ -325,9 +313,7 @@ describe('attachment requirements', () => {
 
 describe('completeness checklist', () => {
   it('renders the fixed items with the attachment denominator', () => {
-    const items = completenessItems(validForm(), [requirement()], [
-      confirmed('Attendance sheet'),
-    ]);
+    const items = completenessItems(validForm(), [requirement()], [confirmed('Attendance sheet')]);
 
     expect(items.map((item) => item.id)).toEqual([
       'type',

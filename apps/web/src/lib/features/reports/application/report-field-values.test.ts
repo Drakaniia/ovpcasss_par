@@ -73,9 +73,9 @@ const form: ReportDraftForm = {
 
 describe('flagged field ids', () => {
   it('accepts contract ids and snake_case variants in form order', () => {
-    expect(
-      flaggedFieldKeys(['narrative', 'activity_start_date', 'totalStudents', 'pics']),
-    ).toEqual(['startDate', 'totalStudents', 'pics', 'narrative']);
+    expect(flaggedFieldKeys(['narrative', 'activity_start_date', 'totalStudents', 'pics'])).toEqual(
+      ['startDate', 'totalStudents', 'pics', 'narrative'],
+    );
   });
 
   it('drops unknown ids instead of guessing a field', () => {
@@ -99,9 +99,7 @@ describe('display values', () => {
     expect(displayFieldValue('classification', form, references)).toBe('Non-curricular');
     expect(displayFieldValue('level', form, references)).toBe('Graduate');
     expect(displayFieldValue('campusId', form, references)).toBe('Main Campus');
-    expect(displayFieldValue('unitId', form, references)).toBe(
-      'College of Arts and Sciences',
-    );
+    expect(displayFieldValue('unitId', form, references)).toBe('College of Arts and Sciences');
     expect(displayFieldValue('sdgIds', form, references)).toBe('4 Quality education');
   });
 

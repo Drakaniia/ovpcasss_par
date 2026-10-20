@@ -108,7 +108,9 @@
         {/if}
       </div>
 
-      <AttachmentStatusChip status={item.status} />
+      <div class="status-cell">
+        <AttachmentStatusChip status={item.status} />
+      </div>
 
       <div class="row-actions">
         {#if item.status === 'CONFIRMED'}
@@ -130,7 +132,7 @@
           <button
             class="icon-action"
             type="button"
-            disabled={disabled}
+            {disabled}
             aria-label="Retry {item.fileName}"
             onclick={() => onretry(item.key)}
           >
@@ -260,13 +262,37 @@
     color: var(--status-danger-fg);
   }
 
+  .status-cell {
+    align-items: center;
+    display: flex;
+  }
+
+  /* Narrow: three tracks over two rows. The label moves under the file name so
+     the row never has to fit five tracks, which is what pushed the chip and the
+     actions over each other (UI spec §8.5). */
   @media (max-width: 1279px) {
     .attachment-row {
-      grid-template-columns: 28px minmax(0, 1fr) auto auto;
+      grid-template-columns: 28px minmax(0, 1fr) auto;
+    }
+
+    .file-icon {
+      grid-area: 1 / 1;
+    }
+
+    .file-body {
+      grid-area: 1 / 2;
+    }
+
+    .status-cell {
+      grid-area: 1 / 3;
     }
 
     .label-cell {
-      grid-column: 2 / -1;
+      grid-area: 2 / 2;
+    }
+
+    .row-actions {
+      grid-area: 2 / 3;
     }
   }
 </style>

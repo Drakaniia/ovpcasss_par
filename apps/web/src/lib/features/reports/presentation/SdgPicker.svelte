@@ -46,9 +46,7 @@
   function toggle(sdg: Sdg): void {
     if (disabled) return;
     onchange(
-      selected.includes(sdg.id)
-        ? selected.filter((id) => id !== sdg.id)
-        : [...selected, sdg.id],
+      selected.includes(sdg.id) ? selected.filter((id) => id !== sdg.id) : [...selected, sdg.id],
     );
   }
 
@@ -82,7 +80,7 @@
       <div class="search-row">
         <Search size={14} aria-hidden="true" />
         <input
-          id={id}
+          {id}
           class="sdg-search"
           type="search"
           placeholder="Search SDGs"

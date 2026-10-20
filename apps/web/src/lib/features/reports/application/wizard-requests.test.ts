@@ -134,11 +134,7 @@ describe('continuing a server draft (spec §7.4)', () => {
     const draft = new WizardDraftFile('r1');
     draft.adopt(serverDraft());
 
-    const reportId = await draft.ensureServer(
-      null,
-      { step: 2, form: emptyWizardForm() },
-      input,
-    );
+    const reportId = await draft.ensureServer(null, { step: 2, form: emptyWizardForm() }, input);
 
     expect(reportId).toBe('r1');
     expect(api.reports.create).not.toHaveBeenCalled();

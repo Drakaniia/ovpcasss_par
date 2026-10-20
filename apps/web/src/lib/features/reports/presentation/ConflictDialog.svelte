@@ -71,7 +71,7 @@
     onclose();
   }}
   onkeydown={(event) => dialog && trapFocus(event, dialog)}
-  onclose={onclose}
+  {onclose}
 >
   <h2 id={titleId} class="dialog-title">{title}</h2>
   <p class="dialog-body">
@@ -163,7 +163,7 @@
 </dialog>
 
 <style>
-  .conflict-dialog {
+  .conflict-dialog[open] {
     display: flex;
     flex-direction: column;
     max-height: calc(100vh - 48px);

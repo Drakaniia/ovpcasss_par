@@ -104,20 +104,14 @@
           value={form.narrative}
           aria-invalid={invalid ? 'true' : undefined}
           aria-describedby={describedBy}
-          oninput={(event) => onnarrative(event.currentTarget.value)}
-        ></textarea>
+          oninput={(event) => onnarrative(event.currentTarget.value)}></textarea>
       {/snippet}
     </WizardField>
   </section>
 
   <section class="block" aria-labelledby="wiz-attachments-heading">
     <h2 id="wiz-attachments-heading">Attachments</h2>
-    <AttachmentUploader
-      bind:items={attachments}
-      {reportId}
-      {labelOptions}
-      {ensureReportId}
-    />
+    <AttachmentUploader bind:items={attachments} {reportId} {labelOptions} {ensureReportId} />
   </section>
 
   <section class="block" aria-labelledby="wiz-completeness-heading">

@@ -1,4 +1,4 @@
-import type { ReportDetail, ReportValidationIssue } from '@par/shared';
+import type { Department, Office, ReportDetail, ReportValidationIssue } from '@par/shared';
 import { goto } from '$app/navigation';
 import { tick, untrack } from 'svelte';
 import { SvelteURLSearchParams } from 'svelte/reactivity';
@@ -7,6 +7,11 @@ import { ApiError } from '$lib/api/http';
 import { type AttachmentItem } from '$lib/features/attachments/application/attachment-items';
 import { createPlatform } from '$lib/platform';
 import type { Platform } from '$lib/platform/contracts';
+import type {
+  DirectoryEntity,
+  DirectoryEntry,
+} from '$lib/features/admin/application/directory-entries';
+import { session } from '$lib/session/session.svelte';
 import { isTypingTarget } from '$lib/shortcuts/keyboard';
 import { toast } from '$lib/toast/toast.svelte';
 
@@ -68,6 +73,8 @@ export type WizardPageOptions = {
   basePath?: string;
   /** A server draft to continue (spec §7.4); the wizard owns its form. */
   resume?: ReportDetail;
+  /** A draft saved on this device only, opened from `/reports/:id/edit`. */
+  draftId?: string;
 };
 
 export class WizardPageState {
@@ -76,6 +83,8 @@ export class WizardPageState {
   referencesLoading = $state(true);
   referencesError = $state<{ requestId?: string } | null>(null);
   references = $state<WizardReferenceData>(emptyWizardReferences());
+  /** Admin stands in for every role (spec §9), so only an admin edits the lists. */
+  canManageDirectories = $derived(session.user?.role === 'ADMIN');
 
   readonly draft: WizardDraftFile;
   readonly conflict = new WizardConflict();
@@ -112,15 +121,18 @@ export class WizardPageState {
   private readonly focus: WizardFocusHooks;
   private readonly basePath: string;
   private readonly resume: ReportDetail | undefined;
+  private readonly localDraftId: string | undefined;
 
   constructor(options: WizardPageOptions) {
     this.params = new SvelteURLSearchParams(options.search);
     this.focus = options.focus;
     this.basePath = options.basePath ?? '/reports/new';
     this.resume = options.resume;
+    this.localDraftId = options.draftId;
     this.draft = new WizardDraftFile(
       untrack(
-        () => (options.resume?.id ?? draftIdFromParams(this.params)) || newDraftId(),
+        () =>
+          (options.resume?.id ?? options.draftId ?? draftIdFromParams(this.params)) || newDraftId(),
       ),
     );
     this.step = untrack(() => stepFromParams(this.params));
@@ -194,8 +206,16 @@ export class WizardPageState {
 
   /** A new report keeps its draft id in the URL so a reload finds the local copy. */
   private async ensureDraftInUrl(): Promise<void> {
-    if (this.resume || this.params.has('draft')) return;
+    if (this.resume || this.localDraftId || this.params.has('draft')) return;
     await goto(this.pathFor(this.step), { replace: true });
+  }
+
+  /** A dropdown added, renamed, or removed an entry in the official list. */
+  setDirectory(entity: DirectoryEntity, entries: readonly DirectoryEntry[]): void {
+    const departments =
+      entity === 'departments' ? (entries as Department[]) : this.references.departments;
+    const offices = entity === 'offices' ? (entries as Office[]) : this.references.offices;
+    this.references = { ...this.references, departments, offices };
   }
 
   patchForm(patch: Partial<WizardForm>): void {
@@ -312,12 +332,8 @@ export class WizardPageState {
     } catch (error) {
       this.submitError = {
         message:
-          error instanceof ApiError
-            ? error.message
-            : 'The report was not submitted. Try again.',
-        ...(error instanceof ApiError && error.requestId
-          ? { requestId: error.requestId }
-          : {}),
+          error instanceof ApiError ? error.message : 'The report was not submitted. Try again.',
+        ...(error instanceof ApiError && error.requestId ? { requestId: error.requestId } : {}),
       };
     } finally {
       this.submitting = false;
@@ -351,7 +367,9 @@ export class WizardPageState {
     this.step = 1;
     this.attachments = [];
     // Starting a fresh report leaves a resumed draft's route behind.
-    await goto(this.resume ? '/reports/new' : this.pathFor(1), { replace: true });
+    await goto(this.resume || this.localDraftId ? '/reports/new' : this.pathFor(1), {
+      replace: true,
+    });
   }
 
   /** Autosave on blur and on a timer; failures stay inline in the header. */
@@ -368,9 +386,7 @@ export class WizardPageState {
     if (!action) return;
 
     event.preventDefault();
-    if (action.kind === 'save') {
-      void this.saveDraft();
-    } else if (action.step > this.step) {
+    if (action.step > this.step) {
       void this.tryGoToStep(action.step);
     } else {
       void this.setStep(action.step);

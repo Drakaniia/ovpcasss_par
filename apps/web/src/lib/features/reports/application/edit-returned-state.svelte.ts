@@ -3,6 +3,7 @@ import { goto } from '$app/navigation';
 import { SvelteDate, SvelteSet } from 'svelte/reactivity';
 
 import { ApiError } from '$lib/api/http';
+import { createPlatform } from '$lib/platform';
 import { clearSession, session } from '$lib/session/session.svelte';
 import { toast } from '$lib/toast/toast.svelte';
 
@@ -52,7 +53,8 @@ import {
  * the server copies, local mirror, validation, and transitions.
  */
 
-export type EditView = 'loading' | 'ready' | 'not-found' | 'error';
+/** `local` is a draft saved on this device that the server does not know yet. */
+export type EditView = 'loading' | 'ready' | 'local' | 'not-found' | 'error';
 
 export class EditReturnedState {
   view = $state<EditView>('loading');
@@ -101,9 +103,7 @@ export class EditReturnedState {
   /** Why Resubmit is unavailable, stated next to the button. A missing label is
    *  reported by the completeness checklist inside the form, never as a block. */
   blockReason = $derived(attachmentBlockReason(this.attachments));
-  labelOptions = $derived.by(() =>
-    labelOptionsFor(this.references.requirements, this.form.type),
-  );
+  labelOptions = $derived.by(() => labelOptionsFor(this.references.requirements, this.form.type));
   dirty = $derived.by(() => {
     const saved = this.savedForm;
     if (!saved) return false;
@@ -211,11 +211,25 @@ export class EditReturnedState {
         return;
       }
       if (error instanceof ApiError && (error.status === 403 || error.status === 404)) {
-        this.view = 'not-found';
+        this.view = (await this.hasLocalDraft()) ? 'local' : 'not-found';
         return;
       }
       this.requestId = error instanceof ApiError ? error.requestId : undefined;
       this.view = 'error';
+    }
+  }
+
+  /** A device-only draft has no server copy, so the API cannot answer for it. */
+  private async hasLocalDraft(): Promise<boolean> {
+    const owner = session.user?.id;
+    if (!owner) return false;
+
+    try {
+      const platform = await createPlatform();
+      const draft = await platform.drafts.get(this.id);
+      return draft?.ownerUserId === owner;
+    } catch {
+      return false;
     }
   }
 

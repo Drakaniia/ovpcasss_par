@@ -21,6 +21,8 @@ export type AttachmentItem = {
   error?: string;
   /** Retained so a failed upload can be retried without re-picking the file. */
   file?: File;
+  /** Desktop source path; the file streams from disk instead of a `File` blob. */
+  path?: string;
 };
 
 /** A row key that survives retry, even when the server id changes. */
@@ -30,9 +32,14 @@ export function newAttachmentKey(): string {
   return `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/** The API message when there is one, so a rejection names its own reason. */
+/**
+ * The API message when there is one, so a rejection names its own reason. Tauri
+ * rejects with a plain string, which must not be flattened into the fallback.
+ */
 export function uploadErrorText(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'string' && error.trim()) return error.trim();
+  return fallback;
 }
 
 export function itemFromAttachment(attachment: Attachment, file?: File): AttachmentItem {

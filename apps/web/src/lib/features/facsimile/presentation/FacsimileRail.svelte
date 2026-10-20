@@ -14,9 +14,8 @@
    * Record rail (UI spec §7.7): Actions, Attachments, People, Report meta —
    * sticky and independently scrollable.
    *
-   * Phase 09 prepends the decision buttons through `actions`; until then there
-   * is no dead control here. Phase 08 owns the approved acknowledgement action
-   * and the separation-of-duties reason.
+   * Phase 09 supplies the decision buttons through `actions`; the approved
+   * acknowledgement and the separation-of-duties reason stay owned here.
    */
   let {
     detail,
@@ -53,7 +52,11 @@
 
       {#if actions}
         {@render actions()}
-      {:else if detail.status === 'APPROVED'}
+      {/if}
+
+      <!-- An approved report keeps its acknowledgement even on the queue routes,
+           where phase 09 owns the decision buttons above. -->
+      {#if detail.status === 'APPROVED'}
         {#if ackIssue}
           <p class="rail-note">
             <Info size={14} aria-hidden="true" />
@@ -78,7 +81,7 @@
             <button class="retry" type="button" onclick={onacknowledgement}>Retry</button>
           </div>
         {/if}
-      {:else if notice}
+      {:else if !actions && notice}
         <p class="rail-note">
           <Info size={14} aria-hidden="true" />
           <span>{notice}</span>

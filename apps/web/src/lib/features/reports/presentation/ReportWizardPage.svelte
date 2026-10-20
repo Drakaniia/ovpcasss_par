@@ -6,6 +6,7 @@
 
   import ErrorState from '$lib/components/ErrorState.svelte';
   import SkeletonDocument from '$lib/components/SkeletonDocument.svelte';
+  import { registerEditor } from '$lib/features/window-chrome/application/editor-commands';
 
   import { conflictTitle } from '../application/report-conflict';
   import { restoredNotice } from '../application/wizard-draft';
@@ -41,21 +42,28 @@
     else focusElement('wizard-error-summary');
   }
 
-  let { resume }: { resume?: ReportDetail } = $props();
+  let { resume, draftId }: { resume?: ReportDetail; draftId?: string } = $props();
 
-  const heading = $derived(resume ? 'Continue post-activity report' : 'New post-activity report');
+  const heading = $derived(
+    resume || draftId ? 'Continue post-activity report' : 'New post-activity report',
+  );
 
   // A resumed draft (spec §7.4) keeps its own route and starts from the server
   // copy the route loaded; one wizard instance serves a report for its lifetime.
-  const wizard = untrack(() =>
-    new WizardPageState({
-      search: page.url.search,
-      focus: {
-        step: () => focusElement('wizard-step-heading'),
-        errors: () => focusFirstInvalid(wizard.form, wizard.errors),
-      },
-      ...(resume ? { resume, basePath: `/reports/${resume.id}/edit` } : {}),
-    }),
+  const wizard = untrack(
+    () =>
+      new WizardPageState({
+        search: page.url.search,
+        focus: {
+          step: () => focusElement('wizard-step-heading'),
+          errors: () => focusFirstInvalid(wizard.form, wizard.errors),
+        },
+        ...(resume
+          ? { resume, basePath: `/reports/${resume.id}/edit` }
+          : draftId
+            ? { draftId, basePath: `/reports/${draftId}/edit` }
+            : {}),
+      }),
   );
 
   const lostDetail = $derived(
@@ -71,11 +79,30 @@
     );
   });
 
+  /** Named in the close dialog when the window is closed mid-edit. */
+  const guardSubject = $derived(
+    wizard.form.title.trim()
+      ? `“${wizard.form.title.trim()}” on step ${wizard.step} of 4`
+      : `This report on step ${wizard.step} of 4`,
+  );
+
   onMount(() => {
     void wizard.boot();
 
     const timer = setInterval(() => wizard.autoSave(), 20000);
-    return () => clearInterval(timer);
+
+    // File > Save draft, Ctrl+S and the close guard all resolve here.
+    const disposeEditor = registerEditor({
+      dirty: () => wizard.draft.dirty,
+      saving: () => wizard.draft.state.status === 'saving',
+      save: () => wizard.saveDraft(),
+      subject: () => guardSubject,
+    });
+
+    return () => {
+      clearInterval(timer);
+      disposeEditor();
+    };
   });
 
   $effect(() => {
@@ -163,7 +190,9 @@
             departments={wizard.references.departments}
             offices={wizard.references.offices}
             errors={wizard.errors}
+            canManageDirectories={wizard.canManageDirectories}
             onchange={(patch) => wizard.patchForm(patch)}
+            onreferencechange={(entity, entries) => wizard.setDirectory(entity, entries)}
           />
         {:else if wizard.step === 2}
           <WizardStepDetails
@@ -249,6 +278,8 @@
   .wizard {
     margin-inline: auto;
     max-width: 1032px;
+    /* Clears the fixed action bar so the last field stays reachable. */
+    padding-bottom: 96px;
   }
 
   .restore-notice {

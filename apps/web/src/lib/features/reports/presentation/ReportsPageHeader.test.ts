@@ -22,17 +22,19 @@ const FACETS: ReportListFacets = {
 const noop = () => {};
 
 describe('ReportsPageHeader', () => {
-  it('names the table for each role and adds no second primary action', () => {
-    for (const [role, subtitle] of [
-      ['SUBMITTER', 'Reports you submitted'],
-      ['REVIEWER', 'Reports you have handled'],
-      ['ADMIN', 'All reports'],
+  it('names the table for each role and shows the one primary action to a submitter', () => {
+    for (const [role, subtitle, primary] of [
+      ['SUBMITTER', 'Reports you submitted', true],
+      // The table only ever holds the caller's own reports, for every role.
+      ['REVIEWER', 'Reports under your account', false],
+      // Admin stands in for every role, so it can file a report too (spec §9).
+      ['ADMIN', 'Reports you submitted', true],
     ] as const) {
       const html = render(ReportsPageHeader, { props: { role } }).body;
 
       expect(html).toContain('My reports');
       expect(html).toContain(subtitle);
-      expect(html).not.toContain('btn-primary');
+      expect(html.includes('btn-primary')).toBe(primary);
     }
   });
 });
@@ -52,7 +54,11 @@ describe('ReportFilterBar', () => {
   }
 
   it('renders the controls, reference values, and the removed state', () => {
-    const filters: ReportFilters = { ...DEFAULT_REPORT_FILTERS, type: 'OFF_CAMPUS', campusId: 'c2' };
+    const filters: ReportFilters = {
+      ...DEFAULT_REPORT_FILTERS,
+      type: 'OFF_CAMPUS',
+      campusId: 'c2',
+    };
     const html = renderBar(filters);
 
     expect(html).toContain('Filter by type');
@@ -61,8 +67,10 @@ describe('ReportFilterBar', () => {
     expect(html).toContain('All campuses');
     expect(html).toContain('Main Campus');
     expect(html).toContain('North Campus (inactive)');
-    expect(html).toContain('Activity date from');
-    expect(html).toContain('Activity date to');
+    expect(html).toContain('for="filter-from"');
+    expect(html).toContain('for="filter-to"');
+    expect(html).toContain('aria-label="Choose activity date from"');
+    expect(html).toContain('aria-label="Choose activity date to"');
     expect(html).toContain('Filters (2)');
     expect(html).toContain('data-search-field');
   });

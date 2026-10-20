@@ -176,15 +176,6 @@
             <option value={role}>{USER_ROLE_LABELS[role]}</option>
           {/each}
         </select>
-
-        {#if roleError}
-          <p class="field-error" id="{idPrefix}-role-error">
-            <AlertCircle size={16} aria-hidden="true" />
-            {roleError}
-          </p>
-        {:else if actions['assign-role'].reason}
-          <p class="field-hint" id="{idPrefix}-role-reason">{actions['assign-role'].reason}</p>
-        {/if}
       </div>
 
       <button
@@ -202,6 +193,17 @@
         {/if}
       </button>
     </div>
+
+    {#if roleError}
+      <p class="field-error role-note" id="{idPrefix}-role-error">
+        <AlertCircle size={16} aria-hidden="true" />
+        {roleError}
+      </p>
+    {:else if actions['assign-role'].reason}
+      <p class="field-hint role-note" id="{idPrefix}-role-reason">
+        {actions['assign-role'].reason}
+      </p>
+    {/if}
   </div>
 
   {#if actions.activate.visible}
@@ -328,7 +330,7 @@
   }
 
   .action-control {
-    align-items: flex-start;
+    align-items: flex-end;
     display: flex;
     gap: 8px;
     margin-top: 12px;
@@ -336,6 +338,10 @@
 
   .action-control .field {
     flex: 1;
+  }
+
+  .role-note {
+    margin: 4px 0 0;
   }
 
   .action-control-end {

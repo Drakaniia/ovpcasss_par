@@ -26,6 +26,7 @@ export function newIdempotencyKey(): string {
 
 export function buildDraft(options: {
   id: string;
+  ownerUserId?: string;
   serverId?: string;
   version?: number;
   step: WizardStep;
@@ -34,6 +35,7 @@ export function buildDraft(options: {
 }): ReportDraft {
   return {
     id: options.id,
+    ...(options.ownerUserId ? { ownerUserId: options.ownerUserId } : {}),
     ...(options.serverId ? { serverId: options.serverId } : {}),
     version: options.version ?? 1,
     updatedAt: options.updatedAt ?? new Date().toISOString(),

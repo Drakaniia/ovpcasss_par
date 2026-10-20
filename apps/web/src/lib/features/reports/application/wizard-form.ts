@@ -77,9 +77,6 @@ export const LEVEL_OPTIONS: readonly WizardOption[] = LEVELS.map((level) => ({
   label: LEVEL_LABELS[level],
 }));
 
-/** The `<select>` value that reveals the "Other (specify)" text input. */
-export const OTHER_OPTION_VALUE = 'other';
-
 export function classificationLabel(value: Classification | ''): string {
   return value ? CLASSIFICATION_LABELS[value] : '—';
 }
@@ -259,27 +256,22 @@ export function stepParams(step: WizardStep, draftId = ''): string {
  * `basePath` keeps a resumed draft on its own route (`/reports/[id]/edit`,
  * spec §7.4) instead of moving it to `/reports/new`.
  */
-export function wizardPath(
-  step: WizardStep,
-  draftId = '',
-  basePath = '/reports/new',
-): string {
+export function wizardPath(step: WizardStep, draftId = '', basePath = '/reports/new'): string {
   const search = stepParams(step, draftId);
   return search ? `${basePath}?${search}` : basePath;
 }
 
 /**
- * Keyboard intent (§8.9): `Ctrl/Cmd+S` saves, `Alt+←/→` moves steps. Keyboard is
- * a shortcut, never a requirement, and step jumps stay out of the narrative editor.
+ * Keyboard intent (§8.9): `Alt+←/→` moves steps. Keyboard is a shortcut, never
+ * a requirement, and step jumps stay out of the narrative editor. `Ctrl/Cmd+S`
+ * belongs to the chrome's command registry (window chrome spec §9.5), so it is
+ * not handled here — one key, one path.
  */
 export function wizardKeyAction(
   event: KeyboardEvent,
   step: WizardStep,
-): { kind: 'save' } | { kind: 'step'; step: WizardStep } | null {
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
-    return { kind: 'save' };
-  }
-
+): { kind: 'step'; step: WizardStep } | null {
+  if (event.metaKey || event.ctrlKey) return null;
   if (!event.altKey) return null;
 
   // The narrative editor owns the arrows; anywhere else they move steps.
@@ -302,11 +294,6 @@ export function unitsForCampus(units: readonly Unit[], campusId: string): Unit[]
   return units
     .filter((unit) => unit.campusId === campusId)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
-}
-
-/** A value that is not one of the seeded options belongs in "Other (specify)". */
-export function isCustomValue(value: string, options: readonly WizardOption[]): boolean {
-  return value !== '' && !options.some((option) => option.value === value);
 }
 
 export function unitLabel(unit: Unit): string {

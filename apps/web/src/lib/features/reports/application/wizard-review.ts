@@ -3,12 +3,7 @@ import type { Campus, Sdg, Unit } from '@par/shared';
 import { formatDate, formatDateRange } from '$lib/format/datetime';
 import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
 
-import {
-  classificationLabel,
-  levelLabel,
-  type WizardForm,
-  type WizardStep,
-} from './wizard-form';
+import { classificationLabel, levelLabel, type WizardForm, type WizardStep } from './wizard-form';
 
 /**
  * Review summary on step 4 (UI phase 06 §3). Values use the same labels as the
@@ -76,8 +71,14 @@ export function reviewSections(
       rows: [
         { label: 'Activity type', value: form.type ? REPORT_TYPE_LABELS[form.type] : EMPTY },
         { label: 'Classification', value: classificationLabel(form.classification) },
-        { label: 'Campus', value: form.campusId ? nameFor(references.campuses, form.campusId) : EMPTY },
-        { label: 'College or unit', value: form.unitId ? nameFor(references.units, form.unitId) : EMPTY },
+        {
+          label: 'Campus',
+          value: form.campusId ? nameFor(references.campuses, form.campusId) : EMPTY,
+        },
+        {
+          label: 'College or unit',
+          value: form.unitId ? nameFor(references.units, form.unitId) : EMPTY,
+        },
         { label: 'Department', value: form.department.trim() || EMPTY },
         { label: 'Office', value: form.office.trim() || EMPTY },
         { label: 'Level', value: levelLabel(form.level) },

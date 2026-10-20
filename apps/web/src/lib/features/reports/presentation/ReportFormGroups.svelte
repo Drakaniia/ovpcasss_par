@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { FIELD_GROUPS, isReportFieldKey, type EditReferences, type ReportFieldKey } from '../application/report-field-values';
+  import {
+    FIELD_GROUPS,
+    isReportFieldKey,
+    type EditReferences,
+    type ReportFieldKey,
+  } from '../application/report-field-values';
   import { activeRequirements, completenessItems } from '../application/wizard-completeness';
   import type { WizardForm } from '../application/wizard-form';
   import { fieldDomId } from '../application/wizard-validation';
@@ -58,7 +63,7 @@
   }
 </script>
 
-<fieldset class="scope" disabled={disabled}>
+<fieldset class="scope" {disabled}>
   {#each FIELD_GROUPS as group (group.id)}
     <fieldset class="group" id={group.id} data-report-section>
       <legend>
@@ -80,8 +85,7 @@
         />
         {#if trackingNumber}
           <p class="field-hint">
-            Changing the type does not change this report's tracking number
-            ({trackingNumber}).
+            Changing the type does not change this report's tracking number ({trackingNumber}).
           </p>
         {/if}
       {:else if group.id === 'activity'}
@@ -114,8 +118,7 @@
               {disabled}
               aria-invalid={invalid ? 'true' : undefined}
               aria-describedby={describedBy}
-              oninput={(event) => patchForm({ narrative: event.currentTarget.value })}
-            ></textarea>
+              oninput={(event) => patchForm({ narrative: event.currentTarget.value })}></textarea>
           {/snippet}
         </WizardField>
 

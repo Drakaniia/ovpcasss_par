@@ -1,3 +1,4 @@
+import { actsAs } from '@par/shared';
 import type {
   ReportDraft,
   ReportListItem,
@@ -118,7 +119,7 @@ export function rowActionsFor(
   status: ReportStatus,
   sending = false,
 ): ReportRowActions {
-  const owns = role === 'SUBMITTER' && Boolean(userId) && ownerUserId === userId;
+  const owns = actsAs(role, 'SUBMITTER') && Boolean(userId) && ownerUserId === userId;
 
   return {
     edit: owns && isEditableStatus(status) ? { visible: true, enabled: true } : HIDDEN_ACTION,
@@ -156,16 +157,71 @@ export function reportRowFromItem(
   };
 }
 
-/** Pending rows precede the sorted server rows regardless of the active sort (§4). */
+/**
+ * The part of the filter state a device-only draft is judged by. A term is
+ * resolved to a date window on the server, so it cannot be evaluated here.
+ */
+export type PendingRowScope = Pick<
+  ReportFilters,
+  'tab' | 'type' | 'campusId' | 'termId' | 'from' | 'to' | 'q' | 'page'
+>;
+
+/** A draft row is still a `DRAFT`, so it obeys the same tab and filters. */
+function draftMatches(draft: ReportDraft, scope: PendingRowScope): boolean {
+  if (scope.tab !== 'all' && scope.tab !== 'drafts') return false;
+  // Drafts lead the unsorted first page only; paging moves through server rows.
+  if (scope.page > 1) return false;
+  if (scope.termId) return false;
+
+  const form = draft.form;
+  if (scope.type && form.type !== scope.type) return false;
+  if (scope.campusId && form.campusId !== scope.campusId) return false;
+
+  const start = form.activityStartDate ?? '';
+  if (scope.from && (!start || start < scope.from)) return false;
+  if (scope.to && (!start || start > scope.to)) return false;
+
+  const term = scope.q.trim().toLowerCase();
+  return term === '' || (form.title ?? '').toLowerCase().includes(term);
+}
+
+/**
+ * Device-only drafts precede the sorted server rows regardless of the active
+ * sort (§4). A draft the server already knows is a server row, and a draft
+ * belongs to the account that created it, never to whoever is signed in next.
+ */
 export function pendingRowsFromDrafts(
   drafts: readonly ReportDraft[],
-  serverItems: readonly ReportListItem[],
-  now: Date = new Date(),
+  options: {
+    ownerUserId?: string | null;
+    role?: Role | null;
+    now?: Date;
+    scope?: Partial<PendingRowScope>;
+  } = {},
 ): ReportRow[] {
-  const known = new Set(serverItems.map((item) => item.id));
+  const now = options.now ?? new Date();
+  const owner = options.ownerUserId ?? null;
+  // Only a submitter files reports, so only a submitter's device copies are rows.
+  if (!owner || !actsAs(options.role, 'SUBMITTER')) return [];
+  const scope: PendingRowScope = {
+    tab: 'all',
+    type: '',
+    campusId: '',
+    termId: '',
+    from: '',
+    to: '',
+    q: '',
+    page: 1,
+    ...options.scope,
+  };
 
   return drafts
-    .filter((draft) => !known.has(draft.id))
+    .filter(
+      (draft) =>
+        !draft.serverId &&
+        draft.ownerUserId === owner &&
+        draftMatches(draft, scope),
+    )
     .sort((a, b) => timeValue(b.updatedAt) - timeValue(a.updatedAt))
     .map((draft) => {
       const start = draft.form.activityStartDate ?? '';
@@ -182,10 +238,7 @@ export function pendingRowsFromDrafts(
         updatedRelative: formatRelativeTime(draft.updatedAt, now),
         updatedExact: formatDateTime(draft.updatedAt),
         pendingSync: true,
-        actions: {
-          edit: { visible: true, enabled: true },
-          delete: { visible: true, enabled: true },
-        },
+        actions: rowActionsFor(options.role, owner, owner, 'DRAFT'),
       };
     });
 }

@@ -1,3 +1,4 @@
+import { actsAs } from '@par/shared';
 import type {
   ReportDetail,
   ReportReturnEvent,
@@ -8,7 +9,12 @@ import type {
 
 import { formatDate } from '$lib/format/datetime';
 
-import { FIELD_LABELS, fieldKeyFromId, flaggedFieldKeys, type ReportFieldKey } from './report-field-values';
+import {
+  FIELD_LABELS,
+  fieldKeyFromId,
+  flaggedFieldKeys,
+  type ReportFieldKey,
+} from './report-field-values';
 import { isReturnedStatus } from './report-rows';
 import { type WizardForm } from './wizard-form';
 import { fieldDomId, labelFor } from './wizard-validation';
@@ -42,7 +48,8 @@ export function wasReturned(input: Pick<EditAccessInput, 'returnEvent' | 'return
 }
 
 export function editAccessFor(input: EditAccessInput): EditAccess {
-  const owns = input.role === 'SUBMITTER' && Boolean(input.userId) && input.ownerUserId === input.userId;
+  const owns =
+    actsAs(input.role, 'SUBMITTER') && Boolean(input.userId) && input.ownerUserId === input.userId;
   if (!owns) return 'denied';
 
   if (isReturnedStatus(input.status)) return 'editable';
@@ -154,4 +161,3 @@ export function issueSummary(
     };
   });
 }
-

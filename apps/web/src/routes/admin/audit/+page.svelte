@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PagePlaceholder from '$lib/components/PagePlaceholder.svelte';
+  import AdminAuditPage from '$lib/features/audit/presentation/AdminAuditPage.svelte';
 </script>
 
-<PagePlaceholder title="Audit log" phase="13" />
+<AdminAuditPage />

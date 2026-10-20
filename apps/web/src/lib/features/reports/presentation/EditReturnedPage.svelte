@@ -6,6 +6,7 @@
   import { trapFocus } from '$lib/a11y/focus-trap';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import ErrorState from '$lib/components/ErrorState.svelte';
+  import { registerEditor } from '$lib/features/window-chrome/application/editor-commands';
   import { formatDate } from '$lib/format/datetime';
 
   import { EditReturnedState } from '../application/edit-returned-state.svelte';
@@ -31,7 +32,7 @@
   const detail = $derived(editor.detail);
   const callout = $derived(editor.callout);
   const pageTitle = $derived(
-    editor.access === 'draft'
+    editor.access === 'draft' || editor.view === 'local'
       ? 'Continue post-activity report'
       : detail
         ? `Edit ${detail.form.title}`
@@ -154,7 +155,20 @@
   onMount(() => {
     void editor.load();
     const timer = setInterval(() => void editor.saveLocal(), 20_000);
-    return () => clearInterval(timer);
+
+    // File > Save draft, Ctrl+S and the close guard save the returned report.
+    const disposeEditor = registerEditor({
+      dirty: () => editor.dirty,
+      saving: () => editor.busy !== null,
+      save: () => editor.saveChanges(),
+      subject: () =>
+        editor.form.title.trim() ? `“${editor.form.title.trim()}”` : 'This report',
+    });
+
+    return () => {
+      clearInterval(timer);
+      disposeEditor();
+    };
   });
 </script>
 
@@ -186,6 +200,8 @@
       {/each}
     </div>
   </div>
+{:else if editor.view === 'local'}
+  <ReportWizardPage draftId={id} />
 {:else if editor.view === 'not-found'}
   <ErrorState variant="not-found" backHref="/reports" backLabel="Back to reports" />
 {:else if editor.view === 'error' || !detail}
@@ -340,7 +356,12 @@
       page.
     </p>
     <div class="dialog-actions">
-      <button class="discard" type="button" disabled={editor.busy === 'saving'} onclick={() => void discardAndLeave()}>
+      <button
+        class="discard"
+        type="button"
+        disabled={editor.busy === 'saving'}
+        onclick={() => void discardAndLeave()}
+      >
         Discard
       </button>
       <div class="right">

@@ -1,10 +1,7 @@
 <script lang="ts">
   import { Check, Circle } from '@lucide/svelte';
 
-  import {
-    completenessSummary,
-    type CompletenessItem,
-  } from '../application/wizard-completeness';
+  import { completenessSummary, type CompletenessItem } from '../application/wizard-completeness';
   import type { WizardStep } from '../application/wizard-form';
 
   /**

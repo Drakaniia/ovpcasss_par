@@ -6,7 +6,6 @@ import {
   draftFormFromWizard,
   emptyWizardForm,
   formFromDraft,
-  isCustomValue,
   stepFromDraft,
   stepFromParams,
   stepParams,
@@ -208,17 +207,6 @@ describe('options', () => {
     expect(unitsForCampus(units, 'c1').map((entry) => entry.id)).toEqual(['u1', 'u2']);
     expect(unitsForCampus(units, 'c2').map((entry) => entry.id)).toEqual(['u3']);
   });
-
-  it('recognises a value that belongs in Other (specify)', () => {
-    const options = [
-      { value: 'Registrar', label: 'Registrar' },
-      { value: 'HR', label: 'Human Resources' },
-    ];
-
-    expect(isCustomValue('', options)).toBe(false);
-    expect(isCustomValue('Registrar', options)).toBe(false);
-    expect(isCustomValue('Alumni Office', options)).toBe(true);
-  });
 });
 
 describe('review summary', () => {
@@ -285,11 +273,18 @@ describe('step routes', () => {
 
 describe('keyboard intent', () => {
   const key = (overrides: { key: string } & Record<string, unknown>): KeyboardEvent =>
-    ({ metaKey: false, ctrlKey: false, altKey: false, target: null, ...overrides }) as KeyboardEvent;
+    ({
+      metaKey: false,
+      ctrlKey: false,
+      altKey: false,
+      target: null,
+      ...overrides,
+    }) as KeyboardEvent;
 
   it('saves on Ctrl/Cmd+S', () => {
-    expect(wizardKeyAction(key({ key: 's', ctrlKey: true }), 2)).toEqual({ kind: 'save' });
-    expect(wizardKeyAction(key({ key: 'S', metaKey: true }), 2)).toEqual({ kind: 'save' });
+    // Ctrl/Cmd+S is dispatched by the chrome command registry, never here.
+    expect(wizardKeyAction(key({ key: 's', ctrlKey: true }), 2)).toBeNull();
+    expect(wizardKeyAction(key({ key: 'S', metaKey: true }), 2)).toBeNull();
   });
 
   it('moves steps with Alt+arrow', () => {

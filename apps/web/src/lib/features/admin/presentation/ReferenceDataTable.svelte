@@ -2,7 +2,6 @@
   import type { ReferenceEntityConfig, ReferenceRow } from '../application/reference-types';
   import ReferenceRowMenu from './ReferenceRowMenu.svelte';
   import ReferenceStatusBadge from './ReferenceStatusBadge.svelte';
-  import SeededChip from './SeededChip.svelte';
 
   let {
     config,
@@ -65,7 +64,6 @@
                 <ReferenceStatusBadge active={row.isActive} />
               {:else if column.key === 'name' || column.key === 'title' || column.key === 'label'}
                 <span class="cell-primary">{row.cells[column.key] ?? '—'}</span>
-                {#if row.isSeeded}<SeededChip />{/if}
                 {#if !row.isActive}<span class="inactive-chip">Inactive</span>{/if}
               {:else if column.key === 'schoolYear'}
                 <span class="cell-primary">{row.cells.schoolYear ?? '—'}</span>

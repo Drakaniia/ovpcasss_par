@@ -1,6 +1,12 @@
 <script lang="ts">
   import type { Campus, Department, Office, ReportType, Unit } from '@par/shared';
 
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
+  import type {
+    DirectoryEntity,
+    DirectoryEntry,
+  } from '$lib/features/admin/application/directory-entries';
+
   import {
     CLASSIFICATION_OPTIONS,
     LEVEL_OPTIONS,
@@ -18,6 +24,10 @@
    * Step 1 — activity classification (UI phase 06 §3). Type comes first because
    * it drives the tracking-number prefix, attachment requirements, and exports.
    * Campus filters the colleges/units and explains a cleared selection inline.
+   *
+   * Every control is the shared dropdown, so the same search, keyboard walk, and
+   * popover motion apply to the fixed contract lists and the two admin-managed
+   * directories alike. Only the directories accept a new value.
    */
   let {
     form,
@@ -28,7 +38,9 @@
     errors,
     flagged,
     disabled = false,
+    canManageDirectories = false,
     onchange,
+    onreferencechange,
   }: {
     form: WizardForm;
     campuses: readonly Campus[];
@@ -39,7 +51,9 @@
     /** Fields named in a return comment; only phase 07 sets this. */
     flagged?: ReadonlySet<string>;
     disabled?: boolean;
+    canManageDirectories?: boolean;
     onchange: (patch: Partial<WizardForm>) => void;
+    onreferencechange?: (entity: DirectoryEntity, entries: readonly DirectoryEntry[]) => void;
   } = $props();
 
   let campusNotice = $state('');
@@ -57,18 +71,6 @@
   const unitOptions = $derived<WizardOption[]>(
     unitChoices.map((unit) => ({ value: unit.id, label: unitLabel(unit) })),
   );
-
-  function directoryOptions(entries: readonly Department[]): WizardOption[] {
-    return [...entries]
-      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
-      .map((entry) => ({
-        value: entry.name,
-        label: entry.isActive ? entry.name : `${entry.name} (inactive)`,
-      }));
-  }
-
-  const departmentOptions = $derived(directoryOptions(departments));
-  const officeOptions = $derived(directoryOptions(offices));
 
   function selectCampus(campusId: string): void {
     const current = units.find((unit) => unit.id === form.unitId);
@@ -98,20 +100,16 @@
     required
   >
     {#snippet children({ describedBy, invalid })}
-      <select
+      <EditableSelect
         id="wiz-type"
-        class="select"
+        label="Activity type"
         value={form.type}
+        options={REPORT_TYPE_OPTIONS}
+        {describedBy}
+        {invalid}
         {disabled}
-        aria-invalid={invalid ? 'true' : undefined}
-        aria-describedby={describedBy}
-        onchange={(event) => onchange({ type: event.currentTarget.value as ReportType | '' })}
-      >
-        <option value="">Select…</option>
-        {#each REPORT_TYPE_OPTIONS as option (option.value)}
-          <option value={option.value}>{option.label}</option>
-        {/each}
-      </select>
+        onchange={(value) => onchange({ type: value as ReportType | '' })}
+      />
     {/snippet}
   </WizardField>
 
@@ -123,23 +121,16 @@
     required
   >
     {#snippet children({ describedBy, invalid })}
-      <select
+      <EditableSelect
         id="wiz-classification"
-        class="select"
+        label="Classification"
         value={form.classification}
+        options={CLASSIFICATION_OPTIONS}
+        {describedBy}
+        {invalid}
         {disabled}
-        aria-invalid={invalid ? 'true' : undefined}
-        aria-describedby={describedBy}
-        onchange={(event) =>
-          onchange({
-            classification: event.currentTarget.value as WizardForm['classification'],
-          })}
-      >
-        <option value="">Select…</option>
-        {#each CLASSIFICATION_OPTIONS as option (option.value)}
-          <option value={option.value}>{option.label}</option>
-        {/each}
-      </select>
+        onchange={(value) => onchange({ classification: value as WizardForm['classification'] })}
+      />
     {/snippet}
   </WizardField>
 
@@ -151,20 +142,16 @@
     required
   >
     {#snippet children({ describedBy, invalid })}
-      <select
+      <EditableSelect
         id="wiz-campusId"
-        class="select"
+        label="Campus"
         value={form.campusId}
+        options={campusOptions}
+        {describedBy}
+        {invalid}
         {disabled}
-        aria-invalid={invalid ? 'true' : undefined}
-        aria-describedby={describedBy}
-        onchange={(event) => selectCampus(event.currentTarget.value)}
-      >
-        <option value="">Select…</option>
-        {#each campusOptions as option (option.value)}
-          <option value={option.value}>{option.label}</option>
-        {/each}
-      </select>
+        onchange={selectCampus}
+      />
     {/snippet}
   </WizardField>
 
@@ -177,20 +164,16 @@
     hint={!form.campusId ? 'Select a campus first.' : undefined}
   >
     {#snippet children({ describedBy, invalid })}
-      <select
+      <EditableSelect
         id="wiz-unitId"
-        class="select"
+        label="College or unit"
         value={form.unitId}
+        options={unitOptions}
+        {describedBy}
+        {invalid}
         disabled={disabled || !form.campusId}
-        aria-invalid={invalid ? 'true' : undefined}
-        aria-describedby={describedBy}
-        onchange={(event) => selectUnit(event.currentTarget.value)}
-      >
-        <option value="">Select…</option>
-        {#each unitOptions as option (option.value)}
-          <option value={option.value}>{option.label}</option>
-        {/each}
-      </select>
+        onchange={selectUnit}
+      />
 
       {#if campusNotice}
         <p class="inline-note" role="status">{campusNotice}</p>
@@ -202,24 +185,30 @@
     id="wiz-department"
     label="Department"
     value={form.department}
-    options={departmentOptions}
+    entity="departments"
+    entries={departments}
     error={errors.department}
     flagged={flagged?.has('department')}
     optional
     {disabled}
+    canManage={canManageDirectories}
     onchange={(value) => onchange({ department: value })}
+    onentrieschange={onreferencechange}
   />
 
   <WizardDirectorySelect
     id="wiz-office"
     label="Office"
     value={form.office}
-    options={officeOptions}
+    entity="offices"
+    entries={offices}
     error={errors.office}
     flagged={flagged?.has('office')}
     optional
     {disabled}
+    canManage={canManageDirectories}
     onchange={(value) => onchange({ office: value })}
+    onentrieschange={onreferencechange}
   />
 
   <WizardField
@@ -230,20 +219,16 @@
     required
   >
     {#snippet children({ describedBy, invalid })}
-      <select
+      <EditableSelect
         id="wiz-level"
-        class="select"
+        label="Level"
         value={form.level}
+        options={LEVEL_OPTIONS}
+        {describedBy}
+        {invalid}
         {disabled}
-        aria-invalid={invalid ? 'true' : undefined}
-        aria-describedby={describedBy}
-        onchange={(event) => onchange({ level: event.currentTarget.value as WizardForm['level'] })}
-      >
-        <option value="">Select…</option>
-        {#each LEVEL_OPTIONS as option (option.value)}
-          <option value={option.value}>{option.label}</option>
-        {/each}
-      </select>
+        onchange={(value) => onchange({ level: value as WizardForm['level'] })}
+      />
     {/snippet}
   </WizardField>
 </div>

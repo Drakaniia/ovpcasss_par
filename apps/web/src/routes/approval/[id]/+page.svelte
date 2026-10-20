@@ -1,5 +1,14 @@
 <script lang="ts">
-  import PagePlaceholder from '$lib/components/PagePlaceholder.svelte';
+  import { page } from '$app/state';
+
+  import QueueDetailPage from '$lib/features/queues/presentation/QueueDetailPage.svelte';
+
+  const id = $derived(page.params.id ?? '');
+  /** The queue's filters travel with the report so the breadcrumb returns to them. */
+  const search = $derived(page.url.search.replace(/^\?/, ''));
 </script>
 
-<PagePlaceholder title="Approve report" phase="09" />
+<!-- A different report is a different page: remount rather than reuse state. -->
+{#key id}
+  <QueueDetailPage kind="approval" {id} {search} />
+{/key}

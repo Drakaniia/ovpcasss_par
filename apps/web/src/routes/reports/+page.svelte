@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ReportDraft, ReportListResponse } from '@par/shared';
+  import { actsAs, type ReportDraft, type ReportListResponse } from '@par/shared';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { onMount, untrack } from 'svelte';
@@ -61,13 +61,14 @@
 
   const role = $derived(session.user?.role ?? null);
   const userId = $derived(session.user?.id ?? null);
-  const canCreate = $derived(role === 'SUBMITTER');
+  const canCreate = $derived(actsAs(role, 'SUBMITTER'));
 
   const clearHref = $derived(`/reports?${filtersToParams(clearedFilters(filters))}`);
 
-  // Pending rows are a desktop affordance; the web build keeps this list empty.
+  // Drafts saved on this device and not yet on the server, for this account only.
+  // They take the same tab and filters as the server rows they stand in for.
   const pendingRows = $derived(
-    localDrafts.length > 0 ? pendingRowsFromDrafts(localDrafts, list?.items ?? [], now) : [],
+    pendingRowsFromDrafts(localDrafts, { ownerUserId: userId, role, now, scope: filters }),
   );
 
   const rows = $derived([
@@ -87,9 +88,7 @@
       clearHref,
     }),
   );
-  const deleteCopy = $derived(
-    pendingDelete ? deleteDraftConfirmation(pendingDelete) : null,
-  );
+  const deleteCopy = $derived(pendingDelete ? deleteDraftConfirmation(pendingDelete) : null);
 
   async function loadAccount() {
     auth = 'loading';
@@ -114,6 +113,7 @@
       }
 
       auth = 'ready';
+      await loadLocalDrafts();
     } catch {
       auth = 'error';
     }
@@ -162,11 +162,31 @@
   async function loadLocalDrafts() {
     try {
       platform ??= await createPlatform();
-      if (platform.shell !== 'desktop') return;
       localDrafts = await platform.drafts.list();
     } catch {
       // The local mirror is unavailable; the server list is still complete.
       localDrafts = [];
+    }
+  }
+
+  /** A server draft is gone, so every device copy of it goes with it. */
+  async function forgetLocalCopies(reportId: string) {
+    const store = platform;
+    if (!store) return;
+
+    try {
+      const drafts = await store.drafts.list();
+      const stale = drafts.filter(
+        (draft) =>
+          draft.ownerUserId === userId &&
+          (draft.id === reportId || draft.serverId === reportId),
+      );
+
+      await Promise.all(stale.map((draft) => store.drafts.remove(draft.id)));
+      const removed = new Set(stale.map((draft) => draft.id));
+      localDrafts = localDrafts.filter((draft) => !removed.has(draft.id));
+    } catch {
+      // The local copy is a convenience; the server draft is already deleted.
     }
   }
 
@@ -210,6 +230,7 @@
         await deletePendingDraft(row);
       } else {
         await api.reports.deleteDraft(row.id);
+        await forgetLocalCopies(row.id);
         toast.success('Draft deleted.');
         await loadReports(filters);
       }
@@ -223,13 +244,18 @@
 
   onMount(() => {
     void loadAccount();
-    void loadLocalDrafts();
   });
 
   // Back/forward or a shared link replaces the local filter state.
   $effect(() => {
     const fromUrl = filtersFromParams(new URLSearchParams(page.url.search));
-    if (!filtersEqual(fromUrl, untrack(() => filters))) filters = fromUrl;
+    if (
+      !filtersEqual(
+        fromUrl,
+        untrack(() => filters),
+      )
+    )
+      filters = fromUrl;
   });
 
   $effect(() => {
@@ -301,13 +327,15 @@
       ondelete={askDelete}
     />
 
-    <ReportsPagination
-      total={list.total}
-      page={filters.page}
-      pageSize={filters.pageSize}
-      onpage={(next) => void applyFilters({ page: next })}
-      onpagesize={(size) => void applyFilters({ pageSize: size })}
-    />
+    {#if list.total > 0}
+      <ReportsPagination
+        total={list.total}
+        page={filters.page}
+        pageSize={filters.pageSize}
+        onpage={(next) => void applyFilters({ page: next })}
+        onpagesize={(size) => void applyFilters({ pageSize: size })}
+      />
+    {/if}
   {/if}
 {/if}
 

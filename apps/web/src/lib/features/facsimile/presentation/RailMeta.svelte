@@ -3,7 +3,11 @@
 
   import { formatDate } from '$lib/format/datetime';
 
-  import { EMPTY_VALUE, REPORT_FIELD_COUNT, referenceCounts } from '../application/facsimile-document';
+  import {
+    EMPTY_VALUE,
+    REPORT_FIELD_COUNT,
+    referenceCounts,
+  } from '../application/facsimile-document';
 
   /** Version, completed fields, and the two dates the office looks for (§7.7). */
   let { detail }: { detail: ReportDetail } = $props();

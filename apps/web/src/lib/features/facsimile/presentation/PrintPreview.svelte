@@ -2,6 +2,8 @@
   import type { ReportCommentRound, ReportDetail } from '@par/shared';
   import { onMount } from 'svelte';
 
+  import { registerCommand } from '$lib/features/window-chrome/application/command-registry.svelte';
+
   import type { FacsimileReferences } from '../application/facsimile-document';
   import type { SignatureBlock } from '../application/facsimile-people';
   import { estimatePageCount, printFooter } from '../application/facsimile-print';
@@ -94,6 +96,17 @@
     if (!ready || typeof window === 'undefined') return;
     window.print();
   }
+
+  // File > Print and `Ctrl+P` both resolve through the chrome's registry, so the
+  // shortcut and the menu can never disagree and neither runs twice.
+  onMount(() =>
+    registerCommand({
+      id: 'file.print',
+      enabled: () => ready,
+      disabledReason: () => 'The document is still rendering.',
+      run: () => print(),
+    }),
+  );
 </script>
 
 <div class="print-preview">

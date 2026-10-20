@@ -1,6 +1,8 @@
 <script lang="ts">
   import { AlertCircle } from '@lucide/svelte';
 
+  import DatePicker from '$lib/components/DatePicker.svelte';
+
   import type {
     ReferenceField,
     ReferenceFieldOption,
@@ -74,15 +76,14 @@
         {/each}
       </select>
     {:else if field.kind === 'date'}
-      <input
+      <DatePicker
         {id}
-        class="input"
-        type="date"
+        label={field.label}
         value={String(value ?? '')}
         {disabled}
-        aria-invalid={error ? 'true' : undefined}
-        aria-describedby={describedBy}
-        oninput={(event) => onchange(event.currentTarget.value)}
+        invalid={Boolean(error)}
+        {describedBy}
+        onchange={(iso) => onchange(iso)}
         {onblur}
       />
     {:else if field.kind === 'number'}

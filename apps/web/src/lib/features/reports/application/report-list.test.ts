@@ -41,14 +41,20 @@ describe('empty states', () => {
     expect(emptyStateFor('approved', options).action).toBeUndefined();
   });
 
-  it('drops the create action for read-only roles', () => {
-    const empty = emptyStateFor('all', {
-      hasFilters: false,
-      canCreate: false,
-      clearHref: '/reports',
-    });
+  it('drops the create action and the create copy for read-only roles', () => {
+    const options = { hasFilters: false, canCreate: false, clearHref: '/reports' };
 
-    expect(empty.action).toBeUndefined();
+    expect(emptyStateFor('all', options)).toMatchObject({
+      description: 'Reports filed under this account appear here.',
+    });
+    expect(emptyStateFor('all', options).action).toBeUndefined();
+    expect(emptyStateFor('drafts', options).description).toBe(
+      'This role does not file reports, so it has no drafts.',
+    );
+    expect(emptyStateFor('drafts', options).action).toBeUndefined();
+    expect(emptyStateFor('returned', options).description).toBe(
+      'Reports sent back to this account for revision appear here.',
+    );
   });
 
   it('lets filtered-empty win over the tab copy and offers Clear filters', () => {
@@ -68,10 +74,12 @@ describe('empty states', () => {
 
 describe('page header', () => {
   it('states what the table holds for each role', () => {
+    // The list is the caller's own reports for every role (UI spec §7.4), so the
+    // copy never promises a reviewer's handled reports or an admin's all reports.
     expect(subtitleFor('SUBMITTER')).toBe('Reports you submitted');
-    expect(subtitleFor('REVIEWER')).toBe('Reports you have handled');
-    expect(subtitleFor('APPROVER')).toBe('Reports you have handled');
-    expect(subtitleFor('ADMIN')).toBe('All reports');
+    expect(subtitleFor('REVIEWER')).toBe('Reports under your account');
+    expect(subtitleFor('APPROVER')).toBe('Reports under your account');
+    expect(subtitleFor('ADMIN')).toBe('Reports you submitted');
   });
 });
 

@@ -30,15 +30,22 @@
     backHref = '/reports',
     backLabel = 'My reports',
     actions,
+    facsimileState,
   }: {
     id: string;
     print?: boolean;
     backHref?: string;
     backLabel?: string;
     actions?: Snippet;
+    /**
+     * The queue routes pass their own state so a decision can replace the loaded
+     * report with the API response; every other route lets the page own it.
+     */
+    facsimileState?: FacsimileState;
   } = $props();
 
-  const facsimile = untrack(() => new FacsimileState(id));
+  const ownState = untrack(() => new FacsimileState(id));
+  const facsimile = $derived(facsimileState ?? ownState);
   const detail = $derived(facsimile.detail);
 
   let redirecting = $state(false);
@@ -78,12 +85,12 @@
 </svelte:head>
 
 {#if facsimile.view === 'not-found'}
-  <ErrorState variant="not-found" backHref={backHref} backLabel="Back to reports" />
+  <ErrorState variant="not-found" {backHref} backLabel="Back to reports" />
 {:else if facsimile.view === 'error'}
   <ErrorState
     requestId={facsimile.requestId}
     onretry={() => void facsimile.load()}
-    backHref={backHref}
+    {backHref}
     backLabel="Back to reports"
   />
 {:else if !detail || redirecting || facsimile.view === 'loading'}

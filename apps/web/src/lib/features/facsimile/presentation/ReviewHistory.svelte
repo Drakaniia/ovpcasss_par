@@ -11,7 +11,11 @@
   let { rounds }: { rounds: ReportCommentRound[] } = $props();
 </script>
 
-<section class="doc-section review-history" id="review-history" aria-labelledby="review-history-heading">
+<section
+  class="doc-section review-history"
+  id="review-history"
+  aria-labelledby="review-history-heading"
+>
   <h3 id="review-history-heading" class="section-heading">
     <span class="numeral">VI.</span>
     Review history

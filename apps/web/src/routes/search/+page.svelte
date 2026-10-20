@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PagePlaceholder from '$lib/components/PagePlaceholder.svelte';
+  import SearchPage from '$lib/features/search/presentation/SearchPage.svelte';
 </script>
 
-<PagePlaceholder title="Repository search" phase="10" />
+<SearchPage />

@@ -57,8 +57,7 @@ export function requirementProgress(
 ): AttachmentCompleteness {
   const progress = activeRequirements(requirements, type).map((requirement) => {
     const confirmed = attachments.filter(
-      (attachment) =>
-        attachment.label === requirement.label && attachment.status === 'CONFIRMED',
+      (attachment) => attachment.label === requirement.label && attachment.status === 'CONFIRMED',
     ).length;
     const required = requirement.isRequired ? requirement.minCount : 0;
 
@@ -124,9 +123,7 @@ export function completenessItems(
     {
       id: 'dates',
       label: 'Dates',
-      complete: Boolean(
-        form.startDate && form.endDate && form.endDate >= form.startDate,
-      ),
+      complete: Boolean(form.startDate && form.endDate && form.endDate >= form.startDate),
       step: 2,
     },
     {

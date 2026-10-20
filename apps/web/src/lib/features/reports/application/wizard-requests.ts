@@ -1,3 +1,4 @@
+import { actsAs } from '@par/shared';
 import type {
   AttachmentRequirement,
   Campus,
@@ -60,7 +61,7 @@ export async function resolveWizardAccount(): Promise<WizardAuth> {
       return 'loading';
     }
 
-    return account.role === 'SUBMITTER' ? 'ready' : 'denied';
+    return actsAs(account.role, 'SUBMITTER') ? 'ready' : 'denied';
   } catch {
     return 'error';
   }
@@ -129,9 +130,7 @@ export async function submitNewReport(options: {
     return {
       kind: 'error',
       message:
-        error instanceof ApiError
-          ? error.message
-          : 'The report was not submitted. Try again.',
+        error instanceof ApiError ? error.message : 'The report was not submitted. Try again.',
       ...(error instanceof ApiError && error.requestId ? { requestId: error.requestId } : {}),
     };
   }

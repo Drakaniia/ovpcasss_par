@@ -6,6 +6,8 @@
   import { destinationAfterSignIn } from '$lib/features/auth/application/post-sign-in';
   import AccountCard from '$lib/features/profile/presentation/AccountCard.svelte';
   import PasswordCard from '$lib/features/profile/presentation/PasswordCard.svelte';
+  import SignatureUpload from '$lib/features/profile/presentation/SignatureUpload.svelte';
+  import UpdateCard from '$lib/features/updater/presentation/UpdateCard.svelte';
   import { loadSession, session, signOut } from '$lib/session/session.svelte';
 
   let loading = $state(true);
@@ -82,6 +84,12 @@
     <div class="grid">
       <AccountCard {user} />
       <PasswordCard />
+      <UpdateCard />
+      {#if user.role === 'APPROVER'}
+        <div class="signature-slot">
+          <SignatureUpload />
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -115,6 +123,11 @@
   @media (min-width: 1024px) {
     .grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* The approver's signature card owns the full width for its 600 px canvas. */
+    .signature-slot {
+      grid-column: 1 / -1;
     }
   }
 

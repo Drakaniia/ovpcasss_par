@@ -59,18 +59,18 @@ const detail = (overrides: Partial<ReportDetail> = {}): ReportDetail => ({
 const owner = { role: 'SUBMITTER' as const, userId: 'u1', ownerUserId: 'u1' };
 
 describe('edit access', () => {
-  it('lets only the owning submitter edit a returned report', () => {
+  it('lets only the owner edit a returned report, whatever role that owner holds', () => {
     expect(editAccessFor({ ...owner, status: 'RETURNED_BY_REVIEWER' })).toBe('editable');
     expect(editAccessFor({ ...owner, status: 'RETURNED_BY_APPROVER' })).toBe('editable');
     expect(editAccessFor({ ...owner, userId: 'u2', status: 'RETURNED_BY_REVIEWER' })).toBe(
       'denied',
     );
-    expect(
-      editAccessFor({ ...owner, role: 'ADMIN', status: 'RETURNED_BY_REVIEWER' }),
-    ).toBe('denied');
-    expect(
-      editAccessFor({ ...owner, role: 'REVIEWER', status: 'RETURNED_BY_REVIEWER' }),
-    ).toBe('denied');
+    expect(editAccessFor({ ...owner, role: 'ADMIN', status: 'RETURNED_BY_REVIEWER' })).toBe(
+      'editable',
+    );
+    expect(editAccessFor({ ...owner, role: 'REVIEWER', status: 'RETURNED_BY_REVIEWER' })).toBe(
+      'denied',
+    );
     expect(editAccessFor({ ...owner, userId: null, status: 'RETURNED_BY_REVIEWER' })).toBe(
       'denied',
     );
@@ -118,9 +118,7 @@ describe('return copy', () => {
   });
 
   it('falls back to the status role when the API omits the return event', () => {
-    const header = returnHeader(
-      detail({ returnEvent: undefined, status: 'RETURNED_BY_APPROVER' }),
-    );
+    const header = returnHeader(detail({ returnEvent: undefined, status: 'RETURNED_BY_APPROVER' }));
     expect(header?.roleLabel).toBe('approver');
   });
 
@@ -146,13 +144,8 @@ describe('return copy', () => {
   });
 
   it('clears a flag once its field changes and keeps it cleared', () => {
-    expect(visibleFlags(['totalStudents', 'pics'], new Set())).toEqual([
-      'totalStudents',
-      'pics',
-    ]);
-    expect(visibleFlags(['totalStudents', 'pics'], new Set(['totalStudents']))).toEqual([
-      'pics',
-    ]);
+    expect(visibleFlags(['totalStudents', 'pics'], new Set())).toEqual(['totalStudents', 'pics']);
+    expect(visibleFlags(['totalStudents', 'pics'], new Set(['totalStudents']))).toEqual(['pics']);
   });
 });
 

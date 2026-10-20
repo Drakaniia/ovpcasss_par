@@ -5,6 +5,7 @@
 
   import { api } from '$lib/api/client';
   import { ApiError } from '$lib/api/http';
+  import FloatingInput from '$lib/components/FloatingInput.svelte';
   import AuthMessage from '$lib/features/auth/presentation/AuthMessage.svelte';
   import { focusFirstError, parseForm, type FieldErrors } from '$lib/validation/field-errors';
 
@@ -77,16 +78,15 @@
     <p class="form-lede">Enter the address you use for this system. We will send a reset link.</p>
 
     <div class="field">
-      <label class="field-label" for="email">University email</label>
-      <input
-        class="input"
+      <FloatingInput
+        bind:value={email}
         id="email"
+        label="University email"
         name="email"
         type="email"
         autocomplete="email"
         autocapitalize="none"
         spellcheck="false"
-        bind:value={email}
         onblur={checkEmail}
         aria-invalid={errors.email ? 'true' : undefined}
         aria-describedby={errors.email ? 'email-error' : undefined}

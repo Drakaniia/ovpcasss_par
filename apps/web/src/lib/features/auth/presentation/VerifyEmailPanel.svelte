@@ -6,6 +6,7 @@
 
   import { api } from '$lib/api/client';
   import { ApiError } from '$lib/api/http';
+  import FloatingInput from '$lib/components/FloatingInput.svelte';
   import AuthMessage from '$lib/features/auth/presentation/AuthMessage.svelte';
   import { focusFirstError, type FieldErrors } from '$lib/validation/field-errors';
 
@@ -130,16 +131,15 @@
 
     {#if !addressFromUrl}
       <div class="field">
-        <label class="field-label" for="email">University email</label>
-        <input
-          class="input"
+        <FloatingInput
+          bind:value={emailInput}
           id="email"
+          label="University email"
           name="email"
           type="email"
           autocomplete="email"
           autocapitalize="none"
           spellcheck="false"
-          bind:value={emailInput}
           aria-invalid={errors.email ? 'true' : undefined}
           aria-describedby={errors.email ? 'email-error' : undefined}
         />

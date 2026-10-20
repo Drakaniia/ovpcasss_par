@@ -6,6 +6,7 @@
 
   import { api } from '$lib/api/client';
   import { ApiError } from '$lib/api/http';
+  import FloatingInput from '$lib/components/FloatingInput.svelte';
   import AuthMessage from '$lib/features/auth/presentation/AuthMessage.svelte';
   import { focusFirstError, parseForm, type FieldErrors } from '$lib/validation/field-errors';
   import { passwordStrengthText } from '$lib/validation/password-strength';
@@ -105,14 +106,13 @@
     <p class="form-lede">Choose a new password for your account.</p>
 
     <div class="field">
-      <label class="field-label" for="password">New password</label>
-      <input
-        class="input"
+      <FloatingInput
+        bind:value={password}
         id="password"
+        label="New password"
         name="password"
         type="password"
         autocomplete="new-password"
-        bind:value={password}
         aria-invalid={errors.password ? 'true' : undefined}
         aria-describedby={[
           errors.password ? 'password-error' : '',
@@ -135,14 +135,13 @@
     </div>
 
     <div class="field">
-      <label class="field-label" for="confirmPassword">Confirm new password</label>
-      <input
-        class="input"
+      <FloatingInput
+        bind:value={confirmPassword}
         id="confirmPassword"
+        label="Confirm new password"
         name="confirmPassword"
         type="password"
         autocomplete="new-password"
-        bind:value={confirmPassword}
         aria-invalid={errors.confirmPassword ? 'true' : undefined}
         aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
       />

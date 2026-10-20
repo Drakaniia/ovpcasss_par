@@ -2,7 +2,12 @@ import type { Campus, Term } from '@par/shared';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 
-import { configFor, draftForCreate, draftFromRow, rowsFromEntries } from '../application/reference-data';
+import {
+  configFor,
+  draftForCreate,
+  draftFromRow,
+  rowsFromEntries,
+} from '../application/reference-data';
 import ReferenceDataTable from './ReferenceDataTable.svelte';
 import ReferenceEntryDrawer from './ReferenceEntryDrawer.svelte';
 
@@ -32,7 +37,7 @@ const term = (overrides: Partial<Term> = {}): Term => ({
 const noop = () => {};
 
 describe('ReferenceDataTable', () => {
-  it('renders the entity columns, the seeded chip, and the row menu', () => {
+  it('renders the entity columns and the row menu', () => {
     const config = configFor('campuses');
     const rows = rowsFromEntries(config, [campus()]);
 
@@ -51,7 +56,7 @@ describe('ReferenceDataTable', () => {
     for (const label of ['Code', 'Name', 'Units', 'Order', 'Status']) {
       expect(html).toContain(label);
     }
-    expect(html).toContain('Seeded');
+    expect(html).not.toContain('Seeded');
     expect(html).toContain('Actions for Main Campus');
     expect(html).toContain('table-col-secondary');
   });
@@ -77,7 +82,7 @@ describe('ReferenceDataTable', () => {
 });
 
 describe('ReferenceEntryDrawer', () => {
-  it('names the entity, explains a seeded row, and offers soft removal', () => {
+  it('names the entity and offers soft removal', () => {
     const config = configFor('campuses');
     const rows = rowsFromEntries(config, [campus()]);
 
@@ -93,7 +98,7 @@ describe('ReferenceEntryDrawer', () => {
     }).body;
 
     expect(html).toContain('Edit campus');
-    expect(html).toContain('Seeded from the source workbook. Deactivate rather than delete.');
+    expect(html).not.toContain('Seeded');
     expect(html).toContain('Save entry');
     expect(html).toContain('Deactivate');
     expect(html).not.toContain('Delete');

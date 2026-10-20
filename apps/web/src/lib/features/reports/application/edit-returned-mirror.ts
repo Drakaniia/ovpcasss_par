@@ -2,6 +2,7 @@ import type { ReportDraftForm, ReportFormInput } from '@par/shared';
 
 import { createPlatform } from '$lib/platform';
 import type { Platform } from '$lib/platform/contracts';
+import { session } from '$lib/session/session.svelte';
 
 import { draftFormFromWizard, type WizardForm } from './wizard-form';
 import { FIELD_ORDER, fieldValuesEqual } from './report-field-values';
@@ -44,9 +45,7 @@ export class LocalMirror {
     const stored = await platform.drafts.get(this.draftId);
     if (!stored) return null;
 
-    const differs = FIELD_ORDER.some(
-      (key) => !fieldValuesEqual(key, stored.form, serverForm),
-    );
+    const differs = FIELD_ORDER.some((key) => !fieldValuesEqual(key, stored.form, serverForm));
     if (!differs) {
       await platform.drafts.remove(this.draftId).catch(() => {});
       return null;
@@ -71,8 +70,10 @@ export class LocalMirror {
     };
 
     try {
+      const owner = session.user?.id;
       await platform.drafts.put({
         id: this.draftId,
+        ...(owner ? { ownerUserId: owner } : {}),
         serverId: options.serverId,
         version: draft.version,
         updatedAt: draft.updatedAt,

@@ -1,3 +1,4 @@
+import { actsAs } from '@par/shared';
 import type { ReportListTab, Role } from '@par/shared';
 
 import type { ReportRow } from './report-rows';
@@ -30,18 +31,22 @@ export function emptyStateFor(
   }
 
   const create = options.canCreate ? { label: 'New report', href: '/reports/new' } : undefined;
+  /** Only a role that files reports is invited to start one. */
+  const who = options.canCreate ? 'you' : 'this account';
 
   switch (tab) {
     case 'drafts':
       return {
         title: 'No drafts.',
-        description: 'Drafts you start are saved here until you submit them.',
+        description: options.canCreate
+          ? 'Drafts you start are saved here until you submit them.'
+          : 'This role does not file reports, so it has no drafts.',
         action: create,
       };
     case 'returned':
       return {
         title: 'Nothing returned.',
-        description: 'Reports sent back to you for revision appear here.',
+        description: `Reports sent back to ${who} for revision appear here.`,
       };
     case 'approved':
       return {
@@ -51,16 +56,22 @@ export function emptyStateFor(
     default:
       return {
         title: 'No reports yet.',
-        description: 'Create a report to start the process.',
+        description: options.canCreate
+          ? 'Create a report to start the process.'
+          : 'Reports filed under this account appear here.',
         action: create,
       };
   }
 }
 
+/**
+ * My reports is always the caller's own list, whatever their role (UI spec §7.4:
+ * a status board for the user's reports, not a triage tool). Only a submitter
+ * files reports, so only it has reports to describe.
+ */
 export function subtitleFor(role: Role | null | undefined): string {
-  if (role === 'SUBMITTER') return 'Reports you submitted';
-  if (role === 'REVIEWER' || role === 'APPROVER') return 'Reports you have handled';
-  return 'All reports';
+  if (actsAs(role, 'SUBMITTER')) return 'Reports you submitted';
+  return 'Reports under your account';
 }
 
 export type ConfirmationCopy = {

@@ -22,6 +22,7 @@ const item = (overrides: Partial<ReportListItem> = {}): ReportListItem => ({
 
 const draft = (overrides: Partial<ReportDraft> = {}): ReportDraft => ({
   id: 'd1',
+  ownerUserId: 'u1',
   version: 2,
   updatedAt: '2026-03-15T01:12:00.000Z',
   form: {
@@ -111,7 +112,11 @@ describe('ReportTable', () => {
   });
 
   it('renders a device-only draft as a plain DRAFT row', () => {
-    const pending = pendingRowsFromDrafts([draft()], [], NOW);
+    const pending = pendingRowsFromDrafts([draft()], {
+      ownerUserId: 'u1',
+      role: 'SUBMITTER',
+      now: NOW,
+    });
     const html = renderTable(pending);
 
     expect(html).toContain('Coastal cleanup');

@@ -1,21 +1,26 @@
 <script lang="ts">
-  import { AlertCircle, UploadCloud } from '@lucide/svelte';
   import { untrack } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
 
   import { api } from '$lib/api/client';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+  import { createPlatform } from '$lib/platform';
+  import type { PickedFile, Platform } from '$lib/platform/contracts';
   import { toast } from '$lib/toast/toast.svelte';
 
   import {
-    ACCEPT_ATTRIBUTE,
-    MAX_FILE_SIZE_LABEL,
+    fileError,
     isPreviewable,
     validateFiles,
     type FileRejection,
   } from '../application/attachment-rules';
-  import { newAttachmentKey, uploadErrorText, type AttachmentItem } from '../application/attachment-items';
-  import { uploadToPresignedUrl } from '../application/attachment-upload';
+  import {
+    newAttachmentKey,
+    uploadErrorText,
+    type AttachmentItem,
+  } from '../application/attachment-items';
+  import { uploadHeaders, uploadToPresignedUrl } from '../application/attachment-upload';
+  import AttachmentDropZone from './AttachmentDropZone.svelte';
   import AttachmentList from './AttachmentList.svelte';
 
   /**
@@ -38,13 +43,37 @@
   } = $props();
 
   let localReportId = $state<string | null>(untrack(() => reportId));
-  let dragging = $state(false);
   let rejections = $state<FileRejection[]>([]);
   let pendingRemove = $state<AttachmentItem | null>(null);
   let confirmOpen = $state(false);
-  let input = $state<HTMLInputElement | null>(null);
+  let platform = $state<Platform | null>(null);
+  let openingPlatform = false;
 
   const cancels = new SvelteMap<string, () => void>();
+
+  /** A picked file keeps its disk path on desktop; a dropped one keeps its blob. */
+  type UploadSource = {
+    name: string;
+    size: number;
+    mimeType: string;
+    file?: File;
+    path?: string;
+  };
+
+  async function currentPlatform(): Promise<Platform | null> {
+    if (platform) return platform;
+    if (openingPlatform) return platform;
+
+    openingPlatform = true;
+    try {
+      platform = await createPlatform();
+      return platform;
+    } catch {
+      return null;
+    } finally {
+      openingPlatform = false;
+    }
+  }
 
   function update(key: string, patch: Partial<AttachmentItem>): void {
     items = items.map((item) => (item.key === key ? { ...item, ...patch } : item));
@@ -67,37 +96,56 @@
     return labelOptions[0] ?? '';
   }
 
-  async function startUpload(file: File, key: string, label: string): Promise<void> {
+  async function startUpload(source: UploadSource, key: string, label: string): Promise<void> {
     const item: AttachmentItem = {
       key,
       id: null,
-      fileName: file.name,
-      size: file.size,
-      mimeType: file.type || 'application/octet-stream',
+      fileName: source.name,
+      size: source.size,
+      mimeType: source.mimeType,
       label,
       status: 'UPLOADING',
       progress: 0,
-      file,
+      ...(source.file ? { file: source.file } : {}),
+      ...(source.path ? { path: source.path } : {}),
     };
     upsert(item);
 
     try {
       const id = await resolveReport();
       const presign = await api.attachments.presign(id, {
-        fileName: file.name,
-        size: file.size,
-        mimeType: item.mimeType,
+        fileName: source.name,
+        size: source.size,
+        mimeType: source.mimeType,
       });
       update(key, { id: presign.attachmentId });
+      const headers = uploadHeaders(presign);
 
-      await uploadToPresignedUrl({
-        url: presign.uploadUrl,
-        method: presign.method,
-        headers: presign.headers,
-        file,
-        onprogress: (progress) => update(key, { progress }),
-        onstart: (cancel) => cancels.set(key, cancel),
-      });
+      if (source.path) {
+        /* Desktop streams from disk; the Tauri adapter is loaded only here. */
+        const { uploadFromPath } = await import('$lib/platform/tauri/upload');
+        await uploadFromPath({
+          url: presign.uploadUrl,
+          method: presign.method,
+          headers,
+          path: source.path,
+          uploadId: presign.attachmentId,
+          onprogress: (progress) => update(key, { progress }),
+        });
+      } else if (source.file) {
+        await uploadToPresignedUrl({
+          url: presign.uploadUrl,
+          method: presign.method,
+          headers,
+          file: source.file,
+          // `proxy` means the API stores the file, so the session cookie must go.
+          withCredentials: presign.mode === 'proxy',
+          onprogress: (progress) => update(key, { progress }),
+          onstart: (cancel) => cancels.set(key, cancel),
+        });
+      } else {
+        throw new Error(`${source.name} is no longer available. Choose it again.`);
+      }
 
       update(key, { status: 'PENDING', progress: 100 });
       const confirmed = await api.attachments.confirm(id, presign.attachmentId, { label });
@@ -124,33 +172,77 @@
     const { accepted, rejected } = validateFiles(files);
     rejections = rejected;
     for (const file of accepted) {
-      void startUpload(file, newAttachmentKey(), defaultLabel());
+      void startUpload(
+        {
+          name: file.name,
+          size: file.size,
+          mimeType: file.type || 'application/octet-stream',
+          file,
+        },
+        newAttachmentKey(),
+        defaultLabel(),
+      );
     }
   }
 
-  function onDrop(event: DragEvent): void {
-    event.preventDefault();
-    dragging = false;
-    if (disabled) return;
-    if (event.dataTransfer?.files) addFiles(event.dataTransfer.files);
+  /** Desktop dialog results: size and type are known before any bytes move. */
+  function addPicked(files: readonly PickedFile[]): void {
+    if (files.length === 0) return;
+
+    const accepted: PickedFile[] = [];
+    rejections = [];
+
+    for (const file of files) {
+      const message = fileError({ name: file.name, size: file.size, type: file.mimeType });
+      if (message) rejections.push({ name: file.name, message });
+      else accepted.push(file);
+    }
+
+    for (const file of accepted) {
+      if (!file.path) {
+        rejections.push({ name: file.name, message: 'That file has no readable path.' });
+        continue;
+      }
+
+      void startUpload(
+        {
+          name: file.name,
+          size: file.size,
+          mimeType: file.mimeType || 'application/octet-stream',
+          path: file.path,
+        },
+        newAttachmentKey(),
+        defaultLabel(),
+      );
+    }
   }
 
-  function chooseFiles(): void {
+  async function chooseFiles(openInput: () => void): Promise<void> {
     if (disabled) return;
-    input?.click();
-  }
 
-  function onFileInput(event: Event): void {
-    const target = event.currentTarget as HTMLInputElement;
-    if (target.files) addFiles(target.files);
-    target.value = '';
+    const current = await currentPlatform();
+    if (current?.shell !== 'desktop') {
+      openInput();
+      return;
+    }
+
+    try {
+      addPicked(await current.files.pick());
+    } catch (error) {
+      toast.error(uploadErrorText(error, 'The file dialog could not open.'));
+    }
   }
 
   function retry(key: string): void {
     const item = items.find((entry) => entry.key === key);
-    if (!item?.file || disabled) return;
+    if (!item || disabled || (!item.file && !item.path)) return;
+
+    const source: UploadSource = item.file
+      ? { name: item.fileName, size: item.size, mimeType: item.mimeType, file: item.file }
+      : { name: item.fileName, size: item.size, mimeType: item.mimeType, path: item.path };
+
     update(key, { status: 'UPLOADING', progress: 0, error: undefined, id: null });
-    void startUpload(item.file, key, item.label || defaultLabel());
+    void startUpload(source, key, item.label || defaultLabel());
   }
 
   function askRemove(key: string): void {
@@ -227,51 +319,12 @@
 </script>
 
 <div class="uploader">
-  <div
-    class="drop-zone"
-    class:is-dragging={dragging}
-    class:is-disabled={disabled}
-    role="group"
-    aria-label="Attachment upload"
-    ondragover={(event) => {
-      event.preventDefault();
-      if (!disabled) dragging = true;
-    }}
-    ondragleave={() => (dragging = false)}
-    ondrop={onDrop}
-  >
-    <span class="drop-icon" aria-hidden="true"><UploadCloud size={22} /></span>
-    <div class="drop-copy">
-      <p class="drop-title">Drop files here or choose files.</p>
-      <p class="drop-hint">
-        PDF, images, Word, Excel, PowerPoint, text, CSV, and archives. {MAX_FILE_SIZE_LABEL} per
-        file.
-      </p>
-    </div>
-    <button class="btn btn-outline" type="button" {disabled} onclick={chooseFiles}>
-      Choose files
-    </button>
-    <input
-      class="visually-hidden"
-      type="file"
-      multiple
-      accept={ACCEPT_ATTRIBUTE}
-      tabindex="-1"
-      bind:this={input}
-      onchange={onFileInput}
-    />
-  </div>
-
-  {#if rejections.length > 0}
-    <ul class="rejections" role="alert">
-      {#each rejections as rejection (rejection.name)}
-        <li>
-          <AlertCircle size={16} aria-hidden="true" />
-          <span>{rejection.message}</span>
-        </li>
-      {/each}
-    </ul>
-  {/if}
+  <AttachmentDropZone
+    {disabled}
+    {rejections}
+    onfiles={addFiles}
+    onchoose={(openInput) => void chooseFiles(openInput)}
+  />
 
   {#if items.length === 0}
     <p class="empty-note">No attachments yet.</p>
@@ -307,90 +360,9 @@
     gap: 12px;
   }
 
-  .drop-zone {
-    align-items: center;
-    background: var(--surface-page);
-    border: 1px dashed var(--border);
-    border-radius: var(--radius-card);
-    display: flex;
-    gap: 12px;
-    padding: 16px;
-    transition:
-      background 120ms ease,
-      border-color 120ms ease;
-  }
-
-  .drop-zone.is-dragging {
-    background: var(--primary-subtle);
-    border-color: var(--primary);
-  }
-
-  .drop-zone.is-disabled {
-    opacity: 0.7;
-  }
-
-  .drop-icon {
-    align-items: center;
-    background: var(--surface-card);
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    color: var(--text-secondary);
-    display: inline-flex;
-    flex: none;
-    height: 40px;
-    justify-content: center;
-    width: 40px;
-  }
-
-  .drop-copy {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .drop-title {
-    font-size: 13px;
-    margin: 0;
-  }
-
-  .drop-hint {
-    color: var(--text-secondary);
-    font-size: 12px;
-    margin: 2px 0 0;
-  }
-
-  .rejections {
-    background: var(--status-danger-bg);
-    border: 1px solid var(--status-danger-fg);
-    border-radius: var(--radius-card);
-    color: var(--status-danger-fg);
-    display: flex;
-    flex-direction: column;
-    font-size: 12px;
-    gap: 6px;
-    list-style: none;
-    margin: 0;
-    padding: 10px 12px;
-  }
-
-  .rejections li {
-    align-items: flex-start;
-    display: flex;
-    gap: 6px;
-  }
-
   .empty-note {
     color: var(--text-secondary);
     font-size: 12px;
     margin: 0;
-  }
-
-  .visually-hidden {
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    height: 1px;
-    overflow: hidden;
-    position: absolute;
-    white-space: nowrap;
-    width: 1px;
   }
 </style>

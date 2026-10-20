@@ -28,7 +28,6 @@
   } from '../application/reference-types';
   import ReferenceEntryField from './ReferenceEntryField.svelte';
   import ReferenceEntryFooter from './ReferenceEntryFooter.svelte';
-  import SeededChip from './SeededChip.svelte';
 
   let {
     config,
@@ -210,13 +209,6 @@
 
 <SideDrawer open={true} title={drawerTitle(config, draft)} subtitle={config.label} {onclose}>
   <form class="entry-form" novalidate onsubmit={submit}>
-    {#if draft.isSeeded}
-      <div class="seeded-note">
-        <SeededChip />
-        <p>Seeded from the source workbook. Deactivate rather than delete.</p>
-      </div>
-    {/if}
-
     {#if alert}
       <div class="form-alert" role="alert" tabindex="-1" bind:this={alertEl}>
         <AlertCircle size={16} aria-hidden="true" />
@@ -319,23 +311,6 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
-  }
-
-  .seeded-note {
-    align-items: flex-start;
-    background: var(--surface-page);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-card);
-    display: flex;
-    gap: 10px;
-    padding: 12px;
-  }
-
-  .seeded-note p {
-    color: var(--text-secondary);
-    font-size: 12px;
-    line-height: 1.5;
-    margin: 0;
   }
 
   .error-summary p {

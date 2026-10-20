@@ -53,8 +53,8 @@
 >
   <h2 id={titleId} class="dialog-title">Leave this report?</h2>
   <p class="dialog-body">
-    Your changes have not been saved. Save a draft to continue later. Discard removes {lost} from
-    this device; this cannot be undone.
+    Your changes have not been saved. Save a draft to continue later. Discard removes {lost} from this
+    device; this cannot be undone.
   </p>
 
   <div class="dialog-actions">

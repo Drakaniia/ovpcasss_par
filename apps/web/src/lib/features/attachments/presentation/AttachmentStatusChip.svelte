@@ -1,7 +1,11 @@
 <script lang="ts">
   import { AlertCircle, Check, Clock, UploadCloud } from '@lucide/svelte';
 
-  import { statusLabel, statusTone, type AttachmentUiStatus } from '../application/attachment-rules';
+  import {
+    statusLabel,
+    statusTone,
+    type AttachmentUiStatus,
+  } from '../application/attachment-rules';
 
   let { status }: { status: AttachmentUiStatus } = $props();
 

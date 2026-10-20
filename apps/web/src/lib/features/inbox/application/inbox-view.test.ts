@@ -101,7 +101,7 @@ describe('inboxSectionsFor', () => {
     expect(inboxSectionsFor(roles, data)).toEqual([]);
   });
 
-  it('gives an admin the admin block without review or approval queues', () => {
+  it('gives an admin its own block and the queues it can act on', () => {
     const roles: Role[] = ['ADMIN'];
     const data = inbox({
       review: section(),
@@ -109,7 +109,7 @@ describe('inboxSectionsFor', () => {
       admin: { pendingRoleApprovals: 2, failedEmails: 0, auditEvents: [] },
     });
 
-    expect(inboxSectionsFor(roles, data)).toEqual(['admin']);
+    expect(inboxSectionsFor(roles, data)).toEqual(['review', 'approval', 'admin']);
   });
 
   it('shows only recent audit activity when nothing else needs an admin', () => {

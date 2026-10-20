@@ -132,11 +132,9 @@ describe('attachmentGroups', () => {
   });
 
   it('keeps unlabelled files visible', () => {
-    expect(
-      attachmentGroups([
-        { ...detail().attachments[0], id: 'a9', label: '  ' },
-      ]),
-    ).toEqual([{ label: 'Unlabelled', files: ['Attendance sheet.pdf'] }]);
+    expect(attachmentGroups([{ ...detail().attachments[0], id: 'a9', label: '  ' }])).toEqual([
+      { label: 'Unlabelled', files: ['Attendance sheet.pdf'] },
+    ]);
   });
 });
 

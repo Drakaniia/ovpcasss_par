@@ -48,15 +48,15 @@
 </script>
 
 {#if sections.length === 0}
-  {#if caps.submitter}
-    <InboxOnboardingChecklist onboarding={inbox.onboarding} />
-  {:else if caps.admin}
+  {#if caps.admin}
     <InboxNothing
       title="Nothing needs your attention"
       description="Role approvals and failed emails appear here when an administrator needs to act."
       href="/admin/users"
       linkLabel="Open users"
     />
+  {:else if caps.submitter}
+    <InboxOnboardingChecklist onboarding={inbox.onboarding} />
   {:else if caps.reviewer && caps.approver}
     <InboxNothing
       title="No reports are awaiting your decision"

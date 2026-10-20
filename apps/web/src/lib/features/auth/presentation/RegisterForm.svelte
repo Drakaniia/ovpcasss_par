@@ -6,6 +6,7 @@
 
   import { api } from '$lib/api/client';
   import { ApiError } from '$lib/api/http';
+  import FloatingInput from '$lib/components/FloatingInput.svelte';
   import {
     firstIssueOf,
     focusFirstError,
@@ -164,14 +165,13 @@
   {/if}
 
   <div class="field">
-    <label class="field-label" for="fullName">Full name</label>
-    <input
-      class="input"
+    <FloatingInput
+      bind:value={fullName}
       id="fullName"
+      label="Full name"
       name="fullName"
       type="text"
       autocomplete="name"
-      bind:value={fullName}
       onblur={checkFullName}
       aria-invalid={errors.fullName ? 'true' : undefined}
       aria-describedby={errors.fullName ? 'fullName-error' : undefined}
@@ -185,16 +185,15 @@
   </div>
 
   <div class="field">
-    <label class="field-label" for="email">University email</label>
-    <input
-      class="input"
+    <FloatingInput
+      bind:value={email}
       id="email"
+      label="University email"
       name="email"
       type="email"
       autocomplete="email"
       autocapitalize="none"
       spellcheck="false"
-      bind:value={email}
       onblur={checkEmail}
       aria-invalid={errors.email ? 'true' : undefined}
       aria-describedby={[errors.email ? 'email-error' : '', domainHint ? 'email-hint' : '']
@@ -213,21 +212,21 @@
   </div>
 
   <div class="field">
-    <label class="field-label" for="campusUnit">
-      <span>Campus or unit</span>
-      <span class="field-optional">Optional</span>
-    </label>
-    <input
-      class="input"
+    <FloatingInput
+      bind:value={campusUnit}
       id="campusUnit"
       name="campusUnit"
       type="text"
       autocomplete="organization"
-      bind:value={campusUnit}
       onblur={checkCampusUnit}
       aria-invalid={errors.campusUnit ? 'true' : undefined}
       aria-describedby={errors.campusUnit ? 'campusUnit-error' : undefined}
-    />
+    >
+      {#snippet label()}
+        <span>Campus or unit</span>
+        <span class="field-optional">Optional</span>
+      {/snippet}
+    </FloatingInput>
     {#if errors.campusUnit}
       <p class="field-error" id="campusUnit-error">
         <AlertCircle size={16} aria-hidden="true" />
@@ -237,21 +236,21 @@
   </div>
 
   <div class="field">
-    <label class="field-label" for="contactNumber">
-      <span>Contact number</span>
-      <span class="field-optional">Optional</span>
-    </label>
-    <input
-      class="input"
+    <FloatingInput
+      bind:value={contactNumber}
       id="contactNumber"
       name="contactNumber"
       type="tel"
       autocomplete="tel"
-      bind:value={contactNumber}
       onblur={checkContactNumber}
       aria-invalid={errors.contactNumber ? 'true' : undefined}
       aria-describedby={errors.contactNumber ? 'contactNumber-error' : undefined}
-    />
+    >
+      {#snippet label()}
+        <span>Contact number</span>
+        <span class="field-optional">Optional</span>
+      {/snippet}
+    </FloatingInput>
     {#if errors.contactNumber}
       <p class="field-error" id="contactNumber-error">
         <AlertCircle size={16} aria-hidden="true" />
@@ -261,14 +260,13 @@
   </div>
 
   <div class="field">
-    <label class="field-label" for="password">Password</label>
-    <input
-      class="input"
+    <FloatingInput
+      bind:value={password}
       id="password"
+      label="Password"
       name="password"
       type="password"
       autocomplete="new-password"
-      bind:value={password}
       onblur={checkPassword}
       aria-invalid={errors.password ? 'true' : undefined}
       aria-describedby={[
@@ -292,14 +290,13 @@
   </div>
 
   <div class="field">
-    <label class="field-label" for="confirmPassword">Confirm password</label>
-    <input
-      class="input"
+    <FloatingInput
+      bind:value={confirmPassword}
       id="confirmPassword"
+      label="Confirm password"
       name="confirmPassword"
       type="password"
       autocomplete="new-password"
-      bind:value={confirmPassword}
       onblur={checkConfirmPassword}
       aria-invalid={errors.confirmPassword ? 'true' : undefined}
       aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}

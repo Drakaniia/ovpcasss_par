@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PagePlaceholder from '$lib/components/PagePlaceholder.svelte';
+  import QueuePage from '$lib/features/queues/presentation/QueuePage.svelte';
 </script>
 
-<PagePlaceholder title="Approval queue" phase="09" />
+<QueuePage kind="approval" />

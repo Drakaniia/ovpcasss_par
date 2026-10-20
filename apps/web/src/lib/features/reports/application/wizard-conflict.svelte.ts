@@ -25,11 +25,7 @@ export class WizardConflict {
   serverLine = $state<string | undefined>();
   server = $state<ReportDetail | null>(null);
 
-  async load(
-    reportId: string,
-    form: WizardForm,
-    references: EditReferences,
-  ): Promise<void> {
+  async load(reportId: string, form: WizardForm, references: EditReferences): Promise<void> {
     this.open = true;
     this.loading = true;
     this.error = undefined;

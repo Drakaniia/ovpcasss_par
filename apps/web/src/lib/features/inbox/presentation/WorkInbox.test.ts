@@ -109,7 +109,7 @@ describe('WorkInbox', () => {
     expect(html).not.toContain('(0)');
   });
 
-  it('gives an admin the admin block and no queues', () => {
+  it('gives an admin its own block beside the queues it can act on', () => {
     const html = renderInbox(
       inbox({
         review: section({ total: 4 }),
@@ -131,7 +131,7 @@ describe('WorkInbox', () => {
     expect(html).toContain('Awaiting role approvals');
     expect(html).toContain('Failed emails');
     expect(html).toContain('Recent audit activity');
-    expect(html).not.toContain('Awaiting your review');
+    expect(html).toContain('Awaiting your review');
     expect(html).not.toContain('New report');
   });
 

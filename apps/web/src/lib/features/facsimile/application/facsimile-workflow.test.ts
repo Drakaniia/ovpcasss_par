@@ -125,7 +125,9 @@ describe('stepperState', () => {
   });
 
   it('never renders the five stages as color alone', () => {
-    expect(stepperState('SUBMITTED').states.filter((state) => state === 'upcoming')).toHaveLength(2);
+    expect(stepperState('SUBMITTED').states.filter((state) => state === 'upcoming')).toHaveLength(
+      2,
+    );
   });
 });
 
@@ -239,15 +241,16 @@ describe('historyGroups', () => {
   });
 
   it('truncates long comments with an ellipsis', () => {
-    const long = historyGroups([
-      {
-        at: '2026-03-14T01:12:00.000Z',
-        actorName: 'M. Santos',
-        actorRole: 'REVIEWER',
-        action: 'Returned',
-        comment: 'x'.repeat(400),
-      },
-    ])[0].entries[0].comment ?? '';
+    const long =
+      historyGroups([
+        {
+          at: '2026-03-14T01:12:00.000Z',
+          actorName: 'M. Santos',
+          actorRole: 'REVIEWER',
+          action: 'Returned',
+          comment: 'x'.repeat(400),
+        },
+      ])[0].entries[0].comment ?? '';
 
     expect(long).toHaveLength(161);
     expect(long.endsWith('…')).toBe(true);
@@ -270,9 +273,7 @@ describe('commentRounds', () => {
     );
 
     expect(rounds).toHaveLength(1);
-    expect(roundHeading(rounds[0])).toBe(
-      'Round 1 — returned by M. Santos (Reviewer), 15 Mar 2026',
-    );
+    expect(roundHeading(rounds[0])).toBe('Round 1 — returned by M. Santos (Reviewer), 15 Mar 2026');
   });
 
   it('sorts supplied rounds and keeps their order', () => {

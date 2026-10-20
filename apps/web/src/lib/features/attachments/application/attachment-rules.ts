@@ -13,14 +13,7 @@ export type FileLike = { name: string; size: number; type?: string };
 export type FileRejection = { name: string; message: string };
 
 export type AttachmentKind =
-  | 'pdf'
-  | 'image'
-  | 'word'
-  | 'excel'
-  | 'powerpoint'
-  | 'archive'
-  | 'text'
-  | 'other';
+  'pdf' | 'image' | 'word' | 'excel' | 'powerpoint' | 'archive' | 'text' | 'other';
 
 const ALLOWED_EXTENSIONS = new Set([
   'pdf',
@@ -71,7 +64,9 @@ const KIND_BY_EXTENSION: Record<string, AttachmentKind> = {
 };
 
 /** The `accept` attribute; keeps the picker focused without hiding the reason. */
-export const ACCEPT_ATTRIBUTE = [...ALLOWED_EXTENSIONS].map((extension) => `.${extension}`).join(',');
+export const ACCEPT_ATTRIBUTE = [...ALLOWED_EXTENSIONS]
+  .map((extension) => `.${extension}`)
+  .join(',');
 
 export const MAX_FILE_SIZE_LABEL = formatFileSize(MAX_ATTACHMENT_BYTES);
 

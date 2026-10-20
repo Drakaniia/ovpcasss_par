@@ -42,12 +42,7 @@
       {#if step < 4}
         <button class="btn btn-primary" type="button" onclick={oncontinue}>Continue</button>
       {:else}
-        <button
-          class="btn btn-primary"
-          type="button"
-          disabled={busy || blocked}
-          onclick={onsubmit}
-        >
+        <button class="btn btn-primary" type="button" disabled={busy || blocked} onclick={onsubmit}>
           {#if busy}
             <span class="spin" aria-hidden="true"><LoaderCircle size={16} /></span>
             Submitting…
@@ -65,9 +60,10 @@
     background: var(--surface-card);
     border-top: 1px solid var(--border);
     bottom: 0;
-    margin-top: 24px;
-    padding: 12px 0;
-    position: sticky;
+    left: 0;
+    padding: 12px 24px;
+    position: fixed;
+    right: 0;
     z-index: 5;
   }
 
@@ -78,6 +74,10 @@
     justify-content: space-between;
     margin-inline: auto;
     max-width: 1032px;
+  }
+
+  .action-bar .btn {
+    height: 36px;
   }
 
   .spacer {

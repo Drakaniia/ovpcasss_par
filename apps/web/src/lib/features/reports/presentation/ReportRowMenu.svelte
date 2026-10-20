@@ -80,7 +80,8 @@
 
     if (event.key === 'Home') items[0].focus();
     else if (event.key === 'End') items[last].focus();
-    else if (event.key === 'ArrowDown') items[index >= last || index === -1 ? 0 : index + 1].focus();
+    else if (event.key === 'ArrowDown')
+      items[index >= last || index === -1 ? 0 : index + 1].focus();
     else items[index <= 0 ? last : index - 1].focus();
   }
 

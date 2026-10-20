@@ -5,6 +5,7 @@
   import { page } from '$app/state';
 
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+  import DatePicker from '$lib/components/DatePicker.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import ErrorState from '$lib/components/ErrorState.svelte';
   import NextStepStrip from '$lib/components/NextStepStrip.svelte';
@@ -28,6 +29,7 @@
   let openDefault = $state(false);
   let openDestructive = $state(false);
   let retryCount = $state(0);
+  let demoDate = $state('2026-03-15');
 
   function preview(role: Role) {
     session.user = {
@@ -201,6 +203,20 @@
   </section>
 
   <section class="card section">
+    <h2>Date picker</h2>
+    <p class="hint">Type DD MMM YYYY or open the calendar. Esc closes; arrows move days.</p>
+    <div class="field">
+      <label class="field-label" for="demo-date">Activity date</label>
+      <DatePicker
+        id="demo-date"
+        label="Activity date"
+        value={demoDate}
+        onchange={(iso) => (demoDate = iso)}
+      />
+    </div>
+  </section>
+
+  <section class="card section">
     <h2>Document skeleton</h2>
     <SkeletonDocument />
   </section>
@@ -228,9 +244,9 @@
   <section class="card section">
     <h2>Keyboard</h2>
     <p class="hint">
-      Press <kbd class="kbd">/</kbd> to focus search, <kbd class="kbd">?</kbd> to dispatch the
-      shortcut-help event, <kbd class="kbd">Ctrl</kbd> + <kbd class="kbd">K</kbd> for the palette
-      event, and <kbd class="kbd">Esc</kbd> to close menus. The help sheet and palette are phase 12.
+      Press <kbd class="kbd">/</kbd> to focus search, <kbd class="kbd">?</kbd> for the keyboard
+      shortcut help, <kbd class="kbd">Ctrl</kbd> + <kbd class="kbd">K</kbd> for the command palette,
+      and <kbd class="kbd">Esc</kbd> to close the topmost layer.
     </p>
   </section>
 </div>

@@ -4,6 +4,7 @@
   import { Search, X } from '@lucide/svelte';
   import { untrack } from 'svelte';
 
+  import DatePicker from '$lib/components/DatePicker.svelte';
   import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
 
   import {
@@ -120,26 +121,24 @@
     </select>
 
     <div class="date-range" role="group" aria-label="Activity date range">
-      <label class="date-field">
-        <span class="date-label">From</span>
-        <input
-          class="input date-input"
-          type="date"
+      <div class="date-field">
+        <label class="date-label" for="filter-from">From</label>
+        <DatePicker
+          id="filter-from"
+          label="Activity date from"
           value={filters.from}
-          aria-label="Activity date from"
-          onchange={(event) => onchange({ from: event.currentTarget.value })}
+          onchange={(iso) => onchange({ from: iso })}
         />
-      </label>
-      <label class="date-field">
-        <span class="date-label">To</span>
-        <input
-          class="input date-input"
-          type="date"
+      </div>
+      <div class="date-field">
+        <label class="date-label" for="filter-to">To</label>
+        <DatePicker
+          id="filter-to"
+          label="Activity date to"
           value={filters.to}
-          aria-label="Activity date to"
-          onchange={(event) => onchange({ to: event.currentTarget.value })}
+          onchange={(iso) => onchange({ to: iso })}
         />
-      </label>
+      </div>
     </div>
   </div>
 
@@ -219,16 +218,13 @@
     align-items: center;
     display: inline-flex;
     gap: 6px;
+    width: 220px;
   }
 
   .date-label {
     color: var(--text-secondary);
     font-size: 12px;
     font-weight: 500;
-  }
-
-  .date-input {
-    width: 148px;
   }
 
   .chips {
@@ -312,10 +308,6 @@
     }
 
     .date-field {
-      flex: 1;
-    }
-
-    .date-input {
       width: 100%;
     }
   }

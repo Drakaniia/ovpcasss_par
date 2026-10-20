@@ -1,4 +1,4 @@
-import type { ReportDetail, ReportStatus, Role } from '@par/shared';
+import { actsAs, type ReportDetail, type ReportStatus, type Role } from '@par/shared';
 
 /**
  * Workflow presentation for the facsimile (UI spec §7.7, §8.2). The five
@@ -83,11 +83,14 @@ export function separationNotice(input: {
 }): string | null {
   if (!input.userId || input.ownerUserId !== input.userId) return null;
 
-  if (input.role === 'REVIEWER' && (input.status === 'SUBMITTED' || input.status === 'RESUBMITTED')) {
+  if (
+    actsAs(input.role, 'REVIEWER') &&
+    (input.status === 'SUBMITTED' || input.status === 'RESUBMITTED')
+  ) {
     return 'You submitted this report. A reviewer cannot endorse a report they submitted.';
   }
 
-  if (input.role === 'APPROVER' && input.status === 'ENDORSED') {
+  if (actsAs(input.role, 'APPROVER') && input.status === 'ENDORSED') {
     return 'You submitted this report. An approver cannot approve a report they submitted.';
   }
 

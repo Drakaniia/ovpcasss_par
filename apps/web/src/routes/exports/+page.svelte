@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PagePlaceholder from '$lib/components/PagePlaceholder.svelte';
+  import ExportPage from '$lib/features/exports/presentation/ExportPage.svelte';
 </script>
 
-<PagePlaceholder title="Monitoring exports" phase="14" />
+<ExportPage />

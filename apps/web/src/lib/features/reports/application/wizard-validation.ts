@@ -239,10 +239,7 @@ const ERROR_CLEAR: Record<string, string[]> = {
 };
 
 /** Drops the errors an edit has just invalidated, so they do not linger. */
-export function clearErrorsForPatch(
-  errors: FieldErrors,
-  patch: Partial<WizardForm>,
-): FieldErrors {
+export function clearErrorsForPatch(errors: FieldErrors, patch: Partial<WizardForm>): FieldErrors {
   if (!hasErrors(errors)) return errors;
 
   const next = { ...errors };

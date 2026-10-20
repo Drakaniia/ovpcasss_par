@@ -1,3 +1,4 @@
+import { actsAs } from '@par/shared';
 import type {
   InboxAdmin,
   InboxActivity,
@@ -26,11 +27,13 @@ export type InboxCapabilities = {
 };
 
 export function capabilitiesFor(roles: readonly Role[]): InboxCapabilities {
+  const can = (expected: Role) => roles.some((role) => actsAs(role, expected));
+
   return {
-    submitter: roles.includes('SUBMITTER'),
-    reviewer: roles.includes('REVIEWER'),
-    approver: roles.includes('APPROVER'),
-    admin: roles.includes('ADMIN'),
+    submitter: can('SUBMITTER'),
+    reviewer: can('REVIEWER'),
+    approver: can('APPROVER'),
+    admin: can('ADMIN'),
   };
 }
 

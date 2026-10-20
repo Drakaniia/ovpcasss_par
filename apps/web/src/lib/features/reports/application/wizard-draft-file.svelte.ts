@@ -1,4 +1,4 @@
-import type { ReportDetail, ReportFormInput } from '@par/shared';
+import type { ReportDetail, ReportDraft, ReportFormInput } from '@par/shared';
 
 import { api } from '$lib/api/client';
 import { ApiError } from '$lib/api/http';
@@ -7,13 +7,9 @@ import {
   type AttachmentItem,
 } from '$lib/features/attachments/application/attachment-items';
 import type { Platform } from '$lib/platform/contracts';
+import { session } from '$lib/session/session.svelte';
 
-import {
-  INITIAL_SAVE_STATE,
-  buildDraft,
-  newDraftId,
-  type SaveState,
-} from './wizard-draft';
+import { INITIAL_SAVE_STATE, buildDraft, newDraftId, type SaveState } from './wizard-draft';
 import {
   formFromDraft,
   stepFromDraft,
@@ -58,6 +54,7 @@ export class WizardDraftFile {
     try {
       const draft = buildDraft({
         id: this.id,
+        ...(this.ownerUserId() ? { ownerUserId: this.ownerUserId() } : {}),
         ...(this.serverId ? { serverId: this.serverId } : {}),
         version: this.version,
         step: snapshot.step,
@@ -89,6 +86,7 @@ export class WizardDraftFile {
       await platform.drafts.put(
         buildDraft({
           id: this.id,
+          ...(this.ownerUserId() ? { ownerUserId: this.ownerUserId() } : {}),
           serverId: created.id,
           version: created.version,
           step: snapshot.step,
@@ -126,7 +124,7 @@ export class WizardDraftFile {
   ): Promise<RestoredDraft | null> {
     if (!requested || !platform) return null;
 
-    const draft = await platform.drafts.get(requested);
+    const draft = await this.localDraft(platform, requested);
     if (!draft) return null;
 
     this.id = draft.id;
@@ -164,6 +162,31 @@ export class WizardDraftFile {
     this.restored = false;
     this.restoredAt = null;
     this.dirty = false;
+  }
+
+  /** The account this device copy belongs to; a draft is never shown to another. */
+  private ownerUserId(): string | undefined {
+    return session.user?.id;
+  }
+
+  /**
+   * A draft is found by its local id, or by the server copy it was linked to.
+   * A server draft route (`/reports/:id/edit`) knows only the server id.
+   */
+  private async localDraft(
+    platform: Platform,
+    requested: string,
+  ): Promise<ReportDraft | null> {
+    const owner = this.ownerUserId();
+    const mine = (draft: ReportDraft | null): draft is ReportDraft =>
+      Boolean(draft) && (!owner || !draft?.ownerUserId || draft.ownerUserId === owner);
+
+    const direct = await platform.drafts.get(requested);
+    if (mine(direct)) return direct;
+    if (direct) return null;
+
+    const drafts = await platform.drafts.list();
+    return drafts.find((draft) => draft.serverId === requested && mine(draft)) ?? null;
   }
 
   private async serverAttachments(serverId: string | undefined): Promise<AttachmentItem[]> {

@@ -10,6 +10,7 @@ import {
   sortDirectionFor,
   sortReportItems,
   toggledSort,
+  type PendingRowScope,
 } from './report-rows';
 
 const NOW = new Date('2026-03-16T00:00:00.000Z');
@@ -29,6 +30,7 @@ const item = (overrides: Partial<ReportListItem> = {}): ReportListItem => ({
 
 const draft = (overrides: Partial<ReportDraft> = {}): ReportDraft => ({
   id: 'd1',
+  ownerUserId: 'u1',
   version: 1,
   updatedAt: '2026-03-15T01:12:00.000Z',
   form: {
@@ -182,21 +184,39 @@ describe('rows', () => {
   });
 
   it('hides both actions for read-only roles', () => {
-    for (const role of ['REVIEWER', 'APPROVER', 'ADMIN'] as const) {
+    for (const role of ['REVIEWER', 'APPROVER'] as const) {
       const actions = rowActionsFor(role, 'u1', 'u1', 'DRAFT');
 
       expect(actions.edit.visible).toBe(false);
       expect(actions.delete.visible).toBe(false);
     }
   });
+
+  it('lets an admin edit and delete a draft it filed itself', () => {
+    expect(rowActionsFor('ADMIN', 'u1', 'u1', 'DRAFT').edit.visible).toBe(true);
+    expect(rowActionsFor('ADMIN', 'u1', 'u1', 'DRAFT').delete.visible).toBe(true);
+    expect(rowActionsFor('ADMIN', 'u2', 'u1', 'DRAFT').edit.visible).toBe(false);
+  });
 });
 
 describe('pending rows', () => {
-  it('prepends local drafts, deduped by id, with no tracking number', () => {
+  const options = { ownerUserId: 'u1', role: 'SUBMITTER' as const, now: NOW };
+
+  it('shows a device draft only to a role that files reports', () => {
+    for (const role of ['REVIEWER', 'APPROVER', null] as const) {
+      expect(pendingRowsFromDrafts([draft()], { ...options, role })).toHaveLength(0);
+    }
+    expect(pendingRowsFromDrafts([draft()], { ...options, role: 'ADMIN' })).toHaveLength(1);
+  });
+
+  it('lists device-only drafts owned by the signed-in account', () => {
     const rows = pendingRowsFromDrafts(
-      [draft(), draft({ id: 'r1', updatedAt: '2026-03-16T00:00:00.000Z' })],
-      [item()],
-      NOW,
+      [
+        draft(),
+        draft({ id: 'other', ownerUserId: 'u2' }),
+        draft({ id: 'legacy', ownerUserId: undefined }),
+      ],
+      options,
     );
 
     expect(rows).toHaveLength(1);
@@ -210,6 +230,15 @@ describe('pending rows', () => {
     });
   });
 
+  it('leaves a draft the server already knows to the server list', () => {
+    const rows = pendingRowsFromDrafts(
+      [draft(), draft({ id: 'd2', serverId: 'd2', updatedAt: '2026-03-16T00:00:00.000Z' })],
+      options,
+    );
+
+    expect(rows.map((row) => row.id)).toEqual(['d1']);
+  });
+
   it('sorts pending rows newest first and names an untitled draft', () => {
     const rows = pendingRowsFromDrafts(
       [
@@ -220,11 +249,38 @@ describe('pending rows', () => {
           form: { ...draft().form, title: '   ' },
         }),
       ],
-      [],
-      NOW,
+      options,
     );
 
     expect(rows.map((row) => row.id)).toEqual(['new', 'old']);
     expect(rows[0].title).toBe('Untitled draft');
+  });
+
+  it('keeps device-only drafts in the All and Drafts tabs only', () => {
+    for (const [tab, expected] of [
+      ['all', 1],
+      ['drafts', 1],
+      ['returned', 0],
+      ['approved', 0],
+    ] as const) {
+      const rows = pendingRowsFromDrafts([draft()], { ...options, scope: { tab } });
+      expect(rows).toHaveLength(expected);
+    }
+  });
+
+  it('applies the same search, type, campus, and date filters as the table', () => {
+    const scoped = (scope: Partial<PendingRowScope>) =>
+      pendingRowsFromDrafts([draft()], { ...options, scope });
+
+    expect(scoped({ q: 'coastal' })).toHaveLength(1);
+    expect(scoped({ q: 'marine' })).toHaveLength(0);
+    expect(scoped({ type: 'IN_CAMPUS' })).toHaveLength(1);
+    expect(scoped({ type: 'OFF_CAMPUS' })).toHaveLength(0);
+    expect(scoped({ campusId: 'c1' })).toHaveLength(1);
+    expect(scoped({ campusId: 'c2' })).toHaveLength(0);
+    expect(scoped({ from: '2026-03-01', to: '2026-03-31' })).toHaveLength(1);
+    expect(scoped({ from: '2026-04-01' })).toHaveLength(0);
+    expect(scoped({ termId: 't1' })).toHaveLength(0);
+    expect(scoped({ page: 2 })).toHaveLength(0);
   });
 });

@@ -144,7 +144,11 @@ export function facsimileSections(
           label: 'Total number of PIC',
           value: form.totalPic === undefined ? EMPTY_VALUE : String(form.totalPic),
         },
-        { label: 'Name(s) of personnel in-charge', value: picNames(form.pics ?? []), multiline: true },
+        {
+          label: 'Name(s) of personnel in-charge',
+          value: picNames(form.pics ?? []),
+          multiline: true,
+        },
         { label: 'PIC email/contact', value: picContacts(form.pics ?? []), multiline: true },
       ],
     },

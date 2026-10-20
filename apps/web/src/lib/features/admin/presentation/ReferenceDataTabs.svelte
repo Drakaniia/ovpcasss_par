@@ -44,7 +44,6 @@
     margin-bottom: 20px;
     overflow-x: auto;
     padding: 4px;
-    scrollbar-width: thin;
   }
 
   .entity-tab {

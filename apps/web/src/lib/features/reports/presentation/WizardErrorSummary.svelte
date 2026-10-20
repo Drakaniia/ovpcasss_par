@@ -1,10 +1,6 @@
 <script lang="ts">
   import type { WizardForm } from '../application/wizard-form';
-  import {
-    errorSummary,
-    fieldDomId,
-    type FieldErrors,
-  } from '../application/wizard-validation';
+  import { errorSummary, fieldDomId, type FieldErrors } from '../application/wizard-validation';
 
   /**
    * Foundation §4.2: every wizard step starts with a linked summary of its
