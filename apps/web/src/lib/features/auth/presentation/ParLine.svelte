@@ -95,10 +95,14 @@
     parts.carrier.setAttribute('transform', carrierTransform(pose.x));
     parts.sheet.setAttribute('transform', sheetTransform(pose.sheetX, pose.fall));
     parts.sheet.setAttribute('opacity', pose.ink.toFixed(3));
-    parts.rams.forEach((ram, order) => ram.setAttribute('transform', ramTransform(pose.rams[order])));
+    parts.rams.forEach((ram, order) =>
+      ram.setAttribute('transform', ramTransform(pose.rams[order])),
+    );
     parts.lever.setAttribute('transform', leverTransform(pose.lever));
     parts.punch.setAttribute('transform', punchTransform(pose.punch));
-    parts.marks.forEach((mark, order) => mark.setAttribute('opacity', pose.marks[order].toFixed(3)));
+    parts.marks.forEach((mark, order) =>
+      mark.setAttribute('opacity', pose.marks[order].toFixed(3)),
+    );
     const cx = Number(parts.units.dataset.cx ?? 0);
     const cy = Number(parts.units.dataset.cy ?? 0);
     parts.units.setAttribute('transform', registerTransform(pose.unit + cycle - 1, cx, cy));

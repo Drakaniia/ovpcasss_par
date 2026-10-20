@@ -29,7 +29,9 @@ export function createResendProvider(apiKey: string, from: string): EmailProvide
         // The body names the cause (unverified domain, bad key); keep the reason
         // on the error so the queue's last_error is actionable.
         const detail = await response.text().catch(() => '');
-        throw new Error(`Resend rejected the message (${response.status}): ${detail.slice(0, 300)}`);
+        throw new Error(
+          `Resend rejected the message (${response.status}): ${detail.slice(0, 300)}`,
+        );
       }
     },
   };

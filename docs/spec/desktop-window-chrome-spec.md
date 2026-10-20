@@ -30,22 +30,22 @@ window controls, no drag regions, and no Window menu.
 
 ## 2. Verified current state
 
-| Fact | Evidence |
-| --- | --- |
-| Main window is undecorated? No. `decorations` is unset for `main`; only `splash` sets it. | `apps/desktop/src-tauri/tauri.conf.json:14-24` |
-| Main window is created hidden and revealed by the splash handoff. | `tauri.conf.json:21-22`; `src/startup.rs:99-121` |
-| Splash spec is implemented (state, commands, timeout, tests). | `src/startup.rs`, `src/lib.rs:302-320` |
-| No custom titlebar, drag region, window state, or menu model exists. | repo search |
-| Shell capability has no window-control permissions. | `src-tauri/capabilities/default.json` |
-| `@tauri-apps/api` 2.12.4 is already a web dependency; `@tauri-apps/plugin-updater` 2.14.0. | `apps/web/package.json` |
-| Header is 56 px, navy, with brand, inline primary nav, search, notifications, avatar. | `AppHeader.svelte:113-122` |
-| Section tabs are a separate 40 px row; hidden when one tab or on the wizard. | `SectionTabs.svelte:14-31` |
-| Layout already knows the desktop shell (`html.desktop-shell`) and bare auth routes. | `routes/+layout.svelte` |
-| Wizard has `saveDraft(): Promise<boolean>`, `draft.dirty`, autosave every 20 s, leave guard. | `wizard-page.svelte.ts:130-140,212-214,393-395` |
-| Edit-returned has `dirty` (derived) and `saveChanges(): Promise<boolean>`. | `edit-returned-state.svelte.ts:107-113,301` |
-| Wizard owns Ctrl+S inside `wizardKeyAction`; PrintPreview owns Ctrl+P. | `wizard-page.svelte.ts:369-381`; `PrintPreview.svelte` |
-| Platform contract already carries `Updater` and `StartupGate`. | `platform/contracts.ts:43-72` |
-| `lib.rs` is 325 lines; adding modules must not push it past 400. | `src/lib.rs` |
+| Fact                                                                                         | Evidence                                               |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Main window is undecorated? No. `decorations` is unset for `main`; only `splash` sets it.    | `apps/desktop/src-tauri/tauri.conf.json:14-24`         |
+| Main window is created hidden and revealed by the splash handoff.                            | `tauri.conf.json:21-22`; `src/startup.rs:99-121`       |
+| Splash spec is implemented (state, commands, timeout, tests).                                | `src/startup.rs`, `src/lib.rs:302-320`                 |
+| No custom titlebar, drag region, window state, or menu model exists.                         | repo search                                            |
+| Shell capability has no window-control permissions.                                          | `src-tauri/capabilities/default.json`                  |
+| `@tauri-apps/api` 2.12.4 is already a web dependency; `@tauri-apps/plugin-updater` 2.14.0.   | `apps/web/package.json`                                |
+| Header is 56 px, navy, with brand, inline primary nav, search, notifications, avatar.        | `AppHeader.svelte:113-122`                             |
+| Section tabs are a separate 40 px row; hidden when one tab or on the wizard.                 | `SectionTabs.svelte:14-31`                             |
+| Layout already knows the desktop shell (`html.desktop-shell`) and bare auth routes.          | `routes/+layout.svelte`                                |
+| Wizard has `saveDraft(): Promise<boolean>`, `draft.dirty`, autosave every 20 s, leave guard. | `wizard-page.svelte.ts:130-140,212-214,393-395`        |
+| Edit-returned has `dirty` (derived) and `saveChanges(): Promise<boolean>`.                   | `edit-returned-state.svelte.ts:107-113,301`            |
+| Wizard owns Ctrl+S inside `wizardKeyAction`; PrintPreview owns Ctrl+P.                       | `wizard-page.svelte.ts:369-381`; `PrintPreview.svelte` |
+| Platform contract already carries `Updater` and `StartupGate`.                               | `platform/contracts.ts:43-72`                          |
+| `lib.rs` is 325 lines; adding modules must not push it past 400.                             | `src/lib.rs`                                           |
 
 ---
 
@@ -91,35 +91,35 @@ window controls, no drag regions, and no Window menu.
 
 ## 4. Decisions
 
-| # | Decision |
-| --- | --- |
-| D1 | Full custom titlebar. `decorations: false`; the app owns drag, identity, menus, controls. |
-| D2 | One titlebar surface combining brand, menus, and tools. |
-| D3 | Menu items map to real commands, never placeholders. |
-| D4 | Branded navy chrome using existing tokens (`--surface-topbar`, gold accent). |
-| D5 | Primary nav moves to the section-tab row: nav left, section tabs right. |
-| D6 | Window buttons use native Windows metrics: 46x32 targets, 44 px bar, system glyphs, `#c42b1c` close hover, restore glyph when maximized. |
-| D7 | Native behavior: drag, double-click maximize, Aero Snap, edge resize, Snap Layouts. Keep the "add native support" option, not a pure visual replica. |
-| D8 | Gestures: drag and double-click only. No right-click system menu. |
-| D9 | Standard Windows menus: File, Edit, View, Window, Help. |
-| D10 | Accelerators are displayed and actually bound, except Alt+F4 which Windows owns. |
-| D11 | Unavailable commands are disabled with a reason, never silently missing (role gating included). |
-| D12 | Closing with unsaved editor changes prompts: Save and close / Discard and close / Cancel. A failed save keeps the window open. |
-| D13 | Guarded screens: the new-report wizard and the edit-returned page. Other routes close immediately. |
-| D14 | Browser gets the menu strip; no window controls, no drag, no Window menu. |
-| D15 | Full screen hides the chrome; moving the pointer into the top edge reveals it. |
-| D16 | About: identity, version, runtime, inline update check. |
-| D17 | Menu keyboard model is the Windows menubar pattern (Alt mnemonics, F10, arrows, hover switch, Esc). |
-| D18 | Desktop auth routes get a slim 44 px bar: seal, drag, three controls. No menus. |
-| D19 | Native behavior ships via a small hand-written Rust hit-test module (`windows` crate), not a plugin. |
-| D20 | Remember size, position, maximized state, clamped to a visible monitor. |
-| D21 | Zoom 50-200 % in 10 % steps, persisted; brief percentage indicator. |
-| D22 | Developer tools exist only in development builds. |
-| D23 | Titlebar is 44 px; minimum window is 1024x700. |
-| D24 | Windows 11 rounded corners plus shadow; square when maximized (system behavior). |
-| D25 | The nav row remains visible on the wizard (focus mode hides section tabs only), so navigation never disappears. |
-| D26 | Sign out and Reload are disabled while an editor has unsaved changes; the user must save or discard first. |
-| D27 | Snapshot menus are not added to the web app outside the header row. |
+| #   | Decision                                                                                                                                             |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Full custom titlebar. `decorations: false`; the app owns drag, identity, menus, controls.                                                            |
+| D2  | One titlebar surface combining brand, menus, and tools.                                                                                              |
+| D3  | Menu items map to real commands, never placeholders.                                                                                                 |
+| D4  | Branded navy chrome using existing tokens (`--surface-topbar`, gold accent).                                                                         |
+| D5  | Primary nav moves to the section-tab row: nav left, section tabs right.                                                                              |
+| D6  | Window buttons use native Windows metrics: 46x32 targets, 44 px bar, system glyphs, `#c42b1c` close hover, restore glyph when maximized.             |
+| D7  | Native behavior: drag, double-click maximize, Aero Snap, edge resize, Snap Layouts. Keep the "add native support" option, not a pure visual replica. |
+| D8  | Gestures: drag and double-click only. No right-click system menu.                                                                                    |
+| D9  | Standard Windows menus: File, Edit, View, Window, Help.                                                                                              |
+| D10 | Accelerators are displayed and actually bound, except Alt+F4 which Windows owns.                                                                     |
+| D11 | Unavailable commands are disabled with a reason, never silently missing (role gating included).                                                      |
+| D12 | Closing with unsaved editor changes prompts: Save and close / Discard and close / Cancel. A failed save keeps the window open.                       |
+| D13 | Guarded screens: the new-report wizard and the edit-returned page. Other routes close immediately.                                                   |
+| D14 | Browser gets the menu strip; no window controls, no drag, no Window menu.                                                                            |
+| D15 | Full screen hides the chrome; moving the pointer into the top edge reveals it.                                                                       |
+| D16 | About: identity, version, runtime, inline update check.                                                                                              |
+| D17 | Menu keyboard model is the Windows menubar pattern (Alt mnemonics, F10, arrows, hover switch, Esc).                                                  |
+| D18 | Desktop auth routes get a slim 44 px bar: seal, drag, three controls. No menus.                                                                      |
+| D19 | Native behavior ships via a small hand-written Rust hit-test module (`windows` crate), not a plugin.                                                 |
+| D20 | Remember size, position, maximized state, clamped to a visible monitor.                                                                              |
+| D21 | Zoom 50-200 % in 10 % steps, persisted; brief percentage indicator.                                                                                  |
+| D22 | Developer tools exist only in development builds.                                                                                                    |
+| D23 | Titlebar is 44 px; minimum window is 1024x700.                                                                                                       |
+| D24 | Windows 11 rounded corners plus shadow; square when maximized (system behavior).                                                                     |
+| D25 | The nav row remains visible on the wizard (focus mode hides section tabs only), so navigation never disappears.                                      |
+| D26 | Sign out and Reload are disabled while an editor has unsaved changes; the user must save or discard first.                                           |
+| D27 | Snapshot menus are not added to the web app outside the header row.                                                                                  |
 
 ---
 
@@ -147,13 +147,13 @@ window controls, no drag regions, and no Window menu.
 
 ### 5.2 Titlebar anatomy
 
-| Zone | Content | Drag |
-| --- | --- | --- |
-| Brand | Seal (28 px) + wordmark "Paperless PAR" | Seal is a drag surface; wordmark is a link to `/` |
-| Menus | File, Edit, View, Window, Help | No |
-| Spacer | Flexible empty area | Yes; double-click maximizes |
-| Tools | Search (opens palette), notifications, avatar menu | No |
-| Controls | Minimize, Maximize/Restore, Close | No |
+| Zone     | Content                                            | Drag                                              |
+| -------- | -------------------------------------------------- | ------------------------------------------------- |
+| Brand    | Seal (28 px) + wordmark "Paperless PAR"            | Seal is a drag surface; wordmark is a link to `/` |
+| Menus    | File, Edit, View, Window, Help                     | No                                                |
+| Spacer   | Flexible empty area                                | Yes; double-click maximizes                       |
+| Tools    | Search (opens palette), notifications, avatar menu | No                                                |
+| Controls | Minimize, Maximize/Restore, Close                  | No                                                |
 
 Desktop tools reuse `CommandPalette` trigger, `NotificationBell`, `AvatarMenu`.
 Browser tools keep the same three. Search width shrinks before labels truncate.
@@ -202,14 +202,14 @@ Browser tools keep the same three. Search width shrinks before labels truncate.
 
 All values use tokens; no raw hex in components except the two new tokens.
 
-| Token | Value | Use |
-| --- | --- | --- |
-| `--window-close-hover` | `#c42b1c` | Close hover only |
-| `--window-close-active` | `#b0261a` | Close pressed |
-| `--titlebar-height` | `44px` | Row height |
-| `--window-control-width` | `46px` | Each control |
-| `--window-control-height` | `32px` | Control target |
-| `--menu-panel-width` | `240px` | Minimum panel width |
+| Token                     | Value     | Use                 |
+| ------------------------- | --------- | ------------------- |
+| `--window-close-hover`    | `#c42b1c` | Close hover only    |
+| `--window-close-active`   | `#b0261a` | Close pressed       |
+| `--titlebar-height`       | `44px`    | Row height          |
+| `--window-control-width`  | `46px`    | Each control        |
+| `--window-control-height` | `32px`    | Control target      |
+| `--menu-panel-width`      | `240px`   | Minimum panel width |
 
 Reuse: `--surface-topbar` (bar), `--text-on-topbar`, `--text-topbar-muted`,
 `--topbar-hover`, `--topbar-border`, `--brand-gold-400` (open-menu accent),
@@ -271,14 +271,14 @@ accelerators are static except Maximize/Restore.
 
 ### 7.1 File
 
-| Item | Command id | Accelerator | Enabled when | Disabled reason |
-| --- | --- | --- | --- | --- |
-| New report | `file.new-report` | Ctrl+N | `actsAs(role, 'SUBMITTER')` | "Requires Submitter access." |
-| Save draft | `file.save-draft` | Ctrl+S | An editor guard is active and dirty and not saving | "Available while editing a report." / "No unsaved changes." / "Saving…" |
-| Print | `file.print` | Ctrl+P | The print command is registered by `PrintPreview` | "Open a report to print." |
-| Export | `file.export` | — | Repository access (`canSearchRepository`) | "Requires repository access." |
-| Sign out | `file.sign-out` | — | Signed in and no dirty editor guard | "You are not signed in." / "Save or discard your draft first." |
-| Exit | `file.exit` | Alt+F4 (OS) | Always | — |
+| Item       | Command id        | Accelerator | Enabled when                                       | Disabled reason                                                         |
+| ---------- | ----------------- | ----------- | -------------------------------------------------- | ----------------------------------------------------------------------- |
+| New report | `file.new-report` | Ctrl+N      | `actsAs(role, 'SUBMITTER')`                        | "Requires Submitter access."                                            |
+| Save draft | `file.save-draft` | Ctrl+S      | An editor guard is active and dirty and not saving | "Available while editing a report." / "No unsaved changes." / "Saving…" |
+| Print      | `file.print`      | Ctrl+P      | The print command is registered by `PrintPreview`  | "Open a report to print."                                               |
+| Export     | `file.export`     | —           | Repository access (`canSearchRepository`)          | "Requires repository access."                                           |
+| Sign out   | `file.sign-out`   | —           | Signed in and no dirty editor guard                | "You are not signed in." / "Save or discard your draft first."          |
+| Exit       | `file.exit`       | Alt+F4 (OS) | Always                                             | —                                                                       |
 
 Behavior:
 
@@ -294,14 +294,14 @@ Behavior:
 
 ### 7.2 Edit
 
-| Item | Command id | Accelerator | Enabled when |
-| --- | --- | --- | --- |
-| Undo | `edit.undo` | Ctrl+Z | An editable target is focused and has undo history |
-| Redo | `edit.redo` | Ctrl+Y | An editable target is focused and has redo history |
-| Cut | `edit.cut` | Ctrl+X | Editable target focused with a non-empty selection |
-| Copy | `edit.copy` | Ctrl+C | Any non-empty selection, editable or read-only |
-| Paste | `edit.paste` | Ctrl+V | Editable target focused |
-| Select all | `edit.select-all` | Ctrl+A | Editable target focused, or page text selection available |
+| Item       | Command id        | Accelerator | Enabled when                                              |
+| ---------- | ----------------- | ----------- | --------------------------------------------------------- |
+| Undo       | `edit.undo`       | Ctrl+Z      | An editable target is focused and has undo history        |
+| Redo       | `edit.redo`       | Ctrl+Y      | An editable target is focused and has redo history        |
+| Cut        | `edit.cut`        | Ctrl+X      | Editable target focused with a non-empty selection        |
+| Copy       | `edit.copy`       | Ctrl+C      | Any non-empty selection, editable or read-only            |
+| Paste      | `edit.paste`      | Ctrl+V      | Editable target focused                                   |
+| Select all | `edit.select-all` | Ctrl+A      | Editable target focused, or page text selection available |
 
 Rules:
 
@@ -317,14 +317,14 @@ Rules:
 
 ### 7.3 View
 
-| Item | Command id | Accelerator | Availability |
-| --- | --- | --- | --- |
-| Reload | `view.reload` | Ctrl+R | Enabled unless a dirty editor guard is active |
-| Zoom in | `view.zoom-in` | Ctrl++ | Desktop only, 50-200 % |
-| Zoom out | `view.zoom-out` | Ctrl+- | Desktop only, 50-200 % |
-| Actual size | `view.zoom-reset` | Ctrl+0 | Desktop only |
-| Full screen | `view.fullscreen` | F11 | Both shells; checkable |
-| Developer tools | `view.devtools` | Ctrl+Shift+I | Development desktop builds only |
+| Item            | Command id        | Accelerator  | Availability                                  |
+| --------------- | ----------------- | ------------ | --------------------------------------------- |
+| Reload          | `view.reload`     | Ctrl+R       | Enabled unless a dirty editor guard is active |
+| Zoom in         | `view.zoom-in`    | Ctrl++       | Desktop only, 50-200 %                        |
+| Zoom out        | `view.zoom-out`   | Ctrl+-       | Desktop only, 50-200 %                        |
+| Actual size     | `view.zoom-reset` | Ctrl+0       | Desktop only                                  |
+| Full screen     | `view.fullscreen` | F11          | Both shells; checkable                        |
+| Developer tools | `view.devtools`   | Ctrl+Shift+I | Development desktop builds only               |
 
 - Reload disabled reason: "Save or discard your draft first."
 - Zoom items are hidden in the browser; Ctrl +/- keeps native browser zoom.
@@ -333,11 +333,11 @@ Rules:
 
 ### 7.4 Window (desktop only)
 
-| Item | Command id | Accelerator |
-| --- | --- | --- |
-| Minimize | `window.minimize` | — |
+| Item               | Command id               | Accelerator               |
+| ------------------ | ------------------------ | ------------------------- |
+| Minimize           | `window.minimize`        | —                         |
 | Maximize / Restore | `window.toggle-maximize` | — (double-click titlebar) |
-| Close | `window.close` | Alt+F4 (OS) |
+| Close              | `window.close`           | Alt+F4 (OS)               |
 
 - The whole Window menu is omitted in the browser (D14).
 - Labels track state: "Maximize" ↔ "Restore".
@@ -345,10 +345,10 @@ Rules:
 
 ### 7.5 Help
 
-| Item | Command id | Accelerator |
-| --- | --- | --- |
-| Keyboard shortcuts | `help.shortcuts` | ? |
-| About Paperless PAR | `help.about` | — |
+| Item                | Command id       | Accelerator |
+| ------------------- | ---------------- | ----------- |
+| Keyboard shortcuts  | `help.shortcuts` | ?           |
+| About Paperless PAR | `help.about`     | —           |
 
 - Keyboard shortcuts opens the existing shortcuts dialog from `shortcuts.ts`.
 - `?` keeps its existing typing suppression rule.
@@ -498,12 +498,12 @@ export type WindowShell = 'tauri' | 'web';
 
 export interface WindowChrome {
   readonly shell: WindowShell;
-  readonly controllable: boolean;      // false in the browser
+  readonly controllable: boolean; // false in the browser
   minimize(): Promise<void>;
   toggleMaximize(): Promise<void>;
   isMaximized(): Promise<boolean>;
-  close(): Promise<void>;              // goes through the guard
-  destroy(): Promise<void>;            // bypasses the guard
+  close(): Promise<void>; // goes through the guard
+  destroy(): Promise<void>; // bypasses the guard
   setFullscreen(on: boolean): Promise<void>;
   isFullscreen(): Promise<boolean>;
   setZoom(scale: number): Promise<void>;
@@ -525,11 +525,11 @@ export interface WindowChrome {
 
 New modules, each kept small:
 
-| File | Responsibility | Target size |
-| --- | --- | --- |
-| `src/window_chrome.rs` | Subclass main HWND, `WM_NCHITTEST`, maximize hit region, hover events | ~180 lines |
-| `src/window_state.rs` | Load/save/clamp bounds JSON | ~140 lines |
-| `src/dwm.rs` | Rounded corners; shadow fallback | ~50 lines |
+| File                   | Responsibility                                                        | Target size |
+| ---------------------- | --------------------------------------------------------------------- | ----------- |
+| `src/window_chrome.rs` | Subclass main HWND, `WM_NCHITTEST`, maximize hit region, hover events | ~180 lines  |
+| `src/window_state.rs`  | Load/save/clamp bounds JSON                                           | ~140 lines  |
+| `src/dwm.rs`           | Rounded corners; shadow fallback                                      | ~50 lines   |
 
 `lib.rs` gains 3 module declarations and setup calls only; it stays under 400.
 

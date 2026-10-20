@@ -1,6 +1,11 @@
 <script lang="ts">
   import { chromeAdapter } from '../application/chrome-adapter';
-  import { chromeState, closeGuard, minimize, toggleMaximize } from '../application/chrome-store.svelte';
+  import {
+    chromeState,
+    closeGuard,
+    minimize,
+    toggleMaximize,
+  } from '../application/chrome-store.svelte';
   import { zoomState } from '../application/zoom.svelte';
 
   /**
@@ -63,7 +68,8 @@
     bind:this={maximizeButton}
     type="button"
     aria-label={maximizeLabel}
-    onclick={() => void toggleMaximize()}>
+    onclick={() => void toggleMaximize()}
+  >
     {#if chromeState.maximized}
       <svg viewBox="0 0 10 10" aria-hidden="true">
         <path d="M2.5 2.5h5v5h-5z" />
@@ -74,7 +80,12 @@
     {/if}
   </button>
 
-  <button class="control close" type="button" aria-label="Close" onclick={() => void closeGuard.requestClose()}>
+  <button
+    class="control close"
+    type="button"
+    aria-label="Close"
+    onclick={() => void closeGuard.requestClose()}
+  >
     <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10" /></svg>
   </button>
 </div>

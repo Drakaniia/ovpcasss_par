@@ -9,8 +9,7 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
 
 export type ParsedUserListQuery =
-  | { ok: true; filter: UserListFilter }
-  | { ok: false; issues: unknown[] };
+  { ok: true; filter: UserListFilter } | { ok: false; issues: unknown[] };
 
 /**
  * The query arrives as strings, but the shared schema types `page` and

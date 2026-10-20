@@ -25,7 +25,7 @@ export async function handleDecision(c: Context<AppEnv>, kind: DecisionKind): Pr
   }
 
   const stack = reportDependencies(c);
-  const row = await stack.read.findById((c.req.param('id') ?? ''));
+  const row = await stack.read.findById(c.req.param('id') ?? '');
   if (!row) {
     return c.json({ error: { code: 'NOT_FOUND', message: 'This report does not exist' } }, 404);
   }

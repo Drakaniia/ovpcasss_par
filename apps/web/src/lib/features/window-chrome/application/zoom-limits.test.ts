@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { clampZoom, MAX_ZOOM, MIN_ZOOM, parseStoredZoom, zoomIn, zoomLabel, zoomOut } from './zoom-limits';
+import {
+  clampZoom,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  parseStoredZoom,
+  zoomIn,
+  zoomLabel,
+  zoomOut,
+} from './zoom-limits';
 
 describe('zoom limits', () => {
   it('clamps to the 50–200 % range', () => {

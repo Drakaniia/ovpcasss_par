@@ -77,12 +77,9 @@ async function presign(
     'UNSIGNED-PAYLOAD',
   ].join('\n');
 
-  const stringToSign = [
-    ALGORITHM,
-    amzDate,
-    scope,
-    toHex(await sha256(canonicalRequest)),
-  ].join('\n');
+  const stringToSign = [ALGORITHM, amzDate, scope, toHex(await sha256(canonicalRequest))].join(
+    '\n',
+  );
 
   const signature = toHex(await hmacChain(secretAccessKey, date, stringToSign));
   return `https://${host}${canonicalUri}?${canonicalQuery}&X-Amz-Signature=${signature}`;
@@ -101,17 +98,14 @@ export async function presignPut(
   };
 }
 
-export async function presignGet(
-  env: Env,
-  key: string,
-  expiresSeconds = 300,
-): Promise<string> {
+export async function presignGet(env: Env, key: string, expiresSeconds = 300): Promise<string> {
   return presign(env, 'GET', key, expiresSeconds);
 }
 
 function encodeSegment(value: string): string {
-  return encodeURIComponent(value).replace(/[!'()*]/g, (char) =>
-    `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+  return encodeURIComponent(value).replace(
+    /[!'()*]/g,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
   );
 }
 

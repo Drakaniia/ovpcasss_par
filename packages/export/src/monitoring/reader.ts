@@ -342,8 +342,8 @@ export function parseMonitoringWorkbook(bytes: Uint8Array): ParsedMonitoringShee
 
   const sharedXml = files['xl/sharedStrings.xml'];
   const shared = sharedXml
-    ? [...strFromU8(sharedXml).matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>|<si\s*\/>/g)].map(
-        (match) => textNodes(match[1] ?? ''),
+    ? [...strFromU8(sharedXml).matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>|<si\s*\/>/g)].map((match) =>
+        textNodes(match[1] ?? ''),
       )
     : [];
 
@@ -361,13 +361,14 @@ export function parseMonitoringWorkbook(bytes: Uint8Array): ParsedMonitoringShee
   for (const match of strFromU8(workbook).matchAll(/<sheet\b([^>]*?)\/?>/g)) {
     const name = attr(match[1] ?? '', 'name');
     const type = (Object.keys(MONITORING_SHEET_NAMES) as ReportType[]).find(
-      (candidate) =>
-        MONITORING_SHEET_NAMES[candidate].toLowerCase() === name.trim().toLowerCase(),
+      (candidate) => MONITORING_SHEET_NAMES[candidate].toLowerCase() === name.trim().toLowerCase(),
     );
     if (!type) continue;
 
     const target = rels.get(attr(match[1] ?? '', 'r:id'));
-    const path = target ? normalizePath('xl', target) : `xl/worksheets/sheet${sheetsByType.size + 1}.xml`;
+    const path = target
+      ? normalizePath('xl', target)
+      : `xl/worksheets/sheet${sheetsByType.size + 1}.xml`;
     const sheetFile = files[path];
     if (!sheetFile) continue;
 
@@ -392,7 +393,9 @@ export function parseMonitoringWorkbook(bytes: Uint8Array): ParsedMonitoringShee
   }
 
   if (sheetsByType.size === 0) {
-    throw new Error('This workbook does not contain an OFF-CAMPUS, EDUCATIONAL TOUR, or IN-CAMPUS sheet.');
+    throw new Error(
+      'This workbook does not contain an OFF-CAMPUS, EDUCATIONAL TOUR, or IN-CAMPUS sheet.',
+    );
   }
 
   return [...sheetsByType.values()];

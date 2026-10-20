@@ -26,7 +26,9 @@
   }
 
   function itemAt(index: number): HTMLElement | null {
-    return root?.querySelector<HTMLElement>(`[data-menu-panel] [data-menu-item="${index}"]`) ?? null;
+    return (
+      root?.querySelector<HTMLElement>(`[data-menu-panel] [data-menu-item="${index}"]`) ?? null
+    );
   }
 
   function close(restoreFocus: boolean): void {
@@ -192,7 +194,8 @@
   bind:this={root}
   onkeydown={onBarKeydown}
   onfocusin={onFocusIn}
-  onfocusout={onFocusOut}>
+  onfocusout={onFocusOut}
+>
   {#each menus as menu, index (menu.id)}
     <div class="menu">
       <button
@@ -205,7 +208,8 @@
         aria-expanded={openIndex === index}
         tabindex={openIndex === null ? (barFocused ? (barIndex === index ? 0 : -1) : 0) : -1}
         onclick={() => toggle(index)}
-        onmouseenter={() => hoverTrigger(index)}>
+        onmouseenter={() => hoverTrigger(index)}
+      >
         <span class="mnemonic" class:is-marked={marksMnemonics}>{menu.mnemonic}</span
         >{menu.label.slice(1)}
       </button>

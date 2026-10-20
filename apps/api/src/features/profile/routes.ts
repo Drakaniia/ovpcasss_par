@@ -81,9 +81,7 @@ profileRoutes.post('/password', async (c) => {
         error: {
           code: 'VALIDATION_ERROR',
           message: 'The current password is incorrect.',
-          details: [
-            { path: ['currentPassword'], message: 'The current password is incorrect.' },
-          ],
+          details: [{ path: ['currentPassword'], message: 'The current password is incorrect.' }],
         },
       },
       400,
@@ -102,7 +100,10 @@ profileRoutes.post('/password', async (c) => {
 });
 
 function unauthorized(c: Context<AppEnv>) {
-  return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sign in to manage your profile' } }, 401);
+  return c.json(
+    { error: { code: 'UNAUTHORIZED', message: 'Sign in to manage your profile' } },
+    401,
+  );
 }
 
 function validationError(c: Context<AppEnv>, issues: unknown[]) {

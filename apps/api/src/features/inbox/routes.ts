@@ -1,9 +1,4 @@
-import {
-  createAuditQueries,
-  createDb,
-  createEmailOutboxQueries,
-  createUserQueries,
-} from '@par/db';
+import { createAuditQueries, createDb, createEmailOutboxQueries, createUserQueries } from '@par/db';
 import { Hono, type Context } from 'hono';
 
 import type { AppEnv } from '../../env';

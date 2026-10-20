@@ -105,7 +105,11 @@
     {#if inbox.markAllFailed}
       <div class="inline-alert" role="alert">
         <span>{MARK_ALL_FAILURE_COPY}</span>
-        <button class="btn btn-outline btn-sm" type="button" onclick={() => void inbox.markAllRead()}>
+        <button
+          class="btn btn-outline btn-sm"
+          type="button"
+          onclick={() => void inbox.markAllRead()}
+        >
           Retry
         </button>
       </div>

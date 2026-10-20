@@ -29,8 +29,9 @@ export function restoreSessionToken(): Promise<void> {
 export async function rememberSessionToken(token: string): Promise<void> {
   setSessionToken(token);
 
-  try {        const current = await platform();
-        if (current.shell === 'desktop') await current.tokens.write(token);
+  try {
+    const current = await platform();
+    if (current.shell === 'desktop') await current.tokens.write(token);
   } catch {
     // The in-memory token still covers this launch; the next launch signs in again.
   }
@@ -39,8 +40,9 @@ export async function rememberSessionToken(token: string): Promise<void> {
 export async function forgetSessionToken(): Promise<void> {
   setSessionToken(null);
 
-  try {        const current = await platform();
-        if (current.shell === 'desktop') await current.tokens.clear();
+  try {
+    const current = await platform();
+    if (current.shell === 'desktop') await current.tokens.clear();
   } catch {
     // Clearing the in-memory token already ended the session for this launch.
   }

@@ -70,4 +70,3 @@ export function viewerOf(c: Context<AppEnv>): Viewer | null {
 export function attachmentObjectKey(reportId: string): string {
   return `reports/${reportId}/${createId()}`;
 }
-

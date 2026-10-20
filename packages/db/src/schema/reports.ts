@@ -10,7 +10,14 @@ import {
   type ReportStatus,
   type ReportType,
 } from '@par/shared';
-import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 /**
  * The PAR record (spec §8). Monitoring-sheet fields are columns here, because

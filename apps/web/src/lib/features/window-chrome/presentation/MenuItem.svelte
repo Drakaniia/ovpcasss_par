@@ -30,7 +30,8 @@
   aria-keyshortcuts={item.accelerator ? ariaKeyshortcutsFor(item.accelerator) : undefined}
   aria-describedby={item.reason ? reasonId : undefined}
   onmouseenter={() => onhover(index)}
-  onclick={() => onactivate(index)}>
+  onclick={() => onactivate(index)}
+>
   {#if item.checkable}
     <span class="check" aria-hidden="true">{item.checked ? '✓' : ''}</span>
   {/if}

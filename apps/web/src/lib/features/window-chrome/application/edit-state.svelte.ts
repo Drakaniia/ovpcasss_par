@@ -81,7 +81,9 @@ export function editAvailability(id: EditCommandId): Availability {
 
   switch (id) {
     case 'copy':
-      return hasTextSelection() ? { enabled: true } : { enabled: false, reason: 'Select text first.' };
+      return hasTextSelection()
+        ? { enabled: true }
+        : { enabled: false, reason: 'Select text first.' };
     case 'cut':
       if (!editable) return { enabled: false, reason: 'No editable field is focused.' };
       return hasTextSelection()

@@ -41,7 +41,8 @@ export function formatAuditActorLabel(
   actorName?: string | null,
   actorRole?: Role | string | null,
 ): string {
-  const roleName = actorRole && actorRole in ROLE_LABELS ? ROLE_LABELS[actorRole as Role] : actorRole;
+  const roleName =
+    actorRole && actorRole in ROLE_LABELS ? ROLE_LABELS[actorRole as Role] : actorRole;
   if (actorName && roleName) {
     return `${actorName} (${roleName})`;
   }

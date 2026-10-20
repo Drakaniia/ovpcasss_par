@@ -78,6 +78,11 @@ export async function verifyPassword(
 
   if (parsed.algorithm !== ALGORITHM) return false;
 
-  const derived = await derive(password, fromBase64(parsed.salt), parsed.iterations, parsed.keyBits);
+  const derived = await derive(
+    password,
+    fromBase64(parsed.salt),
+    parsed.iterations,
+    parsed.keyBits,
+  );
   return timingSafeEqual(derived, fromBase64(hash));
 }

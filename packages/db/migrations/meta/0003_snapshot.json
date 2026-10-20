@@ -67,17 +67,12 @@
       "indexes": {
         "email_tokens_token_hash_unique_idx": {
           "name": "email_tokens_token_hash_unique_idx",
-          "columns": [
-            "token_hash"
-          ],
+          "columns": ["token_hash"],
           "isUnique": true
         },
         "email_tokens_user_kind_idx": {
           "name": "email_tokens_user_kind_idx",
-          "columns": [
-            "user_id",
-            "kind"
-          ],
+          "columns": ["user_id", "kind"],
           "isUnique": false
         }
       },
@@ -156,16 +151,12 @@
       "indexes": {
         "sessions_token_hash_unique_idx": {
           "name": "sessions_token_hash_unique_idx",
-          "columns": [
-            "token_hash"
-          ],
+          "columns": ["token_hash"],
           "isUnique": true
         },
         "sessions_user_idx": {
           "name": "sessions_user_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         }
       },
@@ -300,16 +291,12 @@
       "indexes": {
         "users_email_unique_idx": {
           "name": "users_email_unique_idx",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         },
         "users_status_idx": {
           "name": "users_status_idx",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         }
       },
@@ -411,18 +398,12 @@
       "indexes": {
         "notifications_user_created_idx": {
           "name": "notifications_user_created_idx",
-          "columns": [
-            "user_id",
-            "created_at"
-          ],
+          "columns": ["user_id", "created_at"],
           "isUnique": false
         },
         "notifications_user_unread_idx": {
           "name": "notifications_user_unread_idx",
-          "columns": [
-            "user_id",
-            "read_at"
-          ],
+          "columns": ["user_id", "read_at"],
           "isUnique": false
         }
       },
@@ -522,18 +503,12 @@
       "indexes": {
         "audit_events_entity_idx": {
           "name": "audit_events_entity_idx",
-          "columns": [
-            "entity_type",
-            "entity_id",
-            "created_at"
-          ],
+          "columns": ["entity_type", "entity_id", "created_at"],
           "isUnique": false
         },
         "audit_events_created_idx": {
           "name": "audit_events_created_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         }
       },
@@ -613,9 +588,7 @@
       "indexes": {
         "email_outbox_status_idx": {
           "name": "email_outbox_status_idx",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         }
       },
@@ -706,10 +679,7 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "rate_limit_counters_bucket_window_start_pk": {
-          "columns": [
-            "bucket",
-            "window_start"
-          ],
+          "columns": ["bucket", "window_start"],
           "name": "rate_limit_counters_bucket_window_start_pk"
         }
       },
@@ -1101,9 +1071,7 @@
       "indexes": {
         "ref_programs_unit_idx": {
           "name": "ref_programs_unit_idx",
-          "columns": [
-            "unit_id"
-          ],
+          "columns": ["unit_id"],
           "isUnique": false
         }
       },
@@ -1357,9 +1325,7 @@
       "indexes": {
         "ref_units_campus_idx": {
           "name": "ref_units_campus_idx",
-          "columns": [
-            "campus_id"
-          ],
+          "columns": ["campus_id"],
           "isUnique": false
         }
       },

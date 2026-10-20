@@ -4,11 +4,11 @@ Scope: undo a bad Worker deploy. Data damage is `restore.md`, not this file.
 
 ## Decide first
 
-| Symptom                                              | Action                                  |
-| ---------------------------------------------------- | --------------------------------------- |
-| New code is wrong, data is fine                       | Roll the Worker back (below)            |
-| New code wrote bad rows                               | Roll back the Worker, then `restore.md` |
-| A migration is wrong                                  | **Do not** roll it back; fix forward    |
+| Symptom                         | Action                                  |
+| ------------------------------- | --------------------------------------- |
+| New code is wrong, data is fine | Roll the Worker back (below)            |
+| New code wrote bad rows         | Roll back the Worker, then `restore.md` |
+| A migration is wrong            | **Do not** roll it back; fix forward    |
 
 ## Worker rollback
 

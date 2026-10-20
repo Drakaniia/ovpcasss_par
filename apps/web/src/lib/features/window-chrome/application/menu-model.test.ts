@@ -70,13 +70,15 @@ describe('buildMenus', () => {
   });
 
   it('disables Sign out when signed out or when a draft is dirty', () => {
-    expect(
-      item(buildMenus(inputs({ signedIn: false })), 'file', 'file.sign-out'),
-    ).toMatchObject({ enabled: false, reason: 'You are not signed in.' });
+    expect(item(buildMenus(inputs({ signedIn: false })), 'file', 'file.sign-out')).toMatchObject({
+      enabled: false,
+      reason: 'You are not signed in.',
+    });
 
-    expect(
-      item(buildMenus(inputs({ dirtyEditor: true })), 'file', 'file.sign-out'),
-    ).toMatchObject({ enabled: false, reason: 'Save or discard your draft first.' });
+    expect(item(buildMenus(inputs({ dirtyEditor: true })), 'file', 'file.sign-out')).toMatchObject({
+      enabled: false,
+      reason: 'Save or discard your draft first.',
+    });
   });
 
   it('disables Reload while a draft is dirty', () => {
@@ -118,9 +120,9 @@ describe('buildMenus', () => {
       item(buildMenus(inputs({ maximized: true })), 'window', 'window.toggle-maximize')?.label,
     ).toBe('Restore');
 
-    expect(
-      item(buildMenus(inputs({ fullscreen: true })), 'view', 'view.fullscreen'),
-    ).toMatchObject({ checkable: true, checked: true });
+    expect(item(buildMenus(inputs({ fullscreen: true })), 'view', 'view.fullscreen')).toMatchObject(
+      { checkable: true, checked: true },
+    );
   });
 
   it('shows Developer tools only in development builds', () => {

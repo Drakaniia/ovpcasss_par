@@ -90,12 +90,7 @@
   </div>
 
   <div class="actions">
-    <button
-      class="btn btn-outline"
-      type="button"
-      onclick={ontemplate}
-      disabled={downloading}
-    >
+    <button class="btn btn-outline" type="button" onclick={ontemplate} disabled={downloading}>
       Blank template
     </button>
     <button

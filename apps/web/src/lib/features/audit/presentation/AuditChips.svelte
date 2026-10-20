@@ -26,7 +26,9 @@
   <div class="audit-chips-bar" aria-label="Active filters">
     <div class="chips-list">
       <span class="active-count">Filters ({chips.length}):</span>
-      <span class="sr-only">{total} {total === 1 ? 'event matches' : 'events match'} these filters.</span>
+      <span class="sr-only"
+        >{total} {total === 1 ? 'event matches' : 'events match'} these filters.</span
+      >
       {#each chips as chip (chip.id)}
         <span class="audit-chip">
           <span class="chip-label">{chip.label}:</span>
@@ -41,9 +43,7 @@
           </button>
         </span>
       {/each}
-      <button class="clear-all-btn" type="button" onclick={onclearall}>
-        Reset filters
-      </button>
+      <button class="clear-all-btn" type="button" onclick={onclearall}> Reset filters </button>
     </div>
   </div>
 {/if}

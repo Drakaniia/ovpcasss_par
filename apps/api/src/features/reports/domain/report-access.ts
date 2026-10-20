@@ -18,7 +18,9 @@ export function canViewReport(viewer: Viewer, ownerUserId: string): boolean {
 
 export function canEditReport(viewer: Viewer, ownerUserId: string, status: ReportStatus): boolean {
   if (!actsAs(viewer.role, 'SUBMITTER') || viewer.userId !== ownerUserId) return false;
-  return status === 'DRAFT' || status === 'RETURNED_BY_REVIEWER' || status === 'RETURNED_BY_APPROVER';
+  return (
+    status === 'DRAFT' || status === 'RETURNED_BY_REVIEWER' || status === 'RETURNED_BY_APPROVER'
+  );
 }
 
 /** A decision is never allowed on the submitter's own report (spec §9). */

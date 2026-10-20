@@ -48,10 +48,13 @@ export function pressHead(kind: PressKind, sx: number): string {
   // Ribs and bolts on the front face.
   for (const rx of [sx - w / 2 + 6, sx + w / 2 - 6]) {
     out.push(
-      S(slabOf({ x: rx - 2, y: body.y - 2.5, w: 4, d: 2.5, r: 1 }, HEAD_Z + 1.5, HEAD_H - 3, P, 3), {
-        tone: 'mid',
-        crease: 'none',
-      }),
+      S(
+        slabOf({ x: rx - 2, y: body.y - 2.5, w: 4, d: 2.5, r: 1 }, HEAD_Z + 1.5, HEAD_H - 3, P, 3),
+        {
+          tone: 'mid',
+          crease: 'none',
+        },
+      ),
     );
   }
   const bolts = [sx - w / 2 + 4, sx + w / 2 - 4].flatMap((x) => [
@@ -109,7 +112,9 @@ function register(sx: number, faceY: number) {
 function counterweight(sx: number, body: Plan) {
   const out: string[] = [];
   const back = body.y + body.d;
-  out.push(S(slabOf({ x: sx - 3, y: back, w: 6, d: 12, r: 2 }, HEAD_TOP - 6, 3.5, P, 3), { tone: 'mid' }));
+  out.push(
+    S(slabOf({ x: sx - 3, y: back, w: 6, d: 12, r: 2 }, HEAD_TOP - 6, 3.5, P, 3), { tone: 'mid' }),
+  );
   out.push(S(cylinder(sx, back + 12, 5.4, HEAD_TOP - 10, 7, P, 22), { tone: 'mid' }));
   out.push(L(sideArc(sx, back + 12, 5.4, HEAD_TOP - 5, P, 18), { tone: 'lo' }));
   out.push(D([at([sx, back + 12, HEAD_TOP - 3])], { size: 0.42, tone: 'lo' }));
@@ -123,14 +128,22 @@ export function leverPivot(sx: number, faceY: number): Point2 {
 
 function leverBase(sx: number, faceY: number) {
   const out: string[] = [];
-  out.push(S(slabOf({ x: sx + 8, y: faceY + 1, w: 10, d: 8, r: 2 }, HEAD_TOP + 1, 4, P, 3, 0.4), { tone: 'mid' }));
+  out.push(
+    S(slabOf({ x: sx + 8, y: faceY + 1, w: 10, d: 8, r: 2 }, HEAD_TOP + 1, 4, P, 3, 0.4), {
+      tone: 'mid',
+    }),
+  );
   return out.join('');
 }
 
 /** The return lever, thrown to send a report back to its submitter. */
 export function leverParts(sx: number, faceY: number) {
   const out: string[] = [];
-  out.push(S(slabOf({ x: sx + 11, y: faceY + 3, w: 4, d: 4, r: 1.2 }, 231, 17, P, 3, 0.3), { tone: 'mid' }));
+  out.push(
+    S(slabOf({ x: sx + 11, y: faceY + 3, w: 4, d: 4, r: 1.2 }, 231, 17, P, 3, 0.3), {
+      tone: 'mid',
+    }),
+  );
   out.push(S(cylinder(sx + 13, faceY + 5, 3.6, 247, 4.5, P, 18), { tone: 'mid' }));
   out.push(L(sideArc(sx + 13, faceY + 5, 3.6, 251.5, P, 16), { tone: 'lo' }));
   out.push(D([at([sx + 13, faceY + 5, 251.5])], { size: 0.4, tone: 'lo' }));

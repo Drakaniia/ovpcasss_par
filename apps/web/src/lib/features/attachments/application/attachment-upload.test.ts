@@ -34,9 +34,9 @@ describe('upload headers', () => {
   it('sends only the declared type to a presigned storage URL', () => {
     setSessionToken('opaque-token');
 
-    expect(uploadHeaders(presign({ mode: 'presigned', uploadUrl: 'https://r2.example/x' }))).toEqual(
-      { 'content-type': 'image/png' },
-    );
+    expect(
+      uploadHeaders(presign({ mode: 'presigned', uploadUrl: 'https://r2.example/x' })),
+    ).toEqual({ 'content-type': 'image/png' });
   });
 
   it('sends the cookie session alone in the browser', () => {

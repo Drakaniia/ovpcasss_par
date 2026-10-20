@@ -10,9 +10,7 @@
 
   let showAllWarnings = $state(false);
 
-  const visibleWarnings = $derived(
-    showAllWarnings ? sheet.warnings : sheet.warnings.slice(0, 5),
-  );
+  const visibleWarnings = $derived(showAllWarnings ? sheet.warnings : sheet.warnings.slice(0, 5));
 
   function cellValue(row: MonitoringSheetRow, key: string): string {
     const value = (row as unknown as Record<string, unknown>)[key];
@@ -48,7 +46,11 @@
         </p>
       {/each}
       {#if sheet.warnings.length > 5}
-        <button class="btn btn-ghost btn-sm" type="button" onclick={() => (showAllWarnings = !showAllWarnings)}>
+        <button
+          class="btn btn-ghost btn-sm"
+          type="button"
+          onclick={() => (showAllWarnings = !showAllWarnings)}
+        >
           {showAllWarnings ? 'Show fewer' : `Show all (${sheet.warnings.length})`}
         </button>
       {/if}
@@ -84,7 +86,9 @@
       </table>
     </div>
     {#if sheet.total > sheet.rows.length}
-      <p class="cap-line">Previewing {sheet.rows.length} of {sheet.total}. The download includes every row.</p>
+      <p class="cap-line">
+        Previewing {sheet.rows.length} of {sheet.total}. The download includes every row.
+      </p>
     {/if}
   {/if}
 </div>

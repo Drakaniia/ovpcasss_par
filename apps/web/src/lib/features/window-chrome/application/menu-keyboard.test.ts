@@ -75,13 +75,16 @@ describe('menuKeyAction', () => {
   });
 
   it('opens the focused trigger from the closed bar', () => {
-    expect(menuKeyAction({ ...CLOSED, focusInBar: true }, { key: 'ArrowDown' }, MENUS)).toMatchObject({
+    expect(
+      menuKeyAction({ ...CLOSED, focusInBar: true }, { key: 'ArrowDown' }, MENUS),
+    ).toMatchObject({
       kind: 'state',
       state: { openIndex: 0 },
     });
-    expect(
-      next({ ...CLOSED, barIndex: 1, focusInBar: true }, 'ArrowRight'),
-    ).toMatchObject({ barIndex: 2, focusInBar: true });
+    expect(next({ ...CLOSED, barIndex: 1, focusInBar: true }, 'ArrowRight')).toMatchObject({
+      barIndex: 2,
+      focusInBar: true,
+    });
   });
 
   it('ignores keys it does not own', () => {

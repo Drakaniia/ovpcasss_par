@@ -73,7 +73,8 @@
       type="button"
       aria-busy={closeState.saving}
       disabled={closeState.saving}
-      onclick={() => void closeGuard.saveAndClose()}>{closeState.saving ? 'Saving…' : 'Save and close'}</button
+      onclick={() => void closeGuard.saveAndClose()}
+      >{closeState.saving ? 'Saving…' : 'Save and close'}</button
     >
   </div>
 </dialog>

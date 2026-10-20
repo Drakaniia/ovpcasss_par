@@ -56,9 +56,7 @@ describe('scheduled cleanup', () => {
       shift(USED_TOKEN_MS),
     );
     expect(queries.rateLimits.deleteOlderThan).toHaveBeenCalledWith(shift(RATE_WINDOW_MS));
-    expect(queries.attachments.listOrphanedPending).toHaveBeenCalledWith(
-      shift(ORPHAN_UPLOAD_MS),
-    );
+    expect(queries.attachments.listOrphanedPending).toHaveBeenCalledWith(shift(ORPHAN_UPLOAD_MS));
   });
 
   it('removes the orphaned object before marking its row deleted', async () => {
@@ -66,10 +64,7 @@ describe('scheduled cleanup', () => {
 
     const counts = await runCleanup({ queries, bucket }, NOW);
 
-    expect(bucket.delete.mock.calls).toEqual([
-      ['reports/r1/one'],
-      ['reports/r1/two'],
-    ]);
+    expect(bucket.delete.mock.calls).toEqual([['reports/r1/one'], ['reports/r1/two']]);
     expect(softDelete.mock.calls).toEqual([
       ['att-1', NOW.toISOString()],
       ['att-2', NOW.toISOString()],

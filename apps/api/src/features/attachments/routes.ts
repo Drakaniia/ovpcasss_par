@@ -63,7 +63,7 @@ attachmentRoutes.post(
     if (!viewer) return unauthorized(c);
 
     const stack = reportDependencies(c);
-    const report = await stack.read.findById((c.req.param('id') ?? ''));
+    const report = await stack.read.findById(c.req.param('id') ?? '');
     if (!report) return notFound(c);
     if (!canEditReport(viewer, report.ownerUserId, report.status)) {
       return c.json(
@@ -132,7 +132,7 @@ attachmentRoutes.put(
     if (!viewer) return unauthorized(c);
 
     const stack = reportDependencies(c);
-    const report = await stack.read.findById((c.req.param('id') ?? ''));
+    const report = await stack.read.findById(c.req.param('id') ?? '');
     if (!report) return notFound(c);
     if (!canEditReport(viewer, report.ownerUserId, report.status)) {
       return c.json(
@@ -143,7 +143,7 @@ attachmentRoutes.put(
 
     const attachment = await stack.attachments.findById(
       report.id,
-      (c.req.param('attachmentId') ?? ''),
+      c.req.param('attachmentId') ?? '',
     );
     if (!attachment || attachment.status !== 'PENDING') return notFound(c);
 
@@ -163,7 +163,11 @@ attachmentRoutes.put(
     const stored = await c.env.BUCKET.head(attachment.objectKey);
     if (!stored || stored.size !== attachment.size) {
       await c.env.BUCKET.delete(attachment.objectKey).catch(() => undefined);
-      return conflict(c, 'UPLOAD_SIZE_MISMATCH', 'The uploaded file did not match the declared size.');
+      return conflict(
+        c,
+        'UPLOAD_SIZE_MISMATCH',
+        'The uploaded file did not match the declared size.',
+      );
     }
 
     return c.body(null, 204);
@@ -182,7 +186,7 @@ attachmentRoutes.post('/:id/attachments/:attachmentId/confirm', async (c) => {
   if (!viewer) return unauthorized(c);
 
   const stack = reportDependencies(c);
-  const report = await stack.read.findById((c.req.param('id') ?? ''));
+  const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report) return notFound(c);
   if (!canEditReport(viewer, report.ownerUserId, report.status)) {
     return c.json(
@@ -191,12 +195,10 @@ attachmentRoutes.post('/:id/attachments/:attachmentId/confirm', async (c) => {
     );
   }
 
-  const parsed = confirmAttachmentInputSchema.safeParse(
-    await c.req.json().catch(() => ({})),
-  );
+  const parsed = confirmAttachmentInputSchema.safeParse(await c.req.json().catch(() => ({})));
   if (!parsed.success) return invalid(c, 'The label is not valid.');
 
-  const attachment = await stack.attachments.findById(report.id, (c.req.param('attachmentId') ?? ''));
+  const attachment = await stack.attachments.findById(report.id, c.req.param('attachmentId') ?? '');
   if (!attachment || !editable(attachment.status)) return notFound(c);
 
   const now = new Date().toISOString();
@@ -213,14 +215,14 @@ attachmentRoutes.post('/:id/attachments/:attachmentId/confirm', async (c) => {
 
   const object = await c.env.BUCKET.head(attachment.objectKey);
   if (!object) {
-    return conflict(
-      c,
-      'UPLOAD_NOT_FOUND',
-      'The file was not found in storage. Upload it again.',
-    );
+    return conflict(c, 'UPLOAD_NOT_FOUND', 'The file was not found in storage. Upload it again.');
   }
   if (object.size !== attachment.size) {
-    return conflict(c, 'UPLOAD_SIZE_MISMATCH', 'The uploaded file did not match the declared size.');
+    return conflict(
+      c,
+      'UPLOAD_SIZE_MISMATCH',
+      'The uploaded file did not match the declared size.',
+    );
   }
   if (!storedTypeAllowed(object.httpMetadata?.contentType)) {
     return conflict(
@@ -262,10 +264,10 @@ attachmentRoutes.get('/:id/attachments/:attachmentId/url', async (c) => {
   if (!viewer) return unauthorized(c);
 
   const stack = reportDependencies(c);
-  const report = await stack.read.findById((c.req.param('id') ?? ''));
+  const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report || !canViewReport(viewer, report.ownerUserId)) return notFound(c);
 
-  const attachment = await stack.attachments.findById(report.id, (c.req.param('attachmentId') ?? ''));
+  const attachment = await stack.attachments.findById(report.id, c.req.param('attachmentId') ?? '');
   if (!attachment || attachment.status !== 'CONFIRMED') return notFound(c);
 
   const url = await signedDownloadUrl(
@@ -285,10 +287,10 @@ attachmentRoutes.get('/:id/attachments/:attachmentId/file', async (c) => {
   if (!viewer) return unauthorized(c);
 
   const stack = reportDependencies(c);
-  const report = await stack.read.findById((c.req.param('id') ?? ''));
+  const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report || !canViewReport(viewer, report.ownerUserId)) return notFound(c);
 
-  const attachment = await stack.attachments.findById(report.id, (c.req.param('attachmentId') ?? ''));
+  const attachment = await stack.attachments.findById(report.id, c.req.param('attachmentId') ?? '');
   if (!attachment || attachment.status !== 'CONFIRMED') return notFound(c);
 
   const object = await c.env.BUCKET.get(attachment.objectKey);
@@ -318,7 +320,7 @@ attachmentRoutes.delete('/:id/attachments/:attachmentId', async (c) => {
   if (!viewer) return unauthorized(c);
 
   const stack = reportDependencies(c);
-  const report = await stack.read.findById((c.req.param('id') ?? ''));
+  const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report) return notFound(c);
   if (!canEditReport(viewer, report.ownerUserId, report.status)) {
     return c.json(
@@ -327,7 +329,7 @@ attachmentRoutes.delete('/:id/attachments/:attachmentId', async (c) => {
     );
   }
 
-  const attachment = await stack.attachments.findById(report.id, (c.req.param('attachmentId') ?? ''));
+  const attachment = await stack.attachments.findById(report.id, c.req.param('attachmentId') ?? '');
   if (!attachment || attachment.status === 'DELETED') return notFound(c);
 
   await stack.attachments.softDelete(attachment.id, new Date().toISOString());

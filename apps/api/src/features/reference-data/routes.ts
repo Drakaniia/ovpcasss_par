@@ -32,11 +32,17 @@ function repository(c: Context<AppEnv>) {
 }
 
 function unauthorized(c: Context<AppEnv>) {
-  return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sign in to view reference data' } }, 401);
+  return c.json(
+    { error: { code: 'UNAUTHORIZED', message: 'Sign in to view reference data' } },
+    401,
+  );
 }
 
 function unknownEntity(c: Context<AppEnv>) {
-  return c.json({ error: { code: 'NOT_FOUND', message: 'That reference list does not exist' } }, 404);
+  return c.json(
+    { error: { code: 'NOT_FOUND', message: 'That reference list does not exist' } },
+    404,
+  );
 }
 
 function entityParam(c: Context<AppEnv>): ReferenceEntityKey | null {
@@ -58,7 +64,10 @@ function validationError(c: Context<AppEnv>, issues: unknown[]) {
 }
 
 function notFound(c: Context<AppEnv>) {
-  return c.json({ error: { code: 'NOT_FOUND', message: 'This reference entry does not exist' } }, 404);
+  return c.json(
+    { error: { code: 'NOT_FOUND', message: 'This reference entry does not exist' } },
+    404,
+  );
 }
 
 function audit(c: Context<AppEnv>, action: string, entity: string, entityId?: string) {

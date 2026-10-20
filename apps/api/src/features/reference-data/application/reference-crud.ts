@@ -41,8 +41,7 @@ const INPUT_SCHEMAS: Record<ReferenceEntityKey, z.ZodType> = {
 };
 
 export type ReferenceInputParse =
-  | { ok: true; data: ReferenceInput }
-  | { ok: false; issues: unknown[] };
+  { ok: true; data: ReferenceInput } | { ok: false; issues: unknown[] };
 
 export function parseReferenceInput(
   entity: ReferenceEntityKey,
@@ -169,7 +168,12 @@ export function buildUpdateRow(
     case 'departments':
     case 'offices': {
       const value = input as DepartmentInput;
-      return { name: value.name, sortOrder: value.sortOrder, isActive: value.isActive, updatedAt: now };
+      return {
+        name: value.name,
+        sortOrder: value.sortOrder,
+        isActive: value.isActive,
+        updatedAt: now,
+      };
     }
     case 'sdgs': {
       const value = input as SdgInput;

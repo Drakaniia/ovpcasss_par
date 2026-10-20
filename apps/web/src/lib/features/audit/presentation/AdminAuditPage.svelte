@@ -274,11 +274,7 @@
             {/each}
           </div>
 
-          <AuditPagination
-            total={list.total}
-            page={filters.page}
-            onpage={handlePageChange}
-          />
+          <AuditPagination total={list.total} page={filters.page} onpage={handlePageChange} />
         {/if}
       </main>
     </div>

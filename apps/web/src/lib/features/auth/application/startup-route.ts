@@ -21,10 +21,7 @@ type LaunchAccount = Pick<Account, 'status' | 'email'>;
  * never hides a page the user is about to be sent away from; pages keep their
  * own post-load redirects, which then see the correct URL.
  */
-export function startupDestination(
-  pathname: string,
-  account: LaunchAccount | null,
-): string | null {
+export function startupDestination(pathname: string, account: LaunchAccount | null): string | null {
   if (!account) {
     return AUTH_PATHS.has(pathname) ? null : '/login';
   }

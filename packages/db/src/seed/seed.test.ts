@@ -37,7 +37,9 @@ describe('seed reference data', () => {
   });
 
   it('lists the SDG numbers exactly 1..17 in order', () => {
-    expect(SEED_SDGS.map((sdg) => sdg.number)).toEqual(Array.from({ length: 17 }, (_, index) => index + 1));
+    expect(SEED_SDGS.map((sdg) => sdg.number)).toEqual(
+      Array.from({ length: 17 }, (_, index) => index + 1),
+    );
   });
 
   it('normalizes the source inconsistencies', () => {

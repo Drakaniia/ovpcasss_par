@@ -50,8 +50,7 @@ export function extensionOf(fileName: string): string {
 
 export function isAllowedAttachment(fileName: string, mimeType: string): boolean {
   return (
-    ALLOWED_EXTENSIONS.has(extensionOf(fileName)) &&
-    ALLOWED_MIME_TYPES.has(mimeType.toLowerCase())
+    ALLOWED_EXTENSIONS.has(extensionOf(fileName)) && ALLOWED_MIME_TYPES.has(mimeType.toLowerCase())
   );
 }
 

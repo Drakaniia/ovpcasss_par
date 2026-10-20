@@ -69,9 +69,7 @@ export class ExportState {
   /** The review modal that stands between the form and the download. */
   previewOpen = $state(false);
 
-  usableTerms = $derived(
-    this.terms.filter((term) => term.semester === 1 || term.semester === 2),
-  );
+  usableTerms = $derived(this.terms.filter((term) => term.semester === 1 || term.semester === 2));
   hasTerms = $derived(this.usableTerms.length > 0);
   schoolYears = $derived(
     this.usableTerms
@@ -97,7 +95,10 @@ export class ExportState {
   totalRows = $derived(this.activeSheet?.total ?? 0);
   inProgressCount = $derived(this.activeSheet?.inProgressCount ?? 0);
   canDownload = $derived(
-    this.preview !== null && this.previewError === null && !this.previewLoading && this.totalRows > 0,
+    this.preview !== null &&
+      this.previewError === null &&
+      !this.previewLoading &&
+      this.totalRows > 0,
   );
   searchHref = $derived(
     `/search?type=${this.activeType}&status=APPROVED${this.activeTerm ? `&term=${this.activeTerm.id}` : ''}`,
@@ -145,10 +146,10 @@ export class ExportState {
       const requested =
         this.usableTerms.find((term) => term.id === requestedTerm) ??
         this.usableTerms.find(
-          (term) =>
-            term.schoolYear === requestedYear && term.semester === requestedSemester,
+          (term) => term.schoolYear === requestedYear && term.semester === requestedSemester,
         );
-      const current = requested ?? this.usableTerms.find((term) => term.isCurrent) ?? this.usableTerms[0];
+      const current =
+        requested ?? this.usableTerms.find((term) => term.isCurrent) ?? this.usableTerms[0];
 
       if (current) {
         this.schoolYear = current.schoolYear;

@@ -5,10 +5,7 @@ import { recordAudit } from '../../lib/audit';
 import { signedDownloadUrl } from '../../lib/download-url';
 import { requireSession } from '../../middleware/auth';
 import { canViewReport } from '../reports/domain/report-access';
-import {
-  reportDependencies,
-  viewerOf,
-} from '../reports/application/workflow-context';
+import { reportDependencies, viewerOf } from '../reports/application/workflow-context';
 import { ensureStoredAcknowledgement } from './application/render-acknowledgement';
 
 /**
@@ -43,7 +40,7 @@ acknowledgementRoutes.get('/:id/acknowledgement', async (c) => {
   }
 
   const stack = reportDependencies(c);
-  const row = await stack.read.findById((c.req.param('id') ?? ''));
+  const row = await stack.read.findById(c.req.param('id') ?? '');
   if (!row || !canViewReport(viewer, row.ownerUserId)) return notFound(c);
   if (row.status !== 'APPROVED') return notApproved(c);
 
@@ -67,7 +64,7 @@ acknowledgementRoutes.get('/:id/acknowledgement/file', async (c) => {
   }
 
   const stack = reportDependencies(c);
-  const row = await stack.read.findById((c.req.param('id') ?? ''));
+  const row = await stack.read.findById(c.req.param('id') ?? '');
   if (!row || !canViewReport(viewer, row.ownerUserId)) return notFound(c);
   if (row.status !== 'APPROVED') return notApproved(c);
 

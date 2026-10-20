@@ -27,7 +27,9 @@
   let closeButton = $state<HTMLButtonElement | null>(null);
   let status = $state<CheckStatus>(desktop ? 'idle' : 'unsupported');
 
-  const version = $derived(updaterState.currentVersion || (desktop ? 'Not reported' : 'Browser build'));
+  const version = $derived(
+    updaterState.currentVersion || (desktop ? 'Not reported' : 'Browser build'),
+  );
   const runtime = $derived.by(() => (desktop ? webView2Version() : null));
   const busy = $derived(status === 'checking');
 

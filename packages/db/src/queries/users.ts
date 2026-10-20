@@ -39,12 +39,20 @@ export function createUserQueries(db: Database) {
     },
 
     async findByEmail(email: string): Promise<UserRow | null> {
-      const rows = await db.select().from(users).where(alive(eq(users.email, email))).limit(1);
+      const rows = await db
+        .select()
+        .from(users)
+        .where(alive(eq(users.email, email)))
+        .limit(1);
       return rows[0] ?? null;
     },
 
     async findById(id: string): Promise<UserRow | null> {
-      const rows = await db.select().from(users).where(alive(eq(users.id, id))).limit(1);
+      const rows = await db
+        .select()
+        .from(users)
+        .where(alive(eq(users.id, id)))
+        .limit(1);
       return rows[0] ?? null;
     },
 
@@ -54,9 +62,7 @@ export function createUserQueries(db: Database) {
         and(
           filter.role ? eq(users.role, filter.role) : undefined,
           filter.status ? eq(users.status, filter.status) : undefined,
-          term
-            ? or(like(users.fullName, `%${term}%`), like(users.email, `%${term}%`))
-            : undefined,
+          term ? or(like(users.fullName, `%${term}%`), like(users.email, `%${term}%`)) : undefined,
         ),
       );
 
@@ -106,7 +112,11 @@ export function createUserQueries(db: Database) {
         .set({ ...patch, updatedAt: at })
         .where(alive(eq(users.id, id)));
 
-      const rows = await db.select().from(users).where(alive(eq(users.id, id))).limit(1);
+      const rows = await db
+        .select()
+        .from(users)
+        .where(alive(eq(users.id, id)))
+        .limit(1);
       return rows[0] ?? null;
     },
   };

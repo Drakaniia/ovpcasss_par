@@ -173,10 +173,7 @@ export class WizardDraftFile {
    * A draft is found by its local id, or by the server copy it was linked to.
    * A server draft route (`/reports/:id/edit`) knows only the server id.
    */
-  private async localDraft(
-    platform: Platform,
-    requested: string,
-  ): Promise<ReportDraft | null> {
+  private async localDraft(platform: Platform, requested: string): Promise<ReportDraft | null> {
     const owner = this.ownerUserId();
     const mine = (draft: ReportDraft | null): draft is ReportDraft =>
       Boolean(draft) && (!owner || !draft?.ownerUserId || draft.ownerUserId === owner);

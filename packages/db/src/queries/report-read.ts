@@ -8,7 +8,20 @@ import type {
   ReportListQuery,
   ReportStatus,
 } from '@par/shared';
-import { and, asc, desc, eq, gte, inArray, isNull, like, lte, or, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  like,
+  lte,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 
 import type { Database } from '../client';
 import { users } from '../schema/identity';
@@ -51,7 +64,11 @@ export interface ReportListPage {
 }
 
 export interface QueuePage {
-  rows: (ReportRow & { submitterName: string; unitName: string | null; pendingAttachments: boolean })[];
+  rows: (ReportRow & {
+    submitterName: string;
+    unitName: string | null;
+    pendingAttachments: boolean;
+  })[];
   total: number;
   oldestWaitingAt: string | null;
   facets: QueueFacets;
@@ -169,9 +186,7 @@ export function createReportReadQueries(db: Database) {
       if (filter.to) conditions.push(lte(reports.activityStartDate, filter.to));
       if (filter.q) {
         const term = likePattern(filter.q);
-        conditions.push(
-          or(like(reports.title, term), like(reports.trackingNumber, term))!,
-        );
+        conditions.push(or(like(reports.title, term), like(reports.trackingNumber, term))!);
       }
 
       const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -265,7 +280,12 @@ export function createReportReadQueries(db: Database) {
       return db
         .select()
         .from(attachments)
-        .where(and(eq(attachments.reportId, reportId), inArray(attachments.status, ['PENDING', 'CONFIRMED'])))
+        .where(
+          and(
+            eq(attachments.reportId, reportId),
+            inArray(attachments.status, ['PENDING', 'CONFIRMED']),
+          ),
+        )
         .orderBy(asc(attachments.createdAt));
     },
 

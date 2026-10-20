@@ -25,16 +25,16 @@ the R2 bucket behind it, and the credentials that make it work.
 
 Automated:
 
-| Step                          | Command behind it                                  |
-| ----------------------------- | -------------------------------------------------- |
-| R2 bucket                     | `wrangler r2 bucket create par-attachments`         |
-| R2 CORS                       | `wrangler r2 bucket cors set ... --file`            |
-| Email queue + dead-letter     | `wrangler queues create par-email` / `par-email-dlq` |
-| D1 database                   | `wrangler d1 list` / `d1 create`, uuid written back |
-| `SESSION_SECRET` (generated)  | `wrangler secret put`, only when absent             |
-| `R2_ACCOUNT_ID` (detected)    | `wrangler secret put`, only when absent             |
-| `apps/api/.dev.vars` local dev | generated from `.dev.vars.example` when missing    |
-| D1 migrations (remote)        | `wrangler d1 migrations apply par-db --remote` with `--migrate` |
+| Step                           | Command behind it                                               |
+| ------------------------------ | --------------------------------------------------------------- |
+| R2 bucket                      | `wrangler r2 bucket create par-attachments`                     |
+| R2 CORS                        | `wrangler r2 bucket cors set ... --file`                        |
+| Email queue + dead-letter      | `wrangler queues create par-email` / `par-email-dlq`            |
+| D1 database                    | `wrangler d1 list` / `d1 create`, uuid written back             |
+| `SESSION_SECRET` (generated)   | `wrangler secret put`, only when absent                         |
+| `R2_ACCOUNT_ID` (detected)     | `wrangler secret put`, only when absent                         |
+| `apps/api/.dev.vars` local dev | generated from `.dev.vars.example` when missing                 |
+| D1 migrations (remote)         | `wrangler d1 migrations apply par-db --remote` with `--migrate` |
 
 An existing secret is never overwritten: rotating `SESSION_SECRET` signs every
 user out and needs to be a deliberate act (see `key-rotation.md`).
@@ -94,10 +94,10 @@ upload from the Tauri dev shell fails with `401`. Use the web shell locally.
 
 ## Troubleshooting
 
-| Symptom                          | Cause                                                          |
-| -------------------------------- | -------------------------------------------------------------- |
+| Symptom                          | Cause                                                                                   |
+| -------------------------------- | --------------------------------------------------------------------------------------- |
 | `503 STORAGE_UNAVAILABLE`        | No longer returned for a missing token; if seen, the Worker predates the proxy fallback |
-| Upload fails immediately, no row | CORS policy missing on the bucket: rerun `pnpm provision --apply` |
-| `UPLOAD_NOT_FOUND` at confirm    | A cancelled or interrupted PUT, or presign against a bucket the Worker cannot read |
-| `UPLOAD_SIZE_MISMATCH`           | The file changed between presign and upload                    |
-| `UPLOAD_TYPE_NOT_ALLOWED`        | The stored content type is not on the allowlist                |
+| Upload fails immediately, no row | CORS policy missing on the bucket: rerun `pnpm provision --apply`                       |
+| `UPLOAD_NOT_FOUND` at confirm    | A cancelled or interrupted PUT, or presign against a bucket the Worker cannot read      |
+| `UPLOAD_SIZE_MISMATCH`           | The file changed between presign and upload                                             |
+| `UPLOAD_TYPE_NOT_ALLOWED`        | The stored content type is not on the allowlist                                         |

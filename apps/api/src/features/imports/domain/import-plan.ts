@@ -136,18 +136,26 @@ export function planImportRow(
 
   const level = levelOf(source.level);
   if (!level) {
-    issues.push(source.level ? `Level "${source.level}" is not Graduate or Undergraduate.` : 'Level is blank.');
+    issues.push(
+      source.level
+        ? `Level "${source.level}" is not Graduate or Undergraduate.`
+        : 'Level is blank.',
+    );
   }
 
   const campus = findOption(references.campuses, source.campus);
   if (!campus) {
-    issues.push(source.campus ? `Campus "${source.campus}" is not in reference data.` : 'Campus is blank.');
+    issues.push(
+      source.campus ? `Campus "${source.campus}" is not in reference data.` : 'Campus is blank.',
+    );
   }
 
   const unit = findOption(references.units, source.college);
   if (!unit) {
     issues.push(
-      source.college ? `College "${source.college}" is not in reference data.` : 'College is blank.',
+      source.college
+        ? `College "${source.college}" is not in reference data.`
+        : 'College is blank.',
     );
   }
 

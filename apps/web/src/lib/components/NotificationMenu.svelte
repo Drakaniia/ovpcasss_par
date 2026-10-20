@@ -4,7 +4,10 @@
   import { tick } from 'svelte';
 
   import { api } from '$lib/api/client';
-  import { notificationTimeLabel, notificationHref } from '$lib/features/notifications/application/notification-view';
+  import {
+    notificationTimeLabel,
+    notificationHref,
+  } from '$lib/features/notifications/application/notification-view';
   import { formatDateTime } from '$lib/format/datetime';
   import { session, setUnreadNotifications } from '$lib/session/session.svelte';
 

@@ -26,15 +26,17 @@ const DETAIL: AuditEventDetailType = {
   after: { title: 'New Title' },
 };
 
-function renderRow(props: {
-  event?: AuditEventItem;
-  expanded?: boolean;
-  detail?: AuditEventDetailType | null;
-  loadingDetail?: boolean;
-  detailError?: string | null;
-  ontoggle?: () => void;
-  onretrydetail?: () => void;
-} = {}) {
+function renderRow(
+  props: {
+    event?: AuditEventItem;
+    expanded?: boolean;
+    detail?: AuditEventDetailType | null;
+    loadingDetail?: boolean;
+    detailError?: string | null;
+    ontoggle?: () => void;
+    onretrydetail?: () => void;
+  } = {},
+) {
   return render(AuditEventRow, {
     props: {
       event: props.event ?? EVENT,

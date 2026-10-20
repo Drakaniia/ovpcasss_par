@@ -77,11 +77,7 @@ export function createReferenceQueries(db: Database) {
     id: string,
   ): Promise<ReferenceRowMap[E] | null> {
     const target = table(entity);
-    const rows = await db
-      .select()
-      .from(target)
-      .where(eq(target.id, id))
-      .limit(1);
+    const rows = await db.select().from(target).where(eq(target.id, id)).limit(1);
 
     const row = rows[0] as ReferenceRowMap[E] | undefined;
     return row && (row as { deletedAt: string | null }).deletedAt === null ? row : null;
@@ -116,10 +112,7 @@ export function createReferenceQueries(db: Database) {
       values: Partial<ReferenceInsert<E>>,
     ): Promise<ReferenceRowMap[E] | null> {
       const target = table(entity);
-      await db
-        .update(target)
-        .set(values)
-        .where(eq(target.id, id));
+      await db.update(target).set(values).where(eq(target.id, id));
 
       return findById(entity, id);
     },

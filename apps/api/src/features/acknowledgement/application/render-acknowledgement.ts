@@ -1,9 +1,4 @@
-import {
-  createAcknowledgementQueries,
-  createDb,
-  createUserQueries,
-  type ReportRow,
-} from '@par/db';
+import { createAcknowledgementQueries, createDb, createUserQueries, type ReportRow } from '@par/db';
 import { renderAcknowledgement } from '@par/export';
 
 import type { Env } from '../../../env';
@@ -14,10 +9,7 @@ import { createId } from '../../../lib/ids';
  * never rolls back an approval: the report is approved either way, and the next
  * download attempt renders the PDF again.
  */
-export async function ensureStoredAcknowledgement(
-  env: Env,
-  report: ReportRow,
-): Promise<string> {
+export async function ensureStoredAcknowledgement(env: Env, report: ReportRow): Promise<string> {
   if (report.status !== 'APPROVED' || !report.trackingNumber || !report.approvedAt) {
     throw new Error('The report is not approved');
   }

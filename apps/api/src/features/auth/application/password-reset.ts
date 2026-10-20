@@ -16,8 +16,7 @@ import { consumeRateLimit } from '../../../lib/rate-limit';
 import { createOpaqueToken, hashToken } from '../../../lib/tokens';
 
 export type ForgotOutcome =
-  | { ok: true }
-  | { ok: false; code: 'RATE_LIMITED'; retryAfterSeconds: number };
+  { ok: true } | { ok: false; code: 'RATE_LIMITED'; retryAfterSeconds: number };
 
 export type ResetOutcome = { ok: true } | { ok: false; code: 'TOKEN_INVALID' };
 

@@ -17,7 +17,9 @@ export async function seedReferenceData(db: Database): Promise<void> {
   const reference = createReferenceQueries(db);
   const now = new Date().toISOString();
 
-  const campusIdByCode = new Map((await reference.list('campuses')).map((row) => [row.code, row.id]));
+  const campusIdByCode = new Map(
+    (await reference.list('campuses')).map((row) => [row.code, row.id]),
+  );
   for (const campus of SEED_CAMPUSES) {
     if (campusIdByCode.has(campus.code)) continue;
 
@@ -53,7 +55,9 @@ export async function seedReferenceData(db: Database): Promise<void> {
     unitIdByCode.set(unit.code, row.id);
   }
 
-  const programIdByCode = new Map((await reference.list('programs')).map((row) => [row.code, row.id]));
+  const programIdByCode = new Map(
+    (await reference.list('programs')).map((row) => [row.code, row.id]),
+  );
   for (const program of SEED_PROGRAMS) {
     if (programIdByCode.has(program.code)) continue;
 

@@ -161,8 +161,7 @@
       dirty: () => editor.dirty,
       saving: () => editor.busy !== null,
       save: () => editor.saveChanges(),
-      subject: () =>
-        editor.form.title.trim() ? `“${editor.form.title.trim()}”` : 'This report',
+      subject: () => (editor.form.title.trim() ? `“${editor.form.title.trim()}”` : 'This report'),
     });
 
     return () => {

@@ -38,11 +38,7 @@
   }
 </script>
 
-<div
-  class="float-field"
-  class:active
-  class:with-icon={Boolean(icon)}
->
+<div class="float-field" class:active class:with-icon={Boolean(icon)}>
   <label class="float-label" for={id}>
     {#if typeof label === 'string'}{label}{:else}{@render label()}{/if}
   </label>
@@ -60,7 +56,6 @@
     onfocus={handleFocus}
     onblur={handleBlur}
   />
-
 </div>
 
 <style>

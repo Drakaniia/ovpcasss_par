@@ -4,8 +4,7 @@ import type { MonitoringExportRequest, ReportStatus, Semester } from '@par/share
 import { buildMonitoringSheet, type MonitoringSheet } from './monitoring-sheets';
 
 export type MonitoringAssembly =
-  | { ok: true; sheet: MonitoringSheet }
-  | { ok: false; message: string };
+  { ok: true; sheet: MonitoringSheet } | { ok: false; message: string };
 
 const APPROVED_ONLY: readonly ReportStatus[] = ['APPROVED'];
 const WITH_IN_PROGRESS: readonly ReportStatus[] = ['APPROVED', 'SUBMITTED', 'ENDORSED'];

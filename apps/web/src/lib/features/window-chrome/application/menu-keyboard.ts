@@ -129,7 +129,11 @@ function typeahead(menu: MenuShape, letter: string, from: number): number | null
 }
 
 /** `Alt` + the menu's mnemonic opens it directly. */
-export function mnemonicIndex(menus: readonly MenuShape[], mnemonics: readonly string[], letter: string) {
+export function mnemonicIndex(
+  menus: readonly MenuShape[],
+  mnemonics: readonly string[],
+  letter: string,
+) {
   const index = mnemonics.findIndex((mnemonic) => mnemonic.toLowerCase() === letter.toLowerCase());
   return index >= 0 && index < menus.length ? index : null;
 }

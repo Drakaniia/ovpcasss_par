@@ -13,10 +13,7 @@ export {
   monitoringSheetTitle,
   type MonitoringColumn,
 } from './monitoring/columns';
-export {
-  SHEET_GEOMETRY,
-  type SheetGeometry,
-} from './monitoring/ooxml/sample/geometry';
+export { SHEET_GEOMETRY, type SheetGeometry } from './monitoring/ooxml/sample/geometry';
 export {
   parseMonitoringWorkbook,
   type ImportedMonitoringRow,

@@ -33,7 +33,10 @@ export function toMonitoringRow(report: MonitoringReportRecord, index: number): 
     location: report.location,
     totalStudents: report.totalStudents,
     totalPic: report.totalPic,
-    picName: report.pics.map((pic) => pic.name).filter(Boolean).join('; '),
+    picName: report.pics
+      .map((pic) => pic.name)
+      .filter(Boolean)
+      .join('; '),
     picContact: report.pics
       .flatMap((pic) => [pic.email, pic.phone])
       .filter((value): value is string => Boolean(value))

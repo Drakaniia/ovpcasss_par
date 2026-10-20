@@ -8,10 +8,7 @@
   import { startOverlayScrollbars } from '$lib/a11y/overlay-scrollbars';
   import AppShell from '$lib/components/AppShell.svelte';
   import ToastRegion from '$lib/components/ToastRegion.svelte';
-  import {
-    AUTH_PATHS,
-    startupDestination,
-  } from '$lib/features/auth/application/startup-route';
+  import { AUTH_PATHS, startupDestination } from '$lib/features/auth/application/startup-route';
   import UpdateToast from '$lib/features/updater/presentation/UpdateToast.svelte';
   import { startChrome } from '$lib/features/window-chrome/application/chrome-store.svelte';
   import { isTauri } from '$lib/platform';

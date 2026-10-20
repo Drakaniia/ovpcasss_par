@@ -8,9 +8,7 @@ import type { EmailMessage, EmailProvider } from '../provider';
 export function createConsoleProvider(): EmailProvider {
   return {
     async send(message: EmailMessage): Promise<void> {
-      console.log(
-        `[email:console] to=${message.to} subject=${message.subject}\n${message.text}`,
-      );
+      console.log(`[email:console] to=${message.to} subject=${message.subject}\n${message.text}`);
     },
   };
 }

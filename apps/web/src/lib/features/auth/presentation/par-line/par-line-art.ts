@@ -20,13 +20,7 @@ import { leverParts, leverPivot, pressHead, pressRam } from './par-line-stations
 const REVIEW_FRONT = PRESS_Y - 14;
 
 /** Parts that hang behind the moving report: the beam, the rail, the props. */
-const back = [
-  beamParts(),
-  tickerParts(),
-  binParts(),
-  pressRigParts(),
-  railParts(),
-].join('');
+const back = [beamParts(), tickerParts(), binParts(), pressRigParts(), railParts()].join('');
 
 /** Parts drawn in front of the report: the rams, then the heads they enter. */
 const front = [

@@ -1,9 +1,6 @@
 <script lang="ts">
   /** Six rows across two day blocks, matching the real row rhythm (phase 11 §5). */
-  const blocks = [
-    { rows: [92, 74, 84] },
-    { rows: [66, 88, 58] },
-  ];
+  const blocks = [{ rows: [92, 74, 84] }, { rows: [66, 88, 58] }];
 </script>
 
 <div class="skeleton-list" aria-busy="true">

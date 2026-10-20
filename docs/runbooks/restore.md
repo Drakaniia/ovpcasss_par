@@ -3,10 +3,10 @@
 Two copies exist (spec §10). Use Time Travel for a bulk restore; use the R2
 export to inspect or recover individual rows.
 
-| Copy                  | Where                                              | Written by                          |
-| --------------------- | -------------------------------------------------- | ----------------------------------- |
-| D1 Time Travel        | Cloudflare-managed, per database                   | Continuous, retained by Cloudflare  |
-| NDJSON export         | `par-attachments/backups/d1/<YYYY-MM-DD>/<table>.ndjson` | Daily cron at 18:30 UTC (02:30 Manila) |
+| Copy           | Where                                                    | Written by                             |
+| -------------- | -------------------------------------------------------- | -------------------------------------- |
+| D1 Time Travel | Cloudflare-managed, per database                         | Continuous, retained by Cloudflare     |
+| NDJSON export  | `par-attachments/backups/d1/<YYYY-MM-DD>/<table>.ndjson` | Daily cron at 18:30 UTC (02:30 Manila) |
 
 The export covers every table in the Drizzle schema. Objects are
 newline-delimited JSON, one row per line, so `grep`, `jq`, and an editor all

@@ -52,9 +52,7 @@ describe('validateReport', () => {
   it('rejects an activity that ends before it starts', () => {
     const issues = validateReport({ ...form, activityEndDate: '2026-03-11' });
 
-    expect(issues).toContainEqual(
-      expect.objectContaining({ field: 'activityEndDate', step: 2 }),
-    );
+    expect(issues).toContainEqual(expect.objectContaining({ field: 'activityEndDate', step: 2 }));
   });
 
   it('names a missing required attachment', () => {
@@ -63,9 +61,7 @@ describe('validateReport', () => {
       requirements: [requirement],
     });
 
-    expect(issues).toContainEqual(
-      expect.objectContaining({ field: 'attachments', step: 4 }),
-    );
+    expect(issues).toContainEqual(expect.objectContaining({ field: 'attachments', step: 4 }));
   });
 
   it('blocks while an upload is still pending', () => {

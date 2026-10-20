@@ -113,9 +113,7 @@ export function validateReport(
   }
 
   const attachments = options.attachments ?? [];
-  const uploading = attachments.filter(
-    (attachment) => attachment.status === 'PENDING',
-  ).length;
+  const uploading = attachments.filter((attachment) => attachment.status === 'PENDING').length;
   if (uploading > 0) {
     issues.push({
       field: 'attachments',
@@ -135,8 +133,7 @@ export function validateReport(
     if (!requirement.isRequired || requirement.minCount <= 0) continue;
 
     const confirmed = attachments.filter(
-      (attachment) =>
-        attachment.label === requirement.label && attachment.status === 'CONFIRMED',
+      (attachment) => attachment.label === requirement.label && attachment.status === 'CONFIRMED',
     ).length;
 
     if (confirmed < requirement.minCount) {

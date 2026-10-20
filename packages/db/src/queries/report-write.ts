@@ -1,10 +1,4 @@
-import type {
-  Classification,
-  Level,
-  ReportDraftForm,
-  ReportStatus,
-  ReportType,
-} from '@par/shared';
+import type { Classification, Level, ReportDraftForm, ReportStatus, ReportType } from '@par/shared';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from '../client';
@@ -151,9 +145,7 @@ export function createReportWriteQueries(db: Database) {
         .where(
           and(
             eq(reports.id, input.id),
-            input.version === undefined
-              ? undefined
-              : eq(reports.version, input.version),
+            input.version === undefined ? undefined : eq(reports.version, input.version),
             input.from === undefined ? undefined : inArray(reports.status, input.from),
           ),
         )
@@ -163,7 +155,10 @@ export function createReportWriteQueries(db: Database) {
     },
 
     /** One guarded status change; the state machine is enforced by the caller. */
-    async changeStatus(id: string, change: StatusChange & { now: string }): Promise<ReportRow | null> {
+    async changeStatus(
+      id: string,
+      change: StatusChange & { now: string },
+    ): Promise<ReportRow | null> {
       const rows = await db
         .update(reports)
         .set({
@@ -206,9 +201,7 @@ export function createReportWriteQueries(db: Database) {
     ): Promise<void> {
       await db.delete(reportSdgs).where(eq(reportSdgs.reportId, reportId));
       if (sdgIds.length > 0) {
-        await db
-          .insert(reportSdgs)
-          .values(sdgIds.map((sdgId) => ({ reportId, sdgId })));
+        await db.insert(reportSdgs).values(sdgIds.map((sdgId) => ({ reportId, sdgId })));
       }
 
       await db.delete(reportPics).where(eq(reportPics.reportId, reportId));

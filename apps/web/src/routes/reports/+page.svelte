@@ -178,8 +178,7 @@
       const drafts = await store.drafts.list();
       const stale = drafts.filter(
         (draft) =>
-          draft.ownerUserId === userId &&
-          (draft.id === reportId || draft.serverId === reportId),
+          draft.ownerUserId === userId && (draft.id === reportId || draft.serverId === reportId),
       );
 
       await Promise.all(stale.map((draft) => store.drafts.remove(draft.id)));

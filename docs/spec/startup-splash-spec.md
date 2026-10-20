@@ -18,19 +18,19 @@ appears only during startup.
 
 ## 2. Current state (verified in this repo)
 
-| Fact | Where |
-| --- | --- |
-| Tauri 2 shell, one window, `1280×860`, titled "OVPCASSS Paperless PAR", no `visible` flag | `apps/desktop/src-tauri/tauri.conf.json` |
-| CLI `@tauri-apps/cli` 2.12.3; `@tauri-apps/api` 2.12.4; Rust `tauri = "2"`, `rust-version = 1.85` | `apps/desktop/package.json`, `Cargo.toml` |
-| `frontendDist` is `../../web/build`; dev uses `http://localhost:5173` | `tauri.conf.json` |
-| SvelteKit SPA, `ssr = false`, `adapter-static` with `fallback: 'index.html'` | `apps/web/vite.config.ts`, `src/routes/+layout.ts` |
-| CSP: `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'` — **no inline scripts allowed** | `tauri.conf.json` |
-| Shell is detected by `'__TAURI_INTERNALS__' in window`; platform adapters are lazily imported | `src/lib/platform/index.ts` |
-| `loadSession()` is called only for chrome routes; `/login` never probes the session | `src/routes/+layout.svelte` |
-| Session token restore runs inside `loadSession()` | `src/lib/platform/session-token.ts` |
-| Brand lockup `static/brand/ovpcasss-logo.png` (2172×724, ~3:1), self-hosted Montserrat at `/fonts/montserrat-latin.woff2` | `apps/web/static/` |
-| Tokens: `--surface-paper #faf8f4`, `--brand-navy-700 #2c3f70`, `--brand-navy-100 #e9edf6`, `--text-primary #14203c` | `src/lib/styles/tokens.css` |
-| No splash of any kind exists; capability file targets `"windows": ["main"]` | `visual grep` |
+| Fact                                                                                                                      | Where                                              |
+| ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Tauri 2 shell, one window, `1280×860`, titled "OVPCASSS Paperless PAR", no `visible` flag                                 | `apps/desktop/src-tauri/tauri.conf.json`           |
+| CLI `@tauri-apps/cli` 2.12.3; `@tauri-apps/api` 2.12.4; Rust `tauri = "2"`, `rust-version = 1.85`                         | `apps/desktop/package.json`, `Cargo.toml`          |
+| `frontendDist` is `../../web/build`; dev uses `http://localhost:5173`                                                     | `tauri.conf.json`                                  |
+| SvelteKit SPA, `ssr = false`, `adapter-static` with `fallback: 'index.html'`                                              | `apps/web/vite.config.ts`, `src/routes/+layout.ts` |
+| CSP: `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'` — **no inline scripts allowed**         | `tauri.conf.json`                                  |
+| Shell is detected by `'__TAURI_INTERNALS__' in window`; platform adapters are lazily imported                             | `src/lib/platform/index.ts`                        |
+| `loadSession()` is called only for chrome routes; `/login` never probes the session                                       | `src/routes/+layout.svelte`                        |
+| Session token restore runs inside `loadSession()`                                                                         | `src/lib/platform/session-token.ts`                |
+| Brand lockup `static/brand/ovpcasss-logo.png` (2172×724, ~3:1), self-hosted Montserrat at `/fonts/montserrat-latin.woff2` | `apps/web/static/`                                 |
+| Tokens: `--surface-paper #faf8f4`, `--brand-navy-700 #2c3f70`, `--brand-navy-100 #e9edf6`, `--text-primary #14203c`       | `src/lib/styles/tokens.css`                        |
+| No splash of any kind exists; capability file targets `"windows": ["main"]`                                               | `visual grep`                                      |
 
 Nothing in this feature changes the web build's behaviour.
 
@@ -38,33 +38,33 @@ Nothing in this feature changes the web build's behaviour.
 
 ## 3. Decisions (from the interview)
 
-| # | Decision | Choice |
-| --- | --- | --- |
-| D1 | Splash surface | Second Tauri **webview window** (`splash`) using the official v2 two-window recipe |
-| D2 | Composition | Paper field, centred brand lockup, wordmark, thin navy progress line |
-| D3 | Motion | Logo settle (fade + 6 px rise, ~280 ms) then a 1.15 s indeterminate sweep |
-| D4 | Copy | Wordmark only: `OVPCASSS Paperless PAR` |
-| D5 | Splash window | Frameless, **420×240**, centred on the primary monitor, `skipTaskbar`, fixed size, not draggable, no close control |
-| D6 | Reveal gate | Main shell mounted **and** session resolved **and** first navigation settled |
-| D7 | Minimum dwell | **400 ms** from the splash's own first paint |
-| D8 | Stuck startup | Hard timeout at **10 s**; reveal anyway |
-| D9 | Handoff | Show main → focus → tonal dissolve (**140 ms**) → close splash |
-| D10 | API unreachable at launch | Reveal; in-app error/empty states own the failure |
-| D11 | Auth-route launch | Probe the session on desktop before reveal; redirect once, then reveal |
-| D12 | Dev mode | Splash runs in `tauri dev` too |
-| D13 | In-app reload | Never re-show (once per process) |
-| D14 | Interaction | None (no drag, no close, no Escape); `Alt+F4` quits as Windows allows |
-| D15 | Splash markup | Standalone `static/splash.html` + `static/splash.css` + `static/splash.js` |
-| D16 | Logo | Existing `static/brand/ovpcasss-logo.png`, ~320 px wide |
-| D17 | Docs | This file, a phase-17 file derived from it, and a row in `docs/spec/ui/README.md` |
-| D18 | Verification | Windows release build, 5 cold + 5 warm launches, flicker/timing recorded |
-| D19 | Bypass | None |
-| D20 | Instrumentation | Dev-only timing logs (frontend console + Rust stdout) |
-| D21 | Progress line colour | `--brand-navy-700` on a `--brand-navy-100` track |
-| D22 | Screen readers | Silent, decorative; document title + logo `alt` only |
-| D23 | Second app launch | Out of scope; recorded as an open question |
-| D24 | Main window | Created hidden, loads in parallel, focused only on reveal |
-| D25 | Transparency | None; the "cross-fade" is a tonal dissolve on an opaque window |
+| #   | Decision                  | Choice                                                                                                             |
+| --- | ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| D1  | Splash surface            | Second Tauri **webview window** (`splash`) using the official v2 two-window recipe                                 |
+| D2  | Composition               | Paper field, centred brand lockup, wordmark, thin navy progress line                                               |
+| D3  | Motion                    | Logo settle (fade + 6 px rise, ~280 ms) then a 1.15 s indeterminate sweep                                          |
+| D4  | Copy                      | Wordmark only: `OVPCASSS Paperless PAR`                                                                            |
+| D5  | Splash window             | Frameless, **420×240**, centred on the primary monitor, `skipTaskbar`, fixed size, not draggable, no close control |
+| D6  | Reveal gate               | Main shell mounted **and** session resolved **and** first navigation settled                                       |
+| D7  | Minimum dwell             | **400 ms** from the splash's own first paint                                                                       |
+| D8  | Stuck startup             | Hard timeout at **10 s**; reveal anyway                                                                            |
+| D9  | Handoff                   | Show main → focus → tonal dissolve (**140 ms**) → close splash                                                     |
+| D10 | API unreachable at launch | Reveal; in-app error/empty states own the failure                                                                  |
+| D11 | Auth-route launch         | Probe the session on desktop before reveal; redirect once, then reveal                                             |
+| D12 | Dev mode                  | Splash runs in `tauri dev` too                                                                                     |
+| D13 | In-app reload             | Never re-show (once per process)                                                                                   |
+| D14 | Interaction               | None (no drag, no close, no Escape); `Alt+F4` quits as Windows allows                                              |
+| D15 | Splash markup             | Standalone `static/splash.html` + `static/splash.css` + `static/splash.js`                                         |
+| D16 | Logo                      | Existing `static/brand/ovpcasss-logo.png`, ~320 px wide                                                            |
+| D17 | Docs                      | This file, a phase-17 file derived from it, and a row in `docs/spec/ui/README.md`                                  |
+| D18 | Verification              | Windows release build, 5 cold + 5 warm launches, flicker/timing recorded                                           |
+| D19 | Bypass                    | None                                                                                                               |
+| D20 | Instrumentation           | Dev-only timing logs (frontend console + Rust stdout)                                                              |
+| D21 | Progress line colour      | `--brand-navy-700` on a `--brand-navy-100` track                                                                   |
+| D22 | Screen readers            | Silent, decorative; document title + logo `alt` only                                                               |
+| D23 | Second app launch         | Out of scope; recorded as an open question                                                                         |
+| D24 | Main window               | Created hidden, loads in parallel, focused only on reveal                                                          |
+| D25 | Transparency              | None; the "cross-fade" is a tonal dissolve on an opaque window                                                     |
 
 ---
 
@@ -122,7 +122,7 @@ Nothing in this feature changes the web build's behaviour.
   the product name, the lockup carries the office) but drop to 12 px and 60%
   opacity so it reads as a caption rather than a second title.
 - Wordmark: `OVPCASSS Paperless PAR`, 12.5 px, weight 600, `letter-spacing:
-  0.08em`, colour `--text-primary`, `text-transform: none`.
+0.08em`, colour `--text-primary`, `text-transform: none`.
 - Progress track: 356 × 2 px, `border-radius: 999px`, background
   `--brand-navy-100`, 28 px above the bottom edge, horizontally centred,
   `overflow: hidden`. The moving segment is 30% of the track in
@@ -131,26 +131,26 @@ Nothing in this feature changes the web build's behaviour.
 
 ### 6.3 Motion
 
-| Element | Animation | Reduced motion |
-| --- | --- | --- |
-| Lockup + wordmark | `opacity 0→1`, `translateY(6px→0)`, 280 ms `cubic-bezier(0.22,1,0.36,1)`, 60 ms delay | Instant, final state |
-| Sweep | 30% segment, `translateX(-100%→333%)` over 1.15 s, `cubic-bezier(0.65,0,0.35,1)`, infinite | Static navy segment parked at 25% |
-| Dissolve out | Root `opacity 1→0` over 140 ms `ease-out` | Instant close |
+| Element           | Animation                                                                                  | Reduced motion                    |
+| ----------------- | ------------------------------------------------------------------------------------------ | --------------------------------- |
+| Lockup + wordmark | `opacity 0→1`, `translateY(6px→0)`, 280 ms `cubic-bezier(0.22,1,0.36,1)`, 60 ms delay      | Instant, final state              |
+| Sweep             | 30% segment, `translateX(-100%→333%)` over 1.15 s, `cubic-bezier(0.65,0,0.35,1)`, infinite | Static navy segment parked at 25% |
+| Dissolve out      | Root `opacity 1→0` over 140 ms `ease-out`                                                  | Instant close                     |
 
 All motion is CSS-only; no JS animation loop. `@media (prefers-reduced-motion:
 reduce)` removes the delays, the sweep, and the dissolve.
 
 ### 6.4 States
 
-| State | What the user sees |
-| --- | --- |
-| Normal | Splash, then the app |
-| Slow start (up to 10 s) | Splash; the sweep keeps moving so it never looks frozen |
-| Ready before minimum dwell | Splash holds to 400 ms, then dissolves |
-| Frontend never signals | At 10 s the main window is shown anyway (logged); splash closes |
-| Splash page fails to paint | Main window still appears at the 10 s timeout; nothing hangs |
-| API unreachable | Splash behaves normally (session probe fails fast or times out); app reveals to its own error state |
-| Reduced motion | Static lockup and track; same timings for reveal |
+| State                      | What the user sees                                                                                  |
+| -------------------------- | --------------------------------------------------------------------------------------------------- |
+| Normal                     | Splash, then the app                                                                                |
+| Slow start (up to 10 s)    | Splash; the sweep keeps moving so it never looks frozen                                             |
+| Ready before minimum dwell | Splash holds to 400 ms, then dissolves                                                              |
+| Frontend never signals     | At 10 s the main window is shown anyway (logged); splash closes                                     |
+| Splash page fails to paint | Main window still appears at the 10 s timeout; nothing hangs                                        |
+| API unreachable            | Splash behaves normally (session probe fails fast or times out); app reveals to its own error state |
+| Reduced motion             | Static lockup and track; same timings for reveal                                                    |
 
 ### 6.5 Accessibility & content
 
@@ -240,9 +240,13 @@ framework, no hydration:
   </head>
   <body>
     <main class="splash">
-      <img class="splash-logo" src="/brand/ovpcasss-logo.png"
-           alt="OVPCASSS — Office of the Vice President for Culture, Arts, Sports and Student Services"
-           width="2172" height="724" />
+      <img
+        class="splash-logo"
+        src="/brand/ovpcasss-logo.png"
+        alt="OVPCASSS — Office of the Vice President for Culture, Arts, Sports and Student Services"
+        width="2172"
+        height="724"
+      />
       <p class="splash-wordmark">OVPCASSS Paperless PAR</p>
       <div class="splash-track" aria-hidden="true"><span class="splash-sweep"></span></div>
     </main>
@@ -257,10 +261,10 @@ one accepted duplication; `static/` cannot import the app stylesheet):
 ```css
 /* Values mirrored from apps/web/src/lib/styles/tokens.css — keep in sync. */
 :root {
-  --surface-paper: #faf8f4;   /* --surface-paper */
-  --text-primary: #14203c;    /* --text-primary */
-  --brand-navy-700: #2c3f70;  /* --brand-navy-700 */
-  --brand-navy-100: #e9edf6;  /* --brand-navy-100 */
+  --surface-paper: #faf8f4; /* --surface-paper */
+  --text-primary: #14203c; /* --text-primary */
+  --brand-navy-700: #2c3f70; /* --brand-navy-700 */
+  --brand-navy-100: #e9edf6; /* --brand-navy-100 */
   --font-ui: 'Montserrat', system-ui, 'Segoe UI', sans-serif; /* --font-ui */
 }
 ```
@@ -367,8 +371,12 @@ export interface Platform {
 
 ```ts
 export async function releaseSplash(): Promise<void> {
-  if (!isTauri()) return;                 // browser build unchanged
-  try { await (await platform()).startup.ready(); } catch { /* timeout covers */ }
+  if (!isTauri()) return; // browser build unchanged
+  try {
+    await (await platform()).startup.ready();
+  } catch {
+    /* timeout covers */
+  }
 }
 ```
 
@@ -391,9 +399,9 @@ Run once per document in `onMount` (not `$effect` — effects re-run):
    - `PENDING_ROLE` → `/awaiting-approval`; `PENDING_VERIFICATION` →
      `/verify-email?email=…`; `ACTIVE` on `/login` or `/register` → `/`.
    - `DISABLED` or already on the target → `null`.
-   When `target` is non-null, `await goto(target, { replaceState: true })`.
-   The pages' own post-load redirects then see the correct URL (and any
-   duplicate `goto` to the same path is a no-op).
+     When `target` is non-null, `await goto(target, { replaceState: true })`.
+     The pages' own post-load redirects then see the correct URL (and any
+     duplicate `goto` to the same path is a no-op).
 3. `await tick()`, then `await new Promise(requestAnimationFrame)` twice, so the
    landing route has painted.
 4. `await releaseSplash()`.
@@ -426,27 +434,27 @@ process start
 
 ## 8. Files to change
 
-| File | Change |
-| --- | --- |
-| `apps/desktop/src-tauri/tauri.conf.json` | `withGlobalTauri`, `main` label + `visible:false` + `focus:false` + `backgroundColor`, new `splash` window |
-| `apps/desktop/src-tauri/src/startup.rs` | **new** — state, two commands, timeout, timing logs |
-| `apps/desktop/src-tauri/src/lib.rs` | `mod startup;`, `.manage(...)`, `.setup(...)`, handler registration |
-| `apps/desktop/src-tauri/capabilities/default.json` | `windows: ["main", "splash"]` |
-| `apps/web/static/splash.html` | **new** — markup only |
-| `apps/web/static/splash.css` | **new** — tokens copied, layout, motion, reduced motion |
-| `apps/web/static/splash.js` | **new** — dissolve listener + paint ping |
-| `apps/web/src/lib/platform/contracts.ts` | `StartupGate` + `Platform.startup` |
-| `apps/web/src/lib/platform/tauri/startup.ts` | **new** — `invoke('frontend_ready')` |
-| `apps/web/src/lib/platform/web/startup.ts` | **new** — no-op |
-| `apps/web/src/lib/platform/index.ts` | wire `startup`, export `isTauri`, memoized `platform()` |
-| `apps/web/src/lib/platform/session-token.ts` | use the shared `platform()` |
-| `apps/web/src/lib/platform/startup.ts` | **new** — `releaseSplash()` gate |
-| `apps/web/src/lib/features/auth/application/startup-route.ts` | **new** — pure `startupDestination(pathname, account)`, the gate's redirect decision |
-| `apps/web/src/lib/features/auth/application/startup-route.test.ts` | **new** — unit tests for the redirect decision |
-| `apps/web/src/routes/+layout.svelte` | desktop-only startup sequence in `onMount` |
-| `docs/spec/ui/17-startup-splash.md` | **new** — runnable phase file derived from this spec (acceptance checklist, files, scope) |
-| `docs/spec/ui/README.md` | runbook row for phase 17 |
-| `docs/todo.md` | tick the splash item when verified |
+| File                                                               | Change                                                                                                     |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `apps/desktop/src-tauri/tauri.conf.json`                           | `withGlobalTauri`, `main` label + `visible:false` + `focus:false` + `backgroundColor`, new `splash` window |
+| `apps/desktop/src-tauri/src/startup.rs`                            | **new** — state, two commands, timeout, timing logs                                                        |
+| `apps/desktop/src-tauri/src/lib.rs`                                | `mod startup;`, `.manage(...)`, `.setup(...)`, handler registration                                        |
+| `apps/desktop/src-tauri/capabilities/default.json`                 | `windows: ["main", "splash"]`                                                                              |
+| `apps/web/static/splash.html`                                      | **new** — markup only                                                                                      |
+| `apps/web/static/splash.css`                                       | **new** — tokens copied, layout, motion, reduced motion                                                    |
+| `apps/web/static/splash.js`                                        | **new** — dissolve listener + paint ping                                                                   |
+| `apps/web/src/lib/platform/contracts.ts`                           | `StartupGate` + `Platform.startup`                                                                         |
+| `apps/web/src/lib/platform/tauri/startup.ts`                       | **new** — `invoke('frontend_ready')`                                                                       |
+| `apps/web/src/lib/platform/web/startup.ts`                         | **new** — no-op                                                                                            |
+| `apps/web/src/lib/platform/index.ts`                               | wire `startup`, export `isTauri`, memoized `platform()`                                                    |
+| `apps/web/src/lib/platform/session-token.ts`                       | use the shared `platform()`                                                                                |
+| `apps/web/src/lib/platform/startup.ts`                             | **new** — `releaseSplash()` gate                                                                           |
+| `apps/web/src/lib/features/auth/application/startup-route.ts`      | **new** — pure `startupDestination(pathname, account)`, the gate's redirect decision                       |
+| `apps/web/src/lib/features/auth/application/startup-route.test.ts` | **new** — unit tests for the redirect decision                                                             |
+| `apps/web/src/routes/+layout.svelte`                               | desktop-only startup sequence in `onMount`                                                                 |
+| `docs/spec/ui/17-startup-splash.md`                                | **new** — runnable phase file derived from this spec (acceptance checklist, files, scope)                  |
+| `docs/spec/ui/README.md`                                           | runbook row for phase 17                                                                                   |
+| `docs/todo.md`                                                     | tick the splash item when verified                                                                         |
 
 No changes to `apps/api`, `packages/*`, or `.github/workflows` are needed.
 
@@ -454,24 +462,24 @@ No changes to `apps/api`, `packages/*`, or `.github/workflows` are needed.
 
 ## 9. Edge cases
 
-| Case | Behaviour |
-| --- | --- |
-| Main signals ready before the splash paints | No wait; main shows, splash closes when it appears (worst case a sub-frame splash) |
-| Splash paints, main never signals | Timeout at 10 s reveals main |
-| `frontend_ready` invoked twice | Second call is a no-op |
-| Splash window already closed (crash / user closed) | `close()` error ignored |
-| In-app reload (Ctrl+R, HMR full reload) | No splash: it was closed at first reveal |
-| Vite dev server not up yet | Main window shows its own failure; splash still times out |
-| API unreachable / slow | Probe rejects or resolves `null`; reveal proceeds |
-| Signed-in user launches into `/login` | One `goto('/')` (or `/awaiting-approval`) before reveal; no login flash |
-| Signed-out launch | Gate navigates to `/login` before reveal; the inbox skeleton never becomes visible |
-| `PENDING_ROLE` launch | Redirect to `/awaiting-approval` before reveal |
-| `DISABLED` account with a stored token | Probe clears the session (`loadSession` handles 401/403); login shows |
-| Primary monitor smaller than 420×240 | Window still opens; Tauri clamps it; no crash |
-| 200% display scaling | CSS px scale correctly; the window is 420×240 logical |
-| Second app instance | Out of scope: a second splash and window appear (§12) |
-| `prefers-reduced-motion` | Static lockup, static track, instant close |
-| Alt+F4 during splash | Process quits normally (splash is a real top-level window) |
+| Case                                               | Behaviour                                                                          |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Main signals ready before the splash paints        | No wait; main shows, splash closes when it appears (worst case a sub-frame splash) |
+| Splash paints, main never signals                  | Timeout at 10 s reveals main                                                       |
+| `frontend_ready` invoked twice                     | Second call is a no-op                                                             |
+| Splash window already closed (crash / user closed) | `close()` error ignored                                                            |
+| In-app reload (Ctrl+R, HMR full reload)            | No splash: it was closed at first reveal                                           |
+| Vite dev server not up yet                         | Main window shows its own failure; splash still times out                          |
+| API unreachable / slow                             | Probe rejects or resolves `null`; reveal proceeds                                  |
+| Signed-in user launches into `/login`              | One `goto('/')` (or `/awaiting-approval`) before reveal; no login flash            |
+| Signed-out launch                                  | Gate navigates to `/login` before reveal; the inbox skeleton never becomes visible |
+| `PENDING_ROLE` launch                              | Redirect to `/awaiting-approval` before reveal                                     |
+| `DISABLED` account with a stored token             | Probe clears the session (`loadSession` handles 401/403); login shows              |
+| Primary monitor smaller than 420×240               | Window still opens; Tauri clamps it; no crash                                      |
+| 200% display scaling                               | CSS px scale correctly; the window is 420×240 logical                              |
+| Second app instance                                | Out of scope: a second splash and window appear (§12)                              |
+| `prefers-reduced-motion`                           | Static lockup, static track, instant close                                         |
+| Alt+F4 during splash                               | Process quits normally (splash is a real top-level window)                         |
 
 ---
 
@@ -502,16 +510,16 @@ Build with `pnpm --filter @par/desktop build` (or `cargo build --release`), then
 record for **5 cold launches** (first launch after a reboot or after
 `taskkill`-ing WebView2 processes) and **5 warm launches**:
 
-| Metric | How | Target |
-| --- | --- | --- |
-| Splash paint → reveal | `[startup]` debug log / devtools marks | ≥ 400 ms, reveal ≤ ready + ~200 ms |
-| Time to splash paint | Screen recording, frame count | report the measurement |
-| White frame before splash | Frame-by-frame review of the recording | none |
-| Blank frame at handoff | Same recording | none |
-| Taskbar entries | Observe during and after startup | one, only after reveal |
-| Splash in taskbar | Observe | never |
-| Focus after reveal | Type immediately | main window receives input |
-| Reveal timed out | Temporarily comment out the layout's `releaseSplash()` call, launch | main appears at ~10 s, warning logged, splash gone |
+| Metric                    | How                                                                 | Target                                             |
+| ------------------------- | ------------------------------------------------------------------- | -------------------------------------------------- |
+| Splash paint → reveal     | `[startup]` debug log / devtools marks                              | ≥ 400 ms, reveal ≤ ready + ~200 ms                 |
+| Time to splash paint      | Screen recording, frame count                                       | report the measurement                             |
+| White frame before splash | Frame-by-frame review of the recording                              | none                                               |
+| Blank frame at handoff    | Same recording                                                      | none                                               |
+| Taskbar entries           | Observe during and after startup                                    | one, only after reveal                             |
+| Splash in taskbar         | Observe                                                             | never                                              |
+| Focus after reveal        | Type immediately                                                    | main window receives input                         |
+| Reveal timed out          | Temporarily comment out the layout's `releaseSplash()` call, launch | main appears at ~10 s, warning logged, splash gone |
 
 Also verify on the release bundle (not just `tauri dev`): splash in dev match
 release, `/login` launch has no login flash for a signed-in account, reduced
@@ -523,16 +531,16 @@ Anything not executed must be reported as **not verified**, with the reason.
 
 ## 11. Risks
 
-| # | Risk | Mitigation |
-| --- | --- | --- |
-| R1 | The splash WebView paints late on cold start, so the first visible frame is a white flash | Matching `backgroundColor`; measure time-to-splash-paint. If > 400 ms or a white frame is visible, fall back to a native image window (out of scope here, but the Rust seam stays: only `setup()` changes) |
-| R2 | `show()` reveals an unpainted main window | Main is only shown after `tick` + 2 rAF post-navigation; frame review in 10.2 proves it |
-| R3 | `skipTaskbar` unreliable on some Windows 10 builds (Tauri #10422) | Verify; if it fails, accept the entry or set the splash window as a tool window in Rust (`set_skip_taskbar` fallback) and note it |
-| R4 | Cross-window focus steals during the animation | `main` created with `focus: false`; focus is set only inside `frontend_ready` |
-| R5 | Splash window partly transparent or layered oddly under DWM | Opaque window, no `transparent`, no `alwaysOnTop`; frame review |
-| R6 | Duplicated token values drift from `tokens.css` | One commented `:root` block; review on token changes. Deliberately no test for five constants |
-| R7 | Extra `GET /me` at startup | Memoized with the existing `loadSession()`; desktop-only, so web is untouched |
-| R8 | Static splash drifts from the app's type scale | Wordmark and lockup sized from §6.2; screenshot compared with the login lockup |
+| #   | Risk                                                                                      | Mitigation                                                                                                                                                                                                 |
+| --- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | The splash WebView paints late on cold start, so the first visible frame is a white flash | Matching `backgroundColor`; measure time-to-splash-paint. If > 400 ms or a white frame is visible, fall back to a native image window (out of scope here, but the Rust seam stays: only `setup()` changes) |
+| R2  | `show()` reveals an unpainted main window                                                 | Main is only shown after `tick` + 2 rAF post-navigation; frame review in 10.2 proves it                                                                                                                    |
+| R3  | `skipTaskbar` unreliable on some Windows 10 builds (Tauri #10422)                         | Verify; if it fails, accept the entry or set the splash window as a tool window in Rust (`set_skip_taskbar` fallback) and note it                                                                          |
+| R4  | Cross-window focus steals during the animation                                            | `main` created with `focus: false`; focus is set only inside `frontend_ready`                                                                                                                              |
+| R5  | Splash window partly transparent or layered oddly under DWM                               | Opaque window, no `transparent`, no `alwaysOnTop`; frame review                                                                                                                                            |
+| R6  | Duplicated token values drift from `tokens.css`                                           | One commented `:root` block; review on token changes. Deliberately no test for five constants                                                                                                              |
+| R7  | Extra `GET /me` at startup                                                                | Memoized with the existing `loadSession()`; desktop-only, so web is untouched                                                                                                                              |
+| R8  | Static splash drifts from the app's type scale                                            | Wordmark and lockup sized from §6.2; screenshot compared with the login lockup                                                                                                                             |
 
 ---
 

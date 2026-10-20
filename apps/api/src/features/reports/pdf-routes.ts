@@ -116,11 +116,7 @@ export function registerReportPdfRoutes(router: Hono<AppEnv>): void {
     const objectKey = `facsimile/${row.id}.pdf`;
     await c.env.BUCKET.put(objectKey, bytes, { httpMetadata: { contentType: PDF_TYPE } });
 
-    const url = await signedDownloadUrl(
-      c,
-      objectKey,
-      `/api/v1/reports/${row.id}/pdf/file`,
-    );
+    const url = await signedDownloadUrl(c, objectKey, `/api/v1/reports/${row.id}/pdf/file`);
 
     return c.json({
       url,

@@ -4,9 +4,9 @@ import { isBootstrapAdmin, parseBootstrapAdmins } from './config';
 
 describe('parseBootstrapAdmins', () => {
   it('splits on commas, trims, and lowercases', () => {
-    expect(parseBootstrapAdmins(' OVPCASSS@buksu.edu.ph , 2401117078@student.buksu.edu.ph ')).toEqual(
-      ['ovpcasss@buksu.edu.ph', '2401117078@student.buksu.edu.ph'],
-    );
+    expect(
+      parseBootstrapAdmins(' OVPCASSS@buksu.edu.ph , 2401117078@student.buksu.edu.ph '),
+    ).toEqual(['ovpcasss@buksu.edu.ph', '2401117078@student.buksu.edu.ph']);
   });
 
   it('drops blank entries', () => {

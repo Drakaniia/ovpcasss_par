@@ -44,9 +44,7 @@ describe('monitoring sheet', () => {
 
     expect(sheet.sheetName).toBe('OFF-CAMPUS');
     expect(sheet.columns).toHaveLength(18);
-    expect(sheet.title).toBe(
-      'LOCAL OFF-CAMPUS  ACTIVITIES MONITORING\n2nd SEMESTER, SY 2025-2026',
-    );
+    expect(sheet.title).toBe('LOCAL OFF-CAMPUS  ACTIVITIES MONITORING\n2nd SEMESTER, SY 2025-2026');
   });
 
   it('hands the preview the workbook geometry the file is written with', () => {
@@ -92,7 +90,12 @@ describe('monitoring sheet', () => {
     const { sheet } = buildMonitoringSheet(
       [
         record({}),
-        record({ id: 'rep_2', trackingNumber: 'OFF-2026-0043', status: 'SUBMITTED', approvedAt: null }),
+        record({
+          id: 'rep_2',
+          trackingNumber: 'OFF-2026-0043',
+          status: 'SUBMITTED',
+          approvedAt: null,
+        }),
       ],
       { ...REQUEST, includeInProgress: true },
     );

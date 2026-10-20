@@ -8,8 +8,7 @@ import { consumeRateLimit } from '../../../lib/rate-limit';
 import { createOpaqueToken, hashToken } from '../../../lib/tokens';
 
 export type ResendOutcome =
-  | { ok: true }
-  | { ok: false; code: 'RATE_LIMITED'; retryAfterSeconds: number };
+  { ok: true } | { ok: false; code: 'RATE_LIMITED'; retryAfterSeconds: number };
 
 const ACCOUNT_RULE = { limit: 3, windowSeconds: 900 };
 const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;

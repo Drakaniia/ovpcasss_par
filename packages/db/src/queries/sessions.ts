@@ -19,7 +19,11 @@ export function createSessionQueries(db: Database) {
 
     /** Null when the hash is unknown; expiry is checked by the caller against `now`. */
     async findByTokenHash(tokenHash: string): Promise<SessionRow | null> {
-      const rows = await db.select().from(sessions).where(eq(sessions.tokenHash, tokenHash)).limit(1);
+      const rows = await db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.tokenHash, tokenHash))
+        .limit(1);
       return rows[0] ?? null;
     },
 
@@ -38,10 +42,7 @@ export function createSessionQueries(db: Database) {
 
     /** Cleanup cron: drop rows that are already expired as of `at`. */
     async deleteExpired(at: string): Promise<number> {
-      const before = await db
-        .select()
-        .from(sessions)
-        .where(lt(sessions.expiresAt, at));
+      const before = await db.select().from(sessions).where(lt(sessions.expiresAt, at));
 
       if (before.length > 0) {
         await db.delete(sessions).where(lt(sessions.expiresAt, at));

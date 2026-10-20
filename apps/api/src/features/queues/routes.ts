@@ -44,8 +44,7 @@ function queueRouter(kind: QueueKind) {
         campusId: row.campusId,
         collegeId: row.unitId,
         college: row.unitName ?? '',
-        waitingSince:
-          (kind === 'review' ? row.submittedAt : row.endorsedAt) ?? row.updatedAt,
+        waitingSince: (kind === 'review' ? row.submittedAt : row.endorsedAt) ?? row.updatedAt,
         hasPendingAttachments: row.pendingAttachments,
       })),
       total: page.total,

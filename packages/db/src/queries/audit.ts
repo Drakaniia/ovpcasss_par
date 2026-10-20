@@ -38,7 +38,9 @@ export function createAuditQueries(db: Database) {
         .limit(query.limit);
     },
 
-    async listFiltered(query: AdminAuditListQuery): Promise<{ rows: AuditEventRow[]; total: number }> {
+    async listFiltered(
+      query: AdminAuditListQuery,
+    ): Promise<{ rows: AuditEventRow[]; total: number }> {
       const conditions: SQL[] = [];
       if (query.entityId) conditions.push(eq(auditEvents.entityId, query.entityId));
       if (query.entityType) conditions.push(eq(auditEvents.entityType, query.entityType));
@@ -86,9 +88,7 @@ export function createAuditQueries(db: Database) {
       return db
         .select()
         .from(auditEvents)
-        .where(
-          and(eq(auditEvents.entityType, entityType), eq(auditEvents.entityId, entityId)),
-        )
+        .where(and(eq(auditEvents.entityType, entityType), eq(auditEvents.entityId, entityId)))
         .orderBy(asc(auditEvents.createdAt));
     },
 

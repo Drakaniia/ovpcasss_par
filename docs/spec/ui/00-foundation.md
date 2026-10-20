@@ -115,13 +115,13 @@ Montserrat is the UI face, self-hosted (latin subset, variable woff2 in
 `apps/web/static/fonts/`) so the Tauri build stays offline-safe; the system
 stack remains the fallback.
 
-| Role                                    | Stack                                                | Size / weight                   |
-| --------------------------------------- | ---------------------------------------------------- | ------------------------------- |
-| UI body                                 | `"Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif` | 14/400; tables 13   |
-| UI headings                             | Same sans                                            | H1 24/600, H2 18/600, H3 15/600 |
-| Labels                                  | Same sans                                            | 12/500, `--text-secondary`      |
-| Document (facsimile, print, letterhead) | `Georgia, "Times New Roman", serif`                  | Body 13.5/1.55; title 20/600    |
-| Tracking numbers, dates in tables       | `ui-monospace, "Cascadia Mono", Consolas, monospace` | Tabular numerals                |
+| Role                                    | Stack                                                            | Size / weight                   |
+| --------------------------------------- | ---------------------------------------------------------------- | ------------------------------- |
+| UI body                                 | `"Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif` | 14/400; tables 13               |
+| UI headings                             | Same sans                                                        | H1 24/600, H2 18/600, H3 15/600 |
+| Labels                                  | Same sans                                                        | 12/500, `--text-secondary`      |
+| Document (facsimile, print, letterhead) | `Georgia, "Times New Roman", serif`                              | Body 13.5/1.55; title 20/600    |
+| Tracking numbers, dates in tables       | `ui-monospace, "Cascadia Mono", Consolas, monospace`             | Tabular numerals                |
 
 Do not add Source Serif 4 in M0.
 
@@ -419,7 +419,7 @@ No mobile design in v1; the decision is explicit.
 | `Kbd`, `ShortcutHelpDialog`             | 12    | Help sheet; palette                            |
 | `AuditFilterPanel`                      | 13    | Two-pane filters                               |
 | `ExportPreviewTable`                    | 14    | Sticky first column, missing-value warnings    |
-| `ReferenceDataTabs`, `EntryDrawer`      | 04    | Official list, soft delete                      |
+| `ReferenceDataTabs`, `EntryDrawer`      | 04    | Official list, soft delete                     |
 
 Rules: each component under 400 lines; feature-specific components stay in the
 feature folder; only cross-feature primitives live in `lib/components`; no

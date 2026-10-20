@@ -124,9 +124,7 @@ describe('monitoring workbook', () => {
   });
 
   it('blanks Date Completed for an in-progress report instead of writing text', () => {
-    const workbook = sampleWorkbook('OFF_CAMPUS', [
-      { ...SAMPLE, dateCompleted: '', sdg: '' },
-    ]);
+    const workbook = sampleWorkbook('OFF_CAMPUS', [{ ...SAMPLE, dateCompleted: '', sdg: '' }]);
 
     const offCampus = parseMonitoringWorkbook(workbook)[0]!;
     expect(offCampus.rows[0]!.dateCompleted).toBe('');
@@ -135,10 +133,7 @@ describe('monitoring workbook', () => {
 
   it('keeps the source sheet depth below the data', () => {
     const offCampus = text(unzipSync(sampleWorkbook()), 'xl/worksheets/sheet1.xml');
-    const inCampus = text(
-      unzipSync(sampleWorkbook('IN_CAMPUS')),
-      'xl/worksheets/sheet3.xml',
-    );
+    const inCampus = text(unzipSync(sampleWorkbook('IN_CAMPUS')), 'xl/worksheets/sheet3.xml');
 
     expect(offCampus).toContain('<dimension ref="A1:R22"/>');
     expect(offCampus).toContain('<row r="22"');
@@ -246,9 +241,7 @@ describe('preview geometry is the source grid', () => {
       header: rowHeight(xml, 2),
       body: rowHeight(xml, 3) ?? defaultHeight,
     });
-    expect(SHEET_GEOMETRY[type].reservedRows).toBe(
-      [...xml.matchAll(/<row r="\d+"/g)].length - 2,
-    );
+    expect(SHEET_GEOMETRY[type].reservedRows).toBe([...xml.matchAll(/<row r="\d+"/g)].length - 2);
   });
 });
 

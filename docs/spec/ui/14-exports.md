@@ -52,13 +52,13 @@ form and a live preview that shows exactly what will be downloaded.
 - Form card, then preview card. Both use `--surface-card`.
 - Form controls in one row at ≥1280 px, wrapping below:
 
-| Control                     | Behavior                                                                                                                               |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Control                     | Behavior                                                                                                                                 |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Sheet                       | Radio: Off-campus / Educational tour / In-campus. Default Off-campus. Determines which sheet carries the rows; the other two ship blank. |
-| Semester                    | Select from `ref_terms`; default the current term.                                                                                     |
-| School year                 | Select from `ref_terms`; default the current school year.                                                                              |
-| Include in-progress reports | Checkbox; off by default. Adds `SUBMITTED` and `ENDORSED` rows with Date Completed blank.                                              |
-| Download .xlsx              | Navy primary. Disabled until a preview has loaded and there is at least one row.                                                       |
+| Semester                    | Select from `ref_terms`; default the current term.                                                                                       |
+| School year                 | Select from `ref_terms`; default the current school year.                                                                                |
+| Include in-progress reports | Checkbox; off by default. Adds `SUBMITTED` and `ENDORSED` rows with Date Completed blank.                                                |
+| Download .xlsx              | Navy primary. Disabled until a preview has loaded and there is at least one row.                                                         |
 
 - Changing any control refreshes the preview; debounce 300 ms and keep the
   previous preview visible with a subtle "Updating preview…" line.

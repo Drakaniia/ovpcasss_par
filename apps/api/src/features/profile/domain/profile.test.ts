@@ -4,7 +4,9 @@ import { normalizeOptional } from './profile';
 
 describe('normalizeOptional', () => {
   it('keeps real text, trimmed', () => {
-    expect(normalizeOptional('  College of Arts and Sciences  ')).toBe('College of Arts and Sciences');
+    expect(normalizeOptional('  College of Arts and Sciences  ')).toBe(
+      'College of Arts and Sciences',
+    );
   });
 
   it('turns an omitted, empty, or whitespace value into null', () => {

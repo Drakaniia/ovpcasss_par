@@ -20,7 +20,10 @@ async function search(c: Context<AppEnv>) {
     repeated && repeated.length > 0
       ? repeated
       : raw.sdg
-        ? raw.sdg.split(',').map((value) => value.trim()).filter(Boolean)
+        ? raw.sdg
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean)
         : undefined;
 
   const parsed = repositoryQuerySchema.safeParse({ ...raw, ...(sdg ? { sdg } : {}) });

@@ -12,10 +12,7 @@ export type VerifyEmailOutcome = { ok: true } | { ok: false; code: 'TOKEN_INVALI
  * Redeems a verification link (spec §7.4). The token is single-use, so losing
  * the race to `markUsed` is treated exactly like an expired link.
  */
-export async function verifyEmail(
-  c: Context<AppEnv>,
-  token: string,
-): Promise<VerifyEmailOutcome> {
+export async function verifyEmail(c: Context<AppEnv>, token: string): Promise<VerifyEmailOutcome> {
   const db = createDb(c.env.DB);
   const tokens = createEmailTokenQueries(db);
   const now = new Date().toISOString();

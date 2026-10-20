@@ -19,7 +19,13 @@ import {
 
 import type { Env } from '../../../env';
 import { createId } from '../../../lib/ids';
-import { notifyApproved, notifyEndorsed, notifyReturned, notifySubmitted, type TransitionActor } from './report-events';
+import {
+  notifyApproved,
+  notifyEndorsed,
+  notifyReturned,
+  notifySubmitted,
+  type TransitionActor,
+} from './report-events';
 import { toValidationForm } from './report-shape';
 
 /** Structural copy of the admin-editable requirement row (spec §7.6). */
@@ -133,9 +139,7 @@ export async function submitReportRow(
       draftForm: null,
       trackingNumber,
       submittedAt: row.submittedAt ?? deps.now,
-      ...(options.resubmit
-        ? { endorsedAt: null, approvedAt: null, approvedByUserId: null }
-        : {}),
+      ...(options.resubmit ? { endorsedAt: null, approvedAt: null, approvedByUserId: null } : {}),
     },
   });
 
@@ -259,4 +263,3 @@ export async function decideReportRow(
     to: changed.status,
   };
 }
-

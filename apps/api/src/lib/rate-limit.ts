@@ -27,10 +27,7 @@ export async function consumeRateLimit(
 ): Promise<RateLimitDecision> {
   const windowMs = rule.windowSeconds * 1000;
   const start = new Date(Math.floor(at.getTime() / windowMs) * windowMs);
-  const count = await createRateLimitQueries(createDb(env.DB)).consume(
-    bucket,
-    start.toISOString(),
-  );
+  const count = await createRateLimitQueries(createDb(env.DB)).consume(bucket, start.toISOString());
 
   return {
     allowed: count <= rule.limit,

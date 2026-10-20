@@ -174,10 +174,7 @@ export function createMonitoringQueries(db: Database) {
       const found = new Map<string, ReportRow>();
 
       for (const batch of chunks(numbers, ID_BATCH)) {
-        const rows = await db
-          .select()
-          .from(reports)
-          .where(inArray(reports.trackingNumber, batch));
+        const rows = await db.select().from(reports).where(inArray(reports.trackingNumber, batch));
 
         for (const row of rows) {
           if (row.trackingNumber) found.set(row.trackingNumber, row);
@@ -195,9 +192,7 @@ export function createMonitoringQueries(db: Database) {
       await db.insert(reports).values(values);
 
       if (sdgIds.length > 0) {
-        await db
-          .insert(reportSdgs)
-          .values(sdgIds.map((sdgId) => ({ reportId: values.id, sdgId })));
+        await db.insert(reportSdgs).values(sdgIds.map((sdgId) => ({ reportId: values.id, sdgId })));
       }
 
       if (pics.length > 0) {
@@ -215,16 +210,11 @@ export function createMonitoringQueries(db: Database) {
       sdgIds: readonly string[],
       pics: readonly Omit<ReportPicRow, 'reportId'>[],
     ): Promise<void> {
-      await db
-        .update(reports)
-        .set(values)
-        .where(eq(reports.id, id));
+      await db.update(reports).set(values).where(eq(reports.id, id));
 
       await db.delete(reportSdgs).where(eq(reportSdgs.reportId, id));
       if (sdgIds.length > 0) {
-        await db
-          .insert(reportSdgs)
-          .values(sdgIds.map((sdgId) => ({ reportId: id, sdgId })));
+        await db.insert(reportSdgs).values(sdgIds.map((sdgId) => ({ reportId: id, sdgId })));
       }
 
       await db.delete(reportPics).where(eq(reportPics.reportId, id));

@@ -7,8 +7,6 @@ import { ApiError } from '$lib/api/http';
 import { clearSession, setUnreadNotifications } from '$lib/session/session.svelte';
 import { toast } from '$lib/toast/toast.svelte';
 
-
-
 export type NotificationsView = 'loading' | 'ready' | 'error';
 
 /**

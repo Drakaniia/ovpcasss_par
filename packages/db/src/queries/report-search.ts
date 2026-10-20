@@ -4,7 +4,20 @@ import type {
   RepositoryQuery,
   RepositoryStatus,
 } from '@par/shared';
-import { and, asc, desc, eq, gte, inArray, isNull, like, lte, or, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  like,
+  lte,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 
 import type { Database } from '../client';
 import { refCampuses, refSdgs, refTerms, refUnits } from '../schema/reference-data';
@@ -36,23 +49,27 @@ const SEMESTER_LABELS: Record<string, string> = {
 export function createReportSearchQueries(db: Database) {
   return {
     async search(
-      query: RepositoryQuery & { activityFrom?: string | undefined; activityTo?: string | undefined },
+      query: RepositoryQuery & {
+        activityFrom?: string | undefined;
+        activityTo?: string | undefined;
+      },
     ): Promise<RepositoryPage> {
-      const conditions: SQL[] = [
-        eq(reports.status, query.status as RepositoryStatus),
-      ];
+      const conditions: SQL[] = [eq(reports.status, query.status as RepositoryStatus)];
 
       if (query.type) conditions.push(eq(reports.type, query.type));
       if (query.classification) conditions.push(eq(reports.classification, query.classification));
       if (query.campus) conditions.push(eq(reports.campusId, query.campus));
       if (query.college) conditions.push(eq(reports.unitId, query.college));
       if (query.level) conditions.push(eq(reports.level, query.level));
-      if (query.department) conditions.push(like(reports.department, likePattern(query.department)));
+      if (query.department)
+        conditions.push(like(reports.department, likePattern(query.department)));
       if (query.office) conditions.push(like(reports.office, likePattern(query.office)));
       if (query.title) conditions.push(like(reports.title, likePattern(query.title)));
-      if (query.tracking) conditions.push(like(reports.trackingNumber, likePattern(query.tracking)));
+      if (query.tracking)
+        conditions.push(like(reports.trackingNumber, likePattern(query.tracking)));
       if (query.receivedFrom) conditions.push(gte(reports.submittedAt, query.receivedFrom));
-      if (query.receivedTo) conditions.push(lte(reports.submittedAt, `${query.receivedTo}T23:59:59.999Z`));
+      if (query.receivedTo)
+        conditions.push(lte(reports.submittedAt, `${query.receivedTo}T23:59:59.999Z`));
       if (query.activityFrom) conditions.push(gte(reports.activityStartDate, query.activityFrom));
       if (query.activityTo) conditions.push(lte(reports.activityStartDate, query.activityTo));
 
@@ -168,11 +185,7 @@ export function createReportSearchQueries(db: Database) {
         .from(refTerms)
         .where(isNull(refTerms.deletedAt))
         .orderBy(desc(refTerms.schoolYear), desc(refTerms.semester)),
-      db
-        .select()
-        .from(refSdgs)
-        .where(isNull(refSdgs.deletedAt))
-        .orderBy(asc(refSdgs.number)),
+      db.select().from(refSdgs).where(isNull(refSdgs.deletedAt)).orderBy(asc(refSdgs.number)),
     ]);
 
     return {

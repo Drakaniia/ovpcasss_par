@@ -138,7 +138,9 @@ export function notificationListUrl(query: { filter: NotificationFilter; page: n
  * Parsed with the shared query schema, so the URL and the API agree on shape.
  * Takes the router's read-only URL as well as a plain one.
  */
-export function notificationQueryFrom(url: { searchParams: { get(name: string): string | null } }): NotificationListQuery {
+export function notificationQueryFrom(url: {
+  searchParams: { get(name: string): string | null };
+}): NotificationListQuery {
   const parsed = notificationQuerySchema.safeParse({
     filter: url.searchParams.get('filter') ?? undefined,
     page: url.searchParams.get('page') ?? undefined,
@@ -164,6 +166,7 @@ export function emptyStateFor(filter: NotificationFilter): NotificationEmptyStat
   };
 }
 
-export const READ_FAILURE_COPY = 'This notification could not be marked as read. It is still unread.';
+export const READ_FAILURE_COPY =
+  'This notification could not be marked as read. It is still unread.';
 export const MARK_ALL_FAILURE_COPY =
   'Your notifications were not marked as read. They are still unread.';

@@ -216,12 +216,7 @@ export function pendingRowsFromDrafts(
   };
 
   return drafts
-    .filter(
-      (draft) =>
-        !draft.serverId &&
-        draft.ownerUserId === owner &&
-        draftMatches(draft, scope),
-    )
+    .filter((draft) => !draft.serverId && draft.ownerUserId === owner && draftMatches(draft, scope))
     .sort((a, b) => timeValue(b.updatedAt) - timeValue(a.updatedAt))
     .map((draft) => {
       const start = draft.form.activityStartDate ?? '';

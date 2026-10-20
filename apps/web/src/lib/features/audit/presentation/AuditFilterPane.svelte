@@ -151,7 +151,7 @@
             id="filter-date-from"
             label="From date"
             value={draft.from}
-            disabled={disabled}
+            {disabled}
             dense
             invalid={!dateValidation.valid}
             describedBy={!dateValidation.valid ? 'filter-date-error' : undefined}
@@ -165,7 +165,7 @@
             id="filter-date-to"
             label="To date"
             value={draft.to}
-            disabled={disabled}
+            {disabled}
             dense
             invalid={!dateValidation.valid}
             describedBy={!dateValidation.valid ? 'filter-date-error' : undefined}
@@ -214,16 +214,10 @@
   </div>
 
   <div class="filter-actions">
-    <button
-      class="btn btn-primary"
-      type="submit"
-      disabled={!dateValidation.valid || disabled}
-    >
+    <button class="btn btn-primary" type="submit" disabled={!dateValidation.valid || disabled}>
       Apply
     </button>
-    <button class="btn btn-outline" type="button" onclick={handleReset} {disabled}>
-      Reset
-    </button>
+    <button class="btn btn-outline" type="button" onclick={handleReset} {disabled}> Reset </button>
   </div>
 </form>
 

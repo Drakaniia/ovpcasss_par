@@ -47,7 +47,10 @@ function row(overrides: Partial<ImportedMonitoringRow> = {}): ImportedMonitoring
 
 describe('import plan', () => {
   it('resolves names case- and hyphen-insensitively', () => {
-    const result = planImportRow(row({ campus: 'satellite', college: 'San Fernando Satellite Campus' }), REFERENCES);
+    const result = planImportRow(
+      row({ campus: 'satellite', college: 'San Fernando Satellite Campus' }),
+      REFERENCES,
+    );
 
     expect(result.issues).toEqual([]);
     expect(result.values).toMatchObject({

@@ -31,7 +31,8 @@ export function rowsFor(
   const visible = needle
     ? options.filter(
         (option) =>
-          option.label.toLowerCase().includes(needle) || option.value.toLowerCase().includes(needle),
+          option.label.toLowerCase().includes(needle) ||
+          option.value.toLowerCase().includes(needle),
       )
     : options;
 

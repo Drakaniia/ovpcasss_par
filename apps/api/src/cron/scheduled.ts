@@ -32,7 +32,12 @@ export async function runScheduledJob(
   if (job === 'backup') {
     const result = await runBackup({ db: env.DB, bucket: env.BUCKET }, now);
     console.log(
-      JSON.stringify({ level: 'info', message: 'D1 backup written', ...result, at: now.toISOString() }),
+      JSON.stringify({
+        level: 'info',
+        message: 'D1 backup written',
+        ...result,
+        at: now.toISOString(),
+      }),
     );
     return result;
   }
@@ -52,15 +57,16 @@ export async function runScheduledJob(
   );
 
   console.log(
-    JSON.stringify({ level: 'info', message: 'Cleanup finished', ...result, at: now.toISOString() }),
+    JSON.stringify({
+      level: 'info',
+      message: 'Cleanup finished',
+      ...result,
+      at: now.toISOString(),
+    }),
   );
   return result;
 }
 
 export async function scheduled(controller: ScheduledController, env: Env): Promise<void> {
-  await runScheduledJob(
-    jobForCron(controller.cron),
-    env,
-    new Date(controller.scheduledTime),
-  );
+  await runScheduledJob(jobForCron(controller.cron), env, new Date(controller.scheduledTime));
 }

@@ -59,7 +59,10 @@ function countUnitsByCampus(units: UnitRow[]): Map<string, number> {
 export function createReferenceRepository(db: Database): ReferenceRepository {
   const queries = createReferenceQueries(db);
 
-  async function toEntries(entity: ReferenceEntityKey, rows: ReferenceRow[]): Promise<ReferenceEntry[]> {
+  async function toEntries(
+    entity: ReferenceEntityKey,
+    rows: ReferenceRow[],
+  ): Promise<ReferenceEntry[]> {
     switch (entity) {
       case 'campuses': {
         const counts = countUnitsByCampus(await queries.list('units'));
@@ -71,7 +74,9 @@ export function createReferenceRepository(db: Database): ReferenceRepository {
       }
       case 'programs': {
         const names = new Map((await queries.list('units')).map((row) => [row.id, row.name]));
-        return (rows as ProgramRow[]).map((row) => toProgramEntry(row, names.get(row.unitId) ?? ''));
+        return (rows as ProgramRow[]).map((row) =>
+          toProgramEntry(row, names.get(row.unitId) ?? ''),
+        );
       }
       case 'departments':
       case 'offices':

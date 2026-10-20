@@ -29,7 +29,10 @@ function repository(c: Context<AppEnv>) {
 notificationRoutes.get('/notifications', async (c) => {
   const userId = c.get('userId');
   if (!userId) {
-    return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sign in to view notifications' } }, 401);
+    return c.json(
+      { error: { code: 'UNAUTHORIZED', message: 'Sign in to view notifications' } },
+      401,
+    );
   }
 
   const query = notificationQuerySchema.safeParse(c.req.query());
@@ -52,7 +55,10 @@ notificationRoutes.get('/notifications', async (c) => {
 notificationRoutes.get('/notifications/unread-count', async (c) => {
   const userId = c.get('userId');
   if (!userId) {
-    return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sign in to view notifications' } }, 401);
+    return c.json(
+      { error: { code: 'UNAUTHORIZED', message: 'Sign in to view notifications' } },
+      401,
+    );
   }
 
   return c.json(await countUnreadNotifications(repository(c), userId));
@@ -62,7 +68,10 @@ notificationRoutes.get('/notifications/unread-count', async (c) => {
 notificationRoutes.post('/notifications/read-all', async (c) => {
   const userId = c.get('userId');
   if (!userId) {
-    return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sign in to view notifications' } }, 401);
+    return c.json(
+      { error: { code: 'UNAUTHORIZED', message: 'Sign in to view notifications' } },
+      401,
+    );
   }
 
   return c.json(await readAllNotifications(repository(c), userId, new Date().toISOString()));
@@ -71,7 +80,10 @@ notificationRoutes.post('/notifications/read-all', async (c) => {
 notificationRoutes.post('/notifications/:id/read', async (c) => {
   const userId = c.get('userId');
   if (!userId) {
-    return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sign in to view notifications' } }, 401);
+    return c.json(
+      { error: { code: 'UNAUTHORIZED', message: 'Sign in to view notifications' } },
+      401,
+    );
   }
 
   const result = await readNotification(
@@ -82,7 +94,10 @@ notificationRoutes.post('/notifications/:id/read', async (c) => {
   );
 
   if (!result) {
-    return c.json({ error: { code: 'NOT_FOUND', message: 'This notification does not exist' } }, 404);
+    return c.json(
+      { error: { code: 'NOT_FOUND', message: 'This notification does not exist' } },
+      404,
+    );
   }
 
   return c.json(result);

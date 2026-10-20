@@ -29,7 +29,9 @@ describe('signingConfigured', () => {
 
   it('is unconfigured when any value is empty or missing', () => {
     expect(
-      signingConfigured(env({ R2_ACCOUNT_ID: 'acct', R2_ACCESS_KEY_ID: '', R2_SECRET_ACCESS_KEY: 's' })),
+      signingConfigured(
+        env({ R2_ACCOUNT_ID: 'acct', R2_ACCESS_KEY_ID: '', R2_SECRET_ACCESS_KEY: 's' }),
+      ),
     ).toBe(false);
     expect(signingConfigured(env({ R2_ACCOUNT_ID: 'acct' }))).toBe(false);
   });

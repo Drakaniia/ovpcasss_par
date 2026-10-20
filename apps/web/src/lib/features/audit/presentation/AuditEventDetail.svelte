@@ -34,9 +34,7 @@
     ),
   );
 
-  const diff = $derived(
-    computeDiff(detail?.before, detail?.after),
-  );
+  const diff = $derived(computeDiff(detail?.before, detail?.after));
 
   const actorLabel = $derived(
     formatAuditActorLabel(
@@ -75,9 +73,7 @@
   {:else if error}
     <div class="detail-error" role="alert">
       <p class="error-text">Could not load event details. {error}</p>
-      <button class="btn btn-outline btn-sm" type="button" onclick={onretry}>
-        Retry
-      </button>
+      <button class="btn btn-outline btn-sm" type="button" onclick={onretry}> Retry </button>
     </div>
   {:else}
     <!-- 1. Summary -->
@@ -133,7 +129,12 @@
           <dd class="context-dd mono request-id-cell">
             <span>{requestId ?? '—'}</span>
             {#if requestId}
-              <button class="copy-btn" type="button" onclick={handleCopy} aria-label="Copy request ID">
+              <button
+                class="copy-btn"
+                type="button"
+                onclick={handleCopy}
+                aria-label="Copy request ID"
+              >
                 {#if copied}
                   <Check size={14} aria-hidden="true" />
                   <span>Copied</span>

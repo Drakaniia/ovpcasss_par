@@ -126,12 +126,7 @@
   });
 </script>
 
-<div
-  {id}
-  class="calendar"
-  role="dialog"
-  aria-label={label ? `${label} calendar` : 'Date calendar'}
->
+<div {id} class="calendar" role="dialog" aria-label={label ? `${label} calendar` : 'Date calendar'}>
   <div class="head">
     <button class="nav" type="button" aria-label="Previous month" onclick={() => shiftMonth(-1)}>
       <ChevronLeft size={16} aria-hidden="true" />

@@ -8,7 +8,13 @@ import { actsAs } from '@par/shared';
 
 import { session, signOut } from '$lib/session/session.svelte';
 
-import { chromeState, closeGuard, minimize, toggleFullscreen, toggleMaximize } from './chrome-store.svelte';
+import {
+  chromeState,
+  closeGuard,
+  minimize,
+  toggleFullscreen,
+  toggleMaximize,
+} from './chrome-store.svelte';
 import { editAvailability, runEditCommand, type EditCommandId } from './edit-state.svelte';
 import { registerCommand } from './command-registry.svelte';
 import { chromeAdapter } from './chrome-adapter';

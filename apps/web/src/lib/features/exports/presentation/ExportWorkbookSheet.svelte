@@ -47,7 +47,10 @@
   const bodyRows = $derived(Math.max(sheet.rows.length, sheet.layout.reservedRows));
   /** Row numbers of the reserved rows left blank below the data. */
   const blankRows = $derived(
-    Array.from({ length: bodyRows - sheet.rows.length }, (_, index) => sheet.rows.length + 3 + index),
+    Array.from(
+      { length: bodyRows - sheet.rows.length },
+      (_, index) => sheet.rows.length + 3 + index,
+    ),
   );
 
   function columnLetter(index: number): string {

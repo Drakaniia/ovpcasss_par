@@ -22,7 +22,10 @@ function filterCondition(filter: NotificationFilter): SQL | undefined {
 }
 
 async function count(db: Database, condition: SQL | undefined): Promise<number> {
-  const rows = await db.select({ value: sql<number>`count(*)` }).from(notifications).where(condition);
+  const rows = await db
+    .select({ value: sql<number>`count(*)` })
+    .from(notifications)
+    .where(condition);
 
   return Number(rows[0]?.value ?? 0);
 }

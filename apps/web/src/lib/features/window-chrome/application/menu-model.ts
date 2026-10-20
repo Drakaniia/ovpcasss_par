@@ -163,9 +163,7 @@ function ruleAvailability(id: string, inputs: MenuInputs): Availability | null {
       }
       return { enabled: true };
     case 'file.print':
-      return (
-        inputs.availability(id) ?? { enabled: false, reason: 'Open a report to print.' }
-      );
+      return inputs.availability(id) ?? { enabled: false, reason: 'Open a report to print.' };
     case 'view.reload':
       return inputs.dirtyEditor
         ? { enabled: false, reason: 'Save or discard your draft first.' }
@@ -207,7 +205,12 @@ export function buildMenus(inputs: MenuInputs): ResolvedMenu[] {
           accelerator: item.accelerator,
           enabled,
           ...(reason ? { reason } : {}),
-          ...(item.checkable ? { checkable: true, checked: item.id === 'view.fullscreen' ? inputs.fullscreen : false } : {}),
+          ...(item.checkable
+            ? {
+                checkable: true,
+                checked: item.id === 'view.fullscreen' ? inputs.fullscreen : false,
+              }
+            : {}),
           ...(item.separatorBefore ? { separatorBefore: true } : {}),
         };
       }),

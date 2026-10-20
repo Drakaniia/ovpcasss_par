@@ -65,7 +65,9 @@ export async function changePassword(
   const { hash, params } = await hashPassword(input.newPassword);
   await users.update(user.id, { passwordHash: hash, hashParams: params }, at);
 
-  const current = currentToken ? await sessions.findByTokenHash(await hashToken(currentToken)) : null;
+  const current = currentToken
+    ? await sessions.findByTokenHash(await hashToken(currentToken))
+    : null;
   await sessions.deleteForUser(user.id);
   if (current) await sessions.insert(current);
 

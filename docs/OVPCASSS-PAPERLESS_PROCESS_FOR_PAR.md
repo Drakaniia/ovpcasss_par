@@ -1,7 +1,7 @@
 # OVPCASSS Paperless Process for Post-Activity Report (PAR)
 
 ## PAR Process
- 
+
 ## Dropdown Lists
 
 ### Campus

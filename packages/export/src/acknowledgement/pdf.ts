@@ -75,10 +75,13 @@ export async function renderAcknowledgement(data: AcknowledgementData): Promise<
   y -= 18;
 
   page.drawText('Office of the Vice President for Campus Affairs, Student Services and Safety', {
-    x: center - regular.widthOfTextAtSize(
-      'Office of the Vice President for Campus Affairs, Student Services and Safety',
-      8,
-    ) / 2,
+    x:
+      center -
+      regular.widthOfTextAtSize(
+        'Office of the Vice President for Campus Affairs, Student Services and Safety',
+        8,
+      ) /
+        2,
     y,
     size: 8,
     font: regular,
@@ -247,6 +250,11 @@ export function wrapText(
   return lines;
 }
 
-function wrap(text: string, font: { widthOfTextAtSize: (value: string, size: number) => number }, size: number, maxWidth: number): string[] {
+function wrap(
+  text: string,
+  font: { widthOfTextAtSize: (value: string, size: number) => number },
+  size: number,
+  maxWidth: number,
+): string[] {
   return wrapText(text, (value) => font.widthOfTextAtSize(value, size), maxWidth);
 }

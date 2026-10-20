@@ -27,13 +27,15 @@ const BASE_DETAIL: AuditEventDetailType = {
   after: { title: 'New Title', status: 'ENDORSED' },
 };
 
-function renderDetail(props: {
-  event?: AuditEventItem;
-  detail?: AuditEventDetailType | null;
-  loading?: boolean;
-  error?: string | null;
-  onretry?: () => void;
-} = {}) {
+function renderDetail(
+  props: {
+    event?: AuditEventItem;
+    detail?: AuditEventDetailType | null;
+    loading?: boolean;
+    error?: string | null;
+    onretry?: () => void;
+  } = {},
+) {
   return render(AuditEventDetail, {
     props: {
       event: props.event ?? BASE_EVENT,

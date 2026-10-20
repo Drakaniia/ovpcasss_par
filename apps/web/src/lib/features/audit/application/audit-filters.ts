@@ -99,13 +99,13 @@ export function filtersEqual(a: AuditFilters, b: AuditFilters): boolean {
 export function hasActiveFilters(filters: AuditFilters): boolean {
   return Boolean(
     filters.actor ||
-      filters.action ||
-      filters.entityType ||
-      filters.entityId ||
-      filters.from ||
-      filters.to ||
-      filters.fromStatus ||
-      filters.toStatus,
+    filters.action ||
+    filters.entityType ||
+    filters.entityId ||
+    filters.from ||
+    filters.to ||
+    filters.fromStatus ||
+    filters.toStatus,
   );
 }
 
@@ -141,25 +141,32 @@ export function activeAuditChips(filters: AuditFilters): AuditChip[] {
     chips.push({ id: 'action', label: 'Action', value: filters.action, field: 'action' });
   }
   if (filters.entityType) {
-    chips.push({ id: 'entityType', label: 'Entity type', value: filters.entityType, field: 'entityType' });
+    chips.push({
+      id: 'entityType',
+      label: 'Entity type',
+      value: filters.entityType,
+      field: 'entityType',
+    });
   }
   if (filters.entityId) {
     chips.push({ id: 'entityId', label: 'Entity ID', value: filters.entityId, field: 'entityId' });
   }
   if (filters.from || filters.to) {
-    const val = filters.from && filters.to
-      ? `${filters.from} – ${filters.to}`
-      : filters.from
-        ? `From ${filters.from}`
-        : `To ${filters.to}`;
+    const val =
+      filters.from && filters.to
+        ? `${filters.from} – ${filters.to}`
+        : filters.from
+          ? `From ${filters.from}`
+          : `To ${filters.to}`;
     chips.push({ id: 'date', label: 'Date', value: val, field: 'date' });
   }
   if (filters.fromStatus || filters.toStatus) {
-    const val = filters.fromStatus && filters.toStatus
-      ? `${filters.fromStatus} → ${filters.toStatus}`
-      : filters.fromStatus
-        ? `From ${filters.fromStatus}`
-        : `To ${filters.toStatus}`;
+    const val =
+      filters.fromStatus && filters.toStatus
+        ? `${filters.fromStatus} → ${filters.toStatus}`
+        : filters.fromStatus
+          ? `From ${filters.fromStatus}`
+          : `To ${filters.toStatus}`;
     chips.push({ id: 'status', label: 'Status change', value: val, field: 'status' });
   }
 

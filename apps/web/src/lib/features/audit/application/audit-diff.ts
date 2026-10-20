@@ -64,7 +64,9 @@ export function computeDiff(
   const flatBefore = flatten(before);
   const flatAfter = flatten(after);
 
-  const allKeys = Array.from(new Set([...Object.keys(flatBefore), ...Object.keys(flatAfter)])).sort();
+  const allKeys = Array.from(
+    new Set([...Object.keys(flatBefore), ...Object.keys(flatAfter)]),
+  ).sort();
 
   if (allKeys.length === 0) {
     return { changed: [], unchanged: [], hasChanges: false };

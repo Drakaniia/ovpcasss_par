@@ -110,9 +110,9 @@ describe('inbox URL state', () => {
       page: 1,
       size: 50,
     });
-    expect(notificationQueryFrom(new URL('https://par.test/notifications?filter=action&page=2'))).toEqual(
-      { filter: 'action', page: 2, size: 50 },
-    );
+    expect(
+      notificationQueryFrom(new URL('https://par.test/notifications?filter=action&page=2')),
+    ).toEqual({ filter: 'action', page: 2, size: 50 });
     expect(notificationQueryFrom(new URL('https://par.test/notifications?filter=mine'))).toEqual({
       filter: 'all',
       page: 1,

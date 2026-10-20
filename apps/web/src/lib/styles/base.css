@@ -13,7 +13,13 @@
   }
 
   html.desktop-shell
-    :is(input, textarea, [contenteditable=''], [contenteditable='true'], [contenteditable='plaintext-only']) {
+    :is(
+      input,
+      textarea,
+      [contenteditable=''],
+      [contenteditable='true'],
+      [contenteditable='plaintext-only']
+    ) {
     -webkit-user-select: text;
     user-select: text;
   }

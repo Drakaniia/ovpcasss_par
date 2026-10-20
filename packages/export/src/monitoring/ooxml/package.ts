@@ -172,7 +172,8 @@ function blankRowXml(type: ReportType, rowNumber: number): string {
   const layout = SHEET_LAYOUTS[type];
   const cells = Array.from(
     { length: COLUMN_COUNT },
-    (_, index) => `<c r="${columnLetter(index)}${rowNumber}" s="${BODY_STYLES[type][index] ?? 16}"/>`,
+    (_, index) =>
+      `<c r="${columnLetter(index)}${rowNumber}" s="${BODY_STYLES[type][index] ?? 16}"/>`,
   );
 
   return `${rowOpen(layout.blankRowAttrs, rowNumber)}${cells.join('')}</row>`;
@@ -193,11 +194,12 @@ function sheetXml(sheet: SheetSpec, shared: SharedStrings): string {
   const layout = SHEET_LAYOUTS[sheet.type];
   const bodyRows = bodyRowCount(sheet);
   const dataRows = sheet.rows.map((row, index) => bodyRowXml(sheet.type, row, index + 3, shared));
-  const filler = sheet.rows.length === 0
-    ? layout.blankRows
-    : Array.from({ length: bodyRows - sheet.rows.length }, (_, index) =>
-        blankRowXml(sheet.type, 3 + sheet.rows.length + index),
-      );
+  const filler =
+    sheet.rows.length === 0
+      ? layout.blankRows
+      : Array.from({ length: bodyRows - sheet.rows.length }, (_, index) =>
+          blankRowXml(sheet.type, 3 + sheet.rows.length + index),
+        );
 
   // The educational-tour sheet's band row is only kept when the sheet is empty.
   const merges = sheet.rows.length === 0 ? layout.merges : ['A1:R1'];

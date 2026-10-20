@@ -75,15 +75,15 @@
     {#if includeInProgress && inProgressCount > 0}
       <p class="caution">
         This workbook includes {inProgressCount}
-        {inProgressCount === 1 ? 'report' : 'reports'} that are not yet approved. Date Completed
-        will be blank for those rows.
+        {inProgressCount === 1 ? 'report' : 'reports'} that are not yet approved. Date Completed will
+        be blank for those rows.
       </p>
     {/if}
     {#if sheet.missingCount > 0}
       <p class="note">
         {sheet.missingCount}
-        {sheet.missingCount === 1 ? 'report' : 'reports'} will export with blank fields; the preview
-        above the button lists each one.
+        {sheet.missingCount === 1 ? 'report' : 'reports'} will export with blank fields; the preview above
+        the button lists each one.
       </p>
     {/if}
   </header>

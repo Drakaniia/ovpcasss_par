@@ -9,6 +9,10 @@
       "dependsOn": ["^build"],
       "outputs": [".svelte-kit/**", "build/**", "dist/**", "src-tauri/target/release/bundle/**"]
     },
+    "@par/api#build": {
+      "dependsOn": ["^build", "@par/web#build"],
+      "outputs": ["dist/**"]
+    },
     "lint": {
       "dependsOn": ["^build"]
     },

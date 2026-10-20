@@ -98,7 +98,9 @@
   }
 
   const manage = $derived(
-    canManage && onentrieschange ? { onCreate: create, onRename: rename, onRemove: remove } : undefined,
+    canManage && onentrieschange
+      ? { onCreate: create, onRename: rename, onRemove: remove }
+      : undefined,
   );
 </script>
 

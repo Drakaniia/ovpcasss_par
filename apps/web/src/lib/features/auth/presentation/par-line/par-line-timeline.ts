@@ -57,7 +57,13 @@ const beats: Beat[] = [];
 let pose: Pose = { ...START };
 
 function beat(
-  meta: { id: string; station: StationId | null; status: ReportStatus; caption: string; showsNumber: boolean },
+  meta: {
+    id: string;
+    station: StationId | null;
+    status: ReportStatus;
+    caption: string;
+    showsNumber: boolean;
+  },
   patch: Partial<Pose>,
   dur: number,
   ease: Ease,
@@ -121,7 +127,13 @@ beat(
 );
 
 beat(
-  { id: 'to-review', station: 'review', status: 'SUBMITTED', caption: 'The reviewer reads the report.', showsNumber: true },
+  {
+    id: 'to-review',
+    station: 'review',
+    status: 'SUBMITTED',
+    caption: 'The reviewer reads the report.',
+    showsNumber: true,
+  },
   at(STATION.review),
   1.3,
   'travel',
@@ -180,7 +192,13 @@ beat(
 );
 
 beat(
-  { id: 'to-review-2', station: 'review', status: 'RESUBMITTED', caption: 'It is reviewed again.', showsNumber: true },
+  {
+    id: 'to-review-2',
+    station: 'review',
+    status: 'RESUBMITTED',
+    caption: 'It is reviewed again.',
+    showsNumber: true,
+  },
   at(STATION.review),
   1.3,
   'travel',
@@ -269,7 +287,8 @@ beat(
     id: 'file',
     station: 'archive',
     status: 'APPROVED',
-    caption: 'The report and its acknowledgement are archived; the entry is appended to the audit log.',
+    caption:
+      'The report and its acknowledgement are archived; the entry is appended to the audit log.',
     showsNumber: true,
   },
   { fall: 1, punch: 1 },
@@ -334,10 +353,18 @@ export function lerpPose(from: Pose, to: Pose, k: number): Pose {
   return {
     x: mix(from.x, to.x),
     sheetX: mix(from.sheetX, to.sheetX),
-    rams: [mix(from.rams[0], to.rams[0]), mix(from.rams[1], to.rams[1]), mix(from.rams[2], to.rams[2])],
+    rams: [
+      mix(from.rams[0], to.rams[0]),
+      mix(from.rams[1], to.rams[1]),
+      mix(from.rams[2], to.rams[2]),
+    ],
     fall: mix(from.fall, to.fall),
     ink: mix(from.ink, to.ink),
-    marks: [mix(from.marks[0], to.marks[0]), mix(from.marks[1], to.marks[1]), mix(from.marks[2], to.marks[2])],
+    marks: [
+      mix(from.marks[0], to.marks[0]),
+      mix(from.marks[1], to.marks[1]),
+      mix(from.marks[2], to.marks[2]),
+    ],
     lever: mix(from.lever, to.lever),
     punch: mix(from.punch, to.punch),
     unit: mix(from.unit, to.unit),

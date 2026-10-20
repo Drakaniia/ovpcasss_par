@@ -15,11 +15,7 @@ import { requireRole } from '../../middleware/authorize';
 import { buildReportDetail } from './application/report-detail';
 import { reportListFilter } from './application/report-list';
 import { canEditReport, canViewReport } from './domain/report-access';
-import {
-  toDetailForm,
-  toReportHead,
-  toReportListItem,
-} from './application/report-shape';
+import { toDetailForm, toReportHead, toReportListItem } from './application/report-shape';
 import { submitReportRow, validateStoredReport } from './application/report-workflow';
 import {
   reportDependencies,
@@ -30,11 +26,7 @@ import {
 import { registerReportPdfRoutes } from './pdf-routes';
 
 /** States a report can be edited in (spec §7.5): draft and both returns. */
-const EDITABLE: readonly ReportStatus[] = [
-  'DRAFT',
-  'RETURNED_BY_REVIEWER',
-  'RETURNED_BY_APPROVER',
-];
+const EDITABLE: readonly ReportStatus[] = ['DRAFT', 'RETURNED_BY_REVIEWER', 'RETURNED_BY_APPROVER'];
 
 /**
  * Draft create, list, detail, edit, validate, submit, and resubmit (spec §7.3).
@@ -95,7 +87,8 @@ reportRoutes.get('/', async (c) => {
   if (!viewer) return unauthorized(c);
 
   const parsed = reportListQuerySchema.safeParse(c.req.query());
-  if (!parsed.success) return invalid(c, parsed.error.issues, 'That report filter is not supported');
+  if (!parsed.success)
+    return invalid(c, parsed.error.issues, 'That report filter is not supported');
 
   const stack = reportDependencies(c);
   const term = parsed.data.term ? await stack.read.findTerm(parsed.data.term) : null;
@@ -144,7 +137,7 @@ reportRoutes.get('/:id', async (c) => {
   if (!viewer) return unauthorized(c);
 
   const stack = reportDependencies(c);
-  const row = await stack.read.findById((c.req.param('id') ?? ''));
+  const row = await stack.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
   if (!canViewReport(viewer, row.ownerUserId)) return notFound(c);
 
@@ -161,7 +154,7 @@ reportRoutes.get('/:id/events', async (c) => {
   if (!viewer) return unauthorized(c);
 
   const stack = reportDependencies(c);
-  const row = await stack.read.findById((c.req.param('id') ?? ''));
+  const row = await stack.read.findById(c.req.param('id') ?? '');
   if (!row || !canViewReport(viewer, row.ownerUserId)) return notFound(c);
 
   const detail = await buildReportDetail(
@@ -177,7 +170,7 @@ reportRoutes.patch('/:id', async (c) => {
   if (!viewer) return unauthorized(c);
 
   const stack = reportDependencies(c);
-  const row = await stack.read.findById((c.req.param('id') ?? ''));
+  const row = await stack.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
   if (!editable(viewer, row)) {
     return canViewReport(viewer, row.ownerUserId)
@@ -220,7 +213,7 @@ reportRoutes.delete('/:id', requireRole('SUBMITTER'), async (c) => {
   if (!viewer) return unauthorized(c);
 
   const stack = reportDependencies(c);
-  const row = await stack.read.findById((c.req.param('id') ?? ''));
+  const row = await stack.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
   if (row.ownerUserId !== viewer.userId) return notFound(c);
   if (row.status !== 'DRAFT') {
@@ -253,7 +246,7 @@ reportRoutes.post('/:id/validate', async (c) => {
   if (!viewer) return unauthorized(c);
 
   const stack = reportDependencies(c);
-  const row = await stack.read.findById((c.req.param('id') ?? ''));
+  const row = await stack.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
   if (!editable(viewer, row)) {
     return canViewReport(viewer, row.ownerUserId)

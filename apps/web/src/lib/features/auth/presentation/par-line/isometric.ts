@@ -203,7 +203,9 @@ export function extrude(
       const lit = (nx * lx + ny * ly + 1) / 2;
       const shade = Math.min(SHADES - 1, Math.max(0, Math.floor(lit * SHADES)));
       const next = (index + 1) % count;
-      buckets[shade].push(pathOf(oriented([top[index], top[next], bottom[next], bottom[index]]), true));
+      buckets[shade].push(
+        pathOf(oriented([top[index], top[next], bottom[next], bottom[index]]), true),
+      );
     }
   }
   let bevelPath: string | undefined;
@@ -239,8 +241,14 @@ export function extrude(
 
 export const ringOf = (plan: Plan, steps = 8) => roundedPlan(plan, steps);
 
-export const slabOf = (plan: Plan, z: number, height: number, projection: Projection, steps = 8, bevel = 0) =>
-  extrude(ringOf(plan, steps), z, height, projection, bevel);
+export const slabOf = (
+  plan: Plan,
+  z: number,
+  height: number,
+  projection: Projection,
+  steps = 8,
+  bevel = 0,
+) => extrude(ringOf(plan, steps), z, height, projection, bevel);
 
 export function circleRing(cx: number, cy: number, radius: number, steps = 40): Point2[] {
   return Array.from({ length: steps }, (_, step) => {
@@ -284,8 +292,14 @@ export const lineOnTop = (from: Point2, to: Point2, z: number, projection: Proje
 export const segment = (from: Point3, to: Point3, projection: Projection) =>
   pathOf([iso(from, projection), iso(to, projection)]);
 
-export const ring = (cx: number, cy: number, radius: number, z: number, projection: Projection, steps = 40) =>
-  onTop(circleRing(cx, cy, radius, steps), z, projection, true);
+export const ring = (
+  cx: number,
+  cy: number,
+  radius: number,
+  z: number,
+  projection: Projection,
+  steps = 40,
+) => onTop(circleRing(cx, cy, radius, steps), z, projection, true);
 
 export function corners({ x, y, w, d }: Plan, inset = 0): Point2[] {
   return [
@@ -331,7 +345,14 @@ export function knurl(
   return lines.join('');
 }
 
-export function sideArc(cx: number, cy: number, radius: number, z: number, projection: Projection, steps = 24) {
+export function sideArc(
+  cx: number,
+  cy: number,
+  radius: number,
+  z: number,
+  projection: Projection,
+  steps = 24,
+) {
   const [vx, vy] = towardViewer(projection);
   const facing = Math.atan2(vy, vx);
   const points: Point2[] = [];
@@ -354,7 +375,9 @@ function ringSeam(ringPoints: Point2[], z: number, projection: Projection) {
     return nx * vx + ny * vy > 1e-9;
   });
   return runsOf(facing, true)
-    .map((run) => pathOf(run.map((index) => iso([ringPoints[index][0], ringPoints[index][1], z], projection))))
+    .map((run) =>
+      pathOf(run.map((index) => iso([ringPoints[index][0], ringPoints[index][1], z], projection))),
+    )
     .join('');
 }
 
@@ -362,7 +385,16 @@ export const sideSeam = (plan: Plan, z: number, projection: Projection, steps = 
   ringSeam(ringOf(plan, steps), z, projection);
 
 /** A vertical helix, for the springs around each press ram. */
-export function coilZ(cx: number, cy: number, z0: number, z1: number, radius: number, turns: number, projection: Projection, perTurn = 18) {
+export function coilZ(
+  cx: number,
+  cy: number,
+  z0: number,
+  z1: number,
+  radius: number,
+  turns: number,
+  projection: Projection,
+  perTurn = 18,
+) {
   const count = Math.max(1, Math.round(turns * perTurn));
   const back: string[] = [];
   const front: string[] = [];
@@ -459,7 +491,12 @@ export function radialTicks(
     const sx = Math.sin(angle);
     const sy = -Math.cos(angle);
     (big ? major : minor).push(
-      lineOnTop([cx + sx * inner, cy + sy * inner], [cx + sx * radius, cy + sy * radius], z, projection),
+      lineOnTop(
+        [cx + sx * inner, cy + sy * inner],
+        [cx + sx * radius, cy + sy * radius],
+        z,
+        projection,
+      ),
     );
   }
   return { minor: minor.join(''), major: major.join('') };
@@ -538,7 +575,12 @@ const attrs = (pairs: Record<string, string | undefined>) =>
 
 export function solidSvg(
   paths: Solid,
-  { tone = 'hi', crease = 'faint', lit = false, inner = '' }: {
+  {
+    tone = 'hi',
+    crease = 'faint',
+    lit = false,
+    inner = '',
+  }: {
     tone?: string;
     crease?: string;
     lit?: boolean;
@@ -573,7 +615,10 @@ export function lineSvg(
   })}/>`;
 }
 
-export function dotsSvg(points: Point2[], { size = 0.5, tone = 'mid' }: { size?: number; tone?: string } = {}) {
+export function dotsSvg(
+  points: Point2[],
+  { size = 0.5, tone = 'mid' }: { size?: number; tone?: string } = {},
+) {
   const dots = points
     .map(([x, y]) => `<circle cx="${tenth(x)}" cy="${tenth(y)}" r="${size}"/>`)
     .join('');

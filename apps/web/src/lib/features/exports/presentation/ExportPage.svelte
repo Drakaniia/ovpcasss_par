@@ -26,7 +26,6 @@
     const timer = setTimeout(() => void untrack(() => state.loadPreview(request)), 300);
     return () => clearTimeout(timer);
   });
-
 </script>
 
 <svelte:head><title>Monitoring exports · OVPCASSS Paperless PAR</title></svelte:head>

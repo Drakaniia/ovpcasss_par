@@ -32,11 +32,7 @@ export function parseIsoDate(value: string): DateParts | null {
   const day = Number(match[3]);
   const date = new Date(Date.UTC(year, month, day));
 
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month ||
-    date.getUTCDate() !== day
-  ) {
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month || date.getUTCDate() !== day) {
     return null;
   }
 

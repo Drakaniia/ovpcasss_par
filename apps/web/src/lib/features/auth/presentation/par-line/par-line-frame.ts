@@ -59,7 +59,14 @@ export function beamParts(): string {
   out.push(S(slabOf(BEAM, BEAM_Z, BEAM_H, P, 5, 1.2), { tone: 'mid' }));
   out.push(
     S(
-      slabOf({ x: BEAM.x - 4, y: BEAM.y - 3, w: BEAM.w + 8, d: BEAM.d + 6, r: 4 }, BEAM_TOP, 5, P, 5, 0.7),
+      slabOf(
+        { x: BEAM.x - 4, y: BEAM.y - 3, w: BEAM.w + 8, d: BEAM.d + 6, r: 4 },
+        BEAM_TOP,
+        5,
+        P,
+        5,
+        0.7,
+      ),
       { tone: 'mid' },
     ),
   );
@@ -67,15 +74,21 @@ export function beamParts(): string {
   out.push(L(sideSeam(BEAM, BEAM_Z + 9, P, 5), { tone: 'faint' }));
   out.push(
     S(
-      slabOf({ x: BEAM.x + 8, y: BEAM.y - 5, w: BEAM.w - 16, d: 6, r: 2 }, BEAM_Z - 6, 6, P, 4, 0.4),
+      slabOf(
+        { x: BEAM.x + 8, y: BEAM.y - 5, w: BEAM.w - 16, d: 6, r: 2 },
+        BEAM_Z - 6,
+        6,
+        P,
+        4,
+        0.4,
+      ),
       { tone: 'mid' },
     ),
   );
   out.push(
-    L(
-      lineOnTop([BEAM.x + 12, BEAM.y - 2], [BEAM.x + BEAM.w - 12, BEAM.y - 2], BEAM_Z, P),
-      { tone: 'faint' },
-    ),
+    L(lineOnTop([BEAM.x + 12, BEAM.y - 2], [BEAM.x + BEAM.w - 12, BEAM.y - 2], BEAM_Z, P), {
+      tone: 'faint',
+    }),
   );
   // Stiffener ribs stand proud of the front face, top to bottom.
   for (const rx of HANGER_X) {
@@ -85,14 +98,22 @@ export function beamParts(): string {
         { tone: 'mid', crease: 'none' },
       ),
     );
-    out.push(D([at([rx, BEAM.y - 5, BEAM_Z + 11]), at([rx, BEAM.y - 5, BEAM_Z + 4])], { size: 0.36, tone: 'lo' }));
+    out.push(
+      D([at([rx, BEAM.y - 5, BEAM_Z + 11]), at([rx, BEAM.y - 5, BEAM_Z + 4])], {
+        size: 0.36,
+        tone: 'lo',
+      }),
+    );
   }
   // End cap plates, so the beam reads as a section of a longer line.
   for (const x of [BEAM.x - 4, BEAM.x + BEAM.w - 1]) {
     out.push(
-      S(slabOf({ x, y: BEAM.y - 3, w: 5, d: BEAM.d + 6, r: 2 }, BEAM_Z - 3, BEAM_H + 8, P, 4, 0.5), {
-        tone: 'mid',
-      }),
+      S(
+        slabOf({ x, y: BEAM.y - 3, w: 5, d: BEAM.d + 6, r: 2 }, BEAM_Z - 3, BEAM_H + 8, P, 4, 0.5),
+        {
+          tone: 'mid',
+        },
+      ),
     );
   }
   // Ruler strip on the front face: its ticks hang from the strip's own top edge.
@@ -130,39 +151,74 @@ export function railParts(): string {
   const out: string[] = [];
   for (const hx of HANGER_X) {
     out.push(
-      S(slabOf({ x: hx - 5, y: -6, w: 10, d: 12, r: 2 }, BEAM_Z - 8, 8, P, 4, 0.4), { tone: 'mid' }),
+      S(slabOf({ x: hx - 5, y: -6, w: 10, d: 12, r: 2 }, BEAM_Z - 8, 8, P, 4, 0.4), {
+        tone: 'mid',
+      }),
     );
     out.push(S(cylinder(hx, 0, 1.9, 213, BEAM_Z - 213, P, 14), { tone: 'mid', crease: 'none' }));
     out.push(S(cylinder(hx, 0, 2.8, 220, 5, P, 14), { tone: 'mid' }));
     out.push(L([221, 229].map((z) => ring(hx, 0, 1.9, z, P, 12)).join(''), { tone: 'lo' }));
     out.push(
-      S(slabOf({ x: hx - 7, y: -8, w: 14, d: 16, r: 2 }, RAIL_TOP + 3.5, 3.5, P, 4, 0.4), { tone: 'mid' }),
+      S(slabOf({ x: hx - 7, y: -8, w: 14, d: 16, r: 2 }, RAIL_TOP + 3.5, 3.5, P, 4, 0.4), {
+        tone: 'mid',
+      }),
     );
     out.push(D([at([hx, -8.3, RAIL_TOP + 5.2])], { size: 0.36, tone: 'lo' }));
   }
   out.push(
-    S(slabOf({ x: RAIL_FROM, y: -6, w: RAIL_TO - RAIL_FROM, d: RAIL_W, r: 1.5 }, RAIL_TOP, 3.5, P, 4, 0.4), {
-      tone: 'mid',
-    }),
-  );
-  out.push(
-    S(slabOf({ x: RAIL_FROM, y: -2.5, w: RAIL_TO - RAIL_FROM, d: 5, r: 1 }, RAIL_WEB, RAIL_TOP - RAIL_WEB, P, 3), {
-      tone: 'mid',
-      crease: 'none',
-    }),
+    S(
+      slabOf(
+        { x: RAIL_FROM, y: -6, w: RAIL_TO - RAIL_FROM, d: RAIL_W, r: 1.5 },
+        RAIL_TOP,
+        3.5,
+        P,
+        4,
+        0.4,
+      ),
+      {
+        tone: 'mid',
+      },
+    ),
   );
   out.push(
     S(
-      slabOf({ x: RAIL_FROM, y: -5, w: RAIL_TO - RAIL_FROM, d: 10, r: 1.5 }, RAIL_BOTTOM, RAIL_WEB - RAIL_BOTTOM, P, 4, 0.3),
+      slabOf(
+        { x: RAIL_FROM, y: -2.5, w: RAIL_TO - RAIL_FROM, d: 5, r: 1 },
+        RAIL_WEB,
+        RAIL_TOP - RAIL_WEB,
+        P,
+        3,
+      ),
+      {
+        tone: 'mid',
+        crease: 'none',
+      },
+    ),
+  );
+  out.push(
+    S(
+      slabOf(
+        { x: RAIL_FROM, y: -5, w: RAIL_TO - RAIL_FROM, d: 10, r: 1.5 },
+        RAIL_BOTTOM,
+        RAIL_WEB - RAIL_BOTTOM,
+        P,
+        4,
+        0.3,
+      ),
       { tone: 'mid' },
     ),
   );
   const railBolts: Point2[] = [];
-  for (let x = RAIL_FROM + 12; x <= RAIL_TO - 12; x += 28) railBolts.push(at([x, -5.1, RAIL_BOTTOM + 2]));
+  for (let x = RAIL_FROM + 12; x <= RAIL_TO - 12; x += 28)
+    railBolts.push(at([x, -5.1, RAIL_BOTTOM + 2]));
   out.push(D(railBolts, { size: 0.34, tone: 'lo' }));
   for (const x of [RAIL_FROM - 4, RAIL_TO]) {
-    out.push(S(slabOf({ x, y: -8, w: 4, d: 16, r: 2 }, RAIL_BOTTOM - 1, 14, P, 4, 0.4), { tone: 'mid' }));
-    out.push(D([at([x + 2, -8.3, RAIL_TOP - 1]), at([x + 2, -8.3, RAIL_BOTTOM + 2])], { size: 0.36 }));
+    out.push(
+      S(slabOf({ x, y: -8, w: 4, d: 16, r: 2 }, RAIL_BOTTOM - 1, 14, P, 4, 0.4), { tone: 'mid' }),
+    );
+    out.push(
+      D([at([x + 2, -8.3, RAIL_TOP - 1]), at([x + 2, -8.3, RAIL_BOTTOM + 2])], { size: 0.36 }),
+    );
   }
   return out.join('');
 }
@@ -173,10 +229,16 @@ export function tickerParts(): string {
   const cx = -105;
   const cy = 23;
   // Rear bracket and drop rods up to the beam.
-  out.push(S(slabOf({ x: -134, y: 18, w: 56, d: 8, r: 2 }, BEAM_Z - 5, 5, P, 3, 0.4), { tone: 'mid' }));
+  out.push(
+    S(slabOf({ x: -134, y: 18, w: 56, d: 8, r: 2 }, BEAM_Z - 5, 5, P, 3, 0.4), { tone: 'mid' }),
+  );
   for (const rx of [-128, -82]) {
-    out.push(S(cylinder(rx, cy, 1.8, 214, BEAM_Z - 5 - 214, P, 12), { tone: 'mid', crease: 'none' }));
-    out.push(S(slabOf({ x: rx - 5, y: 18, w: 10, d: 10, r: 2 }, BEAM_Z - 10, 5, P, 3), { tone: 'mid' }));
+    out.push(
+      S(cylinder(rx, cy, 1.8, 214, BEAM_Z - 5 - 214, P, 12), { tone: 'mid', crease: 'none' }),
+    );
+    out.push(
+      S(slabOf({ x: rx - 5, y: 18, w: 10, d: 10, r: 2 }, BEAM_Z - 10, 5, P, 3), { tone: 'mid' }),
+    );
   }
   out.push(S(slabOf(TICKER, 196, 18, P, 4, 1), { tone: 'mid' }));
   out.push(S(slabOf(insetPlan(TICKER, 2), 214, 2.5, P, 4, 0.3), { tone: 'mid' }));
@@ -203,7 +265,11 @@ export function tickerParts(): string {
   for (let step = 0; step < 5; step += 1) {
     const share = (step + 0.5) / 5;
     holes.push(
-      at([runFrom[0] + (runTo[0] - runFrom[0]) * share, runFrom[1] + (runTo[1] - runFrom[1]) * share, 222.1]),
+      at([
+        runFrom[0] + (runTo[0] - runFrom[0]) * share,
+        runFrom[1] + (runTo[1] - runFrom[1]) * share,
+        222.1,
+      ]),
     );
   }
   out.push(D(holes, { size: 0.4, tone: 'mid' }));
@@ -218,7 +284,9 @@ export function tickerParts(): string {
   out.push(S(slabOf({ x: -132, y: 2, w: 22, d: 5, r: 1.5 }, 202, 7, P, 3, 0.4), { tone: 'mid' }));
   out.push(L(lineOnTop([-129, 1.6], [-113, 1.6], 209, P), { tone: 'lo' }));
   out.push(D([at([-113, 1.7, 205])], { size: 0.38, tone: 'hi' }));
-  out.push(S(slabOf({ x: -105, y: 2, w: 18, d: 2, r: 1 }, 204, 8, P, 3), { tone: 'lo', crease: 'none' }));
+  out.push(
+    S(slabOf({ x: -105, y: 2, w: 18, d: 2, r: 1 }, 204, 8, P, 3), { tone: 'lo', crease: 'none' }),
+  );
   out.push(
     L(
       [
@@ -235,25 +303,47 @@ export function tickerParts(): string {
 export function binParts(): string {
   const out: string[] = [];
   for (const rx of [BIN.x - 3, BIN.x + BIN.w + 3]) {
-    out.push(S(cylinder(rx, -28, 1.9, BIN_RIM, BEAM_Z - BIN_RIM, P, 14), { tone: 'mid', crease: 'none' }));
-    out.push(S(slabOf({ x: rx - 6, y: -33, w: 12, d: 14, r: 2 }, BEAM_Z - 6, 6, P, 3, 0.4), { tone: 'mid' }));
+    out.push(
+      S(cylinder(rx, -28, 1.9, BIN_RIM, BEAM_Z - BIN_RIM, P, 14), { tone: 'mid', crease: 'none' }),
+    );
+    out.push(
+      S(slabOf({ x: rx - 6, y: -33, w: 12, d: 14, r: 2 }, BEAM_Z - 6, 6, P, 3, 0.4), {
+        tone: 'mid',
+      }),
+    );
     out.push(S(cylinder(rx, -28, 2.8, 186, 5, P, 14), { tone: 'mid' }));
     out.push(L([182, 192].map((z) => ring(rx, -28, 1.9, z, P, 12)).join(''), { tone: 'lo' }));
   }
   out.push(S(slabOf(BIN, BIN_FLOOR, 5, P, 4, 0.8), { tone: 'mid' }));
   const wall = BIN_RIM - BIN_FLOOR - 5;
   out.push(
-    S(slabOf({ x: BIN.x, y: BIN.y, w: 3.5, d: BIN.d, r: 1.5 }, BIN_FLOOR + 5, wall, P, 4, 0.4), { tone: 'mid' }),
+    S(slabOf({ x: BIN.x, y: BIN.y, w: 3.5, d: BIN.d, r: 1.5 }, BIN_FLOOR + 5, wall, P, 4, 0.4), {
+      tone: 'mid',
+    }),
   );
   out.push(
     S(
-      slabOf({ x: BIN.x + BIN.w - 3.5, y: BIN.y, w: 3.5, d: BIN.d, r: 1.5 }, BIN_FLOOR + 5, wall, P, 4, 0.4),
+      slabOf(
+        { x: BIN.x + BIN.w - 3.5, y: BIN.y, w: 3.5, d: BIN.d, r: 1.5 },
+        BIN_FLOOR + 5,
+        wall,
+        P,
+        4,
+        0.4,
+      ),
       { tone: 'mid' },
     ),
   );
   out.push(
     S(
-      slabOf({ x: BIN.x, y: BIN.y + BIN.d - 3.5, w: BIN.w, d: 3.5, r: 1.5 }, BIN_FLOOR + 5, wall, P, 4, 0.4),
+      slabOf(
+        { x: BIN.x, y: BIN.y + BIN.d - 3.5, w: BIN.w, d: 3.5, r: 1.5 },
+        BIN_FLOOR + 5,
+        wall,
+        P,
+        4,
+        0.4,
+      ),
       { tone: 'mid' },
     ),
   );
@@ -274,9 +364,15 @@ export function binParts(): string {
     );
   }
   out.push(
-    D([at([BIN.x + 7, BIN.y - 0.2, BIN_FLOOR + 2]), at([BIN.x + BIN.w - 7, BIN.y - 0.2, BIN_FLOOR + 2])], {
-      size: 0.36,
-    }),
+    D(
+      [
+        at([BIN.x + 7, BIN.y - 0.2, BIN_FLOOR + 2]),
+        at([BIN.x + BIN.w - 7, BIN.y - 0.2, BIN_FLOOR + 2]),
+      ],
+      {
+        size: 0.36,
+      },
+    ),
   );
   return out.join('');
 }
@@ -284,12 +380,25 @@ export function binParts(): string {
 /** The trolley, its crossbars and rods, and the fork tray they carry. */
 export function carrierParts(): string {
   const out: string[] = [];
-  out.push(S(slabOf({ x: -13, y: -10, w: 26, d: 20, r: 3 }, RAIL_TOP + 3.5, 4.5, P, 4, 0.5), { tone: 'mid' }));
-  out.push(D([at([-9, -10, RAIL_TOP + 8]), at([9, -10, RAIL_TOP + 8])], { size: 0.36, tone: 'lo' }));
-  out.push(S(slabOf({ x: -5, y: -46, w: 10, d: 38, r: 2 }, RAIL_TOP + 3.5, 3, P, 3), { tone: 'mid', crease: 'none' }));
+  out.push(
+    S(slabOf({ x: -13, y: -10, w: 26, d: 20, r: 3 }, RAIL_TOP + 3.5, 4.5, P, 4, 0.5), {
+      tone: 'mid',
+    }),
+  );
+  out.push(
+    D([at([-9, -10, RAIL_TOP + 8]), at([9, -10, RAIL_TOP + 8])], { size: 0.36, tone: 'lo' }),
+  );
+  out.push(
+    S(slabOf({ x: -5, y: -46, w: 10, d: 38, r: 2 }, RAIL_TOP + 3.5, 3, P, 3), {
+      tone: 'mid',
+      crease: 'none',
+    }),
+  );
   for (const barY of [-46, -12]) {
     out.push(S(slabOf({ x: -32, y: barY, w: 64, d: 5, r: 2 }, 206, 4, P, 3, 0.4), { tone: 'mid' }));
-    out.push(D([at([-26, barY + 2.5, 210]), at([26, barY + 2.5, 210])], { size: 0.34, tone: 'lo' }));
+    out.push(
+      D([at([-26, barY + 2.5, 210]), at([26, barY + 2.5, 210])], { size: 0.34, tone: 'lo' }),
+    );
   }
   for (const [rx, ry] of [
     [-26, -43],
@@ -306,14 +415,28 @@ export function carrierParts(): string {
   for (const x of [-half, half - 5]) {
     out.push(
       S(
-        slabOf({ x, y: TRAY_Y - TRAY_D / 2, w: 5, d: TRAY_D, r: 1.5 }, TRAY_TOP - 3.5, 3.5, P, 4, 0.4),
+        slabOf(
+          { x, y: TRAY_Y - TRAY_D / 2, w: 5, d: TRAY_D, r: 1.5 },
+          TRAY_TOP - 3.5,
+          3.5,
+          P,
+          4,
+          0.4,
+        ),
         { tone: 'mid' },
       ),
     );
   }
   out.push(
     S(
-      slabOf({ x: -half, y: TRAY_Y - TRAY_D / 2 - 3, w: TRAY_W, d: 4.5, r: 1.5 }, TRAY_TOP - 3.5, 3.5, P, 4, 0.4),
+      slabOf(
+        { x: -half, y: TRAY_Y - TRAY_D / 2 - 3, w: TRAY_W, d: 4.5, r: 1.5 },
+        TRAY_TOP - 3.5,
+        3.5,
+        P,
+        4,
+        0.4,
+      ),
       { tone: 'mid' },
     ),
   );
@@ -323,7 +446,9 @@ export function carrierParts(): string {
         tone: 'mid',
       }),
     );
-    out.push(D([at([x + 3.5, TRAY_Y - TRAY_D / 2 + 1, TRAY_TOP + 2.6])], { size: 0.32, tone: 'hi' }));
+    out.push(
+      D([at([x + 3.5, TRAY_Y - TRAY_D / 2 + 1, TRAY_TOP + 2.6])], { size: 0.32, tone: 'hi' }),
+    );
   }
   return out.join('');
 }
@@ -384,15 +509,20 @@ export function pressRigParts(): string {
   const out: string[] = [];
   for (const sx of [STATION.registry, STATION.review, STATION.approve]) {
     for (const rx of [sx - 15, sx + 15]) {
-      out.push(S(cylinder(rx, PRESS_Y, 1.8, HEAD_TOP, BEAM_Z - HEAD_TOP - 2, P, 12), { tone: 'mid', crease: 'none' }));
+      out.push(
+        S(cylinder(rx, PRESS_Y, 1.8, HEAD_TOP, BEAM_Z - HEAD_TOP - 2, P, 12), {
+          tone: 'mid',
+          crease: 'none',
+        }),
+      );
       out.push(S(cylinder(rx, PRESS_Y, 2.6, 233, 4.5, P, 12), { tone: 'mid' }));
       out.push(L(ring(rx, PRESS_Y, 1.8, 232, P, 10), { tone: 'lo' }));
       out.push(
-        S(slabOf({ x: rx - 4.5, y: PRESS_Y - 4.5, w: 9, d: 9, r: 2 }, BEAM_Z - 7, 5, P, 3, 0.3), { tone: 'mid' }),
+        S(slabOf({ x: rx - 4.5, y: PRESS_Y - 4.5, w: 9, d: 9, r: 2 }, BEAM_Z - 7, 5, P, 3, 0.3), {
+          tone: 'mid',
+        }),
       );
     }
   }
   return out.join('');
 }
-
-

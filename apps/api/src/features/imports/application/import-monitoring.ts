@@ -150,7 +150,11 @@ function updateValues(
 
   return {
     type: values.type,
-    status: values.approvedAt ? ('APPROVED' as const) : keepApproved ? ('APPROVED' as const) : ('SUBMITTED' as const),
+    status: values.approvedAt
+      ? ('APPROVED' as const)
+      : keepApproved
+        ? ('APPROVED' as const)
+        : ('SUBMITTED' as const),
     classification: values.classification,
     campusId: values.campusId,
     unitId: values.unitId,

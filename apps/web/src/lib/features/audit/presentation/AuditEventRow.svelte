@@ -34,19 +34,12 @@
   const entityDisplay = $derived(
     `${event.entityType} · ${event.entityLabel ?? event.entityId ?? '—'}`,
   );
-  const statusTransition = $derived(
-    formatAuditStatusTransition(event.fromStatus, event.toStatus),
-  );
+  const statusTransition = $derived(formatAuditStatusTransition(event.fromStatus, event.toStatus));
   const hasLine2 = $derived(Boolean(statusTransition || event.comment));
 </script>
 
 <div class="audit-event-row-container" class:is-expanded={expanded}>
-  <button
-    class="audit-event-row"
-    type="button"
-    aria-expanded={expanded}
-    onclick={ontoggle}
-  >
+  <button class="audit-event-row" type="button" aria-expanded={expanded} onclick={ontoggle}>
     <div class="row-indicator" aria-hidden="true">
       {#if expanded}
         <ChevronDown size={16} />
