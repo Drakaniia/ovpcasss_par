@@ -57,6 +57,9 @@ REMINDER_AFTER_WORKING_DAYS = "3"
 REMINDER_LOCAL_HOUR = "9"
 EMAIL_MAX_ATTACHMENT_BYTES = "8388608"
 EMAIL_PROVIDER = "resend"
-# Sender for outbound mail. Resend's test sender only reaches the account
-# owner; replace it with the verified sending domain before launch (spec §14 Q15).
-EMAIL_FROM = "OVPCASSS PAR <ovpcasss@buksu.edu.ph>"
+# Sender for outbound mail: an address at the domain verified in Resend
+# (`send.buksu.edu.ph`, spec §14 Q15). Resend rejects every message with a 403
+# until that domain's DNS records are verified, so this address must sit on the
+# verified domain — a root-domain sender is refused even though the subdomain is
+# verified. Replies are not read; the shell prints a do-not-reply notice (D3).
+EMAIL_FROM = "OVPCASSS PAR <no-reply@send.buksu.edu.ph>"
