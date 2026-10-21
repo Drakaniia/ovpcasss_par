@@ -48,7 +48,7 @@
   .row {
     align-items: center;
     background: transparent;
-    border-radius: calc(4px * var(--chrome-inverse));
+    border-radius: calc(6px * var(--chrome-inverse));
     color: var(--text-primary);
     display: flex;
     font-size: calc(13px * var(--chrome-inverse));
@@ -56,12 +56,22 @@
     min-height: calc(32px * var(--chrome-inverse));
     padding: 0 calc(12px * var(--chrome-inverse));
     text-align: left;
+    transition: background-color 120ms ease;
     width: 100%;
   }
 
   .row:hover,
   .row.is-focused {
     background: var(--surface-page);
+  }
+
+  .row:active:not([aria-disabled='true']) {
+    background: var(--row-selected);
+  }
+
+  .row:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: calc(-2px * var(--chrome-inverse));
   }
 
   .row[aria-disabled='true'] {

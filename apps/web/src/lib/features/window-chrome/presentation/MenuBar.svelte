@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
 
   import { commandFor } from '../application/command-registry.svelte';
   import { menuKeyAction, mnemonicIndex, type MenuBarState } from '../application/menu-keyboard';
@@ -173,9 +173,11 @@
   }
 
   // A route change, a window blur or an Escape elsewhere closes the open panel.
+  // The untrack matters: close() reads openIndex, so without it opening a menu
+  // re-runs this effect and immediately shuts it again.
   $effect(() => {
     void page.url.pathname;
-    close(false);
+    untrack(() => close(false));
   });
 </script>
 
@@ -243,31 +245,47 @@
   .trigger {
     align-items: center;
     background: transparent;
-    border-radius: calc(4px * var(--chrome-inverse));
+    border-radius: calc(6px * var(--chrome-inverse));
     color: var(--text-topbar-muted);
     display: inline-flex;
     font-size: calc(13px * var(--chrome-inverse));
+    font-weight: 500;
     height: calc(28px * var(--chrome-inverse));
-    padding: 0 calc(10px * var(--chrome-inverse));
+    padding: 0 calc(11px * var(--chrome-inverse));
     position: relative;
     white-space: nowrap;
+    transition:
+      background-color 120ms ease,
+      color 120ms ease,
+      transform 100ms ease-out;
   }
 
-  .trigger:hover,
-  .trigger.is-open {
+  .trigger:hover {
     background: var(--topbar-hover);
     color: var(--text-on-topbar);
+  }
+
+  /* Open reads as held down, not merely hovered, until the panel closes. */
+  .trigger.is-open {
+    background: var(--topbar-active);
+    color: var(--text-on-topbar);
+  }
+
+  /* Instant press feedback, before the panel commits. */
+  .trigger:active {
+    transform: scale(0.97);
   }
 
   /* The only gold in the chrome; it sits on the bar's bottom edge. */
   .trigger.is-open::after {
     background: var(--brand-gold-400);
+    border-radius: 1px;
     bottom: calc(-8px * var(--chrome-inverse));
     content: '';
     height: 2px;
-    left: 0;
+    left: calc(6px * var(--chrome-inverse));
     position: absolute;
-    right: 0;
+    right: calc(6px * var(--chrome-inverse));
   }
 
   .trigger:focus-visible {

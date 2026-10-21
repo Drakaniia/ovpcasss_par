@@ -39,7 +39,20 @@ export async function refreshWindowState(): Promise<void> {
 }
 
 export async function toggleMaximize(): Promise<void> {
-  await (await chromeAdapter()).toggleMaximize();
+  const chrome = await chromeAdapter();
+
+  if (chromeState.fullscreen) {
+    // A full screen window fills the monitor, so there is nothing to
+    // un-maximize: restoring means leaving full screen and going back to the
+    // windowed size, or the shell keeps a state the window no longer has.
+    const wasMaximized = chromeState.maximized;
+    await chrome.setFullscreen(false);
+    if (wasMaximized) await chrome.toggleMaximize();
+    await refreshWindowState();
+    return;
+  }
+
+  await chrome.toggleMaximize();
   await refreshWindowState();
 }
 
