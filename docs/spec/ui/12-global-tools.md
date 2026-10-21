@@ -91,47 +91,77 @@ question is answered.
 ### Layout
 
 ```
-                    ┌──────────────────────────────────────────┐
-                    │ [ Search pages and reports…         ]    │
-                    ├──────────────────────────────────────────┤
-                    │ PAGES                                    │
-                    │  Work inbox                              │
-                    │  My reports                              │
-                    │  Review queue                            │
-                    │ REPORTS                                  │
-                    │  OFF-2026-0014  Coastal cleanup  Submitted│
-                    │  INC-2026-0009  Outreach program  Endorsed│
-                    └──────────────────────────────────────────┘
+        ┌──────────────────────────────────────────────────────────────┐
+        │ [ Search pages and reports…                                ] │
+        ├───────────────────────────────┬──────────────────────────────┤
+        │ PAGES                         │ OFF-2026-0014     Submitted  │
+        │  Work inbox                   │ Coastal cleanup              │
+        │  My reports                   │ Submitted by  M. Santos      │
+        │  Review queue                 │ Unit          College of ... │
+        │ RECENT                        │ Activity      12–13 Mar 2026 │
+        │  OFF-2026-0014 Coastal cleanup│ Type          Off-campus     │
+        │  INC-2026-0009 Outreach prog. │ ┌──────────────────────────┐ │
+        │                               │ │ …the cleanup along the   │ │
+        │                               │ │ breakwater…              │ │
+        │                               │ └──────────────────────────┘ │
+        │                               │ Recently updated             │
+        ├───────────────────────────────┴──────────────────────────────┤
+        │ ↑ ↓ to move        Enter to open        Esc to close        │
+        └──────────────────────────────────────────────────────────────┘
 ```
 
-- Centered overlay near the top of the viewport, max 560 px wide; backdrop
-  dims the page. Mobile widths are irrelevant (<1024 px shows the notice).
+- Centered overlay near the top of the viewport (11 vh), max 820 px wide, two
+  panes: results left (360 px), preview right. Under 780 px viewport width the
+  preview is dropped and the list keeps the full width; <1024 px still shows the
+  foundation notice instead of the app.
+- The surface arrives as a material — opacity, a 2 px lift, and a blurred edge
+  clearing in 180 ms — and leaves along the same path in 140 ms. Under
+  `prefers-reduced-motion: reduce` both are instant. A result that is chosen
+  navigates immediately; the exit animation is never on the path of an action.
 - Search input autofocuses; placeholder "Search pages and reports…".
-- Empty query shows **Pages** (role-filtered nav destinations) only, in nav order:
-  Home, Reports, Queues (if allowed), Repository (if allowed), Admin (if allowed),
-  Profile, Notifications. Reports are not listed until the user types at least
-  2 characters.
-- Typing queries pages by label and reports by tracking number or title
-  (debounced). Results group under **Pages** and **Reports**.
-- Report rows show tracking number (monospace), title, status badge. Page rows
-  show the label and a one-line description.
-- Highlight the matched substring in results.
-- ↑/↓ move the active option; Enter opens it; Tab does not leave the dialog;
-  Escape closes and restores focus.
+- Empty query shows **Pages** (role-filtered nav destinations) in nav order:
+  Home, Reports, Queues (if allowed), Repository (if allowed), Admin (if
+  allowed), Profile, Notifications — then **Recent**: the five reports the
+  viewer touched most recently, so the palette opens on documents rather than
+  only navigation. Recent is not a match: it carries no match reason.
+- Typing queries pages by label and reports server-side (debounced 200 ms) once
+  the query reaches **2 characters**. Results group under **Pages** and
+  **Reports**; the Recent group disappears at that point.
+- Report matching is ranked, not merely filtered. A report matches on tracking
+  number, title, narrative, location, submitter name, or a person in charge;
+  results order exact tracking number → tracking prefix → title prefix → title
+  contains → narrative → location → submitter → person in charge, and within a
+  rank by most recently updated.
+- Report rows show tracking number (monospace, tabular), title, status badge.
+  Page rows show the label and a one-line description.
+- Highlight the matched substring in result rows and in the preview excerpt.
+- **Preview** follows the active option without opening it: tracking number,
+  status, title, submitter, unit, activity dates, type, and — for a narrative
+  match — an excerpt around the hit with the hit marked. A page shows its
+  description. The last line names why the report was found ("Found in the
+  narrative", "Recently updated") or what Enter does.
+- ↑/↓ move the active option and the preview follows; Enter opens it; Tab does
+  not leave the dialog; Escape closes and restores focus. Pointing at a row
+  makes it active, so the preview tracks the mouse too.
 - Clicking a result opens it in the same tab.
 - No results: "No pages or reports match." with the query echoed.
 - Loading reports: a single quiet row "Searching reports…"; never block page
   results on the report request.
 - Report search failure: show page results with an inline "Reports could not be
   searched. Retry." Do not fail the whole palette.
-- Recent items and actions are out of scope.
+- Footer shows the three keys (↑ ↓, Enter, Esc) as chips: the palette has no
+  mouse-only step, and its keyboard path is discoverable without the help sheet.
+- Actions are still out of scope (§14 Q12).
 
 ### Permissions
 
 - Pages are exactly the nav destinations the role can see (foundation §3.2):
   Submitters never see Queues, Repository, or Admin.
 - Reports are limited to the user's access scope; the API enforces it, and the
-  palette must not request broader results.
+  palette must not request broader results. The server applies the same rule as
+  `canViewReport`: a Submitter searches their own reports, Reviewers, Approvers,
+  and Admins search every report. The palette never sends a role or owner
+  filter of its own — it asks `/reports/search` and shows what comes back.
 - Profile and Notifications are available to all signed-in users.
 
 ### Accessibility
@@ -149,8 +179,9 @@ question is answered.
 
 - Help dialog: no loading or error states; it is static content from the
   registry.
-- Palette: initial pages, typing/loading, results, no results, report-search
-  error, and permission-filtered-empty are all required.
+- Palette: initial pages with the recent group, typing/loading, results, no
+  results, report-search error, preview for a report and for a page, and
+  permission-filtered-empty are all required.
 - Both dialogs: Escape restores focus; opening one closes the other; background
   scroll is locked.
 - Reduced motion: open/close respects `prefers-reduced-motion`.
@@ -165,11 +196,17 @@ question is answered.
       registry is listed; keys render as `<kbd>`; the "disabled while typing" note
       is present.
 - [ ] Modifier labels are platform-correct.
-- [ ] `Ctrl/Cmd+K` opens the palette and prevents the browser shortcut.
-- [ ] Empty query lists only role-allowed pages in nav order; typing ≥2 characters
-      searches pages and reports.
+- [ ] `Ctrl/Cmd+K` opens the palette and prevents the browser shortcut,
+      including while the caret is in a text field or table filter.
+- [ ] Empty query lists role-allowed pages in nav order, then up to five
+      recently updated reports; typing ≥2 characters searches pages and reports
+      and drops the recent group.
 - [ ] Results group Pages/Reports, show tracking/title/status for reports,
       highlight matches, and support ↑/↓/Enter/Escape.
+- [ ] Reports match on tracking number, title, narrative, location, submitter,
+      and person in charge, in the ranked order above.
+- [ ] The preview follows the active row and names the match reason; choosing a
+      result navigates without waiting for the exit animation.
 - [ ] Palette never shows pages or reports the user cannot access.
 - [ ] No result, loading, and report-search-error states behave as specified.
 - [ ] Both dialogs trap focus, have accessible names, lock background scroll, and
@@ -193,5 +230,9 @@ question is answered.
    confirmation flows as the buttons.
 2. Should help be role-filtered (reviewers see Report actions, submitters not) or
    complete for everyone? This spec keeps it complete.
-3. Is `Ctrl/Cmd+K` acceptable in the Tauri webview, or does it conflict with a
-   native menu shortcut? Verify on Windows before shipping.
+3. ~~Is `Ctrl/Cmd+K` acceptable in the Tauri webview, or does it conflict with a
+   native menu shortcut?~~ Resolved 2026-10-21: the shell draws its menu bar in
+   HTML and installs no native accelerator for `K`, so the chord reaches the
+   webview; verified in the browser build and with `pnpm --filter @par/desktop
+dev`. The only interception is the first-run tour, which owns the layer by
+   design (§3).

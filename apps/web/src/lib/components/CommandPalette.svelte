@@ -4,10 +4,10 @@
 
   import { trapFocus } from '$lib/a11y/focus-trap';
   import { lockScroll, unlockScroll } from '$lib/a11y/scroll-lock';
-  import StatusBadge from '$lib/components/StatusBadge.svelte';
+  import CommandPalettePreview from '$lib/components/CommandPalettePreview.svelte';
+  import CommandPaletteResults from '$lib/components/CommandPaletteResults.svelte';
   import {
     filterPages,
-    matchSegments,
     palettePages,
     type PalettePage,
     type PaletteReport,
@@ -17,36 +17,58 @@
 
   /**
    * Command palette (phase 12 §4, derived). Pages and reports only: actions are
-   * waiting on the open question, so nothing here changes a report. The native
-   * modal dialog supplies the top layer, the focus trap, Escape, and focus
-   * restore; the input keeps focus while the arrow keys move the active option.
+   * waiting on §14 Q12, so nothing here changes a report.
+   *
+   * The palette opens on documents, not only navigation: the recent group loads
+   * as it appears, and typing replaces it with ranked matches from the scoped
+   * search endpoint. The preview pane answers "which one is it?" before Enter.
+   * The native modal dialog supplies the top layer, the focus trap, Escape, and
+   * focus restore; the input keeps focus while the arrow keys move the active
+   * option.
    */
   let { open = $bindable(false) }: { open?: boolean } = $props();
 
   const search = new PaletteReportSearch();
   const uid = $props.id();
   const listId = `${uid}-list`;
-  const pagesHeadingId = `${uid}-pages`;
-  const reportsHeadingId = `${uid}-reports`;
+
+  /** Exit is the enter path reversed; reduced motion closes at once. */
+  const CLOSE_MS = 140;
 
   let dialog = $state<HTMLDialogElement | null>(null);
   let input = $state<HTMLInputElement | null>(null);
   let query = $state('');
   let activeIndex = $state(0);
+  let closing = $state(false);
+  let closeTimer: ReturnType<typeof setTimeout> | undefined;
 
   const pages = $derived(filterPages(palettePages(session.user?.role), query));
   const reports = $derived(search.reports);
   const total = $derived(pages.length + reports.length);
   /** Pages come first, so a report's option sits after every page row. */
   const activeAt = $derived(Math.min(activeIndex, Math.max(total - 1, 0)));
+  const activeOption = $derived<PalettePage | PaletteReport | null>(
+    activeAt < pages.length
+      ? (pages[activeAt] ?? null)
+      : (reports[activeAt - pages.length] ?? null),
+  );
   const activeOptionId = $derived(total === 0 ? undefined : `${uid}-option-${activeAt}`);
+  const reportsHeading = $derived(search.recent ? 'Recent' : 'Reports');
 
   const noResults = $derived(
-    query.trim().length > 0 && total === 0 && !search.loading && !search.failed,
+    query.trim().length >= 2 && total === 0 && !search.loading && !search.failed,
   );
 
+  /** The footer states what the list holds, not what the keys do twice. */
+  const summary = $derived.by(() => {
+    if (search.failed) return 'Reports unavailable';
+    if (search.loading) return 'Searching reports';
+    if (total === 0) return query.trim() === '' ? 'No destinations' : 'No matches';
+    return total === 1 ? '1 result' : `${total} results`;
+  });
+
   const announcement = $derived.by(() => {
-    if (query.trim() === '') return `${pages.length} pages available`;
+    if (query.trim() === '') return `${pages.length} pages, ${reports.length} recent reports`;
     if (search.loading) return `${pages.length} pages, searching reports`;
     if (noResults) return 'No pages or reports match';
     return `${pages.length} pages, ${reports.length} reports`;
@@ -57,6 +79,7 @@
     if (open && !dialog.open) {
       dialog.showModal();
       input?.focus();
+      search.loadRecent();
     }
     if (!open && dialog.open) dialog.close();
   });
@@ -70,6 +93,8 @@
       search.reset();
       query = '';
       activeIndex = 0;
+      closing = false;
+      clearCloseTimer();
     };
   });
 
@@ -78,35 +103,50 @@
     document.getElementById(`${uid}-option-${activeAt}`)?.scrollIntoView({ block: 'nearest' });
   });
 
-  function setQuery(value: string) {
+  function clearCloseTimer(): void {
+    if (closeTimer === undefined) return;
+    clearTimeout(closeTimer);
+    closeTimer = undefined;
+  }
+
+  function closeDelay(): number {
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    return reduced ? 0 : CLOSE_MS;
+  }
+
+  /** Escape, the backdrop, and the close route share one animated exit. */
+  function requestClose(): void {
+    if (closing) return;
+    closing = true;
+    closeTimer = setTimeout(() => {
+      closeTimer = undefined;
+      open = false;
+    }, closeDelay());
+  }
+
+  function setQuery(value: string): void {
     query = value;
     activeIndex = 0;
     search.search(value);
   }
 
-  function move(step: number) {
+  function move(step: number): void {
     if (total === 0) return;
     activeIndex = (activeAt + step + total) % total;
   }
 
-  function choose(option: PalettePage | PaletteReport) {
+  /** Opening a result is immediate: navigation is the feedback. */
+  function choose(option: PalettePage | PaletteReport): void {
     open = false;
     void goto(option.href);
   }
 
-  function chooseActive() {
+  function chooseActive(): void {
     const option = activeAt < pages.length ? pages[activeAt] : reports[activeAt - pages.length];
     if (option) choose(option);
   }
 
-  /** Rows are pointer targets for the mouse; the arrow keys stay in the input. */
-  function optionKeys(event: KeyboardEvent, option: PalettePage | PaletteReport) {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    event.preventDefault();
-    choose(option);
-  }
-
-  function onKeydown(event: KeyboardEvent) {
+  function onKeydown(event: KeyboardEvent): void {
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       move(1);
@@ -120,23 +160,18 @@
   }
 </script>
 
-{#snippet marked(text: string)}
-  {#each matchSegments(text, query) as segment, index (index)}{#if segment.match}<mark class="hit"
-        >{segment.text}</mark
-      >{:else}{segment.text}{/if}{/each}
-{/snippet}
-
 <dialog
   bind:this={dialog}
   class="dialog palette"
+  class:is-closing={closing}
   aria-label="Command palette"
   oncancel={(event) => {
     event.preventDefault();
-    open = false;
+    requestClose();
   }}
   onclick={(event) => {
     // A modal click on the backdrop targets the dialog element itself.
-    if (event.target === event.currentTarget) open = false;
+    if (event.target === event.currentTarget) requestClose();
   }}
   onkeydown={(event) => dialog && trapFocus(event, dialog)}
   onclose={() => (open = false)}
@@ -162,77 +197,71 @@
     />
   </div>
 
-  <div class="results" id={listId} role="listbox" aria-label="Pages and reports">
-    {#if pages.length > 0}
-      <div role="group" aria-labelledby={pagesHeadingId}>
-        <p class="group-title" id={pagesHeadingId}>Pages</p>
-        {#each pages as page, index (page.id)}
-          <div
-            class="option"
-            class:is-active={activeAt === index}
-            id="{uid}-option-{index}"
-            role="option"
-            tabindex="-1"
-            aria-selected={activeAt === index}
-            onclick={() => choose(page)}
-            onkeydown={(event) => optionKeys(event, page)}
-          >
-            <span class="option-label">{@render marked(page.label)}</span>
-            <span class="option-description">{page.description}</span>
-          </div>
-        {/each}
-      </div>
-    {/if}
+  <div class="body">
+    <CommandPaletteResults
+      {uid}
+      {listId}
+      {pages}
+      {reports}
+      {activeAt}
+      {reportsHeading}
+      {query}
+      loading={search.loading}
+      failed={search.failed}
+      {noResults}
+      onchoose={choose}
+      onretry={() => search.retry()}
+    />
 
-    {#if reports.length > 0}
-      <div role="group" aria-labelledby={reportsHeadingId}>
-        <p class="group-title" id={reportsHeadingId}>Reports</p>
-        {#each reports as report, offset (report.id)}
-          {@const index = pages.length + offset}
-          <div
-            class="option option-report"
-            class:is-active={activeAt === index}
-            id="{uid}-option-{index}"
-            role="option"
-            tabindex="-1"
-            aria-selected={activeAt === index}
-            onclick={() => choose(report)}
-            onkeydown={(event) => optionKeys(event, report)}
-          >
-            <span class="tracking">{@render marked(report.trackingNumber ?? '—')}</span>
-            <span class="option-label">{@render marked(report.title)}</span>
-            <StatusBadge status={report.status} />
-          </div>
-        {/each}
-      </div>
-    {/if}
-
-    {#if search.loading}
-      <p class="state-row">Searching reports…</p>
-    {/if}
-
-    {#if search.failed}
-      <p class="state-row is-error" role="alert">
-        <span>Reports could not be searched.</span>
-        <button class="retry" type="button" onclick={() => search.retry()}>Retry</button>
-      </p>
-    {/if}
-
-    {#if noResults}
-      <p class="state-row">No pages or reports match “{query}”.</p>
-    {/if}
+    <CommandPalettePreview option={activeOption} recent={search.recent} {query} />
   </div>
+
+  <footer class="footer">
+    <span class="summary">{summary}</span>
+    <span class="hint"><kbd class="kbd">↑</kbd><kbd class="kbd">↓</kbd> move</span>
+    <span class="hint"><kbd class="kbd">↵</kbd> open</span>
+    <span class="hint"><kbd class="kbd">Esc</kbd> close</span>
+  </footer>
 
   <p class="sr-only" role="status">{announcement}</p>
 </dialog>
 
 <style>
   .palette {
-    margin: 12vh auto auto;
-    max-width: 560px;
+    margin: 11vh auto auto;
+    max-width: 820px;
     overflow: hidden;
     padding: 0;
-    width: min(560px, calc(100vw - 48px));
+    width: min(820px, calc(100vw - 48px));
+    /* Arrives as a material: it lifts and clears, it does not merely fade. */
+    animation: palette-in 180ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  .palette.is-closing {
+    animation: palette-out 140ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+
+  @keyframes palette-in {
+    from {
+      filter: blur(6px);
+      opacity: 0;
+      transform: translateY(-8px) scale(0.985);
+    }
+  }
+
+  @keyframes palette-out {
+    to {
+      filter: blur(4px);
+      opacity: 0;
+      transform: translateY(-6px) scale(0.99);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .palette,
+    .palette.is-closing {
+      animation: none;
+    }
   }
 
   .search-row {
@@ -241,7 +270,22 @@
     color: var(--text-secondary);
     display: flex;
     gap: 10px;
-    padding: 12px 16px;
+    padding: 13px 16px;
+    transition: background-color var(--duration-fast) ease;
+  }
+
+  /* The field is borderless, so the row carries the focus instead. */
+  .search-row:focus-within {
+    background: var(--surface-paper);
+    color: var(--text-primary);
+  }
+
+  .search-row:focus-within :global(svg) {
+    color: var(--text-primary);
+  }
+
+  .palette-input:focus-visible {
+    outline: none;
   }
 
   .palette-input {
@@ -255,97 +299,46 @@
     padding: 2px 0;
   }
 
-  .results {
-    max-height: min(52vh, 420px);
-    overflow-y: auto;
-    padding: 6px;
-  }
-
-  .group-title {
+  .palette-input::placeholder {
     color: var(--text-secondary);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    margin: 0;
-    padding: 8px 10px 4px;
-    text-transform: uppercase;
   }
 
-  .option {
-    align-items: center;
-    border-radius: var(--radius-card);
-    cursor: pointer;
-    display: flex;
-    gap: 12px;
-    min-height: 36px;
-    padding: 6px 10px;
-  }
-
-  .option:hover {
-    background: var(--row-hover);
-  }
-
-  .option.is-active {
-    background: var(--row-selected);
-  }
-
-  .option-label {
-    font-size: 13px;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .option-description {
-    color: var(--text-secondary);
-    flex: 0 1 auto;
-    font-size: 12px;
-    margin-left: auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .option-report {
+  .body {
     display: grid;
-    gap: 12px;
-    grid-template-columns: 116px minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    max-height: min(56vh, 460px);
+    min-height: 260px;
   }
 
-  .tracking {
-    color: var(--text-secondary);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .hit {
-    background: var(--primary-subtle);
-    color: inherit;
-  }
-
-  .state-row {
+  .footer {
     align-items: center;
+    border-top: 1px solid var(--border);
     color: var(--text-secondary);
     display: flex;
-    font-size: 13px;
-    gap: 8px;
-    margin: 0;
-    padding: 10px;
+    font-size: 11.5px;
+    gap: 14px;
+    padding: 8px 14px;
   }
 
-  .state-row.is-error {
-    color: var(--status-danger-fg);
+  .hint {
+    align-items: center;
+    display: inline-flex;
+    gap: 4px;
   }
 
-  .retry {
-    background: transparent;
-    color: var(--link);
-    font-size: 13px;
-    font-weight: 500;
-    padding: 0;
-    text-decoration: underline;
+  /* The count is the one thing that changes, so it leads and the keys recede. */
+  .summary {
+    margin-right: auto;
+  }
+
+  /* Below the two-pane width the preview would squeeze the list: keep the list. */
+  @media (max-width: 780px) {
+    .body {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    :global(.palette-preview) {
+      display: none;
+    }
   }
 </style>

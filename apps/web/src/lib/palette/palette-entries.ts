@@ -1,4 +1,10 @@
-import type { ReportListItem, ReportStatus, Role } from '@par/shared';
+import type {
+  ReportSearchItem,
+  ReportSearchMatch,
+  ReportStatus,
+  ReportType,
+  Role,
+} from '@par/shared';
 
 import { navItemsFor, type NavId } from '$lib/navigation/navigation';
 
@@ -20,6 +26,16 @@ export type PaletteReport = {
   trackingNumber: string | null;
   title: string;
   status: ReportStatus;
+  /** Preview context: what the report is, who filed it, and when it ran. */
+  type: ReportType;
+  ownerName: string;
+  unitName: string | null;
+  activityStartDate: string;
+  activityEndDate: string;
+  /** Absent in the recent group, which is not a match. */
+  matched?: ReportSearchMatch;
+  /** Narrative around a narrative hit, shown as the preview excerpt. */
+  snippet?: string;
 };
 
 /** Reports stay out of the initial list until the query is worth a request. */
@@ -92,12 +108,19 @@ export function matchSegments(text: string, query: string): MatchSegment[] {
  * A draft has no tracking number yet and the facsimile is not useful, so it opens
  * the edit page — the same rule the reports table follows (UI spec §7.4).
  */
-export function paletteReports(items: readonly ReportListItem[]): PaletteReport[] {
+export function paletteReports(items: readonly ReportSearchItem[]): PaletteReport[] {
   return items.map((item) => ({
     id: item.id,
     href: item.status === 'DRAFT' ? `/reports/${item.id}/edit` : `/reports/${item.id}`,
     trackingNumber: item.trackingNumber,
     title: item.title,
     status: item.status,
+    type: item.type,
+    ownerName: item.ownerName,
+    unitName: item.unitName,
+    activityStartDate: item.activityStartDate,
+    activityEndDate: item.activityEndDate,
+    ...(item.matched ? { matched: item.matched } : {}),
+    ...(item.snippet ? { snippet: item.snippet } : {}),
   }));
 }
