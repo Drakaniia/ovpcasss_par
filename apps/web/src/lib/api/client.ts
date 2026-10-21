@@ -37,6 +37,8 @@ import type {
   ReportHead,
   ReportListQuery,
   ReportListResponse,
+  ReportSearchQuery,
+  ReportSearchResponse,
   ReportPdfResponse,
   ReportValidationResponse,
   RepositoryQuery,
@@ -130,6 +132,14 @@ export const api = {
     list: (query: ReportListQuery) => {
       const search = queryString(query);
       return apiFetch<ReportListResponse>(`/reports${search ? `?${search}` : ''}`);
+    },
+    /**
+     * Palette documents (phase 12 §4): the caller's own when they submit, every
+     * report they may open otherwise. No query asks for the recent group.
+     */
+    search: (query: ReportSearchQuery) => {
+      const search = queryString(query);
+      return apiFetch<ReportSearchResponse>(`/reports/search${search ? `?${search}` : ''}`);
     },
     /** Drafts only; the server removes the draft and its stored copy. */
     deleteDraft: (id: string) => apiFetch<void>(`/reports/${id}`, { method: 'DELETE' }),

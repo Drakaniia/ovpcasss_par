@@ -1,4 +1,4 @@
-import type { ReportListItem } from '@par/shared';
+import type { ReportSearchItem } from '@par/shared';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -9,16 +9,19 @@ import {
   PALETTE_MIN_REPORT_QUERY,
 } from './palette-entries';
 
-const item = (overrides: Partial<ReportListItem> = {}): ReportListItem => ({
+const item = (overrides: Partial<ReportSearchItem> = {}): ReportSearchItem => ({
   id: 'r1',
   ownerUserId: 'u1',
   trackingNumber: 'OFF-2026-0001',
   title: 'Coastal cleanup',
   type: 'OFF_CAMPUS',
+  classification: 'CURRICULAR',
   status: 'SUBMITTED',
   activityStartDate: '2026-03-12',
   activityEndDate: '2026-03-13',
   updatedAt: '2026-03-14T01:12:00.000Z',
+  ownerName: 'M. Santos',
+  unitName: 'College of Arts and Sciences',
   ...overrides,
 });
 
@@ -110,16 +113,28 @@ describe('matchSegments', () => {
 });
 
 describe('paletteReports', () => {
-  it('opens a submitted report on its facsimile', () => {
-    expect(paletteReports([item()])).toEqual([
+  it('opens a submitted report on its facsimile and carries the preview context', () => {
+    expect(paletteReports([item({ matched: 'narrative', snippet: '…the cleanup…' })])).toEqual([
       {
         id: 'r1',
         href: '/reports/r1',
         trackingNumber: 'OFF-2026-0001',
         title: 'Coastal cleanup',
         status: 'SUBMITTED',
+        type: 'OFF_CAMPUS',
+        ownerName: 'M. Santos',
+        unitName: 'College of Arts and Sciences',
+        activityStartDate: '2026-03-12',
+        activityEndDate: '2026-03-13',
+        matched: 'narrative',
+        snippet: '…the cleanup…',
       },
     ]);
+  });
+
+  it('keeps a recent row free of a match reason', () => {
+    expect(paletteReports([item()])[0]).not.toHaveProperty('matched');
+    expect(paletteReports([item()])[0]).not.toHaveProperty('snippet');
   });
 
   it('opens a draft on the edit page and keeps its missing tracking number', () => {
