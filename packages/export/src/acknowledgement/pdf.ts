@@ -1,3 +1,4 @@
+import { OFFICE_NAME } from '@par/shared';
 import { PDFDocument, StandardFonts, rgb, type PDFImage } from 'pdf-lib';
 
 export interface AcknowledgementData {
@@ -74,14 +75,8 @@ export async function renderAcknowledgement(data: AcknowledgementData): Promise<
   });
   y -= 18;
 
-  page.drawText('Office of the Vice President for Campus Affairs, Student Services and Safety', {
-    x:
-      center -
-      regular.widthOfTextAtSize(
-        'Office of the Vice President for Campus Affairs, Student Services and Safety',
-        8,
-      ) /
-        2,
+  page.drawText(OFFICE_NAME, {
+    x: center - regular.widthOfTextAtSize(OFFICE_NAME, 8) / 2,
     y,
     size: 8,
     font: regular,

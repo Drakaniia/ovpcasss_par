@@ -1,3 +1,4 @@
+import { OFFICE_NAME } from '@par/shared';
 import { rgb, type PDFDocument, type PDFFont, type PDFPage } from 'pdf-lib';
 
 import type { FacsimilePdfData } from './pdf';
@@ -223,7 +224,7 @@ export function drawLetterhead(writer: Writer, data: FacsimilePdfData): void {
     color: NAVY,
   });
 
-  page.drawText('Office of the Vice President for Campus Affairs, Student Services and Safety', {
+  page.drawText(OFFICE_NAME, {
     x: MARGIN,
     y: top - 20,
     size: 7,
