@@ -97,7 +97,7 @@ export async function resetPassword(
   if (!user) return { ok: false, code: 'TOKEN_INVALID' };
 
   const { hash, params } = await hashPassword(password);
-  const patch: Partial<NewUserRow> = { passwordHash: hash, hashParams: params };
+  const patch: Partial<NewUserRow> = { passwordHash: hash, hashParams: params, hasPassword: true };
   if (!user.emailVerifiedAt) {
     patch.emailVerifiedAt = now;
     if (user.status === 'PENDING_VERIFICATION') patch.status = 'PENDING_ROLE';

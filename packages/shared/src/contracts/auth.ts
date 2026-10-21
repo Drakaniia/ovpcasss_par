@@ -111,6 +111,8 @@ export const accountSchema = z.object({
   contactNumber: z.string().nullable().optional(),
   /** True once an approver's signature image is on file (approval gate, §7.10). */
   hasSignature: z.boolean().optional(),
+  /** False while the account has no password of its own (Google sign-in only). */
+  hasPassword: z.boolean().optional(),
   unreadNotifications: z.number().int().min(0).optional(),
 });
 export type Account = z.infer<typeof accountSchema>;

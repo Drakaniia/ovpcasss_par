@@ -114,7 +114,7 @@ profileRoutes.post('/password', async (c) => {
     return c.json(
       {
         error: {
-          code: 'VALIDATION_ERROR',
+          code: 'PASSWORD_CURRENT_MISMATCH',
           message: 'The current password is incorrect.',
           details: [{ path: ['currentPassword'], message: 'The current password is incorrect.' }],
         },

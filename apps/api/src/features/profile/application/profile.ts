@@ -96,7 +96,7 @@ export async function changePassword(
   if (!matches) return 'wrong-current';
 
   const { hash, params } = await hashPassword(input.newPassword);
-  await users.update(user.id, { passwordHash: hash, hashParams: params }, at);
+  await users.update(user.id, { passwordHash: hash, hashParams: params, hasPassword: true }, at);
 
   const current = currentToken
     ? await sessions.findByTokenHash(await hashToken(currentToken))

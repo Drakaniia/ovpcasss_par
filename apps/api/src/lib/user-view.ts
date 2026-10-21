@@ -16,6 +16,7 @@ export function toAccount(user: UserRow, unreadNotifications?: number): Account 
     campusUnit: user.campusUnit,
     contactNumber: user.contactNumber,
     hasSignature: user.signatureObjectKey !== null,
+    hasPassword: user.hasPassword,
     ...(unreadNotifications === undefined ? {} : { unreadNotifications }),
   };
 }

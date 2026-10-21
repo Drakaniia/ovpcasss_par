@@ -22,6 +22,8 @@ export const users = sqliteTable(
     email: text('email').notNull(),
     passwordHash: text('password_hash').notNull(),
     hashParams: text('hash_params').notNull(),
+    /** False while an account has no password of its own (Google sign-in only). */
+    hasPassword: integer('has_password', { mode: 'boolean' }).notNull().default(true),
     fullName: text('full_name').notNull(),
     role: text('role', { enum: ROLES }),
     status: text('status', { enum: USER_STATUSES }).notNull(),

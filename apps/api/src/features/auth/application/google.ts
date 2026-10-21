@@ -140,6 +140,7 @@ export async function completeGoogleSignIn(c: Context<AppEnv>): Promise<GoogleOu
       email: profile.email,
       passwordHash: hash,
       hashParams: params,
+      hasPassword: false,
       fullName: profile.name || profile.email.split('@')[0]!,
       role: bootstrap ? 'ADMIN' : null,
       status: bootstrap ? 'ACTIVE' : 'PENDING_ROLE',
