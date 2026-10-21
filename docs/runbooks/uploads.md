@@ -52,8 +52,29 @@ These need a browser at a vendor; the script prints them at the end.
    Without these, presign answers `503 STORAGE_UNAVAILABLE` and the uploader says
    storage is not configured.
 2. **Resend key and sending domain.** `resend.com` → API keys →
-   `wrangler secret put EMAIL_API_KEY`; verify `buksu.edu.ph` and replace the test
-   sender in `EMAIL_FROM` (spec §14 Q15).
+   `wrangler secret put EMAIL_API_KEY`. Then add `send.buksu.edu.ph` as a domain
+   in Resend and verify it (spec §14 Q15). `buksu.edu.ph` is served by Cloudflare
+   DNS, so Resend's **Sign in to Cloudflare** button (Domain Connect) adds the
+   records in one step; without that access, the records are:
+
+   | Type | Name                | Value                                           |
+   | ---- | ------------------- | ----------------------------------------------- |
+   | MX   | `send`              | `feedback-smtp.<region>.amazonses.com`, prio 10 |
+   | TXT  | `send`              | `v=spf1 include:amazonses.com ~all`             |
+   | TXT  | `resend._domainkey` | `p=...` (the key Resend shows for the domain)   |
+
+   The names are relative to `send.buksu.edu.ph`, and the root MX stays with
+   Google Workspace: nothing here changes where `@buksu.edu.ph` mail is received.
+   If `send.buksu.edu.ph` already has an MX or SPF record, raise the priority
+   above 10 instead of replacing it.
+
+   `EMAIL_FROM` in `apps/api/wrangler.toml` must then use that domain
+   (`OVPCASSS PAR <no-reply@send.buksu.edu.ph>`). A sender on `buksu.edu.ph`
+   itself is refused with `403 The buksu.edu.ph domain is not verified` even
+   while the subdomain is verified, and the message ends up `FAILED` in the
+   outbox after six attempts. Until a domain is verified, send from
+   `onboarding@resend.dev`, which reaches only the Resend account owner.
+
 3. **Google OAuth client**, optional. Credentials → OAuth client (Web) with the
    JavaScript origin and redirect URI for each environment; both values are
    secrets, and the sign-in button stays hidden until they are set.
