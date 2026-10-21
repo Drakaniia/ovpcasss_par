@@ -17,6 +17,7 @@ import { reportRoutes } from './features/reports/routes';
 import { reviewRoutes } from './features/review/routes';
 import { searchRoutes } from './features/search/routes';
 import { userRoutes } from './features/users/routes';
+import { desktopCors } from './middleware/cors';
 import { requireSameOrigin } from './middleware/csrf';
 import { errorHandler } from './middleware/error-handler';
 
@@ -27,6 +28,9 @@ app.onError(errorHandler);
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
 
 const api = new Hono<AppEnv>();
+
+// The desktop shell calls the absolute API URL, so its requests are cross-origin.
+api.use('*', desktopCors);
 
 // Cookie-authenticated writes must come from our own origin (spec §10).
 api.use('*', requireSameOrigin);
