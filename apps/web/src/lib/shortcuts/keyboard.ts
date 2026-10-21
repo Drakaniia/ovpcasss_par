@@ -45,13 +45,16 @@ export function installGlobalShortcuts(handlers: ShortcutHandlers): () => void {
     // The tour is a modal layer of its own: page shortcuts stay out of it.
     if (hasOpenTourOverlay((selector) => document.querySelector(selector))) return;
 
-    if (isTypingTarget(event.target)) return;
-
+    // A chord is never typing: Ctrl/Cmd+K must open the palette with the caret
+    // in a form field or a table filter, which is exactly where people are when
+    // they want to jump to a document.
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
       handlers.palette();
       return;
     }
+
+    if (isTypingTarget(event.target)) return;
 
     if (event.key === '/') {
       event.preventDefault();
