@@ -1,5 +1,11 @@
 import type { SessionQueries, UserQueries, UserRow } from '@par/db';
-import type { Account, ChangePasswordInput, UpdateProfileInput } from '@par/shared';
+import type {
+  Account,
+  ChangePasswordInput,
+  EmailPreferencesInput,
+  EmailPreferencesResponse,
+  UpdateProfileInput,
+} from '@par/shared';
 
 import { hashPassword, verifyPassword } from '../../../lib/password';
 import { hashToken } from '../../../lib/tokens';
@@ -41,6 +47,33 @@ export async function updateProfile(
   );
 
   return toAccount(updated ?? user);
+}
+
+/** The profile's Email section (email spec §8). `account` is always on. */
+export function toEmailPreferences(user: UserRow): EmailPreferencesResponse {
+  return {
+    workflow: user.emailWorkflow,
+    reminders: user.emailReminders,
+    account: true,
+  };
+}
+
+export async function updateEmailPreferences(
+  users: UserQueries,
+  user: UserRow,
+  input: EmailPreferencesInput,
+  at: string,
+): Promise<EmailPreferencesResponse> {
+  const updated = await users.update(
+    user.id,
+    {
+      ...(input.workflow === undefined ? {} : { emailWorkflow: input.workflow }),
+      ...(input.reminders === undefined ? {} : { emailReminders: input.reminders }),
+    },
+    at,
+  );
+
+  return toEmailPreferences(updated ?? user);
 }
 
 export type PasswordChangeOutcome = 'ok' | 'wrong-current';

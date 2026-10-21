@@ -1,14 +1,24 @@
 import { Hono, type Context } from 'hono';
 
 import { createDb, createSessionQueries, createUserQueries } from '@par/db';
-import { changePasswordSchema, updateProfileSchema } from '@par/shared';
+import {
+  changePasswordSchema,
+  emailPreferencesInputSchema,
+  updateProfileSchema,
+} from '@par/shared';
 
 import type { AppEnv } from '../../env';
 import { recordAudit } from '../../lib/audit';
 import { readSessionCookie } from '../../lib/session-cookie';
 import { requireSession } from '../../middleware/auth';
 import { createNotificationRepository } from '../notifications/infrastructure/notification-repository';
-import { changePassword, getAccount, updateProfile } from './application/profile';
+import {
+  changePassword,
+  getAccount,
+  toEmailPreferences,
+  updateEmailPreferences,
+  updateProfile,
+} from './application/profile';
 
 /**
  * The signed-in account (spec §7.3, UI spec §7.14). Mounted at `/me`, so `GET /`
@@ -52,6 +62,31 @@ profileRoutes.patch('/', async (c) => {
   });
 
   return c.json(account);
+});
+
+/** The Email section on `/profile` (email spec §8, phase 17 §5). */
+profileRoutes.get('/email-preferences', async (c) => {
+  const userId = c.get('userId');
+  if (!userId) return unauthorized(c);
+
+  const user = await createUserQueries(createDb(c.env.DB)).findById(userId);
+  if (!user) return unauthorized(c);
+
+  return c.json(toEmailPreferences(user));
+});
+
+profileRoutes.patch('/email-preferences', async (c) => {
+  const userId = c.get('userId');
+  if (!userId) return unauthorized(c);
+
+  const parsed = emailPreferencesInputSchema.safeParse(await readBody(c));
+  if (!parsed.success) return validationError(c, parsed.error.issues);
+
+  const users = createUserQueries(createDb(c.env.DB));
+  const user = await users.findById(userId);
+  if (!user) return unauthorized(c);
+
+  return c.json(await updateEmailPreferences(users, user, parsed.data, new Date().toISOString()));
 });
 
 profileRoutes.post('/password', async (c) => {
