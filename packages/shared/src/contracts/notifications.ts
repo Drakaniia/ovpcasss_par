@@ -10,18 +10,22 @@ import { idSchema, isoDateTimeSchema } from './common';
  */
 export const NOTIFICATION_KINDS = [
   'SUBMITTED',
+  'RESUBMITTED',
   'RETURNED',
   'ENDORSED',
   'APPROVED',
+  'REMINDER',
   'ACCOUNT',
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
 export const NOTIFICATION_KIND_LABELS: Record<NotificationKind, string> = {
   SUBMITTED: 'Submitted',
+  RESUBMITTED: 'Resubmitted',
   RETURNED: 'Returned',
   ENDORSED: 'Endorsed',
   APPROVED: 'Approved',
+  REMINDER: 'Reminder',
   ACCOUNT: 'Account',
 };
 
@@ -61,12 +65,16 @@ export function notificationFlagsFor(kind: NotificationKind): NotificationFlags 
   switch (kind) {
     case 'SUBMITTED':
       return { needsAction: true, aboutOwnReport: false };
+    case 'RESUBMITTED':
+      return { needsAction: true, aboutOwnReport: false };
     case 'RETURNED':
       return { needsAction: true, aboutOwnReport: true };
     case 'ENDORSED':
       return { needsAction: true, aboutOwnReport: false };
     case 'APPROVED':
       return { needsAction: false, aboutOwnReport: true };
+    case 'REMINDER':
+      return { needsAction: true, aboutOwnReport: false };
     case 'ACCOUNT':
       return { needsAction: false, aboutOwnReport: false };
   }
