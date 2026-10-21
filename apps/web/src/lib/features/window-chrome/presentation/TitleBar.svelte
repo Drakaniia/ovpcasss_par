@@ -5,6 +5,7 @@
   import BrandSeal from '$lib/components/BrandSeal.svelte';
   import NotificationMenu from '$lib/components/NotificationMenu.svelte';
   import { session } from '$lib/session/session.svelte';
+  import { platformModifierLabel } from '$lib/shortcuts/shortcuts';
 
   import { chromeMenuInputs } from '../application/chrome-menu.svelte';
   import { chromeState, setFullscreen } from '../application/chrome-store.svelte';
@@ -108,9 +109,16 @@
   <div class="spacer" data-tauri-drag-region></div>
 
   <div class="tools">
-    <button class="search" type="button" data-tour="titlebar-search" onclick={openPalette}>
+    <button
+      class="search"
+      type="button"
+      data-tour="titlebar-search"
+      aria-keyshortcuts="Control+K"
+      onclick={openPalette}
+    >
       <Search size={15} aria-hidden="true" />
       <span>Search</span>
+      <span class="hint" aria-hidden="true">{platformModifierLabel()} K</span>
     </button>
 
     {#if user}
@@ -225,5 +233,24 @@
   .search:focus-visible {
     outline: 2px solid var(--brand-gold-400);
     outline-offset: 2px;
+  }
+
+  /* The chord is the discovery path: name it where the palette is opened. */
+  .search .hint {
+    border: 1px solid var(--topbar-border);
+    border-radius: 4px;
+    flex: none;
+    font-size: calc(10.5px * var(--chrome-inverse));
+    letter-spacing: 0.02em;
+    opacity: 0.75;
+    overflow: visible;
+    padding: 1px calc(5px * var(--chrome-inverse));
+    text-overflow: clip;
+  }
+
+  @media (max-width: 1180px) {
+    .search .hint {
+      display: none;
+    }
   }
 </style>
