@@ -47,10 +47,12 @@ BOOTSTRAP_ADMIN_EMAILS = "ovpcasss@buksu.edu.ph,2401117078@student.buksu.edu.ph"
 R2_BUCKET_NAME = "par-attachments"
 # The office mailbox: default workbook recipient and failure-digest fallback.
 OFFICE_EMAIL = "ovpcasss@buksu.edu.ph"
-# Set APP_ORIGIN to the deployed origin (e.g. https://<worker>.<account>.workers.dev)
-# so cron-composed mail (reminders, failure digest) can link back. Request-driven
-# mail uses the request's own origin and does not need it.
-# APP_ORIGIN = "https://<origin>"
+# The deployed app's origin. Cron-composed mail (the reminder sweep, the failure
+# digest) is written outside a request and needs it to link back; request-driven
+# mail uses the request's own origin and does not need it. The Worker serves the
+# SPA on the same origin (see [assets]), so this is the worker's public URL.
+# Change it when the app moves to a custom domain. Locally, .dev.vars wins.
+APP_ORIGIN = "https://par-api.floresaybaez574.workers.dev"
 REMINDER_AFTER_WORKING_DAYS = "3"
 REMINDER_LOCAL_HOUR = "9"
 EMAIL_MAX_ATTACHMENT_BYTES = "8388608"
