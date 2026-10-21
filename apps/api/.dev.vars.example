@@ -10,6 +10,12 @@ EMAIL_API_KEY=replace-me
 # Verified sender. Resend's onboarding@resend.dev only delivers to the account
 # owner's own address, so use it for local tests and the domain address for real.
 EMAIL_FROM="OVPCASSS PAR <onboarding@resend.dev>"
+# Renders every template with sample data (nothing is sent):
+#   http://localhost:8787/api/v1/dev/emails
+# The console adapter prints attachments as name and size, then the text body.
+DEV_EMAIL_PREVIEW=true
+# Cron-composed mail (reminders, failure digest) needs an absolute app origin.
+APP_ORIGIN=http://localhost:5173
 # Bootstrap admins live in wrangler.toml [vars] (BOOTSTRAP_ADMIN_EMAILS); list one
 # address per line here only to override them locally.
 # BOOTSTRAP_ADMIN_EMAILS="ovpcasss@buksu.edu.ph"

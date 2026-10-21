@@ -45,6 +45,15 @@ ALLOWED_EMAIL_DOMAINS = "buksu.edu.ph,student.buksu.edu.ph"
 # is verified. Keep it short; remove an entry after the account is set up.
 BOOTSTRAP_ADMIN_EMAILS = "ovpcasss@buksu.edu.ph,2401117078@student.buksu.edu.ph"
 R2_BUCKET_NAME = "par-attachments"
+# The office mailbox: default workbook recipient and failure-digest fallback.
+OFFICE_EMAIL = "ovpcasss@buksu.edu.ph"
+# Set APP_ORIGIN to the deployed origin (e.g. https://<worker>.<account>.workers.dev)
+# so cron-composed mail (reminders, failure digest) can link back. Request-driven
+# mail uses the request's own origin and does not need it.
+# APP_ORIGIN = "https://<origin>"
+REMINDER_AFTER_WORKING_DAYS = "3"
+REMINDER_LOCAL_HOUR = "9"
+EMAIL_MAX_ATTACHMENT_BYTES = "8388608"
 EMAIL_PROVIDER = "resend"
 # Sender for outbound mail. Resend's test sender only reaches the account
 # owner; replace it with the verified sending domain before launch (spec §14 Q15).
