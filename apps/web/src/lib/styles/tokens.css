@@ -89,7 +89,14 @@
   --radius-badge: 4px;
   --shadow-card: 0 1px 2px rgb(15 26 51 / 6%);
   --shadow-raised: 0 8px 24px rgb(15 26 51 / 16%);
+  /* Floating surfaces earn depth from distance, not a single hard drop: a tight
+     contact shadow plus a wide ambient one. */
+  --shadow-floating:
+    0 0 0 1px rgb(15 26 51 / 5%), 0 2px 6px rgb(15 26 51 / 8%), 0 18px 48px rgb(15 26 51 / 18%);
   --backdrop: rgb(15 26 51 / 45%);
+  /* The scrim blurs what it covers so the surface reads as a material in front
+     of the page, not a rectangle painted over it. */
+  --backdrop-blur: 3px;
   /* First-run tour: a heavier scrim than a dialog, and the white halo that
      separates the spotlight ring from busy page content. */
   --backdrop-strong: rgb(15 26 51 / 62%);

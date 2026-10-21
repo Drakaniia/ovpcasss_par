@@ -83,7 +83,7 @@
   .side-drawer {
     background: var(--surface-card);
     border: 0;
-    box-shadow: var(--shadow-raised);
+    box-shadow: var(--shadow-floating);
     color: var(--text-primary);
     height: 100dvh;
     inset: 0 0 0 auto;
@@ -129,18 +129,25 @@
   .drawer-close {
     align-items: center;
     background: transparent;
-    border-radius: 4px;
+    border-radius: var(--radius-card);
     color: var(--text-secondary);
     display: inline-flex;
     flex: none;
     height: 32px;
     justify-content: center;
+    transition:
+      background-color var(--duration-fast) ease,
+      transform 100ms ease-out;
     width: 32px;
   }
 
   .drawer-close:hover {
     background: var(--surface-page);
     color: var(--text-primary);
+  }
+
+  .drawer-close:active {
+    transform: scale(0.94);
   }
 
   .drawer-body {
