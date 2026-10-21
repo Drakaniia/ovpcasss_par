@@ -39,7 +39,7 @@ not a profile editor for arbitrary user data beyond role and status.
 │  Users & roles                                                               │
 │  2 accounts are waiting for a role assignment          [ Review requests ]   │  callout
 ├──────────────────────────────────────────────────────────────────────────────┤
-│  [ Search name or email        ]  [ Role: All ▾ ]  [ Status: Pending role ▾ ]│
+│  [ Search name or email        ]  [ Role: All ▾ ]  [ Status: All ▾ ]       │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ NAME              EMAIL                 ROLE       STATUS        CAMPUS  REGISTERED  ⋯ │
 │ J. Dela Cruz      jd@university.edu     Submitter  Active        Main    12 Mar 26     │
@@ -52,12 +52,12 @@ not a profile editor for arbitrary user data beyond role and status.
 - Page header title "Users & roles"; no subtitle beyond the pending callout.
 - **Pending-role callout** appears only when the count is > 0: count in text
   ("2 accounts are waiting for a role assignment") and a **Review requests**
-  action that applies the `PENDING_ROLE` status filter. The callout is not a
-  modal and does not replace the table.
+  action that clears the search and role filters and applies the `PENDING_ROLE`
+  status filter. The callout is not a modal and does not replace the table.
 - **Filter bar:** search (name or email, debounced), role (All, Submitter,
   Reviewer, Approver, Admin), status (All, Pending verification, Pending role,
-  Active, Disabled). Default status filter is **Pending role**, matching the
-  callout and the common job.
+  Active, Disabled). Default status filter is **All**, so the directory lists
+  every account; the pending-role callout is the fast path to the queue.
 - Filters are URL state (`?status=PENDING_ROLE&role=REVIEWER&q=santos`) so a view
   survives refresh and can be shared with another admin.
 - Table columns: Name, Email, Role (`—` when unassigned), Status, Campus,
@@ -131,10 +131,10 @@ On the signed-in admin's own row and drawer:
 ## 5. Acceptance checklist
 
 - [ ] Only ADMIN can open the page; others see the permission-denied state.
-- [ ] Pending-role callout renders only with a count > 0 and its action applies
-      the pending filter.
-- [ ] Default status filter is Pending role; filters are URL state and survive
-      refresh.
+- [ ] Pending-role callout renders only with a count > 0 and its action opens
+      the pending queue (status `PENDING_ROLE`, search and role filters cleared).
+- [ ] Default status filter is All, so every account is listed; filters are URL
+      state and survive refresh.
 - [ ] Table shows Name, Email, Role (`—` if unassigned), Status, Campus,
       Registered, ⋯; default sort oldest first; pagination 25/50/100.
 - [ ] Row click opens the drawer and Escape returns focus to the row.

@@ -33,24 +33,27 @@ question is answered.
 Implemented in phase 00; this phase consumes it to render help and to resolve
 palette shortcuts.
 
-| Scope  | Key               | Action                                    |
-| ------ | ----------------- | ----------------------------------------- |
-| Global | `/`               | Focus search (Repository or table filter) |
-| Global | `Ctrl/Cmd+K`      | Command palette                           |
-| Global | `?`               | Shortcut help                             |
-| Global | `Esc`             | Close drawer/dialog                       |
-| Tables | `j` / `k` or ↓/↑  | Move row focus                            |
-| Tables | `Enter`           | Open focused row                          |
-| Report | `R`               | Return (opens drawer)                     |
-| Report | `E`               | Endorse                                   |
-| Report | `A`               | Approve                                   |
-| Wizard | `Alt+→` / `Alt+←` | Next / Back step                          |
-| Wizard | `Ctrl/Cmd+S`      | Save draft                                |
+| Scope  | Key              | Action                                    |
+| ------ | ---------------- | ----------------------------------------- |
+| Global | `/`              | Focus search (Repository or table filter) |
+| Global | `Ctrl/Cmd+K`     | Command palette                           |
+| Global | `?`              | Shortcut help                             |
+| Global | `Esc`            | Close drawer/dialog                       |
+| Tables | `j` / `k` or ↓/↑ | Move row focus                            |
+| Tables | `Enter`          | Open focused row                          |
+| Report | `R`              | Return (opens drawer)                     |
+| Report | `E`              | Endorse                                   |
+| Report | `A`              | Approve                                   |
+| Wizard | `→` / `←`        | Next / Back step                          |
+| Wizard | `Ctrl/Cmd+S`     | Save draft                                |
 
 Rules:
 
 - Single-letter shortcuts (`j`, `k`, `R`, `E`, `A`, `?`) never fire when focus is
   in an input, textarea, select, contenteditable, or the narrative editor.
+- The wizard's `→` / `←` never fire while a text field, an open dialog, or a
+  widget that already handled the arrow holds it; `Alt` + arrow moves steps even
+  while typing.
 - `Esc` closes the topmost layer only: palette → help → drawer → menu.
 - Shortcuts do not fire while a modal or drawer has focus, except `Esc` and the
   report shortcuts that the drawer itself documents.

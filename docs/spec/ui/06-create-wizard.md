@@ -163,7 +163,9 @@ summary, **Submit report**.
 
 ### Keyboard
 
-- `Alt+→` / `Alt+←` move steps when focus is not in the narrative editor.
+- `→` / `←` move steps when no text field, dialog, or widget holds the arrow;
+  `Alt+→` / `Alt+←` move steps even while typing, and never from the narrative
+  editor. The action bar shows the key beside Back and Continue.
 - `Ctrl/Cmd+S` saves a draft and prevents the browser save dialog.
 - Enter in a single-line input does not submit the report; only Continue
   (steps 1–3) or Submit report (step 4) advances. Enter may move to the next

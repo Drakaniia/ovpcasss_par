@@ -32,28 +32,37 @@ they do not change any decision in it. If a phase file disagrees with
 
 ## Phases
 
-| #   | Phase file                                                   | Milestone | Screens / routes                                                                                                                     | Depends on     |
-| --- | ------------------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
-| 00  | [`00-foundation.md`](./00-foundation.md)                     | M0        | Tokens, shell, nav, shared primitives                                                                                                | —              |
-| 01  | [`01-auth-and-account.md`](./01-auth-and-account.md)         | M1        | `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password`, `/awaiting-approval`, `/profile` (account + password) | 00             |
-| 02  | [`02-work-inbox.md`](./02-work-inbox.md)                     | M1        | `/` work inbox, onboarding checklist                                                                                                 | 00, 01         |
-| 03  | [`03-admin-users.md`](./03-admin-users.md)                   | M1        | `/admin/users`                                                                                                                       | 00, 01         |
-| 04  | [`04-admin-reference-data.md`](./04-admin-reference-data.md) | M2        | `/admin/reference-data`                                                                                                              | 00, 03         |
-| 05  | [`05-reports-table.md`](./05-reports-table.md)               | M3        | `/reports`                                                                                                                           | 00             |
-| 06  | [`06-create-wizard.md`](./06-create-wizard.md)               | M3        | `/reports/new`, attachment uploader, completeness checklist                                                                          | 00, 04, 05     |
-| 07  | [`07-edit-returned.md`](./07-edit-returned.md)               | M3        | `/reports/[id]/edit`, conflict dialog                                                                                                | 06             |
-| 08  | [`08-facsimile.md`](./08-facsimile.md)                       | M4        | `/reports/[id]`, `/reports/[id]?print=1`, acknowledgement download                                                                   | 00, 06         |
-| 09  | [`09-queues-and-decisions.md`](./09-queues-and-decisions.md) | M4        | `/review`, `/review/[id]`, `/approval`, `/approval/[id]`, decision drawer, signature card                                            | 05, 08         |
-| 10  | [`10-repository-search.md`](./10-repository-search.md)       | M5        | `/search`                                                                                                                            | 05, 08, 09     |
-| 11  | [`11-notifications.md`](./11-notifications.md)               | M5        | `/notifications` (new route), bell menu                                                                                              | 00, 01         |
-| 12  | [`12-global-tools.md`](./12-global-tools.md)                 | M5        | Shortcut help, command palette (derived)                                                                                             | 00             |
-| 13  | [`13-admin-audit.md`](./13-admin-audit.md)                   | M5        | `/admin/audit`                                                                                                                       | 00             |
-| 14  | [`14-exports.md`](./14-exports.md)                           | M6        | `/exports`                                                                                                                           | 00, 05, 08     |
-| 15  | [`15-desktop-shell.md`](./15-desktop-shell.md)               | M7        | SQLite drafts, OS credential store, file dialog, print in the webview                                                                | 01, 06, 07, 08 |
-| 16  | [`16-quality-pass.md`](./16-quality-pass.md)                 | M8        | Cross-screen audit: a11y, zoom, contrast, print                                                                                      | all            |
+| #   | Phase file                                                   | Milestone | Screens / routes                                                                                                                     | Depends on             |
+| --- | ------------------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
+| 00  | [`00-foundation.md`](./00-foundation.md)                     | M0        | Tokens, shell, nav, shared primitives                                                                                                | —                      |
+| 01  | [`01-auth-and-account.md`](./01-auth-and-account.md)         | M1        | `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password`, `/awaiting-approval`, `/profile` (account + password) | 00                     |
+| 02  | [`02-work-inbox.md`](./02-work-inbox.md)                     | M1        | `/` work inbox, onboarding checklist                                                                                                 | 00, 01                 |
+| 03  | [`03-admin-users.md`](./03-admin-users.md)                   | M1        | `/admin/users`                                                                                                                       | 00, 01                 |
+| 04  | [`04-admin-reference-data.md`](./04-admin-reference-data.md) | M2        | `/admin/reference-data`                                                                                                              | 00, 03                 |
+| 05  | [`05-reports-table.md`](./05-reports-table.md)               | M3        | `/reports`                                                                                                                           | 00                     |
+| 06  | [`06-create-wizard.md`](./06-create-wizard.md)               | M3        | `/reports/new`, attachment uploader, completeness checklist                                                                          | 00, 04, 05             |
+| 07  | [`07-edit-returned.md`](./07-edit-returned.md)               | M3        | `/reports/[id]/edit`, conflict dialog                                                                                                | 06                     |
+| 08  | [`08-facsimile.md`](./08-facsimile.md)                       | M4        | `/reports/[id]`, `/reports/[id]?print=1`, acknowledgement download                                                                   | 00, 06                 |
+| 09  | [`09-queues-and-decisions.md`](./09-queues-and-decisions.md) | M4        | `/review`, `/review/[id]`, `/approval`, `/approval/[id]`, decision drawer, signature card                                            | 05, 08                 |
+| 10  | [`10-repository-search.md`](./10-repository-search.md)       | M5        | `/search`                                                                                                                            | 05, 08, 09             |
+| 11  | [`11-notifications.md`](./11-notifications.md)               | M5        | `/notifications` (new route), bell menu                                                                                              | 00, 01                 |
+| 12  | [`12-global-tools.md`](./12-global-tools.md)                 | M5        | Shortcut help, command palette (derived)                                                                                             | 00                     |
+| 13  | [`13-admin-audit.md`](./13-admin-audit.md)                   | M5        | `/admin/audit`                                                                                                                       | 00                     |
+| 14  | [`14-exports.md`](./14-exports.md)                           | M6        | `/exports`                                                                                                                           | 00, 05, 08             |
+| 15  | [`15-desktop-shell.md`](./15-desktop-shell.md)               | M7        | SQLite drafts, OS credential store, file dialog, print in the webview                                                                | 01, 06, 07, 08         |
+| 16  | [`16-quality-pass.md`](./16-quality-pass.md)                 | M8        | Cross-screen audit: a11y, zoom, contrast, print                                                                                      | all                    |
+| 17  | [`17-email.md`](./17-email.md)                               | M8+       | `/admin/emails` (**new route**), `/profile` (Email section), `/exports` (Send by email)                                              | 00, 01, 03, 09, 11, 14 |
 
 Suggested order: 00 → 01, 02, 03 (parallel-safe) → 04 → 05 → 06 → 07, 08
-(parallel-safe) → 09 → 10, 11, 12, 13 (parallel-safe) → 14 → 15 → 16.
+(parallel-safe) → 09 → 10, 11, 12, 13 (parallel-safe) → 14 → 15 → 16 → 17 (after
+14; independent of 15 and 16).
+
+Phase 17 is the one exception to "these files only reorganize the original". It
+is not a slice of `par-ui-ux-spec.md`; it is specified by
+[`../email-integration-spec.md`](../email-integration-spec.md) and adds three
+surfaces on top of phases 01, 03 and 14. Where it disagrees with a phase file on
+presentation, the email spec wins; where it disagrees on tokens or shared
+primitives, the refinement track below still wins.
 
 ### Milestone mapping (§13)
 
@@ -68,6 +77,7 @@ Suggested order: 00 → 01, 02, 03 (parallel-safe) → 04 → 05 → 06 → 07, 
 | M6        | Exports form, preview, download states                                                                             | 14          |
 | M7        | SQLite drafts, OS credential store, file dialog, print in the webview                                              | 15          |
 | M8        | Accessibility audit, 200% zoom, contrast, print fidelity                                                           | 16          |
+| M8+       | Email surfaces: delivery log, email preferences, workbook mailing                                                  | 17          |
 
 ### Refinement track (after M8)
 
@@ -167,13 +177,14 @@ its §7.2.
 These are referenced but not specified. Each is marked **Derived** in its phase
 file; treat the derivation as provisional and confirm the copy before shipping.
 
-| Gap                                                          | Referenced in | Handled in |
-| ------------------------------------------------------------ | ------------- | ---------- |
-| Onboarding checklist (`§7.21` is a dangling cross-reference) | §7.3, §10     | 02         |
-| Command palette (`Ctrl/Cmd+K`) has no screen spec            | §8.9, §14 Q12 | 12         |
-| Acknowledgement download has no screen spec                  | §8.2, §13 M4  | 08         |
-| Bell menu details beyond "three newest"                      | §5.3, §7.13   | 11         |
-| `/notifications` route does not exist in the scaffold        | §5.1          | 11         |
+| Gap                                                            | Referenced in                        | Handled in |
+| -------------------------------------------------------------- | ------------------------------------ | ---------- |
+| Onboarding checklist (`§7.21` is a dangling cross-reference)   | §7.3, §10                            | 02         |
+| Command palette (`Ctrl/Cmd+K`) has no screen spec              | §8.9, §14 Q12                        | 12         |
+| Acknowledgement download has no screen spec                    | §8.2, §13 M4                         | 08         |
+| Bell menu details beyond "three newest"                        | §5.3, §7.13                          | 11         |
+| `/notifications` route does not exist in the scaffold          | §5.1                                 | 11         |
+| Mail format, delivery log, email preferences, workbook mailing | §7.13 names email notifications only | 17         |
 
 ## Open questions that affect more than one phase
 
