@@ -10,6 +10,7 @@ import { CLASSIFICATIONS, LEVELS, REPORT_TYPES } from '@par/shared';
 
 import { formatDate } from '$lib/format/datetime';
 import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
+import { isTypingTarget } from '$lib/shortcuts/keyboard';
 
 /**
  * Wizard form state (UI phase 06, spec §7.5). The form is edited as strings so
@@ -262,8 +263,9 @@ export function wizardPath(step: WizardStep, draftId = '', basePath = '/reports/
 }
 
 /**
- * Keyboard intent (§8.9): `Alt+←/→` moves steps. Keyboard is a shortcut, never
- * a requirement, and step jumps stay out of the narrative editor. `Ctrl/Cmd+S`
+ * Keyboard intent (§8.9): `→`/`←` move steps, with `Alt` as the same chord for
+ * when a text field holds the arrow. Keyboard is a shortcut, never a
+ * requirement, and step jumps stay out of the narrative editor. `Ctrl/Cmd+S`
  * belongs to the chrome's command registry (window chrome spec §9.5), so it is
  * not handled here — one key, one path.
  */
@@ -272,20 +274,36 @@ export function wizardKeyAction(
   step: WizardStep,
 ): { kind: 'step'; step: WizardStep } | null {
   if (event.metaKey || event.ctrlKey) return null;
-  if (!event.altKey) return null;
+  if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return null;
+
+  // Holding the key must not fly through the steps; one press, one move.
+  if (event.repeat) return null;
 
   // The narrative editor owns the arrows; anywhere else they move steps.
-  const inEditor = (event.target as Element | null)?.tagName === 'TEXTAREA';
+  if ((event.target as Element | null)?.tagName === 'TEXTAREA') return null;
 
-  if (event.key === 'ArrowRight' && !inEditor && step < 4) {
+  // A bare arrow belongs to whatever is focused: a text field, an open dialog,
+  // or a widget that already handled the key.
+  if (!event.altKey && arrowBelongsElsewhere(event)) return null;
+
+  if (event.key === 'ArrowRight' && step < 4) {
     return { kind: 'step', step: (step + 1) as WizardStep };
   }
 
-  if (event.key === 'ArrowLeft' && !inEditor && step > 1) {
+  if (event.key === 'ArrowLeft' && step > 1) {
     return { kind: 'step', step: (step - 1) as WizardStep };
   }
 
   return null;
+}
+
+/** True when the focused control owns the arrow instead of the wizard. */
+function arrowBelongsElsewhere(event: KeyboardEvent): boolean {
+  if (event.defaultPrevented) return true;
+  if (isTypingTarget(event.target)) return true;
+
+  const element = event.target as (Element & { closest?: (s: string) => Element | null }) | null;
+  return Boolean(element?.closest?.('dialog[open], [role="dialog"]'));
 }
 
 /* ---------- Options ---------- */

@@ -30,7 +30,16 @@
 <div class="action-bar">
   <div class="action-inner">
     {#if step > 1}
-      <button class="btn btn-outline" type="button" onclick={onback} disabled={busy}>Back</button>
+      <button
+        class="btn btn-outline"
+        type="button"
+        onclick={onback}
+        disabled={busy}
+        aria-keyshortcuts="ArrowLeft Alt+ArrowLeft"
+      >
+        <kbd class="kbd key" aria-hidden="true">←</kbd>
+        Back
+      </button>
     {:else}
       <span class="spacer"></span>
     {/if}
@@ -40,7 +49,15 @@
         <p class="block-reason">{blockReason}</p>
       {/if}
       {#if step < 4}
-        <button class="btn btn-primary" type="button" onclick={oncontinue}>Continue</button>
+        <button
+          class="btn btn-primary"
+          type="button"
+          onclick={oncontinue}
+          aria-keyshortcuts="ArrowRight Alt+ArrowRight"
+        >
+          Continue
+          <kbd class="kbd key" aria-hidden="true">→</kbd>
+        </button>
       {:else}
         <button class="btn btn-primary" type="button" disabled={busy || blocked} onclick={onsubmit}>
           {#if busy}
@@ -78,6 +95,14 @@
 
   .action-bar .btn {
     height: 36px;
+  }
+
+  /* The chip names the key that does the same thing as the button; on the
+     filled button it stays a whisper, not a second control. */
+  .btn-primary .key {
+    background: color-mix(in srgb, var(--on-primary) 16%, transparent);
+    border-color: color-mix(in srgb, var(--on-primary) 32%, transparent);
+    color: var(--on-primary);
   }
 
   .spacer {

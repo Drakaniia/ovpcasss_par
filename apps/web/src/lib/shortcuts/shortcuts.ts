@@ -46,10 +46,7 @@ const GROUPS: readonly ShortcutGroup[] = [
     rows: [
       {
         label: 'Next / Back step',
-        combos: [
-          ['Alt', '→'],
-          ['Alt', '←'],
-        ],
+        combos: [['→'], ['←'], ['Alt', '→'], ['Alt', '←']],
       },
       { label: 'Save draft', combos: [[MOD, 'S']] },
     ],

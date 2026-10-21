@@ -300,6 +300,39 @@ describe('keyboard intent', () => {
     expect(wizardKeyAction(key({ key: 'ArrowLeft', altKey: true }), 1)).toBeNull();
   });
 
+  it('moves steps with the bare arrow keys', () => {
+    expect(wizardKeyAction(key({ key: 'ArrowRight' }), 2)).toEqual({ kind: 'step', step: 3 });
+    expect(wizardKeyAction(key({ key: 'ArrowLeft' }), 2)).toEqual({ kind: 'step', step: 1 });
+    expect(wizardKeyAction(key({ key: 'ArrowRight' }), 4)).toBeNull();
+    expect(wizardKeyAction(key({ key: 'ArrowLeft' }), 1)).toBeNull();
+  });
+
+  it('leaves the arrow to a text field', () => {
+    const inInput = key({ key: 'ArrowRight', target: { tagName: 'INPUT' } });
+    expect(wizardKeyAction(inInput, 2)).toBeNull();
+
+    // Alt is the way out while typing.
+    const altInInput = key({ key: 'ArrowRight', altKey: true, target: { tagName: 'INPUT' } });
+    expect(wizardKeyAction(altInInput, 2)).toEqual({
+      kind: 'step',
+      step: 3,
+    });
+  });
+
+  it('leaves the arrow to a dialog or to whoever handled it', () => {
+    const inDialog = key({
+      key: 'ArrowRight',
+      target: { tagName: 'DIV', closest: () => ({}) },
+    });
+    expect(wizardKeyAction(inDialog, 2)).toBeNull();
+
+    expect(wizardKeyAction(key({ key: 'ArrowRight', defaultPrevented: true }), 2)).toBeNull();
+  });
+
+  it('moves one step per press, not per held key', () => {
+    expect(wizardKeyAction(key({ key: 'ArrowRight', repeat: true }), 2)).toBeNull();
+  });
+
   it('leaves the narrative editor to the arrows', () => {
     const inEditor = key({ key: 'ArrowRight', altKey: true, target: { tagName: 'TEXTAREA' } });
     expect(wizardKeyAction(inEditor, 2)).toBeNull();
