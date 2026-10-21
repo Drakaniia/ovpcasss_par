@@ -6,6 +6,10 @@ import { goto } from '$app/navigation';
 import { page } from '$app/state';
 import { actsAs } from '@par/shared';
 
+import {
+  resetOnboarding,
+  startTour,
+} from '$lib/features/onboarding/application/tour-controller.svelte';
 import { session, signOut } from '$lib/session/session.svelte';
 
 import {
@@ -128,7 +132,7 @@ export function registerBuiltinCommands(): () => void {
       id: 'window.toggle-maximize',
       desktopOnly: true,
       enabled: () => true,
-      label: () => (chromeState.maximized ? 'Restore' : 'Maximize'),
+      label: () => (chromeState.maximized || chromeState.fullscreen ? 'Restore' : 'Maximize'),
       run: () => toggleMaximize(),
     }),
     registerCommand({
@@ -138,6 +142,18 @@ export function registerBuiltinCommands(): () => void {
       run: () => closeGuard.requestClose(),
     }),
 
+    registerCommand({
+      id: 'help.tour',
+      enabled: () => session.user?.status === 'ACTIVE',
+      disabledReason: () => 'Sign in to take the tour.',
+      run: () => startTour({ pathname: page.url.pathname, navigate: () => goto('/') }),
+    }),
+    registerCommand({
+      id: 'help.reset-onboarding',
+      enabled: () => session.user?.status === 'ACTIVE',
+      disabledReason: () => 'Sign in to reset onboarding.',
+      run: () => resetOnboarding({ pathname: page.url.pathname, navigate: () => goto('/') }),
+    }),
     registerCommand({
       id: 'help.shortcuts',
       enabled: () => true,

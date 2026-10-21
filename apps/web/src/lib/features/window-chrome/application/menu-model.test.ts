@@ -134,6 +134,20 @@ describe('buildMenus', () => {
     const menus = buildMenus(inputs());
     expect(item(menus, 'file', 'file.sign-out')?.separatorBefore).toBe(true);
   });
+
+  it('offers the tour and a reset before the shortcut reference in Help', () => {
+    const help = buildMenus(inputs()).find((menu) => menu.id === 'help');
+
+    expect(help?.items.map((entry) => entry.id)).toEqual([
+      'help.tour',
+      'help.reset-onboarding',
+      'help.shortcuts',
+      'help.about',
+    ]);
+    expect(help?.items[0].label).toBe('Take the guided tour');
+    expect(help?.items[1].label).toBe('Reset onboarding');
+    expect(help?.items[3].separatorBefore).toBe(true);
+  });
 });
 
 describe('accelerators', () => {

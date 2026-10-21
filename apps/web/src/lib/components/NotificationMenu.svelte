@@ -133,6 +133,7 @@
   <button
     bind:this={trigger}
     class="bell-button"
+    data-tour="notifications"
     type="button"
     aria-haspopup="true"
     aria-expanded={open}

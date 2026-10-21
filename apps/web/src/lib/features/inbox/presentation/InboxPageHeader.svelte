@@ -35,7 +35,7 @@
   </div>
 
   {#if showPrimary && roles.includes('SUBMITTER')}
-    <a class="btn btn-primary" href="/reports/new">
+    <a class="btn btn-primary" data-tour="new-report" href="/reports/new">
       <Plus size={16} aria-hidden="true" />
       New report
     </a>

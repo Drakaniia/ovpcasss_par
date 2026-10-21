@@ -4,6 +4,7 @@
 
   import CommandPalette from '$lib/components/CommandPalette.svelte';
   import ShortcutHelpDialog from '$lib/components/ShortcutHelpDialog.svelte';
+  import OnboardingTour from '$lib/features/onboarding/presentation/OnboardingTour.svelte';
   import { installAccelerators } from '$lib/features/window-chrome/application/accelerators';
   import { registerBuiltinCommands } from '$lib/features/window-chrome/application/builtin-commands';
   import { chromeState } from '$lib/features/window-chrome/application/chrome-store.svelte';
@@ -82,6 +83,7 @@
   <ZoomIndicator />
   <ShortcutHelpDialog bind:open={helpOpen} />
   <CommandPalette bind:open={paletteOpen} />
+  <OnboardingTour />
 </div>
 
 <style>

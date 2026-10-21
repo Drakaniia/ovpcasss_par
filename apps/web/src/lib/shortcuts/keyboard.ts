@@ -1,8 +1,11 @@
 /**
  * Global shortcut wiring (UI spec §8.9). The help sheet and command palette
  * are phase 12; this module only dispatches their events. Single-letter
- * shortcuts are suppressed while the user is typing.
+ * shortcuts are suppressed while the user is typing, and while the first-run
+ * tour owns the layer.
  */
+import { hasOpenTourOverlay } from '$lib/features/onboarding/application/tour-eligibility';
+
 export type ShortcutHandlers = {
   search: () => void;
   shortcuts: () => void;
@@ -11,10 +14,15 @@ export type ShortcutHandlers = {
 
 const TYPING_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
 
+/**
+ * Reads the tag name rather than `instanceof HTMLElement`, so the same check
+ * works in plain application code that never touches a document.
+ */
 export function isTypingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable) return true;
-  return TYPING_TAGS.has(target.tagName);
+  const element = target as (Element & { isContentEditable?: boolean }) | null;
+  if (!element || typeof element.tagName !== 'string') return false;
+  if (element.isContentEditable) return true;
+  return TYPING_TAGS.has(element.tagName);
 }
 
 /** Focus the first element marked as a search field, if the page has one. */
@@ -33,6 +41,9 @@ export function installGlobalShortcuts(handlers: ShortcutHandlers): () => void {
       });
       return;
     }
+
+    // The tour is a modal layer of its own: page shortcuts stay out of it.
+    if (hasOpenTourOverlay((selector) => document.querySelector(selector))) return;
 
     if (isTypingTarget(event.target)) return;
 

@@ -49,7 +49,11 @@
 
 {#if user}
   <details bind:this={menu} class="avatar-menu">
-    <summary class="avatar-trigger" aria-label="Account menu for {user.fullName}">
+    <summary
+      class="avatar-trigger"
+      data-tour="account-menu"
+      aria-label="Account menu for {user.fullName}"
+    >
       <span class="avatar" aria-hidden="true">{initialsFor(user.fullName)}</span>
       <ChevronDown size={14} aria-hidden="true" />
     </summary>
