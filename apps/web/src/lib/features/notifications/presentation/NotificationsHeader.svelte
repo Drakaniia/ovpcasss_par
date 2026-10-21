@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { NotificationFilter } from '@par/shared';
 
+  import TabIndicator from '$lib/components/TabIndicator.svelte';
+
   import { notificationFilterTabs } from '../application/notification-view';
 
   /** Page header and filter row (phase 11 §2). No filled primary action here. */
@@ -17,6 +19,8 @@
   } = $props();
 
   const tabs = notificationFilterTabs();
+
+  let filterRow: HTMLElement | undefined = $state();
 </script>
 
 <header class="page-header">
@@ -32,15 +36,17 @@
   {/if}
 </header>
 
-<nav class="filters" aria-label="Notification filters">
+<nav class="filters" aria-label="Notification filters" bind:this={filterRow}>
   {#each tabs as tab (tab.filter)}
     <a
       class="filter"
+      data-tab-key={tab.filter}
       class:is-active={tab.filter === filter}
       href={tab.href}
       aria-current={tab.filter === filter ? 'page' : undefined}>{tab.label}</a
     >
   {/each}
+  <TabIndicator row={filterRow} active={filter} />
 </nav>
 
 <style>
@@ -84,6 +90,7 @@
     display: flex;
     gap: 4px;
     margin-bottom: 16px;
+    position: relative;
   }
 
   .filter {
@@ -91,6 +98,9 @@
     color: var(--text-secondary);
     font-size: 13px;
     padding: 8px 12px;
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard);
   }
 
   .filter:hover {
@@ -100,7 +110,6 @@
   }
 
   .filter.is-active {
-    border-bottom-color: var(--primary);
     color: var(--primary);
     font-weight: 600;
   }

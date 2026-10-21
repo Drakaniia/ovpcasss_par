@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
 
+  import TabIndicator from '$lib/components/TabIndicator.svelte';
   import {
     activeNavId,
     isTabActive,
@@ -23,15 +24,22 @@
   /** The new-report wizard keeps primary nav and drops only the section tabs (D25). */
   const isWizard = $derived(page.url.pathname === '/reports/new');
   const showTabs = $derived(!isWizard && tabs.length > 1);
+
+  const activeTabHref = $derived(
+    tabs.find((tab) => isTabActive(tab.href, page.url.pathname, page.url.search))?.href ?? null,
+  );
+
+  let sectionRow: HTMLElement | undefined = $state();
 </script>
 
 {#if navItems.length > 0}
   <div class="nav-row">
     <div class="nav-inner">
-      <nav class="primary" aria-label="Primary">
+      <nav class="primary" aria-label="Primary" data-tour="primary-nav">
         {#each navItems as item (item.id)}
           <a
             class="nav-link"
+            data-tour="nav-{item.id}"
             class:is-active={section === item.id}
             href={item.href}
             aria-current={section === item.id ? 'page' : undefined}>{item.label}</a
@@ -40,16 +48,18 @@
       </nav>
 
       {#if showTabs}
-        <nav class="sections" aria-label="Section">
+        <nav class="sections" aria-label="Section" bind:this={sectionRow}>
           {#each tabs as tab (tab.href)}
             {@const active = isTabActive(tab.href, page.url.pathname, page.url.search)}
             <a
               class="tab"
+              data-tab-key={tab.href}
               class:is-active={active}
               href={tabHref(tab.href, page.url.search)}
               aria-current={active ? 'page' : undefined}>{tab.label}</a
             >
           {/each}
+          <TabIndicator row={sectionRow} active={activeTabHref} />
         </nav>
       {/if}
     </div>
@@ -112,6 +122,7 @@
     gap: calc(4px * var(--chrome-inverse));
     margin-left: auto;
     overflow-x: auto;
+    position: relative;
     scrollbar-width: none;
   }
 
@@ -127,6 +138,9 @@
     flex: none;
     font-size: calc(13px * var(--chrome-inverse));
     padding: 0 calc(12px * var(--chrome-inverse));
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard);
   }
 
   .tab:hover {
@@ -136,7 +150,6 @@
   }
 
   .tab.is-active {
-    border-bottom-color: var(--brand-navy-800);
     color: var(--brand-navy-800);
     font-weight: 500;
   }

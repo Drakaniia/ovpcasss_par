@@ -78,12 +78,22 @@
   /* 1 / webview zoom, so the titlebar keeps its drawn size at any scale. */
   --chrome-inverse: 1;
 
+  /* Motion (redesign spec D20). */
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 280ms;
+
   --radius-card: 6px;
   --radius-card-lg: 14px;
   --radius-badge: 4px;
   --shadow-card: 0 1px 2px rgb(15 26 51 / 6%);
   --shadow-raised: 0 8px 24px rgb(15 26 51 / 16%);
   --backdrop: rgb(15 26 51 / 45%);
+  /* First-run tour: a heavier scrim than a dialog, and the white halo that
+     separates the spotlight ring from busy page content. */
+  --backdrop-strong: rgb(15 26 51 / 62%);
+  --tour-halo: rgb(255 255 255 / 22%);
   /* Print always uses light values. */
   --print-surface: #ffffff;
   --print-text: #14203c;
