@@ -14,16 +14,6 @@ fix skelton loader ui
 
 month and year picker in the curent date picker
 
-Credentials: Password for all accounts: `par-dev-password-2026`
-
-| Email                   | Role      | Status                                  |
-| ----------------------- | --------- | --------------------------------------- |
-| `admin@example.edu`     | ADMIN     | ACTIVE                                  |
-| `submitter@example.edu` | SUBMITTER | ACTIVE                                  |
-| `reviewer@example.edu`  | REVIEWER  | ACTIVE                                  |
-| `approver@example.edu`  | APPROVER  | ACTIVE                                  |
-| `pending@example.edu`   | —         | PENDING_ROLE (awaiting-approval screen) |
-
 remove seed indicator in the dropdown ui s, its the official list..
 also apple-design the dropdown selectors.. indclude editable dropdown, deletable and addable, in the department, office, levels, etc
 
@@ -75,4 +65,37 @@ refine all with missign apple-design ui with simple implimentation, there are so
 
 add app origin in the wrangler worker api, or updarw it using wrangler so it wont just work locall 
 
-ctrol + k, also search for reports feaute
+ctrol + k, also search for reports feature.. — done 2026-10-21: palette searches every report the role can open (tracking, title, narrative, location, submitter, PIC), previews it, and Ctrl+K works while typing
+
+verification email did not send email
+
+did not sent to the eemail log in admin page
+
+"we could not update passowrd", what if the user login with google, why is there in the settings, current password input?, how to handle this, also it error "we could not update password try again error"
+
+no google oauth in the installed exe or msi file
+
+
+is the draft report only in suer localstoreage?
+
+---
+
+## Status audit — 2026-10-21
+
+Checked item by item against the working tree. `pnpm verify` (lint, typecheck, tests) passes.
+
+**Still open**
+
+- **Month and year picker**: `CalendarPopover` moves one month at a time; there is no month or year jump.
+- **Password reveal**: no show/hide control on the login, register, reset, or profile password inputs.
+- **Sign-in handoff illustration**: the "Return to the Paperless PAR app to continue." page is bare HTML in the shell; no image, prompt, or illustration exists.
+- **Interactive "How the Post-Activity Report works"**: not in the tree. The first-run tour covers navigation; no workflow explainer screen exists.
+- **Dropdown polish**: the wizard's classification fields use the apple-design `EditableSelect` (add/rename/remove); filter bars, admin filters, and search still use native `<select>`.
+- **Auth illustration regression**: `ParLine.svelte` and `par-line/` are deleted in the staged working tree, so the animated right-side auth SVG is currently absent.
+- **End-to-end QA**: no automated E2E suite; the phase 16 manual acceptance checklists remain unchecked.
+
+**Needs deployed configuration, not code**
+
+- Google sign-in in the installed MSI/EXE needs `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set as Worker secrets; the installer only carries the API URL.
+- Verification and approved mail need `EMAIL_API_KEY` and a verified sender on the deployed Worker.
+
