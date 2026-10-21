@@ -509,6 +509,13 @@ consumer is **not** added in this phase (§20).
 - Row action **Resend** (failed and suppressed rows only, with confirm): re-queues
   the same reference and creates a **new** outbox row, leaving the original as-is.
   Audit action `EMAIL_RESENT`. Rate limited to 10 per hour per admin.
+- Row action **View** (failed and suppressed rows only): `GET /emails/:id/message`
+  returns the stored copy — recipient, subject, and plain-text body — and the
+  dialog lists the links that body carries, each with a copy button. It is the
+  escape hatch for a misconfigured or unverified sender: the office can hand a
+  verification or reset link to its owner while delivery is broken. Read-only,
+  never re-rendered, no audit row; a row whose copy is gone answers
+  `409 EMAIL_MESSAGE_UNAVAILABLE`.
 - The admin inbox card's "failed emails" figure links here; it starts reading
   non-zero once §9.1 lands.
 - Tab added to the Admin section tabs (`navigation.ts`), after "Audit".

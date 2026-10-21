@@ -145,6 +145,19 @@ export const emailLogResponseSchema = z.object({
 export type EmailLogResponse = z.infer<typeof emailLogResponseSchema>;
 
 /**
+ * The stored copy of one message, read by an administrator while mail cannot be
+ * delivered and a verification or reset link has to be handed over by other
+ * means (email spec §9.4). `text` is the message as it was written, never a
+ * re-render of current state.
+ */
+export const emailMessageResponseSchema = z.object({
+  to: z.string().min(1),
+  subject: z.string(),
+  text: z.string(),
+});
+export type EmailMessageResponse = z.infer<typeof emailMessageResponseSchema>;
+
+/**
  * Workbook mailing (email spec §11.1). The export request is the same shape as
  * the download, so the mailed file cannot describe a different sheet.
  */

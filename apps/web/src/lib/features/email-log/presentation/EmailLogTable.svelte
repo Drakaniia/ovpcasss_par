@@ -12,10 +12,12 @@
     rows,
     resending,
     onresend,
+    onview,
   }: {
     rows: readonly EmailLogRow[];
     resending: string | null;
     onresend: (row: EmailLogRow) => void;
+    onview: (row: EmailLogRow) => void;
   } = $props();
 
   /** Status is never colour alone: every chip carries its word. */
@@ -66,6 +68,9 @@
           </td>
           <td class="actions">
             {#if row.canResend}
+              <button class="btn btn-outline btn-sm" type="button" onclick={() => onview(row)}>
+                View
+              </button>
               <button
                 class="btn btn-outline btn-sm"
                 type="button"
@@ -141,6 +146,10 @@
   .actions {
     text-align: right;
     white-space: nowrap;
+  }
+
+  .actions button + button {
+    margin-left: 6px;
   }
 
   .visually-hidden {

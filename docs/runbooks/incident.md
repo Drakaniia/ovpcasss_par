@@ -32,9 +32,15 @@ done.
 4. Check the queue consumer's structured logs (`wrangler tail`): retries and the
    dead-letter queue are `wrangler.toml` configuration (`max_retries = 5`,
    `par-email-dlq`).
-5. Verify the provider key and sender domain (`key-rotation.md`). The default
-   `onboarding@resend.dev` sender only delivers to the account owner.
-6. **Resend** from the failed row. It re-queues the stored message and creates a
+5. Verify the provider key and sender domain (`key-rotation.md`, `uploads.md`).
+   `403 The <domain> domain is not verified` on every row is a DNS problem, not a
+   key problem: resending will fail the same way until the domain is verified in
+   Resend and `EMAIL_FROM` uses it. The default `onboarding@resend.dev` sender
+   only delivers to the account owner.
+6. **View** the failed row: it opens the stored copy with its links, so a
+   verification or reset link can be sent to its owner by hand while delivery is
+   broken. Read-only, no delivery, nothing recorded in the audit trail.
+7. **Resend** from the failed row. It re-queues the stored message and creates a
    new outbox row; the original stays as it is. Ten resends an hour per admin.
    "The stored message is no longer available" means the rendered copy was lost —
    repeat the action that caused the mail instead.
