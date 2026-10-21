@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
+  import { OFFICE_EMAIL_ADDRESS } from '@par/shared';
   import { onMount, untrack } from 'svelte';
 
   import EmptyState from '$lib/components/EmptyState.svelte';
@@ -10,6 +11,7 @@
   import ExportForm from './ExportForm.svelte';
   import ExportPreviewDialog from './ExportPreviewDialog.svelte';
   import ExportPreviewTable from './ExportPreviewTable.svelte';
+  import SendWorkbookDialog from './SendWorkbookDialog.svelte';
 
   const state = new ExportState();
 
@@ -87,6 +89,7 @@
       downloading={state.downloading}
       ondownload={() => state.requestDownload()}
       ontemplate={() => void state.downloadTemplate()}
+      onsend={() => state.openSend()}
     />
 
     {#if state.templateError}
@@ -147,6 +150,16 @@
 {/if}
 
 {#if state.activeSheet}
+  <SendWorkbookDialog
+    bind:open={state.sendOpen}
+    termLabel="{state.semesterLabel(state.semester)} · SY {state.schoolYear}, {state.activeSheet
+      .sheetName}"
+    sending={state.sending}
+    error={state.sendError}
+    defaultRecipient={OFFICE_EMAIL_ADDRESS}
+    onsend={(recipients, note) => void state.send(recipients, note)}
+  />
+
   <ExportPreviewDialog
     bind:open={state.previewOpen}
     sheet={state.activeSheet}

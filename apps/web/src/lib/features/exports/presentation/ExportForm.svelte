@@ -13,6 +13,7 @@
     downloading = false,
     ondownload,
     ontemplate,
+    onsend,
   }: {
     schoolYears: readonly string[];
     semesters: readonly { value: 1 | 2; label: string }[];
@@ -25,6 +26,7 @@
     downloading?: boolean;
     ondownload: () => void;
     ontemplate: () => void;
+    onsend: () => void;
   } = $props();
 
   const TYPE_OPTIONS = [
@@ -92,6 +94,14 @@
   <div class="actions">
     <button class="btn btn-outline" type="button" onclick={ontemplate} disabled={downloading}>
       Blank template
+    </button>
+    <button
+      class="btn btn-outline"
+      type="button"
+      onclick={onsend}
+      disabled={!canDownload || downloading || previewLoading}
+    >
+      Send by email
     </button>
     <button
       class="btn btn-primary"
