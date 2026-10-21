@@ -6,5 +6,3 @@
 @import './lib/styles/accounts.css';
 @import './lib/styles/edit-returned.css';
 @import './lib/styles/facsimile.css';
-/* Reserved for the auth routing-line figure; not wired up yet. */
-/* @import './lib/styles/par-line.css'; */
