@@ -1,7 +1,8 @@
 import type { ReportStatus, ReportType, Semester } from '@par/shared';
-import { and, asc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 
 import type { Database } from '../client';
+import { users } from '../schema/identity';
 import { refCampuses, refSdgs, refTerms, refUnits } from '../schema/reference-data';
 import {
   reportPics,
@@ -45,6 +46,17 @@ export interface MonitoringReportFilter {
   from: string;
   to: string;
   statuses: readonly ReportStatus[];
+}
+
+/** One report waiting in a queue, with the clock the reminder sweep measures. */
+export interface WaitingReportRecord {
+  id: string;
+  trackingNumber: string | null;
+  title: string;
+  ownerUserId: string;
+  submitterName: string;
+  /** `submitted_at` for the review queue, `endorsed_at` for approval. */
+  since: string;
 }
 
 /** SQLite takes at most 999 bound values; ids are batched well below that. */
@@ -168,6 +180,42 @@ export function createMonitoringQueries(db: Database) {
           unitName: row.unitName ?? '',
         })),
       );
+    },
+
+    /**
+     * Reports waiting in one queue since at least `sinceIso` (email spec §10.1).
+     * The clock is the same column the queue screen sorts by, so a reminder can
+     * never disagree with the age the reviewer sees.
+     */
+    async listWaitingSince(
+      statuses: readonly ReportStatus[],
+      sinceIso: string,
+      clock: 'submittedAt' | 'endorsedAt',
+    ): Promise<WaitingReportRecord[]> {
+      const column = clock === 'endorsedAt' ? reports.endorsedAt : reports.submittedAt;
+
+      const rows = await db
+        .select({
+          id: reports.id,
+          trackingNumber: reports.trackingNumber,
+          title: reports.title,
+          ownerUserId: reports.ownerUserId,
+          submitterName: users.fullName,
+          since: column,
+        })
+        .from(reports)
+        .leftJoin(users, eq(reports.ownerUserId, users.id))
+        .where(and(inArray(reports.status, statuses), isNotNull(column), lte(column, sinceIso)))
+        .orderBy(asc(column));
+
+      return rows.map((row) => ({
+        id: row.id,
+        trackingNumber: row.trackingNumber,
+        title: row.title,
+        ownerUserId: row.ownerUserId,
+        submitterName: row.submitterName ?? '',
+        since: row.since ?? '',
+      }));
     },
 
     async findByTrackingNumbers(numbers: readonly string[]): Promise<Map<string, ReportRow>> {
