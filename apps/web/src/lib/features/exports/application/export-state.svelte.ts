@@ -68,6 +68,10 @@ export class ExportState {
   templateError = $state<string | null>(null);
   /** The review modal that stands between the form and the download. */
   previewOpen = $state(false);
+  /** The send dialog (email spec §11.4, phase 17 §6). */
+  sendOpen = $state(false);
+  sending = $state(false);
+  sendError = $state<string | null>(null);
 
   usableTerms = $derived(this.terms.filter((term) => term.semester === 1 || term.semester === 2));
   hasTerms = $derived(this.usableTerms.length > 0);
@@ -207,6 +211,41 @@ export class ExportState {
       };
     } finally {
       this.downloading = false;
+    }
+  }
+
+  openSend(): void {
+    if (!this.canDownload || this.sending) return;
+    this.sendError = null;
+    this.sendOpen = true;
+  }
+
+  /** Queues the same workbook the download would write, for 1–5 recipients. */
+  async send(recipients: string[], note?: string): Promise<void> {
+    if (this.sending) return;
+
+    this.sending = true;
+    this.sendError = null;
+
+    try {
+      const result = await api.exports.send({
+        ...this.request,
+        to: recipients,
+        ...(note ? { note } : {}),
+      });
+      this.sendOpen = false;
+      toast.success(
+        result.queued === 1
+          ? 'Workbook queued for delivery to 1 recipient'
+          : `Workbook queued for delivery to ${result.queued} recipients`,
+      );
+    } catch (error) {
+      this.sendError =
+        error instanceof ApiError
+          ? error.message
+          : 'The workbook was not queued. Check your connection and try again.';
+    } finally {
+      this.sending = false;
     }
   }
 
