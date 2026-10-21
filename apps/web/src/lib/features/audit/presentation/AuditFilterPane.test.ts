@@ -52,6 +52,19 @@ describe('AuditFilterPane', () => {
     expect(body).toContain('Session');
   });
 
+  it('labels each end of the date range visibly', () => {
+    const { body } = renderPane();
+
+    const labelFor = (id: string) =>
+      body.match(new RegExp(`<label[^>]*for="${id}"[^>]*>[^<]*</label>`))?.[0] ?? '';
+
+    expect(labelFor('filter-date-from')).toContain('From');
+    expect(labelFor('filter-date-to')).toContain('To');
+    // A screen-reader-only label leaves the two ends indistinguishable on screen.
+    expect(labelFor('filter-date-from')).not.toContain('sr-only');
+    expect(labelFor('filter-date-to')).not.toContain('sr-only');
+  });
+
   it('shows inline error and disables apply when from date is after to date', () => {
     const { body } = renderPane({
       ...DEFAULT_AUDIT_FILTERS,

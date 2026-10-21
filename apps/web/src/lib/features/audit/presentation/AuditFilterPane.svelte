@@ -146,7 +146,7 @@
       <legend class="field-label">Date range (Asia/Manila)</legend>
       <div class="date-inputs">
         <div class="date-col">
-          <label class="sr-only" for="filter-date-from">From date</label>
+          <label class="sub-label" for="filter-date-from">From</label>
           <DatePicker
             id="filter-date-from"
             label="From date"
@@ -158,9 +158,8 @@
             onchange={(iso) => (draft.from = iso)}
           />
         </div>
-        <span class="date-sep" aria-hidden="true">–</span>
         <div class="date-col">
-          <label class="sr-only" for="filter-date-to">To date</label>
+          <label class="sub-label" for="filter-date-to">To</label>
           <DatePicker
             id="filter-date-to"
             label="To date"
@@ -265,6 +264,9 @@
     flex-direction: column;
     gap: 4px;
     margin: 0;
+    /* A fieldset defaults to min-inline-size: min-content, which would let the
+       pane's own controls set the pane's width. */
+    min-width: 0;
     padding: 0;
   }
 
@@ -297,19 +299,19 @@
     outline: 2px solid var(--focus-ring);
   }
 
+  /* Stacked: two date inputs side by side cannot both show "DD MMM YYYY" inside
+     the 320 px pane, and a clipped placeholder is unreadable. */
   .date-inputs {
-    align-items: center;
     display: flex;
-    gap: 6px;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .date-col {
-    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     min-width: 0;
-  }
-
-  .date-sep {
-    color: var(--text-secondary);
   }
 
   .status-inputs {
