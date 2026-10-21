@@ -108,7 +108,7 @@
   <div class="spacer" data-tauri-drag-region></div>
 
   <div class="tools">
-    <button class="search" type="button" onclick={openPalette}>
+    <button class="search" type="button" data-tour="titlebar-search" onclick={openPalette}>
       <Search size={15} aria-hidden="true" />
       <span>Search</span>
     </button>

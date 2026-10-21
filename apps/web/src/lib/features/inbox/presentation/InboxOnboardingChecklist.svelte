@@ -10,7 +10,11 @@
   const completed = $derived(completedStepCount(steps));
 </script>
 
-<section class="card onboarding" aria-labelledby="onboarding-title">
+<section
+  class="card onboarding"
+  data-tour="onboarding-checklist"
+  aria-labelledby="onboarding-title"
+>
   <header class="head">
     <div>
       <h2 id="onboarding-title">Get started</h2>

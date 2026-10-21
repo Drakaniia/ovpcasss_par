@@ -102,8 +102,10 @@ export const MENUS: readonly MenuDefinition[] = [
     label: 'Help',
     mnemonic: 'H',
     items: [
+      { id: 'help.tour', label: 'Take the guided tour' },
+      { id: 'help.reset-onboarding', label: 'Reset onboarding' },
       { id: 'help.shortcuts', label: 'Keyboard shortcuts', accelerator: '?' },
-      { id: 'help.about', label: 'About Paperless PAR' },
+      { id: 'help.about', label: 'About Paperless PAR', separatorBefore: true },
     ],
   },
 ];
@@ -220,7 +222,8 @@ export function buildMenus(inputs: MenuInputs): ResolvedMenu[] {
 function statefulLabel(item: MenuItemDefinition, inputs: MenuInputs): string {
   const override = inputs.label(item.id);
   if (override) return override;
-  if (item.id === 'window.toggle-maximize') return inputs.maximized ? 'Restore' : 'Maximize';
+  if (item.id === 'window.toggle-maximize')
+    return inputs.maximized || inputs.fullscreen ? 'Restore' : 'Maximize';
   return item.label;
 }
 

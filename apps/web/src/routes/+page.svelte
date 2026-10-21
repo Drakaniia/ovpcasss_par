@@ -7,6 +7,7 @@
   import { ApiError } from '$lib/api/http';
   import ErrorState from '$lib/components/ErrorState.svelte';
   import { destinationAfterSignIn } from '$lib/features/auth/application/post-sign-in';
+  import { setHomeInboxStatus } from '$lib/features/onboarding/application/tour-controller.svelte';
   import InboxPageHeader from '$lib/features/inbox/presentation/InboxPageHeader.svelte';
   import InboxSkeleton from '$lib/features/inbox/presentation/InboxSkeleton.svelte';
   import WorkInbox from '$lib/features/inbox/presentation/WorkInbox.svelte';
@@ -22,6 +23,8 @@
   async function load() {
     loaded = false;
     failure = null;
+    // Nothing opens on the skeleton; the tour waits for a painted inbox.
+    setHomeInboxStatus('idle');
 
     try {
       const account = await loadSession();
@@ -43,6 +46,7 @@
       }
 
       inbox = await api.inbox.get();
+      setHomeInboxStatus('ready');
     } catch (error) {
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
         clearSession();
@@ -51,6 +55,8 @@
       }
 
       failure = { requestId: error instanceof ApiError ? error.requestId : undefined };
+      // Stay armed: the next successful Home load may open the tour.
+      setHomeInboxStatus('failed');
     } finally {
       loaded = true;
     }
@@ -58,6 +64,8 @@
 
   onMount(() => {
     void load();
+
+    return () => setHomeInboxStatus('idle');
   });
 </script>
 
