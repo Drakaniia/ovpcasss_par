@@ -1,10 +1,10 @@
 <script lang="ts">
-  import AuthLayout from '$lib/components/AuthLayout.svelte';
+  import AuthLayoutNoBackground from '$lib/components/AuthLayoutNoBackground.svelte';
   import RegisterForm from '$lib/features/auth/presentation/RegisterForm.svelte';
 </script>
 
 <svelte:head><title>Create an account · OVPCASSS Paperless PAR</title></svelte:head>
 
-<AuthLayout heading="Create an account">
+<AuthLayoutNoBackground heading="Create an account">
   <RegisterForm />
-</AuthLayout>
+</AuthLayoutNoBackground>

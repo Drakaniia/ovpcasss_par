@@ -1,46 +1,76 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import AuthTitleBar from '$lib/features/window-chrome/presentation/AuthTitleBar.svelte';
 
-  let { children, heading }: { children: import('svelte').Snippet; heading: string } = $props();
+  let {
+    children,
+    heading,
+    showMachine = true,
+    showScene = true,
+  }: {
+    children: import('svelte').Snippet;
+    heading: string;
+    showMachine?: boolean;
+    showScene?: boolean;
+  } = $props();
+
+  let frame: HTMLIFrameElement | undefined = $state();
+  let frameHeight = $state(520);
+
+  onMount(() => {
+    if (!frame) return;
+    const resize = new ResizeObserver(([entry]) => {
+      frameHeight = 104 + Math.max(0, entry.contentRect.width - 48) * (390 / 640);
+    });
+    resize.observe(frame);
+    return () => resize.disconnect();
+  });
 </script>
 
 <AuthTitleBar />
 
 <div class="auth-page">
-  <div class="auth-decor" aria-hidden="true">
-    <span class="auth-corner-tl"></span>
-    <span class="auth-corner-tl-navy"></span>
-    <span class="auth-band-br"></span>
-    <span class="auth-scene"></span>
-  </div>
+  {#if showScene}
+    <div class="auth-scene" aria-hidden="true"></div>
+  {/if}
 
-  <div class="auth-stack">
-    <div class="auth-brand">
-      <img
-        class="auth-logo"
-        src="/brand/ovpcasss-logo.png"
-        alt="OVPCASSS — Office of the Vice President for Culture, Arts, Sports and Student Services"
-        width="2172"
-        height="724"
-      />
-      <p class="auth-wordmark">OVPCASSS Paperless PAR</p>
-      <h1 class="auth-heading">{heading}</h1>
+  <div class="auth-layout" class:with-machine={showMachine}>
+    <div class="auth-stack">
+      <div class="auth-brand">
+        <img
+          class="auth-logo"
+          src="/brand/ovpcasss-logo.png"
+          alt="OVPCASSS — Office of the Vice President for Culture, Arts, Sports and Student Services"
+          width="2172"
+          height="724"
+        />
+        <p class="auth-wordmark">OVPCASSS Paperless PAR</p>
+        <h1 class="auth-heading">{heading}</h1>
+      </div>
+
+      <main class="auth-card card">
+        {@render children()}
+      </main>
+
+      <p class="auth-footer">Authorized use only. Activity is recorded in the audit log.</p>
     </div>
 
-    <main class="auth-card card">
-      {@render children()}
-    </main>
-
-    <p class="auth-footer">Authorized use only. Activity is recorded in the audit log.</p>
+    {#if showMachine}
+      <figure class="auth-figure">
+        <iframe
+          bind:this={frame}
+          class="auth-figure-frame"
+          src="/brand/par-machine.html"
+          title="Figure 1. Isometric drawing of a sorting machine for the Post-Activity Report workflow: an intake tray, a tracking-number stamper, a reviewer's desk, a return chute, an approver's seal press, and a glass archive cylinder beneath a seven-position status dial."
+          style={`height:${frameHeight}px`}
+        ></iframe>
+      </figure>
+    {/if}
   </div>
 </div>
 
 <style>
   .auth-page {
-    /* The corner wedges mirror the diagonal bands baked into campus.png at the
-       lower right (dx/dy ≈ 0.54), so both accents share one angle. */
-    --auth-wedge-height: clamp(150px, 26vh, 320px);
-    --auth-wedge-width: calc(var(--auth-wedge-height) * 0.54);
     align-items: center;
     background: var(--surface-auth);
     color: var(--text-auth);
@@ -59,74 +89,46 @@
     padding-top: calc(var(--titlebar-height) + 48px);
   }
 
-  /* Decorative corner accents from the auth reference sheet. Clipped to their
-     own layer so they can never widen the page. */
-  .auth-decor {
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
-    position: absolute;
-    z-index: 0;
-  }
-
-  .auth-corner-tl,
-  .auth-corner-tl-navy,
-  .auth-band-br,
-  .auth-scene {
-    display: block;
-    position: absolute;
-  }
-
-  .auth-corner-tl-navy {
-    background: var(--brand-navy-900);
-    clip-path: polygon(0 0, 72% 0, 0 72%);
-    height: var(--auth-wedge-height);
-    left: 0;
-    top: 0;
-    width: var(--auth-wedge-width);
-  }
-
-  .auth-corner-tl {
-    background: var(--auth-band);
-    clip-path: polygon(0 0, 100% 0, 0 100%);
-    height: var(--auth-wedge-height);
-    left: 0;
-    top: 0;
-    width: var(--auth-wedge-width);
-  }
-
-  .auth-band-br {
-    background: var(--auth-band);
-    bottom: 0;
-    clip-path: polygon(100% 0, 100% 100%, 0 100%);
-    height: var(--auth-wedge-height);
-    right: 0;
-    width: var(--auth-wedge-width);
-  }
-
+  /* The stack owns the vertical seat: auto margins split the free space when the
+     viewport is tall, and collapse to zero the moment the content fills it. */
+  /* The photograph is a faint wash in the lower-right corner: lightened, then
+     faded as a whole so the paper tone shows through it. */
   .auth-scene {
     background: url('/brand/campus.png') right bottom / contain no-repeat;
     bottom: 0;
-    /* The photograph is a faint wash behind the page: lightened, then faded as a
-       whole so the paper tone shows through it. */
     filter: brightness(1.18) saturate(1.04);
     height: clamp(200px, 42vh, 620px);
     opacity: 0.62;
+    pointer-events: none;
+    position: absolute;
     right: 0;
     width: clamp(240px, 42vw, 780px);
   }
 
-  /* The stack owns the vertical seat: auto margins split the free space when the
-     viewport is tall, and collapse to zero the moment the content fills it. */
+  .auth-layout {
+    align-items: center;
+    display: grid;
+    grid-template-columns: minmax(0, 440px);
+    justify-content: center;
+    margin-block: auto;
+    position: relative;
+    width: 100%;
+    z-index: 1;
+  }
+
+  .auth-layout.with-machine {
+    gap: clamp(32px, 5vw, 72px);
+    grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
+    justify-content: normal;
+    padding-inline-start: clamp(0px, 8vw, 160px);
+  }
+
   .auth-stack {
     align-items: center;
     display: flex;
     flex-direction: column;
     gap: clamp(16px, 3vh, 28px);
-    margin-block: auto;
-    position: relative;
     width: 100%;
-    z-index: 1;
   }
 
   .auth-brand {
@@ -135,6 +137,7 @@
     flex-direction: column;
     gap: 10px;
     text-align: center;
+    width: 100%;
   }
 
   .auth-logo {
@@ -151,6 +154,7 @@
     letter-spacing: -0.01em;
     line-height: 1.2;
     margin: clamp(10px, 2vh, 18px) 0 0;
+    white-space: nowrap;
   }
 
   .auth-heading {
@@ -179,12 +183,31 @@
     text-align: center;
   }
 
-  /* Small screens: tighter seat, smaller mark, no photograph behind the text. */
-  @media (max-width: 640px) {
-    .auth-page {
-      --auth-wedge-height: 120px;
+  .auth-figure {
+    margin: 0;
+    width: 100%;
+  }
+
+  .auth-figure-frame {
+    border: 0;
+    display: block;
+    width: 100%;
+  }
+
+  @media (max-width: 1080px) {
+    .auth-layout.with-machine {
+      grid-template-columns: minmax(0, 440px);
+      justify-content: center;
+      padding-inline-start: 0;
     }
 
+    .auth-figure {
+      display: none;
+    }
+  }
+
+  /* Small screens: tighter seat, smaller mark, no photograph behind the text. */
+  @media (max-width: 640px) {
     .auth-logo {
       width: min(72vw, 300px);
     }
@@ -198,7 +221,6 @@
      before the content does. */
   @media (max-height: 700px) {
     .auth-page {
-      --auth-wedge-height: 120px;
       padding-block: 24px 16px;
     }
 
