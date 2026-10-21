@@ -2,6 +2,7 @@ import { createIdempotencyQueries, type ReportRow } from '@par/db';
 import {
   reportFormSchema,
   reportListQuerySchema,
+  reportSearchQuerySchema,
   type ReportDraftForm,
   type ReportStatus,
   type SubmitReportResponse,
@@ -14,7 +15,8 @@ import { requireSession } from '../../middleware/auth';
 import { requireRole } from '../../middleware/authorize';
 import { buildReportDetail } from './application/report-detail';
 import { reportListFilter } from './application/report-list';
-import { canEditReport, canViewReport } from './domain/report-access';
+import { toReportSearchItem } from './application/report-search';
+import { canEditReport, canViewReport, reportSearchScope } from './domain/report-access';
 import { toDetailForm, toReportHead, toReportListItem } from './application/report-shape';
 import { submitReportRow, validateStoredReport } from './application/report-workflow';
 import {
@@ -109,6 +111,29 @@ reportRoutes.get('/', async (c) => {
     size: parsed.data.size,
     facets,
   });
+});
+
+/**
+ * The command palette's report half (phase 12 §4). Registered before `/:id`,
+ * which would otherwise read `search` as a report id. The scope is the same
+ * rule `canViewReport` enforces row by row, applied in the query.
+ */
+reportRoutes.get('/search', async (c) => {
+  const viewer = viewerOf(c);
+  if (!viewer) return unauthorized(c);
+
+  const parsed = reportSearchQuerySchema.safeParse(c.req.query());
+  if (!parsed.success) return invalid(c, parsed.error.issues, 'That search is not valid');
+
+  const stack = reportDependencies(c);
+  const term = parsed.data.q ?? '';
+  const rows = await stack.read.search({
+    ...(term ? { term } : {}),
+    scope: reportSearchScope(viewer),
+    limit: parsed.data.limit,
+  });
+
+  return c.json({ items: rows.map((row) => toReportSearchItem(row, term)) });
 });
 
 reportRoutes.post('/', requireRole('SUBMITTER'), async (c) => {

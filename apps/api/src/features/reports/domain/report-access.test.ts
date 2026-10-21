@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { canDecide, canEditReport, canViewReport } from './report-access';
+import { canDecide, canEditReport, canViewReport, reportSearchScope } from './report-access';
 
 describe('report access', () => {
   it('limits a submitter to their own reports', () => {
@@ -24,6 +24,14 @@ describe('report access', () => {
     expect(canEditReport(submitter, 'u1', 'RETURNED_BY_APPROVER')).toBe(true);
     expect(canEditReport(submitter, 'u1', 'SUBMITTED')).toBe(false);
     expect(canEditReport({ userId: 'u2', role: 'REVIEWER' }, 'u1', 'DRAFT')).toBe(false);
+  });
+
+  it('scopes a report search to the owner for a submitter, and to everyone else unfiltered', () => {
+    expect(reportSearchScope({ userId: 'u1', role: 'SUBMITTER' })).toEqual({ ownerUserId: 'u1' });
+
+    for (const role of ['REVIEWER', 'APPROVER', 'ADMIN'] as const) {
+      expect(reportSearchScope({ userId: 'u1', role })).toEqual({});
+    }
   });
 
   it('never lets a submitter decide on their own report', () => {

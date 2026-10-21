@@ -5,6 +5,8 @@ import {
   reportDetailSchema,
   reportListQuerySchema,
   reportPdfResponseSchema,
+  reportSearchQuerySchema,
+  reportSearchResponseSchema,
 } from './reports';
 
 const detail = {
@@ -103,6 +105,60 @@ describe('reportListQuerySchema', () => {
 
   it('rejects a page size the table cannot show', () => {
     expect(reportListQuerySchema.safeParse({ size: '30' }).success).toBe(false);
+  });
+});
+
+describe('reportSearchQuerySchema', () => {
+  it('accepts the empty query that asks for the recent group', () => {
+    expect(reportSearchQuerySchema.parse({})).toEqual({ limit: 8 });
+  });
+
+  it('rejects a one-character query rather than searching the world', () => {
+    expect(reportSearchQuerySchema.safeParse({ q: 'c' }).success).toBe(false);
+    expect(reportSearchQuerySchema.parse({ q: 'co' }).q).toBe('co');
+  });
+
+  it('caps the number of rows the palette can ask for', () => {
+    expect(reportSearchQuerySchema.safeParse({ limit: '21' }).success).toBe(false);
+    expect(reportSearchQuerySchema.parse({ limit: '5' }).limit).toBe(5);
+  });
+});
+
+describe('reportSearchResponseSchema', () => {
+  const item = {
+    id: 'r1',
+    ownerUserId: 'u1',
+    trackingNumber: 'OFF-2026-0014',
+    title: 'Coastal cleanup',
+    type: 'OFF_CAMPUS',
+    classification: 'CURRICULAR',
+    status: 'SUBMITTED',
+    activityStartDate: '2026-03-12',
+    activityEndDate: '2026-03-13',
+    updatedAt: '2026-03-14T01:12:00.000Z',
+    ownerName: 'M. Santos',
+    unitName: 'College of Arts and Sciences',
+  };
+
+  it('accepts a recent row with no match reason', () => {
+    const parsed = reportSearchResponseSchema.parse({ items: [item] });
+
+    expect(parsed.items[0]?.matched).toBeUndefined();
+    expect(parsed.items[0]?.trackingNumber).toBe('OFF-2026-0014');
+  });
+
+  it('names the field a hit came from', () => {
+    const parsed = reportSearchResponseSchema.parse({
+      items: [{ ...item, matched: 'narrative', snippet: '…the cleanup…' }],
+    });
+
+    expect(parsed.items[0]?.matched).toBe('narrative');
+  });
+
+  it('rejects an unknown match reason', () => {
+    expect(
+      reportSearchResponseSchema.safeParse({ items: [{ ...item, matched: 'vibes' }] }).success,
+    ).toBe(false);
   });
 });
 
