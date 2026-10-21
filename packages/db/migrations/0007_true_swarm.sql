@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `has_password` integer DEFAULT true NOT NULL;
