@@ -19,6 +19,8 @@ import {
 
 import type { Env } from '../../../env';
 import { createId } from '../../../lib/ids';
+import { approvalAttachment } from './approval-attachment';
+import { sendSubmissionReceipt } from './receipt-mail';
 import {
   notifyApproved,
   notifyEndorsed,
@@ -45,6 +47,8 @@ export interface WorkflowDependencies {
   requirements: readonly Requirement[];
   env: Env;
   now: string;
+  /** The app's origin, so mail carries absolute links (email spec D7). */
+  origin?: string;
 }
 
 export type WorkflowFailure = { kind: 'invalid'; issues: ValidationIssue[] } | { kind: 'conflict' };
@@ -146,7 +150,21 @@ export async function submitReportRow(
   if (!changed) return { kind: 'conflict' };
 
   await deps.write.replaceLists(changed.id, submitted.sdgIds, submitted.pics);
-  await notifySubmitted(deps.env, changed, options.actor, options.resubmit);
+
+  const revisionRound = options.resubmit
+    ? (await deps.write.countReturns(changed.id)) + 1
+    : undefined;
+  await notifySubmitted(deps.env, changed, options.actor, {
+    resubmitted: options.resubmit,
+    ...(revisionRound === undefined ? {} : { revisionRound }),
+    ...(deps.origin === undefined ? {} : { origin: deps.origin }),
+  });
+
+  // The receipt is the submitter's proof of filing and never repeats (email spec §5.1).
+  if (!options.resubmit) {
+    const submitter = await deps.users.findById(changed.ownerUserId);
+    await sendSubmissionReceipt(deps.env, changed, submitter, deps.origin);
+  }
 
   return {
     kind: 'ok',
@@ -241,9 +259,10 @@ export async function decideReportRow(
   }
 
   if (input.kind === 'ENDORSE') {
-    await notifyEndorsed(deps.env, changed, input.actor);
+    await notifyEndorsed(deps.env, changed, input.actor, deps.origin);
   } else if (input.kind === 'APPROVE') {
-    await notifyApproved(deps.env, changed, input.submitter);
+    const attachment = await approvalAttachment(deps.env, changed);
+    await notifyApproved(deps.env, changed, input.submitter, attachment, input.actor, deps.origin);
   } else {
     await notifyReturned(
       deps.env,
@@ -252,6 +271,7 @@ export async function decideReportRow(
       input.actor,
       returnComment ?? '',
       input.notifySubmitter ?? true,
+      deps.origin,
     );
   }
 

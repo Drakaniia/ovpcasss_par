@@ -3,11 +3,28 @@ import type { AdminUser, Role } from '@par/shared';
 import type { Context } from 'hono';
 
 import type { AppEnv } from '../../../env';
+import {
+  sendAccountActivatedEmail,
+  sendAccountDisabledEmail,
+  sendRoleAssignedEmail,
+} from '../../../email/auth-mail';
 import { recordAudit } from '../../../lib/audit';
 import { toAdminUser } from '../../../lib/user-view';
 import { notify } from '../../notifications/application/notify';
 import { isSelfTarget } from '../domain/admin-guard';
 import { roleLabel, statusAfterRoleAssignment } from '../domain/role-change';
+
+/** What each role lets the account do, in the words the assignment mail uses. */
+const ROLE_DESCRIPTIONS: Record<Role, string> = {
+  SUBMITTER:
+    'A Submitter prepares post-activity reports, uploads the supporting documents, and files them for review.',
+  REVIEWER:
+    'A Reviewer reads submitted reports and either endorses them to the approving officer or returns them with comments.',
+  APPROVER:
+    'An Approver reads endorsed reports, approves them with a signature, or returns them for further revision.',
+  ADMIN:
+    'An Administrator manages accounts, reference data, and the audit trail, and may stand in for the other roles.',
+};
 
 /** Every mutating action reports one of these; the route turns it into HTTP. */
 export type AdminActionResult =
@@ -52,7 +69,14 @@ export async function assignRole(
     kind: 'ACCOUNT',
     description: `Your role was assigned: ${roleLabel(role)}`,
     target: { kind: 'home' },
-    email: { to: updated.email, recipientName: updated.fullName },
+  });
+
+  await sendRoleAssignedEmail(c.env, {
+    to: updated.email,
+    fullName: updated.fullName,
+    origin: new URL(c.req.url).origin,
+    roleLabel: roleLabel(role),
+    roleDescription: ROLE_DESCRIPTIONS[role],
   });
 
   return { status: 'ok', user: toAdminUser(updated) };
@@ -87,6 +111,19 @@ export async function approveUser(
     toStatus: 'ACTIVE',
   });
 
+  await notify(c.env, {
+    userId: targetId,
+    kind: 'ACCOUNT',
+    description: 'Your account is active.',
+    target: { kind: 'home' },
+  });
+
+  await sendAccountActivatedEmail(c.env, {
+    to: updated.email,
+    fullName: updated.fullName,
+    origin: new URL(c.req.url).origin,
+  });
+
   return { status: 'ok', user: toAdminUser(updated) };
 }
 
@@ -118,6 +155,9 @@ export async function disableUser(
     fromStatus: target.status,
     toStatus: 'DISABLED',
   });
+
+  // No inbox row: a disabled account cannot read its inbox. The mail is the notice.
+  await sendAccountDisabledEmail(c.env, { to: updated.email, fullName: updated.fullName });
 
   return { status: 'ok', user: toAdminUser(updated) };
 }

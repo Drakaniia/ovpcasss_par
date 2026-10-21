@@ -57,6 +57,7 @@ export async function workflowFor(
     requirements,
     env: c.env,
     now: new Date().toISOString(),
+    origin: new URL(c.req.url).origin,
   };
 }
 
