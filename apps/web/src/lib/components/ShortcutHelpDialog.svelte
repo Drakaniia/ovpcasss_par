@@ -109,18 +109,25 @@
   .close {
     align-items: center;
     background: transparent;
-    border-radius: 4px;
+    border-radius: var(--radius-card);
     color: var(--text-secondary);
     display: inline-flex;
     flex: none;
     height: 32px;
     justify-content: center;
+    transition:
+      background-color var(--duration-fast) ease,
+      transform 100ms ease-out;
     width: 32px;
   }
 
   .close:hover {
     background: var(--surface-page);
     color: var(--text-primary);
+  }
+
+  .close:active {
+    transform: scale(0.94);
   }
 
   /* One scroll region: the head and the note stay put. */
@@ -130,8 +137,15 @@
     padding: 4px 20px 16px;
   }
 
+  /* Groups are separated by a hairline; rows inside one group are not. A rule
+     between every row turns a short list into a table. */
   .group {
-    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    padding: 14px 0 4px;
+  }
+
+  .group:first-child {
+    border-top: 0;
   }
 
   .group-title {
@@ -139,22 +153,22 @@
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.08em;
-    margin: 0 0 6px;
+    margin: 0 0 4px;
     text-transform: uppercase;
   }
 
   .row {
     align-items: center;
-    border-top: 1px solid var(--border);
     display: flex;
     gap: 16px;
     justify-content: space-between;
-    min-height: 36px;
-    padding: 6px 0;
+    min-height: 34px;
+    padding: 3px 0;
   }
 
   .row-label {
     font-size: 13px;
+    text-wrap: pretty;
   }
 
   .note {

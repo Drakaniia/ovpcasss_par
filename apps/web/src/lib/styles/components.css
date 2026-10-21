@@ -45,7 +45,16 @@
     height: 32px;
     justify-content: center;
     padding: 0 12px;
+    transition:
+      background-color var(--duration-fast) ease,
+      border-color var(--duration-fast) ease,
+      transform 100ms ease-out;
     white-space: nowrap;
+  }
+
+  /* The press is the acknowledgement: it lands on pointer-down, not on release. */
+  .btn:active:not(:disabled) {
+    transform: scale(0.97);
   }
 
   .btn:disabled {
@@ -136,7 +145,24 @@
     font-size: 14px;
     min-height: 32px;
     padding: 6px 10px;
+    transition:
+      border-color var(--duration-fast) ease,
+      box-shadow var(--duration-base) ease;
     width: 100%;
+  }
+
+  .input:hover:not(:disabled),
+  .textarea:hover:not(:disabled),
+  .select:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--text-primary) 22%, var(--border));
+  }
+
+  .input:focus-visible,
+  .textarea:focus-visible,
+  .select:focus-visible {
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 16%, transparent);
+    outline: none;
   }
 
   .textarea {
@@ -175,15 +201,6 @@
       box-shadow 160ms ease;
   }
 
-  .select:hover:not(:disabled) {
-    border-color: color-mix(in srgb, var(--text-primary) 22%, var(--border));
-  }
-
-  .select:focus-visible {
-    border-color: var(--focus-ring);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 16%, transparent);
-  }
-
   .select:disabled {
     cursor: not-allowed;
   }
@@ -204,6 +221,13 @@
     display: flex;
     font-size: 12px;
     gap: 6px;
+  }
+
+  /* A small link that sits with a field, such as "Forgot your password?". */
+  .field-action {
+    font-size: 13px;
+    margin: 0 0 6px;
+    text-align: right;
   }
 
   .input[aria-invalid='true'],
@@ -280,6 +304,7 @@
 
   .data-table tbody tr {
     cursor: pointer;
+    transition: background-color var(--duration-fast) ease;
   }
 
   .data-table tbody tr:hover {
@@ -308,15 +333,23 @@
 
   /* ---------- Misc shared ---------- */
 
+  /* A keycap, not a label in a box: the thicker foot gives it something to sit
+     on, and the inset highlight reads as the lit top of a physical key. */
   .kbd {
     background: var(--surface-page);
     border: 1px solid var(--border);
+    border-bottom-width: 2px;
     border-radius: 4px;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 70%);
     color: var(--text-secondary);
+    display: inline-block;
     font-family: var(--font-mono);
     font-size: 11px;
-    line-height: 1;
-    padding: 3px 5px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    min-width: 20px;
+    padding: 2px 5px;
+    text-align: center;
   }
 
   /* One loading placeholder for the whole app. Motion is a slow breath in the
@@ -340,16 +373,35 @@
     }
   }
 
+  /*
+   * The scrim is a material, not a black sheet: it blurs the page behind it and
+   * arrives with the surface, so the two read as one layer being placed on top.
+   */
   dialog::backdrop {
+    -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    backdrop-filter: blur(var(--backdrop-blur));
     background: var(--backdrop);
+    overscroll-behavior: contain;
+  }
+
+  dialog[open]::backdrop {
+    animation: backdrop-in var(--duration-base) ease-out;
+  }
+
+  @keyframes backdrop-in {
+    from {
+      -webkit-backdrop-filter: blur(0);
+      backdrop-filter: blur(0);
+      opacity: 0;
+    }
   }
 
   /* Tailwind's preflight resets the UA `margin: auto`, so centre dialogs explicitly. */
   .dialog {
     background: var(--surface-card);
     border: 0;
-    border-radius: var(--radius-card);
-    box-shadow: var(--shadow-raised);
+    border-radius: var(--radius-card-lg);
+    box-shadow: var(--shadow-floating);
     color: var(--text-primary);
     margin: auto;
     max-width: 440px;
@@ -357,14 +409,38 @@
     width: calc(100vw - 48px);
   }
 
+  /* Materialize: the surface clears and settles into place instead of popping in. */
+  .dialog[open] {
+    transition:
+      opacity var(--duration-base) var(--ease-standard),
+      transform var(--duration-base) var(--ease-standard);
+  }
+
+  @starting-style {
+    .dialog[open] {
+      opacity: 0;
+      transform: translateY(8px) scale(0.985);
+    }
+  }
+
   .dialog-title {
     font-size: 18px;
+    letter-spacing: -0.011em;
     font-weight: 600;
+  }
+
+  /* A frosted layer would lose legibility on frosted paper: go solid instead. */
+  @media (prefers-reduced-transparency: reduce) {
+    dialog::backdrop {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      background: rgb(15 26 51 / 55%);
+    }
   }
 
   .toast {
     align-items: flex-start;
-    animation: toast-in 120ms ease-out;
+    animation: toast-in var(--duration-base) var(--ease-standard);
     background: var(--surface-card);
     border: 1px solid var(--border);
     border-left: 3px solid var(--text-secondary);
