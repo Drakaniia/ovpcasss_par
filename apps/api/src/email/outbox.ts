@@ -68,6 +68,17 @@ export async function readStoredMessage(env: Env, key: string): Promise<StoredMe
   }
 }
 
+/**
+ * The copy stored for one outbox row, or null when there is no key or R2 no
+ * longer holds it. Shared by the admin resend and the read-only message view, so
+ * both answer from the same stored bytes (email spec §9.4).
+ */
+export async function readRowMessage(env: Env, payload: string): Promise<StoredMessage | null> {
+  const reference = readPayload(payload);
+  if (!reference?.messageKey) return null;
+  return readStoredMessage(env, reference.messageKey);
+}
+
 export interface OutboxMessage {
   kind: EmailKind;
   to: string;

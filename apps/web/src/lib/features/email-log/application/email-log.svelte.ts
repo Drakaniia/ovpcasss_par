@@ -1,5 +1,11 @@
 import { goto } from '$app/navigation';
-import type { EmailDeliveryStatus, EmailKind, EmailLogQuery, EmailLogRow } from '@par/shared';
+import type {
+  EmailDeliveryStatus,
+  EmailKind,
+  EmailLogQuery,
+  EmailLogRow,
+  EmailMessageResponse,
+} from '@par/shared';
 
 import { api } from '$lib/api/client';
 import { ApiError } from '$lib/api/http';
@@ -79,6 +85,11 @@ export class EmailLogState {
   counts = $state({ failed: 0, suppressed: 0 });
   resending = $state<string | null>(null);
   loadError = $state<string | null>(null);
+  /** The row whose stored copy is open, and that copy (email spec §9.4). */
+  messageTarget = $state<EmailLogRow | null>(null);
+  message = $state<EmailMessageResponse | null>(null);
+  messageLoading = $state(false);
+  messageError = $state<string | null>(null);
 
   get pageCount(): number {
     return Math.max(1, Math.ceil(this.total / EMAIL_LOG_PAGE_SIZE));
@@ -161,6 +172,34 @@ export class EmailLogState {
     } finally {
       this.resending = null;
     }
+  }
+
+  /**
+   * Reads the stored copy so the office can deliver its link by other means
+   * while delivery is broken. Read-only: no queue job, no audit row.
+   */
+  async viewMessage(row: EmailLogRow): Promise<void> {
+    this.messageTarget = row;
+    this.message = null;
+    this.messageError = null;
+    this.messageLoading = true;
+
+    try {
+      this.message = await api.admin.emails.message(row.id);
+    } catch (error) {
+      this.messageError =
+        error instanceof ApiError
+          ? error.message
+          : 'The stored message could not be read. Try again.';
+    } finally {
+      this.messageLoading = false;
+    }
+  }
+
+  closeMessage(): void {
+    this.messageTarget = null;
+    this.message = null;
+    this.messageError = null;
   }
 
   private async navigate(): Promise<void> {

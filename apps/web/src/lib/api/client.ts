@@ -15,6 +15,7 @@ import type {
   DecisionNoteInput,
   EmailLogQuery,
   EmailLogResponse,
+  EmailMessageResponse,
   EmailPreferencesInput,
   EmailPreferencesResponse,
   ForgotPasswordInput,
@@ -311,6 +312,7 @@ export const api = {
         return apiFetch<EmailLogResponse>(`/emails${search ? `?${search}` : ''}`);
       },
       resend: (id: string) => apiFetch<{ id: string }>(`/emails/${id}/resend`, { method: 'POST' }),
+      message: (id: string) => apiFetch<EmailMessageResponse>(`/emails/${id}/message`),
     },
     audit: {
       list: (query: AdminAuditListQuery = { page: 1, limit: 50 }) => {

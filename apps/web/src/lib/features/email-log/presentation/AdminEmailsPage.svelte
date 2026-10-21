@@ -16,6 +16,7 @@
   } from '../application/email-log.svelte';
   import EmailLogFilters from './EmailLogFilters.svelte';
   import EmailLogTable from './EmailLogTable.svelte';
+  import EmailMessageDialog from './EmailMessageDialog.svelte';
 
   const log = new EmailLogState();
 
@@ -98,7 +99,12 @@
       />
     </div>
   {:else}
-    <EmailLogTable rows={log.rows} resending={log.resending} onresend={askResend} />
+    <EmailLogTable
+      rows={log.rows}
+      resending={log.resending}
+      onresend={askResend}
+      onview={(row) => void log.viewMessage(row)}
+    />
 
     <nav class="pagination" aria-label="Email log pagination">
       <p class="range">
@@ -140,6 +146,19 @@
   cancelLabel="Cancel"
   onconfirm={confirmResend}
   oncancel={() => (confirmTarget = null)}
+/>
+
+<EmailMessageDialog
+  open={log.messageTarget !== null}
+  row={log.messageTarget}
+  message={log.message}
+  loading={log.messageLoading}
+  error={log.messageError}
+  onclose={() => log.closeMessage()}
+  onretry={() => {
+    const row = log.messageTarget;
+    if (row) void log.viewMessage(row);
+  }}
 />
 
 <style>

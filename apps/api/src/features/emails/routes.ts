@@ -4,10 +4,11 @@ import {
   emailLogQuerySchema,
   type EmailKind,
   type EmailLogResponse,
+  type EmailMessageResponse,
 } from '@par/shared';
 import { Hono, type Context } from 'hono';
 
-import { enqueueEmail, readPayload, readStoredMessage } from '../../email/outbox';
+import { enqueueEmail, readPayload, readRowMessage } from '../../email/outbox';
 import type { AppEnv } from '../../env';
 import { recordAudit } from '../../lib/audit';
 import { requireSession } from '../../middleware/auth';
@@ -83,6 +84,39 @@ emailLogRoutes.get('/', adminOnly, async (c) => {
   return c.json(response);
 });
 
+/**
+ * The stored copy of one message (email spec §9.4). Read-only, and the reason it
+ * exists: when the provider refuses delivery, the office can still hand a
+ * verification or reset link to the person who needs it. Nothing is re-rendered.
+ */
+emailLogRoutes.get('/:id/message', adminOnly, async (c) => {
+  const row = await queries(c).findById(c.req.param('id') ?? '');
+  if (!row) {
+    return c.json({ error: { code: 'NOT_FOUND', message: 'This message does not exist' } }, 404);
+  }
+
+  const message = await readRowMessage(c.env, row.payload);
+  if (!message) {
+    return c.json(
+      {
+        error: {
+          code: 'EMAIL_MESSAGE_UNAVAILABLE',
+          message: 'The stored message is no longer available.',
+        },
+      },
+      409,
+    );
+  }
+
+  const response: EmailMessageResponse = {
+    to: row.to,
+    subject: message.subject,
+    text: message.text,
+  };
+
+  return c.json(response);
+});
+
 emailLogRoutes.post('/:id/resend', adminOnly, async (c) => {
   const adminId = c.get('userId');
   if (!adminId) {
@@ -124,7 +158,7 @@ emailLogRoutes.post('/:id/resend', adminOnly, async (c) => {
   }
 
   const payload = readPayload(row.payload);
-  const message = payload?.messageKey ? await readStoredMessage(c.env, payload.messageKey) : null;
+  const message = await readRowMessage(c.env, row.payload);
 
   if (!payload || !message) {
     return c.json(
