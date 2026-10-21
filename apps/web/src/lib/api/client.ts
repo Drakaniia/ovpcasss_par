@@ -13,6 +13,10 @@ import type {
   ConfirmAttachmentInput,
   ConfirmAttachmentResponse,
   DecisionNoteInput,
+  EmailLogQuery,
+  EmailLogResponse,
+  EmailPreferencesInput,
+  EmailPreferencesResponse,
   ForgotPasswordInput,
   InboxResponse,
   LoginInput,
@@ -46,6 +50,8 @@ import type {
   ResetPasswordInput,
   ReturnReportInput,
   Role,
+  SendWorkbookInput,
+  SendWorkbookResponse,
   SignatureState,
   SignatureUploadInput,
   SignatureUrl,
@@ -203,6 +209,15 @@ export const api = {
     removeSignature: () => apiFetch<SignatureState>('/me/signature', { method: 'DELETE' }),
     /** Short-lived preview URL; the stored object key never reaches the page. */
     signatureUrl: () => apiFetch<SignatureUrl>('/me/signature/url'),
+    /** Category mutes (email spec §8); account mail is reported, not toggleable. */
+    emailPreferences: {
+      get: () => apiFetch<EmailPreferencesResponse>('/me/email-preferences'),
+      update: (input: EmailPreferencesInput) =>
+        apiFetch<EmailPreferencesResponse>('/me/email-preferences', {
+          method: 'PATCH',
+          body: JSON.stringify(input),
+        }),
+    },
   },
   /**
    * Repository search (UI spec §7.11). Role-gated server-side to Reviewer,
@@ -289,6 +304,14 @@ export const api = {
       activate: <E extends ReferenceEntityKey>(entity: E, id: string) =>
         apiFetch<ReferenceItemMap[E]>(`/ref/${entity}/${id}/activate`, { method: 'POST' }),
     },
+    /** The mail log and its one action (email spec §9.4, phase 17 §2). */
+    emails: {
+      list: (query: EmailLogQuery) => {
+        const search = queryString(query);
+        return apiFetch<EmailLogResponse>(`/emails${search ? `?${search}` : ''}`);
+      },
+      resend: (id: string) => apiFetch<{ id: string }>(`/emails/${id}/resend`, { method: 'POST' }),
+    },
     audit: {
       list: (query: AdminAuditListQuery = { page: 1, limit: 50 }) => {
         const search = queryString(query);
@@ -314,6 +337,12 @@ export const api = {
         body: JSON.stringify(input),
       }),
     template: () => apiDownload('/exports/monitoring/template'),
+    /** Mails the same workbook the download writes (email spec §11). */
+    send: (input: SendWorkbookInput) =>
+      apiFetch<SendWorkbookResponse>('/exports/monitoring/send', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
   },
   /** Admin-only migration path for an existing monitoring workbook. */
   imports: {

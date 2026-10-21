@@ -64,6 +64,7 @@ describe('sectionTabsFor', () => {
       'Reference data',
       'Import workbook',
       'Audit',
+      'Email log',
     ]);
   });
 });

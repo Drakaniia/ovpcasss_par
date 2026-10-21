@@ -91,6 +91,7 @@ export function sectionTabsFor(section: NavId | null, role: Role | null | undefi
         { label: 'Reference data', href: '/admin/reference-data' },
         { label: 'Import workbook', href: '/admin/import' },
         { label: 'Audit', href: '/admin/audit' },
+        { label: 'Email log', href: '/admin/emails' },
       ];
     default:
       return [];
