@@ -84,7 +84,7 @@
   {:else if user}
     <div class="grid">
       <AccountCard {user} />
-      <PasswordCard />
+      <PasswordCard hasPassword={user.hasPassword ?? true} />
       <EmailPreferences />
       <UpdateCard />
       {#if user.role === 'APPROVER'}

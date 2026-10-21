@@ -152,6 +152,10 @@ Current password, new password, confirm new password. All
 - Clear all three fields after success; toast "Password updated".
 - Strength feedback is text-only.
 - No password is ever prefilled.
+- An account that signs in with Google has no password of its own. The card
+  shows no fields for it: it states that the account signs in with Google and
+  offers **Set a password**, which mails the reset link to the account email.
+- A "Forgot your password?" link sits under the current password field.
 
 ### Signature card (deferred)
 
@@ -195,6 +199,8 @@ card can be appended below Password without a redesign.
       out, and no polling; it remains usable below 1024 px.
 - [ ] Profile email and role are read-only; account save is the only filled navy
       button; password update is outline and clears fields on success.
+- [ ] An account with no password of its own shows the Google notice and the
+      set-a-password link instead of the password fields.
 - [ ] No signature canvas or signature placeholder is present.
 - [ ] Errors are announced (`role="alert"`/`aria-live`), focused, and linked to
       fields; labels are programmatically associated.
