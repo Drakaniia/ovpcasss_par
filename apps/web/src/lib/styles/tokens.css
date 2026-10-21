@@ -22,8 +22,6 @@
   --surface-paper: #faf8f4;
   --surface-auth: #faf8f4;
   --text-auth: #14203c;
-  /* Auth-corner diagonal accents (login reference sheet). */
-  --auth-band: #dbe2f0;
   --surface-topbar: #0f1a33;
   --border: #e4e1da;
   /* Loading placeholders. `--border` is a hairline: as a fill it sits at 1.3:1
