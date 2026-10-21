@@ -21,6 +21,23 @@ export interface Env {
   /** Optional Google OAuth client; the Google button is hidden until both are set. */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+
+  /** The office mailbox: workbook default recipient and the digest fallback. */
+  OFFICE_EMAIL?: string;
+  /**
+   * The deployed app's origin, used by mail composed outside a request (the
+   * reminder sweep and the failure digest). Request-driven mail uses the
+   * request's own origin, so this is only needed for cron.
+   */
+  APP_ORIGIN?: string;
+  /** Working-day threshold before a reminder; defaults to the queue's 3. */
+  REMINDER_AFTER_WORKING_DAYS?: string;
+  /** Manila hour at which the daily reminder sweep sends; defaults to 9. */
+  REMINDER_LOCAL_HOUR?: string;
+  /** Total attachment budget per message; defaults to 8 MiB. */
+  EMAIL_MAX_ATTACHMENT_BYTES?: string;
+  /** Mounts the dev-only rendered preview of every template. Never set in production. */
+  DEV_EMAIL_PREVIEW?: string;
 }
 
 export interface Variables {
