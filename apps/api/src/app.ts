@@ -1,11 +1,13 @@
 import { Hono } from 'hono';
 
+import { devEmailRoutes } from './dev/email-preview';
 import type { AppEnv } from './env';
 import { acknowledgementRoutes } from './features/acknowledgement/routes';
 import { approvalRoutes } from './features/approval/routes';
 import { attachmentRoutes } from './features/attachments/routes';
 import { auditRoutes } from './features/audit/routes';
 import { authRoutes } from './features/auth/routes';
+import { emailLogRoutes } from './features/emails/routes';
 import { exportRoutes } from './features/exports/routes';
 import { importRoutes } from './features/imports/routes';
 import { inboxRoutes } from './features/inbox/routes';
@@ -44,6 +46,8 @@ api.route('/search', searchRoutes);
 api.route('/review', reviewQueueRoutes);
 api.route('/approval', approvalQueueRoutes);
 api.route('/audit', auditRoutes);
+api.route('/emails', emailLogRoutes);
+api.route('/dev', devEmailRoutes);
 api.route('/me', profileRoutes);
 api.route('/me', inboxRoutes);
 api.route('/me', notificationRoutes);
