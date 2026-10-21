@@ -7,8 +7,10 @@ import {
 } from '@par/db';
 
 import type { Env } from '../env';
+import { sendFailureDigest } from '../features/emails/application/send-digest';
 import { runBackup, type BackupResult } from './backup';
 import { runCleanup, type CleanupCounts } from './cleanup';
+import { runReminderSweep } from './reminders';
 
 /**
  * Cron entry point (spec §7.1). Two schedules share one Worker: the hourly
@@ -39,6 +41,18 @@ export async function runScheduledJob(
         at: now.toISOString(),
       }),
     );
+
+    // The digest rides the existing daily slot; no new cron expression (email spec §9.5).
+    await sendFailureDigest(env, now).catch((error: unknown) => {
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          message: 'Failure digest did not run',
+          reason: error instanceof Error ? error.message : 'unknown',
+        }),
+      );
+    });
+
     return result;
   }
 
@@ -64,6 +78,18 @@ export async function runScheduledJob(
       at: now.toISOString(),
     }),
   );
+
+  // Hourly cron, daily work: the gate lives inside the sweep (email spec §10.2).
+  await runReminderSweep(env, now).catch((error: unknown) => {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        message: 'Reminder sweep did not run',
+        reason: error instanceof Error ? error.message : 'unknown',
+      }),
+    );
+  });
+
   return result;
 }
 
