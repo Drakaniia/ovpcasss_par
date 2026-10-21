@@ -33,13 +33,18 @@ export const auditEvents = sqliteTable(
   ],
 );
 
-export const EMAIL_OUTBOX_STATUSES = ['QUEUED', 'SENT', 'FAILED'] as const;
+export const EMAIL_OUTBOX_STATUSES = ['QUEUED', 'SENT', 'FAILED', 'SUPPRESSED'] as const;
 export type EmailOutboxStatus = (typeof EMAIL_OUTBOX_STATUSES)[number];
 
 /**
- * Visibility into queued and failed mail (spec §7.9, §12). The Queue is the
- * delivery path; this table exists so the admin inbox can show failures that
- * the Queue swallowed. `attempts` and `last_error` are written by the consumer.
+ * Visibility into queued and failed mail (spec §7.9, email spec §9). The Queue
+ * is the delivery path; this table exists so the admin inbox and the email log
+ * can show failures the Queue swallowed. `attempts` is written by the consumer.
+ *
+ * `payload` is metadata only — `{ subject, reportId, attachments, note }` — never
+ * a rendered body, so a row cannot leak the message it describes. `last_error`
+ * holds the delivery error, or the suppression reason when the status is
+ * `SUPPRESSED` (muted recipient, disabled account, actor, missing facts).
  */
 export const emailOutbox = sqliteTable(
   'email_outbox',

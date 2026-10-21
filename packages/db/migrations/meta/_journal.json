@@ -43,6 +43,13 @@
       "when": 1792419051511,
       "tag": "0005_red_synch",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792551112180,
+      "tag": "0006_lazy_mikhail_rasputin",
+      "breakpoints": true
     }
   ]
 }
