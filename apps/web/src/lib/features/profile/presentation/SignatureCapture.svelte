@@ -1,6 +1,8 @@
 <script lang="ts">
   import { AlertCircle } from '@lucide/svelte';
 
+  import TabIndicator from '$lib/components/TabIndicator.svelte';
+
   import {
     SIGNATURE_ACCEPT,
     SIGNATURE_LIMIT_LABEL,
@@ -18,6 +20,16 @@
 
   let tab = $state<Tab>('draw');
   let uploadError = $state<string | null>(null);
+  /** The panel that comes in only fades in once a tab has been picked. */
+  let switched = $state(false);
+
+  let tabRow: HTMLElement | undefined = $state();
+
+  function select(next: Tab) {
+    if (next === tab) return;
+    tab = next;
+    switched = true;
+  }
 
   async function pick(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
@@ -38,37 +50,50 @@
   }
 </script>
 
-<div class="tabs" role="tablist" aria-label="Signature capture">
+<div class="tabs" role="tablist" aria-label="Signature capture" bind:this={tabRow}>
   <button
     class="tab"
+    data-tab-key="draw"
     class:is-active={tab === 'draw'}
     type="button"
     role="tab"
     aria-selected={tab === 'draw'}
     tabindex={tab === 'draw' ? 0 : -1}
-    onclick={() => (tab = 'draw')}
+    onclick={() => select('draw')}
   >
     Draw
   </button>
   <button
     class="tab"
+    data-tab-key="upload"
     class:is-active={tab === 'upload'}
     type="button"
     role="tab"
     aria-selected={tab === 'upload'}
     tabindex={tab === 'upload' ? 0 : -1}
-    onclick={() => (tab = 'upload')}
+    onclick={() => select('upload')}
   >
     Upload
   </button>
+  <TabIndicator row={tabRow} active={tab} />
 </div>
 
 <!-- Both panels stay mounted: switching tabs must not discard a drawing. -->
-<div class="panel" role="tabpanel" hidden={tab !== 'draw'}>
+<div
+  class="panel"
+  role="tabpanel"
+  hidden={tab !== 'draw'}
+  class:entering={switched && tab === 'draw'}
+>
   <SignatureCanvas {onchange} />
 </div>
 
-<div class="panel" role="tabpanel" hidden={tab !== 'upload'}>
+<div
+  class="panel"
+  role="tabpanel"
+  hidden={tab !== 'upload'}
+  class:entering={switched && tab === 'upload'}
+>
   <div class="field">
     <label class="field-label" for="signature-file">Image file</label>
     <input
@@ -97,6 +122,7 @@
     display: flex;
     gap: 4px;
     margin-bottom: 16px;
+    position: relative;
   }
 
   .tab {
@@ -106,6 +132,9 @@
     font-size: 13px;
     min-height: 32px;
     padding: 0 12px;
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard);
   }
 
   .tab:hover {
@@ -113,12 +142,34 @@
   }
 
   .tab.is-active {
-    border-bottom-color: var(--primary);
     color: var(--text-primary);
     font-weight: 500;
   }
 
   .panel {
     margin-bottom: 16px;
+  }
+
+  /* The panel that comes in settles instead of blinking into place. */
+  .panel.entering {
+    animation: panel-enter var(--duration-base) var(--ease-standard);
+  }
+
+  @keyframes panel-enter {
+    from {
+      opacity: 0;
+      transform: translateY(var(--panel-shift, 4px));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .panel.entering {
+      --panel-shift: 0px;
+      animation-duration: var(--duration-fast);
+    }
   }
 </style>
