@@ -20,7 +20,9 @@ mod window_chrome;
 mod window_state;
 
 /// Windows Credential Manager entry for the desktop session (phase 15 §2).
-const KEYRING_SERVICE: &str = "par.ovpcasss@buksu.edu.ph";
+/// Must stay the bundle identifier: an upgrade finds the stored token under
+/// the same target, and Tauri's identifier charset excludes "@".
+const KEYRING_SERVICE: &str = "ph.edu.ovpcasss.par";
 const KEYRING_USER: &str = "session";
 
 /// Mirrors the uploader's accepted extensions; the API remains authoritative.
