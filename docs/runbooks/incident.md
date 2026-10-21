@@ -24,17 +24,25 @@ done.
    wrangler d1 execute par-db --remote --command \
      "SELECT id, kind, to, attempts, last_error FROM email_outbox WHERE status = 'FAILED' ORDER BY updated_at DESC LIMIT 20"
    ```
-3. Check the queue consumer's structured logs (`wrangler tail`): retries and the
+3. Open **Admin → Email log** (`/admin/emails`). It opens on **Failed** and lists
+   every attempt with its kind, recipient, subject, attempts, and the provider's
+   reason. A **Suppressed** row means nothing was sent on purpose — the reason is
+   in the same column (recipient muted the category, account inactive or
+   unverified, or the message could not be completed).
+4. Check the queue consumer's structured logs (`wrangler tail`): retries and the
    dead-letter queue are `wrangler.toml` configuration (`max_retries = 5`,
    `par-email-dlq`).
-4. Verify the provider key and sender domain (`key-rotation.md`). The default
+5. Verify the provider key and sender domain (`key-rotation.md`). The default
    `onboarding@resend.dev` sender only delivers to the account owner.
-5. **Requeue is manual**: there is no admin action for it yet. Resend by causing
-   the event again (e.g. ask the reviewer to re-return the report) or accept the
-   in-app notification as delivered.
+6. **Resend** from the failed row. It re-queues the stored message and creates a
+   new outbox row; the original stays as it is. Ten resends an hour per admin.
+   "The stored message is no longer available" means the rendered copy was lost —
+   repeat the action that caused the mail instead.
 
-The admin work inbox shows only a **count** of failed emails; it does not list
-them (gap against spec §12). Use the query above.
+The daily failure digest emails active admins when any message is `FAILED`; it
+is sent directly, not through the queue, so it still arrives while mail is
+broken. An empty inbox and no digest means nothing failed, not that the digest
+is missing.
 
 ## 3. Suspected account compromise
 

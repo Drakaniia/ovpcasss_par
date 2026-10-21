@@ -343,22 +343,26 @@ union. A Submitter never sees Queues, Repository, or Admin.
 
 ### 4.5 Keyboard (§8.9)
 
-| Scope  | Key               | Action                                    |
-| ------ | ----------------- | ----------------------------------------- |
-| Global | `/`               | Focus search (Repository or table filter) |
-| Global | `Ctrl/Cmd+K`      | Command palette                           |
-| Global | `?`               | Shortcut help                             |
-| Global | `Esc`             | Close drawer/dialog                       |
-| Tables | `j` / `k` or ↓/↑  | Move row focus                            |
-| Tables | `Enter`           | Open focused row                          |
-| Report | `R`               | Return (opens drawer)                     |
-| Report | `E`               | Endorse                                   |
-| Report | `A`               | Approve                                   |
-| Wizard | `Alt+→` / `Alt+←` | Next / Back step                          |
-| Wizard | `Ctrl/Cmd+S`      | Save draft                                |
+| Scope  | Key              | Action                                    |
+| ------ | ---------------- | ----------------------------------------- |
+| Global | `/`              | Focus search (Repository or table filter) |
+| Global | `Ctrl/Cmd+K`     | Command palette                           |
+| Global | `?`              | Shortcut help                             |
+| Global | `Esc`            | Close drawer/dialog                       |
+| Tables | `j` / `k` or ↓/↑ | Move row focus                            |
+| Tables | `Enter`          | Open focused row                          |
+| Report | `R`              | Return (opens drawer)                     |
+| Report | `E`              | Endorse                                   |
+| Report | `A`              | Approve                                   |
+| Wizard | `→` / `←`        | Next / Back step                          |
+| Wizard | `Ctrl/Cmd+S`     | Save draft                                |
 
 Single-letter shortcuts are suppressed in inputs, textareas, and the narrative
 editor. Every shortcut has an equivalent visible control.
+
+The wizard's `→` / `←` yield to whatever holds the arrow: a text field, an open
+dialog, or a widget that already handled the key. `Alt` + arrow moves steps
+either way, and the action bar shows the key beside the button it stands for.
 
 ### 4.6 Accessibility and content (§11)
 

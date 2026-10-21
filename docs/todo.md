@@ -47,7 +47,7 @@ create custom draggable navbar with the 3 actions (minimize, maximize, and close
 
 how the Paperless, Post Activity Report works, interactive,
 
-dont add flat basepoint, cus this is for auth component replacement (left, auth component, right the anmated svg)
+dont add flat basepoint, cus this is for auth component replacement (left, auth component, right the animated svg)
 
 real email, when its approved, (only google user account or the accounts with email)
 
@@ -56,3 +56,23 @@ full admin privilage
 logo image
 
 in password input, add eye and close eye to reveal password.. only show icon on hover the password input or placeholder
+
+apple-design the
+
+add animation when clicking tabs
+
+revew request button not working, or it doesnt do when i click it
+
+in the admin page also did not display all the user list
+
+add shortcut in the makng report page, left and right arrow for clickign next or back.. add also minor indicator ui for that
+
+plan and ask me questions, we are gonna utilize the full advantage of the email integration.. where it must be used or can be used, in the flow of the app because i think it only use in the notification
+
+also should use the original format: OVCPASSS - Paperless Process for the submission of Post Activity Report.eml
+
+refine all with missign apple-design ui with simple implimentation, there are some remaining generic ui implimentation
+
+add app origin in the wrangler worker api, or updarw it using wrangler so it wont just work locall 
+
+ctrol + k, also search for reports feaute

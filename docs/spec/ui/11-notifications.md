@@ -150,7 +150,8 @@ Replaces the bell slot built in phase 00.
 ## 7. Out of scope
 
 - Email delivery and templates (packages/email).
-- Push/websocket updates, digests, and notification preferences.
+- Push/websocket updates and digests. Email preferences and muting are phase 17;
+  the in-app inbox has no mute of its own.
 - Admin purge tooling and retention policy.
 - Notifications for failed emails on the admin inbox (phase 02 admin variant).
 

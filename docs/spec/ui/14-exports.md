@@ -165,7 +165,8 @@ form and a live preview that shows exactly what will be downloaded.
 
 - Generating the workbook, column definitions, and sheet formatting
   (`packages/export`).
-- Scheduling or emailing exports.
+- Scheduling exports. The **Send by email** action and its dialog are phase 17;
+  this phase owns the workbook and the download only.
 - Custom column selection, CSV output, and multi-term exports.
 - Export history/audit UI beyond what the global audit log records.
 
