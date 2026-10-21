@@ -54,11 +54,22 @@ export type UserFilters = {
 export const DEFAULT_USER_FILTERS: UserFilters = {
   q: '',
   role: 'ALL',
-  status: 'PENDING_ROLE',
+  status: 'ALL',
   sort: 'registered',
   dir: 'asc',
   page: 1,
   pageSize: 25,
+};
+
+/**
+ * The queue the pending-role callout opens. It clears the search and the role
+ * filter so the administrator sees every account waiting for a role, and it
+ * differs from the default view, so the button always does something.
+ */
+export const PENDING_QUEUE_PATCH: Partial<UserFilters> = {
+  q: '',
+  role: 'ALL',
+  status: 'PENDING_ROLE',
 };
 
 function isRole(value: string | null): value is Role {

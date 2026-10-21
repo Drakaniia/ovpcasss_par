@@ -19,6 +19,7 @@
   import { toast } from '$lib/toast/toast.svelte';
 
   import {
+    PENDING_QUEUE_PATCH,
     clearedFilters,
     filtersEqual,
     filtersFromParams,
@@ -176,8 +177,8 @@
   }
 
   onMount(() => {
-    // Make the default pending-role view explicit so a refresh or a copied URL
-    // reproduces exactly what the administrator is looking at.
+    // Make the default view explicit so a refresh or a copied URL reproduces
+    // exactly what the administrator is looking at.
     if (!new URLSearchParams(page.url.search).has('status')) {
       void goto(`/admin/users?${filtersToParams(filters)}`, { replaceState: true });
     }
@@ -226,7 +227,7 @@
   <div class="admin-users">
     <UsersPageHeader
       pendingRoleCount={list?.pendingRoleCount ?? 0}
-      onreview={() => void applyFilters({ status: 'PENDING_ROLE' })}
+      onreview={() => void applyFilters(PENDING_QUEUE_PATCH)}
     />
 
     <UsersFilterBar {filters} onchange={(patch) => void applyFilters(patch)} />
