@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_USER_FILTERS,
+  PENDING_QUEUE_PATCH,
   clearedFilters,
   disableConfirmation,
   filtersFromParams,
@@ -29,9 +30,9 @@ const user = (overrides: Partial<AdminUser> = {}): AdminUser => ({
 });
 
 describe('filtersFromParams', () => {
-  it('defaults to the pending-role queue, oldest first, 25 rows', () => {
+  it('defaults to every account, oldest first, 25 rows', () => {
     expect(filtersFromParams(new URLSearchParams())).toEqual(DEFAULT_USER_FILTERS);
-    expect(DEFAULT_USER_FILTERS.status).toBe('PENDING_ROLE');
+    expect(DEFAULT_USER_FILTERS.status).toBe('ALL');
     expect(DEFAULT_USER_FILTERS.sort).toBe('registered');
     expect(DEFAULT_USER_FILTERS.dir).toBe('asc');
   });
@@ -71,7 +72,7 @@ describe('filtersToParams', () => {
   });
 
   it('keeps the meaningful default explicit and omits the rest', () => {
-    expect(filtersToParams(DEFAULT_USER_FILTERS)).toBe('status=PENDING_ROLE');
+    expect(filtersToParams(DEFAULT_USER_FILTERS)).toBe('status=ALL');
   });
 
   it('writes only non-default sort, page, and size', () => {
@@ -93,12 +94,33 @@ describe('filtersToQuery', () => {
     expect(filtersToQuery(DEFAULT_USER_FILTERS)).toEqual({
       q: undefined,
       role: undefined,
-      status: 'PENDING_ROLE',
+      status: undefined,
       sort: 'registered',
       dir: 'asc',
       page: 1,
       pageSize: 25,
     });
+  });
+});
+
+describe('pending queue', () => {
+  it('opens the pending-role queue from any view', () => {
+    const current: UserFilters = {
+      ...DEFAULT_USER_FILTERS,
+      q: 'santos',
+      role: 'REVIEWER',
+      page: 4,
+    };
+
+    const next = updateFilters(current, PENDING_QUEUE_PATCH);
+
+    expect(next).toMatchObject({ q: '', role: 'ALL', status: 'PENDING_ROLE', page: 1 });
+  });
+
+  it('changes the default view, so the button is never a no-op', () => {
+    expect(updateFilters(DEFAULT_USER_FILTERS, PENDING_QUEUE_PATCH)).not.toEqual(
+      DEFAULT_USER_FILTERS,
+    );
   });
 });
 
