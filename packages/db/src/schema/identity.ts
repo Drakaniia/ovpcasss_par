@@ -1,5 +1,5 @@
 import { ROLES, USER_STATUSES } from '@par/shared';
-import { index, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 /** Email-token purposes (spec §8). A reset token never verifies an email, and vice versa. */
 export const EMAIL_TOKEN_KINDS = ['VERIFY', 'RESET'] as const;
@@ -30,6 +30,9 @@ export const users = sqliteTable(
     campusUnit: text('campus_unit'),
     contactNumber: text('contact_number'),
     signatureObjectKey: text('signature_object_key'),
+    /** Category mutes (email spec §8). Account and security mail has no column. */
+    emailWorkflow: integer('email_workflow', { mode: 'boolean' }).notNull().default(true),
+    emailReminders: integer('email_reminders', { mode: 'boolean' }).notNull().default(true),
     emailVerifiedAt: text('email_verified_at'),
     lastSignedInAt: text('last_signed_in_at'),
     deletedAt: text('deleted_at'),
