@@ -216,12 +216,6 @@
 </form>
 
 <style>
-  .field-action {
-    font-size: 13px;
-    margin: 0 0 6px;
-    text-align: right;
-  }
-
   .form-submit {
     font-size: 14px;
     height: 44px;

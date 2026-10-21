@@ -4,7 +4,7 @@
   import { tick } from 'svelte';
 
   import { api } from '$lib/api/client';
-  import { ApiError } from '$lib/api/http';
+  import { passwordChangeFailure } from '$lib/features/profile/application/password-change';
   import { toast } from '$lib/toast/toast.svelte';
   import {
     firstIssueOf,
@@ -13,6 +13,9 @@
     type FieldErrors,
   } from '$lib/validation/field-errors';
   import { passwordStrengthText } from '$lib/validation/password-strength';
+
+  /** False while the account has no password of its own (Google sign-in only). */
+  let { hasPassword = true }: { hasPassword?: boolean } = $props();
 
   let currentPassword = $state('');
   let newPassword = $state('');
@@ -72,19 +75,14 @@
       errors = {};
       toast.success('Password updated');
     } catch (error) {
-      if (
-        error instanceof ApiError &&
-        (error.status === 400 || error.status === 401) &&
-        /PASSWORD/i.test(error.code)
-      ) {
-        errors = { currentPassword: 'The current password is incorrect.' };
+      const failure = passwordChangeFailure(error);
+
+      if (failure.kind === 'field') {
+        errors = { [failure.field]: failure.message };
         await tick();
-        focusFirstError(errors, ['currentPassword']);
+        focusFirstError(errors, [failure.field]);
       } else {
-        alert =
-          error instanceof ApiError
-            ? 'We could not update your password. Try again.'
-            : 'We could not reach the server. Check your connection and try again.';
+        alert = failure.message;
         await tick();
         alertEl?.focus();
       }
@@ -97,108 +95,124 @@
 <section class="card card-body" aria-labelledby="password-heading">
   <div class="card-head">
     <h2 id="password-heading">Password</h2>
-    <p class="card-copy">Use at least 12 characters. No password is stored on this device.</p>
+    <p class="card-copy">
+      {#if hasPassword}
+        Use at least 12 characters. No password is stored on this device.
+      {:else}
+        This account signs in with Google and has no password yet.
+      {/if}
+    </p>
   </div>
 
-  <form
-    class="form-stack"
-    novalidate
-    onsubmit={(event) => {
-      event.preventDefault();
-      void submit();
-    }}
-  >
-    {#if alert}
-      <div class="form-alert" role="alert" tabindex="-1" bind:this={alertEl}>
-        <AlertCircle size={16} aria-hidden="true" />
-        <div class="form-alert-body">{alert}</div>
-      </div>
-    {/if}
-
-    <div class="field">
-      <label class="field-label" for="currentPassword">Current password</label>
-      <input
-        class="input"
-        id="currentPassword"
-        name="currentPassword"
-        type="password"
-        autocomplete="current-password"
-        bind:value={currentPassword}
-        onblur={checkCurrentPassword}
-        aria-invalid={errors.currentPassword ? 'true' : undefined}
-        aria-describedby={errors.currentPassword ? 'currentPassword-error' : undefined}
-      />
-      {#if errors.currentPassword}
-        <p class="field-error" id="currentPassword-error">
+  {#if hasPassword}
+    <form
+      class="form-stack"
+      novalidate
+      onsubmit={(event) => {
+        event.preventDefault();
+        void submit();
+      }}
+    >
+      {#if alert}
+        <div class="form-alert" role="alert" tabindex="-1" bind:this={alertEl}>
           <AlertCircle size={16} aria-hidden="true" />
-          {errors.currentPassword}
-        </p>
+          <div class="form-alert-body">{alert}</div>
+        </div>
       {/if}
-    </div>
 
-    <div class="field">
-      <label class="field-label" for="newPassword">New password</label>
-      <input
-        class="input"
-        id="newPassword"
-        name="newPassword"
-        type="password"
-        autocomplete="new-password"
-        bind:value={newPassword}
-        onblur={checkNewPassword}
-        aria-invalid={errors.newPassword ? 'true' : undefined}
-        aria-describedby={[
-          errors.newPassword ? 'newPassword-error' : '',
-          strength ? 'newPassword-strength' : '',
-          'newPassword-rule',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      />
-      <p class="field-hint" id="newPassword-rule">Use at least 12 characters.</p>
-      {#if strength}
-        <p class="field-hint" id="newPassword-strength" aria-live="polite">{strength}</p>
-      {/if}
-      {#if errors.newPassword}
-        <p class="field-error" id="newPassword-error">
-          <AlertCircle size={16} aria-hidden="true" />
-          {errors.newPassword}
-        </p>
-      {/if}
-    </div>
-
-    <div class="field">
-      <label class="field-label" for="confirmPassword">Confirm new password</label>
-      <input
-        class="input"
-        id="confirmPassword"
-        name="confirmPassword"
-        type="password"
-        autocomplete="new-password"
-        bind:value={confirmPassword}
-        onblur={checkConfirmPassword}
-        aria-invalid={errors.confirmPassword ? 'true' : undefined}
-        aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
-      />
-      {#if errors.confirmPassword}
-        <p class="field-error" id="confirmPassword-error">
-          <AlertCircle size={16} aria-hidden="true" />
-          {errors.confirmPassword}
-        </p>
-      {/if}
-    </div>
-
-    <div class="form-actions">
-      <button class="btn btn-outline" type="submit" disabled={saving}>
-        {#if saving}
-          <LoaderCircle class="spin" size={16} aria-hidden="true" />
-          Updating password…
-        {:else}
-          Update password
+      <div class="field">
+        <label class="field-label" for="currentPassword">Current password</label>
+        <input
+          class="input"
+          id="currentPassword"
+          name="currentPassword"
+          type="password"
+          autocomplete="current-password"
+          bind:value={currentPassword}
+          onblur={checkCurrentPassword}
+          aria-invalid={errors.currentPassword ? 'true' : undefined}
+          aria-describedby={errors.currentPassword ? 'currentPassword-error' : undefined}
+        />
+        {#if errors.currentPassword}
+          <p class="field-error" id="currentPassword-error">
+            <AlertCircle size={16} aria-hidden="true" />
+            {errors.currentPassword}
+          </p>
         {/if}
-      </button>
+        <p class="field-action"><a href="/forgot-password">Forgot your password?</a></p>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="newPassword">New password</label>
+        <input
+          class="input"
+          id="newPassword"
+          name="newPassword"
+          type="password"
+          autocomplete="new-password"
+          bind:value={newPassword}
+          onblur={checkNewPassword}
+          aria-invalid={errors.newPassword ? 'true' : undefined}
+          aria-describedby={[
+            errors.newPassword ? 'newPassword-error' : '',
+            strength ? 'newPassword-strength' : '',
+            'newPassword-rule',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        />
+        <p class="field-hint" id="newPassword-rule">Use at least 12 characters.</p>
+        {#if strength}
+          <p class="field-hint" id="newPassword-strength" aria-live="polite">{strength}</p>
+        {/if}
+        {#if errors.newPassword}
+          <p class="field-error" id="newPassword-error">
+            <AlertCircle size={16} aria-hidden="true" />
+            {errors.newPassword}
+          </p>
+        {/if}
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="confirmPassword">Confirm new password</label>
+        <input
+          class="input"
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          autocomplete="new-password"
+          bind:value={confirmPassword}
+          onblur={checkConfirmPassword}
+          aria-invalid={errors.confirmPassword ? 'true' : undefined}
+          aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
+        />
+        {#if errors.confirmPassword}
+          <p class="field-error" id="confirmPassword-error">
+            <AlertCircle size={16} aria-hidden="true" />
+            {errors.confirmPassword}
+          </p>
+        {/if}
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-outline" type="submit" disabled={saving}>
+          {#if saving}
+            <LoaderCircle class="spin" size={16} aria-hidden="true" />
+            Updating password…
+          {:else}
+            Update password
+          {/if}
+        </button>
+      </div>
+    </form>
+  {:else}
+    <p class="card-copy">
+      Set a password with a link sent to your university email. You can keep signing in with Google.
+    </p>
+    <div class="form-actions">
+      <a class="btn btn-outline" href="/forgot-password">Set a password</a>
     </div>
-  </form>
+  {/if}
 </section>
 
 <style>

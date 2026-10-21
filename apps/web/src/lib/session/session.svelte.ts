@@ -19,6 +19,8 @@ export type SessionUser = {
   unreadNotifications?: number;
   /** Approver signature on file; the approval drawer gates on this (phase 09). */
   hasSignature?: boolean;
+  /** False while the account has no password of its own (Google sign-in only). */
+  hasPassword?: boolean;
 };
 
 export const session = $state<{ user: SessionUser | null }>({ user: null });
@@ -41,6 +43,7 @@ function toSessionUser(account: Account): SessionUser {
     contactNumber: account.contactNumber ?? null,
     unreadNotifications: account.unreadNotifications,
     hasSignature: account.hasSignature,
+    hasPassword: account.hasPassword,
   };
 }
 
