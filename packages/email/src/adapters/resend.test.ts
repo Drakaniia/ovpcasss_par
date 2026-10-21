@@ -41,6 +41,35 @@ describe('createResendProvider', () => {
     });
   });
 
+  it('sends attachments as base64 and an idempotency header', async () => {
+    const fetchMock = stubFetch(new Response('{}', { status: 200 }));
+
+    await createResendProvider('key-123', FROM).send({
+      ...message,
+      idempotencyKey: 'outbox-1',
+      attachments: [
+        { filename: 'ack.pdf', contentType: 'application/pdf', content: new Uint8Array([1, 2, 3]) },
+      ],
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      attachments: [{ filename: 'ack.pdf', content: 'AQID', content_type: 'application/pdf' }],
+      headers: { 'Idempotency-Key': 'outbox-1' },
+    });
+  });
+
+  it('omits both fields when a message has neither', async () => {
+    const fetchMock = stubFetch(new Response('{}', { status: 200 }));
+
+    await createResendProvider('key-123', FROM).send(message);
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+    expect(body.attachments).toBeUndefined();
+    expect(body.headers).toBeUndefined();
+  });
+
   it('rejects with the status and the reason Resend gave', async () => {
     stubFetch(new Response('The domain is not verified', { status: 403 }));
 
