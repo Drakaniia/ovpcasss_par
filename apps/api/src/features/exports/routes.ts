@@ -1,6 +1,15 @@
-import { createDb, createMonitoringQueries } from '@par/db';
+import {
+  createDb,
+  createMonitoringQueries,
+  createRateLimitQueries,
+  createUserQueries,
+} from '@par/db';
 import { buildMonitoringTemplate, buildMonitoringWorkbook } from '@par/export';
-import { monitoringExportRequestSchema, type MonitoringExportRequest } from '@par/shared';
+import {
+  monitoringExportRequestSchema,
+  sendWorkbookSchema,
+  type MonitoringExportRequest,
+} from '@par/shared';
 import { Hono, type Context } from 'hono';
 
 import type { AppEnv } from '../../env';
@@ -8,6 +17,7 @@ import { recordAudit } from '../../lib/audit';
 import { requireSession } from '../../middleware/auth';
 import { requireRole } from '../../middleware/authorize';
 import { assembleMonitoring } from './application/assemble-monitoring';
+import { sendMonitoringWorkbook } from './application/send-workbook';
 
 const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
@@ -58,6 +68,75 @@ function workbookResponse(bytes: Uint8Array, request: MonitoringExportRequest): 
     },
   });
 }
+
+/** Five mailed workbooks an hour per user (email spec §11.3). */
+const WORKBOOK_SEND_LIMIT = 5;
+
+exportRoutes.post('/monitoring/send', canExport, async (c) => {
+  const parsed = sendWorkbookSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) {
+    return c.json(
+      {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Check the recipients and the note before sending.',
+          details: parsed.error.issues,
+        },
+      },
+      400,
+    );
+  }
+
+  const userId = c.get('userId');
+  if (!userId) {
+    return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sign in to send a workbook' } }, 401);
+  }
+
+  const windowStart = `${new Date().toISOString().slice(0, 13)}:00:00.000Z`;
+  const used = await createRateLimitQueries(createDb(c.env.DB)).consume(
+    `workbook-send:${userId}`,
+    windowStart,
+  );
+  if (used > WORKBOOK_SEND_LIMIT) {
+    return c.json(
+      {
+        error: {
+          code: 'RATE_LIMITED',
+          message: 'Five mailed workbooks an hour is the limit. Try again later.',
+        },
+      },
+      429,
+    );
+  }
+
+  const sender = await createUserQueries(createDb(c.env.DB)).findById(userId);
+  if (!sender) {
+    return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sign in to send a workbook' } }, 401);
+  }
+
+  const result = await sendMonitoringWorkbook(
+    c.env,
+    parsed.data,
+    sender,
+    new URL(c.req.url).origin,
+  );
+
+  if (!result.ok) {
+    return result.code === 'TERM_NOT_CONFIGURED'
+      ? c.json({ error: { code: result.code, message: result.message } }, 400)
+      : c.json({ error: { code: result.code, message: result.message } }, 400);
+  }
+
+  await recordAudit(c, {
+    actorUserId: userId,
+    actorRole: c.get('role'),
+    action: 'EXPORTED',
+    entityType: 'export',
+    comment: `Monitoring workbook (${parsed.data.type}), SY ${parsed.data.schoolYear}, semester ${parsed.data.semester}, mailed to ${result.queued} recipient(s)`,
+  });
+
+  return c.json({ queued: result.queued }, 202);
+});
 
 exportRoutes.get('/monitoring/preview', canExport, async (c) => {
   const semester = c.req.query('semester');
