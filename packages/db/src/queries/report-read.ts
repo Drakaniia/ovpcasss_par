@@ -63,6 +63,23 @@ export interface ReportListPage {
   total: number;
 }
 
+/** What a palette search needs: the row, who filed it, and a matching PIC name. */
+export interface ReportSearchRow {
+  report: ReportRow;
+  ownerName: string;
+  unitName: string | null;
+  /** The first PIC whose name matched, so the preview can say why. */
+  picName: string | null;
+}
+
+export interface ReportSearchOptions {
+  /** Absent means "most recently updated", the palette's recent group. */
+  term?: string | undefined;
+  /** A Submitter's own reports only; empty for the roles that read everything. */
+  scope: { ownerUserId?: string | undefined };
+  limit: number;
+}
+
 export interface QueuePage {
   rows: (ReportRow & {
     submitterName: string;
@@ -116,8 +133,17 @@ function queueSort(sort: QueueSort, kind: QueueKind) {
 }
 
 /** Like patterns are escaped so a user's `%` stays a literal character. */
+function escapeLike(term: string): string {
+  return term.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
+}
+
 export function likePattern(term: string): string {
-  return `%${term.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')}%`;
+  return `%${escapeLike(term)}%`;
+}
+
+/** Prefix form, used to rank a tracking number or title that starts with the term. */
+export function likePrefix(term: string): string {
+  return `${escapeLike(term)}%`;
 }
 
 export function createReportReadQueries(db: Database) {
@@ -206,6 +232,66 @@ export function createReportReadQueries(db: Database) {
       ]);
 
       return { rows, total };
+    },
+
+    /**
+     * Palette search: tracking number, title, narrative, location, submitter and
+     * PIC name, ranked so the number a user typed outranks a passing narrative
+     * mention. Without a term the same query answers "what did I touch last".
+     */
+    async search(options: ReportSearchOptions): Promise<ReportSearchRow[]> {
+      const term = options.term?.trim() ?? '';
+      const conditions: SQL[] = [];
+      if (options.scope.ownerUserId) {
+        conditions.push(eq(reports.ownerUserId, options.scope.ownerUserId));
+      }
+
+      const pattern = term ? likePattern(term) : '';
+      const prefix = term ? likePrefix(term) : '';
+      const picName = term
+        ? sql<
+            string | null
+          >`(select ${reportPics.name} from ${reportPics} where ${reportPics.reportId} = ${reports.id} and ${reportPics.name} like ${pattern} order by ${reportPics.sortOrder} limit 1)`
+        : sql<string | null>`null`;
+
+      if (term) {
+        conditions.push(
+          or(
+            like(reports.trackingNumber, pattern),
+            like(reports.title, pattern),
+            like(reports.narrative, pattern),
+            like(reports.location, pattern),
+            like(users.fullName, pattern),
+            sql`exists (select 1 from ${reportPics} where ${reportPics.reportId} = ${reports.id} and ${reportPics.name} like ${pattern})`,
+          )!,
+        );
+      }
+
+      const rank = sql<number>`case
+        when lower(coalesce(${reports.trackingNumber}, '')) = lower(${term}) then 0
+        when ${reports.trackingNumber} like ${prefix} then 1
+        when ${reports.title} like ${prefix} then 2
+        when ${reports.title} like ${pattern} then 3
+        when ${reports.narrative} like ${pattern} then 4
+        when ${reports.location} like ${pattern} then 5
+        when ${users.fullName} like ${pattern} then 6
+        else 7 end`;
+
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      return db
+        .select({
+          report: reports,
+          ownerName: users.fullName,
+          unitName: refUnits.name,
+          picName,
+        })
+        .from(reports)
+        .innerJoin(users, eq(reports.ownerUserId, users.id))
+        .leftJoin(refUnits, eq(reports.unitId, refUnits.id))
+        .where(where)
+        .orderBy(...(term ? [rank, desc(reports.updatedAt)] : [desc(reports.updatedAt)]))
+        .limit(options.limit);
     },
 
     async listFacets(): Promise<ReportListFacets> {

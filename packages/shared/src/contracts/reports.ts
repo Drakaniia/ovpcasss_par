@@ -148,6 +148,55 @@ export const reportListResponseSchema = z.object({
 });
 export type ReportListResponse = z.infer<typeof reportListResponseSchema>;
 
+/* ---------- Command palette search (phase 12 §4) ---------- */
+
+/**
+ * The palette asks for documents before the first keystroke, so `q` is
+ * optional: without one the server returns the reports the viewer touched most
+ * recently. A present query must be worth a request (two characters).
+ */
+export const reportSearchQuerySchema = z.object({
+  q: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .refine((value) => value === undefined || value.length >= 2, {
+      message: 'Type at least two characters',
+    }),
+  limit: z.coerce.number().int().min(1).max(20).default(8),
+});
+export type ReportSearchQuery = z.infer<typeof reportSearchQuerySchema>;
+
+/** Where the query hit, so the preview can say why a report was found. */
+export const REPORT_SEARCH_MATCHES = [
+  'tracking',
+  'title',
+  'narrative',
+  'location',
+  'submitter',
+  'pic',
+] as const;
+export type ReportSearchMatch = (typeof REPORT_SEARCH_MATCHES)[number];
+
+/**
+ * A palette row carries the list row plus the context the preview pane shows:
+ * who filed it, which unit, and the narrative excerpt around the hit.
+ */
+export const reportSearchItemSchema = reportListItemSchema.extend({
+  classification: z.enum(CLASSIFICATIONS),
+  ownerName: z.string().min(1),
+  unitName: z.string().nullable(),
+  /** Absent in the recent group, which is not a match at all. */
+  matched: z.enum(REPORT_SEARCH_MATCHES).optional(),
+  /** The narrative around the hit; present only for a narrative match. */
+  snippet: z.string().optional(),
+});
+export type ReportSearchItem = z.infer<typeof reportSearchItemSchema>;
+
+export const reportSearchResponseSchema = z.object({ items: z.array(reportSearchItemSchema) });
+export type ReportSearchResponse = z.infer<typeof reportSearchResponseSchema>;
+
 /* ---------- Create, validate, submit (UI spec §7.5) ---------- */
 
 /**

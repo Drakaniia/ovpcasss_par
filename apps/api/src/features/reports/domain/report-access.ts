@@ -23,6 +23,15 @@ export function canEditReport(viewer: Viewer, ownerUserId: string, status: Repor
   );
 }
 
+/**
+ * The owner filter a report search must apply. It is the same rule as
+ * `canViewReport`, expressed as a query condition: a Submitter searches only
+ * their own reports, everyone else searches every report (spec §9).
+ */
+export function reportSearchScope(viewer: Viewer): { ownerUserId?: string } {
+  return viewer.role === 'SUBMITTER' ? { ownerUserId: viewer.userId } : {};
+}
+
 /** A decision is never allowed on the submitter's own report (spec §9). */
 export function canDecide(viewer: Viewer, ownerUserId: string): boolean {
   return viewer.userId !== ownerUserId;
