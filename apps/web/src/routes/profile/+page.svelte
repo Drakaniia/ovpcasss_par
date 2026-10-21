@@ -5,6 +5,7 @@
 
   import { destinationAfterSignIn } from '$lib/features/auth/application/post-sign-in';
   import AccountCard from '$lib/features/profile/presentation/AccountCard.svelte';
+  import EmailPreferences from '$lib/features/profile/presentation/EmailPreferences.svelte';
   import PasswordCard from '$lib/features/profile/presentation/PasswordCard.svelte';
   import SignatureUpload from '$lib/features/profile/presentation/SignatureUpload.svelte';
   import UpdateCard from '$lib/features/updater/presentation/UpdateCard.svelte';
@@ -53,7 +54,7 @@
 <div class="profile">
   <header class="page-head">
     <h1>Profile</h1>
-    <p>Account details and password.</p>
+    <p>Account details, password, and email preferences.</p>
   </header>
 
   {#if loading}
@@ -84,6 +85,7 @@
     <div class="grid">
       <AccountCard {user} />
       <PasswordCard />
+      <EmailPreferences />
       <UpdateCard />
       {#if user.role === 'APPROVER'}
         <div class="signature-slot">
