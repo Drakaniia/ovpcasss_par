@@ -15,7 +15,12 @@
    */
   let maximizeButton = $state<HTMLButtonElement | null>(null);
 
-  const maximizeLabel = $derived(chromeState.maximized ? 'Restore' : 'Maximize');
+  /**
+   * A window that fills more than its normal size — maximized or full screen —
+   * is restored by the button, so it carries the restore glyph either way.
+   */
+  const restored = $derived(chromeState.maximized || chromeState.fullscreen);
+  const maximizeLabel = $derived(restored ? 'Restore' : 'Maximize');
 
   async function syncHitRect(): Promise<void> {
     if (!chromeState.controllable || !maximizeButton) return;
@@ -70,10 +75,10 @@
     aria-label={maximizeLabel}
     onclick={() => void toggleMaximize()}
   >
-    {#if chromeState.maximized}
+    {#if restored}
       <svg viewBox="0 0 10 10" aria-hidden="true">
-        <path d="M2.5 2.5h5v5h-5z" />
-        <path d="M2.5 2.5v-2h5v5h-2" />
+        <path d="M4.5 0.5h5v5" />
+        <path d="M0.5 4.5h5v5h-5z" />
       </svg>
     {:else}
       <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0.5 0.5h9v9h-9z" /></svg>
