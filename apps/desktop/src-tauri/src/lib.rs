@@ -20,7 +20,7 @@ mod window_chrome;
 mod window_state;
 
 /// Windows Credential Manager entry for the desktop session (phase 15 §2).
-const KEYRING_SERVICE: &str = "ph.edu.ovpcasss.par";
+const KEYRING_SERVICE: &str = "par.ovpcasss@buksu.edu.ph";
 const KEYRING_USER: &str = "session";
 
 /// Mirrors the uploader's accepted extensions; the API remains authoritative.
