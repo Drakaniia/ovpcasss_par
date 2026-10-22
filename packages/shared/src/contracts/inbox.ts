@@ -18,6 +18,8 @@ export const inboxItemSchema = z.object({
   submittedAt: isoDateTimeSchema.nullable().optional(),
   /** Draft-only: share of required fields completed, 0–100. */
   completeness: z.number().int().min(0).max(100).nullable().optional(),
+  /** The caller submitted this report; as an administrator it may still decide it. */
+  isOwn: z.boolean().optional(),
 });
 export type InboxItem = z.infer<typeof inboxItemSchema>;
 
@@ -77,6 +79,10 @@ export const inboxResponseSchema = z.object({
   drafts: inboxSectionSchema,
   waiting: inboxSectionSchema,
   activity: z.array(inboxActivitySchema).max(5),
+  /** Decisions the caller recorded; omitted from older payloads. */
+  recentlyDecided: z.array(inboxActivitySchema).max(3).optional(),
+  /** Bell count for the notifications digest; 0 renders nothing. */
+  notificationsUnread: z.number().int().min(0).optional(),
   admin: inboxAdminSchema.nullable(),
   onboarding: inboxOnboardingSchema,
 });
