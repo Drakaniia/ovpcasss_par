@@ -5,6 +5,7 @@ export * from './queries/attachments';
 export * from './queries/audit';
 export * from './queries/email-outbox';
 export * from './queries/idempotency';
+export * from './queries/inbox';
 export * from './queries/email-tokens';
 export * from './queries/notifications';
 export * from './queries/rate-limits';
