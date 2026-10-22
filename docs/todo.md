@@ -119,3 +119,19 @@ is all queues and repository are both on remote and not local?
 
 email sending is blocked on DNS, not code: `send.buksu.edu.ph` exists in Resend (domain id 11096304-b51e-4c25-8fa3-0fa141cfaf62) but its four records are still pending from university IT, because `buksu.edu.ph` lives in a different Cloudflare account than this one. Until those records land Resend answers 403 for every send, so registration and password reset cannot complete; the two bootstrap admins are already verified and unaffected. `EMAIL_API_KEY`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set on the `par` Worker.
 
+
+remove  or hide cthe cmd that biriefly shows when i cvlick google sign in/login in the auth pages, just dont make it appear when i lcick loginn
+
+signature can sign signature..
+, add in the flow that can add isgnature   that is included in the port for  the submitter
+
+
+make the admin can still approve and review the request, even in their own report  so they can test the full flow 
+
+
+in the approver and review page, in their home page, it did no show the list of report to review or to approve  (i want also to improve the home page of all roles when they open the app  apple-design)
+
+
+
+in the dropdown in all post activity report like camput, college unit, Department etc,  the edit and delte should be  on each department  not on one two bottons, because i cant focus which one dropdown list to edit,, and make the ui  pencil or trash icon - only show when hovered
+
