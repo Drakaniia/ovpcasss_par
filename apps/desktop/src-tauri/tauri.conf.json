@@ -44,7 +44,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://par.ovpcasss.workers.dev"
+      "csp": "default-src 'self'; img-src 'self' data: https://par.ovpcasss.workers.dev https://*.r2.cloudflarestorage.com http://localhost:8787; style-src 'self' 'unsafe-inline'; connect-src 'self' https://par.ovpcasss.workers.dev"
     }
   },
   "bundle": {
