@@ -8,7 +8,7 @@ import type {
   ReturnReportInput,
   Role,
 } from '@par/shared';
-import { decisionNoteSchema, returnReportSchema } from '@par/shared';
+import { actsAs, decisionNoteSchema, returnReportSchema } from '@par/shared';
 
 import { api } from '$lib/api/client';
 import { ApiError } from '$lib/api/http';
@@ -134,14 +134,17 @@ export function decisionAvailability(
     };
   }
 
-  if (viewer.role !== REQUIRED_ROLE[subject.kind]) {
+  // Admin stands in for every role, so it sees the buttons on both queues.
+  if (!viewer.role || !actsAs(viewer.role, REQUIRED_ROLE[subject.kind])) {
     return {
       buttons: [],
       blocked: `This queue is for ${DECISION_ROLE_LABEL[subject.kind].plural}.`,
     };
   }
 
-  const ownReport = Boolean(viewer.userId) && subject.ownerUserId === viewer.userId;
+  // Only an Admin keeps the buttons on its own report (signature spec W3).
+  const ownReport =
+    Boolean(viewer.userId) && subject.ownerUserId === viewer.userId && viewer.role !== 'ADMIN';
   const reason = ownReport
     ? `You submitted this report. ${DECISION_ROLE_LABEL[subject.kind].withArticle} cannot act on a report they submitted.`
     : subject.hasPendingAttachments

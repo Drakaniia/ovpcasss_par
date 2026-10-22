@@ -119,6 +119,33 @@ describe('decision availability', () => {
     expect(availability.buttons[0].reason).toBe('Attachments are still uploading.');
   });
 
+  it('keeps the buttons for an admin on its own report, on both queues', () => {
+    const admin = { userId: 'u1', role: 'ADMIN' as const };
+    const own = item({ ownerUserId: 'u1' });
+
+    const review = decisionAvailability(decisionSubjectFromItem(own, 'review'), admin);
+    expect(review.buttons.map((button) => button.action)).toEqual(['ENDORSE', 'RETURN']);
+    expect(review.buttons.every((button) => button.enabled)).toBe(true);
+
+    const approval = decisionAvailability(
+      decisionSubjectFromItem(item({ ownerUserId: 'u1', status: 'ENDORSED' }), 'approval'),
+      admin,
+    );
+    expect(approval.buttons.map((button) => button.action)).toEqual(['APPROVE', 'RETURN']);
+    expect(approval.buttons.every((button) => button.enabled)).toBe(true);
+  });
+
+  it('still blocks an admin while an attachment is uploading', () => {
+    const admin = { userId: 'u1', role: 'ADMIN' as const };
+    const availability = decisionAvailability(
+      decisionSubjectFromItem(item({ ownerUserId: 'u1', hasPendingAttachments: true }), 'review'),
+      admin,
+    );
+
+    expect(availability.buttons.every((button) => !button.enabled)).toBe(true);
+    expect(availability.buttons[0].reason).toBe('Attachments are still uploading.');
+  });
+
   it('blocks a role that does not belong to the queue', () => {
     const availability = decisionAvailability(decisionSubjectFromItem(item(), 'review'), approver);
 
