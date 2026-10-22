@@ -10,7 +10,6 @@ export const AUTH_PATHS = new Set([
   '/verify-email',
   '/forgot-password',
   '/reset-password',
-  '/awaiting-approval',
 ]);
 
 type LaunchAccount = Pick<Account, 'status' | 'email'>;
@@ -27,8 +26,6 @@ export function startupDestination(pathname: string, account: LaunchAccount | nu
   }
 
   switch (account.status) {
-    case 'PENDING_ROLE':
-      return pathname === '/awaiting-approval' ? null : '/awaiting-approval';
     case 'PENDING_VERIFICATION':
       return pathname === '/verify-email'
         ? null

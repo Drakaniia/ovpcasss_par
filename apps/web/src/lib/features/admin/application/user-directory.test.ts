@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_USER_FILTERS,
-  PENDING_QUEUE_PATCH,
   clearedFilters,
   disableConfirmation,
   filtersFromParams,
@@ -21,7 +20,7 @@ const user = (overrides: Partial<AdminUser> = {}): AdminUser => ({
   fullName: 'M. Santos',
   email: 'ms@university.edu',
   role: 'SUBMITTER',
-  status: 'PENDING_ROLE',
+  status: 'ACTIVE',
   campusUnit: 'Main',
   contactNumber: null,
   registeredAt: '2026-03-14T00:00:00.000Z',
@@ -39,10 +38,10 @@ describe('filtersFromParams', () => {
 
   it('restores a shared view', () => {
     const filters = filtersFromParams(
-      new URLSearchParams('status=PENDING_ROLE&role=REVIEWER&q=santos'),
+      new URLSearchParams('status=DISABLED&role=REVIEWER&q=santos'),
     );
 
-    expect(filters).toMatchObject({ status: 'PENDING_ROLE', role: 'REVIEWER', q: 'santos' });
+    expect(filters).toMatchObject({ status: 'DISABLED', role: 'REVIEWER', q: 'santos' });
   });
 
   it('falls back on unknown values instead of inventing state', () => {
@@ -65,7 +64,7 @@ describe('filtersFromParams', () => {
 describe('filtersToParams', () => {
   it('round-trips a shared view', () => {
     const filters = filtersFromParams(
-      new URLSearchParams('status=PENDING_ROLE&role=REVIEWER&q=santos'),
+      new URLSearchParams('status=DISABLED&role=REVIEWER&q=santos'),
     );
 
     expect(filtersFromParams(new URLSearchParams(filtersToParams(filters)))).toEqual(filters);
@@ -100,27 +99,6 @@ describe('filtersToQuery', () => {
       page: 1,
       pageSize: 25,
     });
-  });
-});
-
-describe('pending queue', () => {
-  it('opens the pending-role queue from any view', () => {
-    const current: UserFilters = {
-      ...DEFAULT_USER_FILTERS,
-      q: 'santos',
-      role: 'REVIEWER',
-      page: 4,
-    };
-
-    const next = updateFilters(current, PENDING_QUEUE_PATCH);
-
-    expect(next).toMatchObject({ q: '', role: 'ALL', status: 'PENDING_ROLE', page: 1 });
-  });
-
-  it('changes the default view, so the button is never a no-op', () => {
-    expect(updateFilters(DEFAULT_USER_FILTERS, PENDING_QUEUE_PATCH)).not.toEqual(
-      DEFAULT_USER_FILTERS,
-    );
   });
 });
 
@@ -166,20 +144,19 @@ describe('pagination', () => {
 });
 
 describe('userActionStates', () => {
-  it('offers Activate only when a role is assigned', () => {
-    const pendingWithoutRole = userActionStates(user({ role: null }), false);
-
-    expect(pendingWithoutRole.activate).toEqual({
+  it('offers Activate only for a disabled account', () => {
+    expect(userActionStates(user(), false).activate.visible).toBe(false);
+    expect(userActionStates(user({ status: 'DISABLED' }), false).activate).toEqual({
       visible: true,
-      enabled: false,
-      reason: 'Assign a role first.',
+      enabled: true,
     });
-    expect(userActionStates(user(), false).activate.enabled).toBe(true);
   });
 
   it('offers Disable only for active accounts', () => {
     expect(userActionStates(user({ status: 'ACTIVE' }), false).disable.visible).toBe(true);
-    expect(userActionStates(user({ status: 'PENDING_ROLE' }), false).disable.visible).toBe(false);
+    expect(
+      userActionStates(user({ status: 'PENDING_VERIFICATION' }), false).disable.visible,
+    ).toBe(false);
     expect(userActionStates(user({ status: 'DISABLED' }), false).disable.visible).toBe(false);
   });
 

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { UserStatus } from '@par/shared';
-  import { Ban, Check, Clock, Mail } from '@lucide/svelte';
+  import { Ban, Check, Mail } from '@lucide/svelte';
 
   import { USER_STATUS_PRESENTATION, type UserStatusIcon } from '../application/user-directory';
 
@@ -8,7 +8,6 @@
 
   const ICONS: Record<UserStatusIcon, typeof Check> = {
     mail: Mail,
-    clock: Clock,
     check: Check,
     ban: Ban,
   };

@@ -78,7 +78,7 @@ export async function requestPasswordReset(
 /**
  * Spends a reset token, sets the new password, and revokes every session
  * (spec §7.4). Possession of the token proves the mailbox, so an unverified
- * account becomes verified-and-pending-role here.
+ * account becomes verified and active as a Submitter here.
  */
 export async function resetPassword(
   c: Context<AppEnv>,
@@ -100,8 +100,9 @@ export async function resetPassword(
   const patch: Partial<NewUserRow> = { passwordHash: hash, hashParams: params, hasPassword: true };
   if (!user.emailVerifiedAt) {
     patch.emailVerifiedAt = now;
-    if (user.status === 'PENDING_VERIFICATION') patch.status = 'PENDING_ROLE';
+    if (user.status === 'PENDING_VERIFICATION') patch.status = 'ACTIVE';
   }
+  if (user.role === null) patch.role = 'SUBMITTER';
   await users.update(user.id, patch, now);
   await createSessionQueries(db).deleteForUser(user.id);
 

@@ -14,7 +14,6 @@ import {
   decodeStateCookie,
   desktopRedirect,
   encodeStateCookie,
-  googleLandingPath,
   parseDesktopStart,
   type DesktopStart,
 } from '../domain/google';
@@ -65,7 +64,7 @@ async function signedIn(
 ): Promise<GoogleOutcome> {
   if (!desktop) {
     await issueSession(c, user, now);
-    return { ok: true, path: googleLandingPath(user.status) };
+    return { ok: true, path: '/' };
   }
 
   const token = await issueSession(c, user, now, { cookie: false });
@@ -96,8 +95,8 @@ export function startGoogleSignIn(c: Context<AppEnv>): Response {
 
 /**
  * Redeems the authorization code, then signs in the matching account. Google has
- * already verified the address, so a new account starts at `PENDING_ROLE` and an
- * unverified one is promoted, exactly as the emailed verification link would.
+ * already verified the address, so a new account starts as an active Submitter
+ * and an unverified one is activated, exactly as the emailed link would.
  */
 export async function completeGoogleSignIn(c: Context<AppEnv>): Promise<GoogleOutcome> {
   const { state: expectedState, desktop } = decodeStateCookie(
@@ -142,8 +141,8 @@ export async function completeGoogleSignIn(c: Context<AppEnv>): Promise<GoogleOu
       hashParams: params,
       hasPassword: false,
       fullName: profile.name || profile.email.split('@')[0]!,
-      role: bootstrap ? 'ADMIN' : null,
-      status: bootstrap ? 'ACTIVE' : 'PENDING_ROLE',
+      role: bootstrap ? 'ADMIN' : 'SUBMITTER',
+      status: 'ACTIVE',
       emailVerifiedAt: now,
       createdAt: now,
       updatedAt: now,
@@ -169,14 +168,17 @@ export async function completeGoogleSignIn(c: Context<AppEnv>): Promise<GoogleOu
 
   const patch: Partial<NewUserRow> = { lastSignedInAt: now };
   if (!existing.emailVerifiedAt) patch.emailVerifiedAt = now;
+  // Google proved the mailbox, so an account still waiting for verification is
+  // active from here on. A missing role is filled defensively; nothing else is
+  // allowed to keep an account role-less.
+  if (existing.status === 'PENDING_VERIFICATION') patch.status = 'ACTIVE';
+  if (existing.role === null) patch.role = 'SUBMITTER';
   if (
     existing.role !== 'ADMIN' &&
     isBootstrapAdmin(existing.email, parseBootstrapAdmins(c.env.BOOTSTRAP_ADMIN_EMAILS))
   ) {
     patch.role = 'ADMIN';
     patch.status = 'ACTIVE';
-  } else if (existing.status === 'PENDING_VERIFICATION') {
-    patch.status = existing.role === null ? 'PENDING_ROLE' : 'ACTIVE';
   }
 
   const updated = await users.update(existing.id, patch, now);

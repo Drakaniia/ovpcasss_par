@@ -32,7 +32,6 @@ describe('shouldAutoStart', () => {
     for (const overrides of [
       { pathname: '/reports' },
       { accountStatus: 'PENDING_VERIFICATION' },
-      { accountStatus: 'PENDING_ROLE' },
       { accountStatus: null },
       { homeStatus: 'idle' },
       { homeStatus: 'failed' },

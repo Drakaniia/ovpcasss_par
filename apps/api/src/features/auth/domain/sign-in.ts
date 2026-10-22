@@ -8,13 +8,11 @@ export type SignInDecision = { allowed: true } | { allowed: false; reason: SignI
 /**
  * The sign-in gate (spec §7.4). Credentials are verified before this runs, so a
  * blocked status is only reached by someone who already proved the password.
- * `PENDING_ROLE` may sign in — the client routes it to the awaiting-approval
- * screen — while an unverified or disabled account may not.
+ * Only an active account may sign in; an unverified or disabled one may not.
  */
 export function signInGate(status: UserStatus): SignInDecision {
   switch (status) {
     case 'ACTIVE':
-    case 'PENDING_ROLE':
       return { allowed: true };
     case 'PENDING_VERIFICATION':
       return { allowed: false, reason: 'EMAIL_NOT_VERIFIED' };

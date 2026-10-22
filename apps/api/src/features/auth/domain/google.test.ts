@@ -5,7 +5,6 @@ import {
   decodeStateCookie,
   desktopRedirect,
   encodeStateCookie,
-  googleLandingPath,
   parseDesktopStart,
 } from './google';
 
@@ -27,16 +26,6 @@ describe('buildGoogleAuthUrl', () => {
     expect(url.searchParams.get('response_type')).toBe('code');
     expect(url.searchParams.get('scope')).toBe('openid email profile');
     expect(url.searchParams.get('state')).toBe('state-token');
-  });
-});
-
-describe('googleLandingPath', () => {
-  it('sends an active account into the app', () => {
-    expect(googleLandingPath('ACTIVE')).toBe('/');
-  });
-
-  it('sends every other status to the approval screen', () => {
-    expect(googleLandingPath('PENDING_ROLE')).toBe('/awaiting-approval');
   });
 });
 

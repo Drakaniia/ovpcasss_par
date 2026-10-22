@@ -99,7 +99,7 @@
   </AuthMessage>
 {:else if stage === 'verified'}
   <AuthMessage tone="success" title="Your email address is verified">
-    <p>Sign in to continue. An administrator will assign your role.</p>
+    <p>Your email address is verified. Sign in to submit a report.</p>
     <a class="btn btn-primary" href="/login">Sign in</a>
   </AuthMessage>
 {:else if stage === 'invalid'}

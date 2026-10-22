@@ -57,7 +57,6 @@ export type InboxAuditEvent = z.infer<typeof inboxAuditEventSchema>;
 
 /** Admin-only block; null for every other role. */
 export const inboxAdminSchema = z.object({
-  pendingRoleApprovals: z.number().int().min(0),
   failedEmails: z.number().int().min(0),
   auditEvents: z.array(inboxAuditEventSchema).max(3),
 });

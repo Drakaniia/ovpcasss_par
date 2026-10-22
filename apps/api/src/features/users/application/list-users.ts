@@ -49,16 +49,12 @@ export async function listAdminUsers(
   queries: UserQueries,
   filter: UserListFilter,
 ): Promise<AdminUserListResponse> {
-  const [page, pendingRoleCount] = await Promise.all([
-    queries.list(filter),
-    queries.countByStatus('PENDING_ROLE'),
-  ]);
+  const page = await queries.list(filter);
 
   return {
     items: page.rows.map(toAdminUser),
     total: page.total,
     page: filter.page,
     pageSize: filter.pageSize,
-    pendingRoleCount,
   };
 }

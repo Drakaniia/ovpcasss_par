@@ -45,8 +45,6 @@ export const adminUserListResponseSchema = z.object({
   total: z.number().int().min(0),
   page: z.number().int().min(1),
   pageSize: z.number().int().min(1),
-  /** Total waiting for a role, independent of the active filters. */
-  pendingRoleCount: z.number().int().min(0),
 });
 export type AdminUserListResponse = z.infer<typeof adminUserListResponseSchema>;
 

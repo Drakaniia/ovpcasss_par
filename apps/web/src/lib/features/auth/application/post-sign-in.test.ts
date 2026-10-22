@@ -17,10 +17,6 @@ describe('destinationAfterSignIn', () => {
     expect(destinationAfterSignIn(account({ role: 'SUBMITTER', status: 'ACTIVE' }))).toBe('/');
   });
 
-  it('sends a pending-role account to the status page', () => {
-    expect(destinationAfterSignIn(account({ status: 'PENDING_ROLE' }))).toBe('/awaiting-approval');
-  });
-
   it('sends an unverified account to the verify screen with the address', () => {
     expect(destinationAfterSignIn(account({ status: 'PENDING_VERIFICATION' }))).toBe(
       '/verify-email?email=juan.delacruz%40university.edu',

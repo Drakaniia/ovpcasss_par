@@ -112,7 +112,7 @@ export function waitingRows(items: readonly InboxItem[], now: Date = new Date())
 }
 
 export type AdminAction = {
-  id: 'role-approvals' | 'failed-emails';
+  id: 'failed-emails';
   title: string;
   count: number;
   href: string;
@@ -122,16 +122,6 @@ export type AdminAction = {
 /** Zero-count admin cards are omitted, never shown as "(0)" (phase 02 §4). */
 export function adminActionsFor(admin: InboxAdmin): AdminAction[] {
   const actions: AdminAction[] = [];
-
-  if (admin.pendingRoleApprovals > 0) {
-    actions.push({
-      id: 'role-approvals',
-      title: 'Awaiting role approvals',
-      count: admin.pendingRoleApprovals,
-      href: '/admin/users',
-      linkLabel: 'Open users',
-    });
-  }
 
   if (admin.failedEmails > 0) {
     actions.push({
