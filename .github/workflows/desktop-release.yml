@@ -82,7 +82,7 @@ jobs:
           # The desktop webview is not same-origin with the API, so the web build
           # must carry an absolute URL (AGENTS.md). Keep the Tauri CSP connect-src
           # in step with this host.
-          VITE_API_BASE_URL: https://par-api.floresaybaez574.workers.dev/api/v1
+          VITE_API_BASE_URL: https://par.ovpcasss.workers.dev/api/v1
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
