@@ -40,4 +40,11 @@ describe('CalendarPopover', () => {
   it('offers a Today shortcut', () => {
     expect(renderCalendar()).toContain('>Today</button>');
   });
+
+  it('opens a month and year jump from the month label', () => {
+    const html = renderCalendar();
+
+    expect(html).toMatch(/class="month[^"]*"[^>]*aria-expanded="false"/);
+    expect(html).toContain('aria-controls="activity-date-calendar-jump"');
+  });
 });

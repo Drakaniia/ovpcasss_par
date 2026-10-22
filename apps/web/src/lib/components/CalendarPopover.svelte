@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronLeft, ChevronRight } from '@lucide/svelte';
+  import { ChevronDown, ChevronLeft, ChevronRight } from '@lucide/svelte';
   import { onMount, tick, untrack } from 'svelte';
 
   import {
@@ -32,7 +32,16 @@
   const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const today = todayIso();
 
+  const MONTH_NAMES = Array.from({ length: 12 }, (_, month) =>
+    new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: 'UTC' }).format(
+      new Date(Date.UTC(2026, month, 1)),
+    ),
+  );
+
   let grid = $state<HTMLElement | null>(null);
+  let monthButton = $state<HTMLButtonElement | null>(null);
+  /** The month/year panel replaces the day grid while it is open. */
+  let jumping = $state(false);
   let focusIso = $state(untrack(() => (parseIsoDate(value) ? value : today)));
   let view = $state(
     untrack(() => {
@@ -69,6 +78,43 @@
     const lastDay = new Date(Date.UTC(target.year, target.month + 1, 0)).getUTCDate();
 
     setFocus(isoDate({ ...target, day: Math.min(current.day, lastDay) }), false);
+  }
+
+  /** The day the current focus sits on, clamped into the month being shown. */
+  function dayIn(year: number, month: number): string {
+    const current = parseIsoDate(focusIso) ?? parseIsoDate(today)!;
+    const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+    return isoDate({ year, month, day: Math.min(current.day, lastDay) });
+  }
+
+  function jumpToMonth(month: number): void {
+    const iso = dayIn(view.year, month);
+    jumping = false;
+    setFocus(iso);
+  }
+
+  function shiftYear(delta: number): void {
+    setFocus(dayIn(view.year + delta, view.month), false);
+  }
+
+  function toggleJump(): void {
+    jumping = !jumping;
+    if (!jumping) void tick().then(() => monthButton?.focus());
+  }
+
+  /** The panel keeps focus on its own buttons; Escape returns to the label. */
+  function handleJumpKeydown(event: KeyboardEvent): void {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      shiftYear(-1);
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      shiftYear(1);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      jumping = false;
+      void tick().then(() => monthButton?.focus());
+    }
   }
 
   function choose(iso: string): void {
@@ -131,49 +177,97 @@
     <button class="nav" type="button" aria-label="Previous month" onclick={() => shiftMonth(-1)}>
       <ChevronLeft size={16} aria-hidden="true" />
     </button>
-    <span class="month" aria-live="polite">{monthLabel(view.year, view.month)}</span>
+    <button
+      class="month"
+      type="button"
+      aria-expanded={jumping}
+      aria-controls={`${id}-jump`}
+      bind:this={monthButton}
+      onclick={toggleJump}
+    >
+      <span aria-live="polite">{monthLabel(view.year, view.month)}</span>
+      <ChevronDown size={13} aria-hidden="true" />
+    </button>
     <button class="nav" type="button" aria-label="Next month" onclick={() => shiftMonth(1)}>
       <ChevronRight size={16} aria-hidden="true" />
     </button>
   </div>
 
-  <div class="weekdays" aria-hidden="true">
-    {#each WEEKDAYS as weekday (weekday)}
-      <span>{weekday}</span>
-    {/each}
-  </div>
+  {#if jumping}
+    <div
+      class="jump"
+      id={`${id}-jump`}
+      role="toolbar"
+      tabindex="-1"
+      aria-orientation="horizontal"
+      aria-label="Choose a month and year"
+      onkeydown={handleJumpKeydown}
+    >
+      <div class="jump-year">
+        <button class="nav" type="button" aria-label="Previous year" onclick={() => shiftYear(-1)}>
+          <ChevronLeft size={16} aria-hidden="true" />
+        </button>
+        <span class="year">{view.year}</span>
+        <button class="nav" type="button" aria-label="Next year" onclick={() => shiftYear(1)}>
+          <ChevronRight size={16} aria-hidden="true" />
+        </button>
+      </div>
 
-  <div
-    class="grid"
-    role="grid"
-    tabindex="-1"
-    aria-label="Calendar days"
-    bind:this={grid}
-    onkeydown={handleKeydown}
-  >
-    {#each rows as row, rowIndex (rowIndex)}
-      <div class="week" role="row">
-        {#each row as cell (cell.iso)}
+      <div class="months">
+        {#each MONTH_NAMES as name, index (name)}
           <button
-            class="day"
-            class:is-outside={!cell.inMonth}
-            class:is-today={cell.iso === today}
-            class:is-selected={cell.iso === value}
+            class="jump-month"
+            class:is-view={index === view.month}
             type="button"
-            role="gridcell"
-            tabindex={cell.iso === focusIso ? 0 : -1}
-            aria-label={formatLongDate(cell.iso)}
-            aria-selected={cell.iso === value}
-            aria-current={cell.iso === today ? 'date' : undefined}
-            data-date={cell.iso}
-            onclick={() => choose(cell.iso)}
+            aria-current={index === view.month ? 'date' : undefined}
+            onclick={() => jumpToMonth(index)}
           >
-            {cell.day}
+            {name}
           </button>
         {/each}
       </div>
-    {/each}
-  </div>
+    </div>
+  {/if}
+
+  {#if !jumping}
+    <div class="weekdays" aria-hidden="true">
+      {#each WEEKDAYS as weekday (weekday)}
+        <span>{weekday}</span>
+      {/each}
+    </div>
+
+    <div
+      class="grid"
+      role="grid"
+      tabindex="-1"
+      aria-label="Calendar days"
+      bind:this={grid}
+      onkeydown={handleKeydown}
+    >
+      {#each rows as row, rowIndex (rowIndex)}
+        <div class="week" role="row">
+          {#each row as cell (cell.iso)}
+            <button
+              class="day"
+              class:is-outside={!cell.inMonth}
+              class:is-today={cell.iso === today}
+              class:is-selected={cell.iso === value}
+              type="button"
+              role="gridcell"
+              tabindex={cell.iso === focusIso ? 0 : -1}
+              aria-label={formatLongDate(cell.iso)}
+              aria-selected={cell.iso === value}
+              aria-current={cell.iso === today ? 'date' : undefined}
+              data-date={cell.iso}
+              onclick={() => choose(cell.iso)}
+            >
+              {cell.day}
+            </button>
+          {/each}
+        </div>
+      {/each}
+    </div>
+  {/if}
 
   <div class="footer">
     <button class="today" type="button" onclick={() => choose(today)}>Today</button>
@@ -198,7 +292,69 @@
   }
 
   .month {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-card);
+    color: var(--text-primary);
+    display: inline-flex;
+    font-family: var(--font-ui);
     font-size: 13px;
+    font-weight: 600;
+    gap: 3px;
+    height: 28px;
+    padding: 0 6px;
+  }
+
+  .month:hover {
+    background: var(--surface-page);
+  }
+
+  .month[aria-expanded='true'] {
+    background: var(--primary-subtle);
+    color: var(--primary);
+  }
+
+  .jump {
+    padding: 2px 0 4px;
+  }
+
+  .jump-year {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .year {
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  .months {
+    display: grid;
+    gap: 2px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .jump-month {
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-card);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    height: 32px;
+  }
+
+  .jump-month:hover {
+    background: var(--surface-page);
+  }
+
+  .jump-month[aria-current='date'] {
+    background: var(--primary-subtle);
+    color: var(--primary);
     font-weight: 600;
   }
 
