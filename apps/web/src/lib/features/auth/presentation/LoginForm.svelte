@@ -149,6 +149,13 @@
     </div>
   {/if}
 
+  {#if googleEnabled}
+    <!-- Google first: accounts it creates are already verified, so they skip the
+         mail the sending domain cannot deliver yet. The filled button below
+         stays the primary action. -->
+    <GoogleSignIn divider="after" onError={(message) => void showServerError(message, false)} />
+  {/if}
+
   <div class="field">
     <FloatingInput
       bind:value={email}
@@ -207,10 +214,6 @@
       <ArrowRight size={18} aria-hidden="true" />
     {/if}
   </button>
-
-  {#if googleEnabled}
-    <GoogleSignIn onError={(message) => void showServerError(message, false)} />
-  {/if}
 
   <p class="auth-switch">New here? <a href="/register">Create an account</a></p>
 </form>

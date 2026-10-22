@@ -9,7 +9,10 @@
   import { rememberSessionToken } from '$lib/platform/session-token';
   import { loadSession } from '$lib/session/session.svelte';
 
-  let { onError }: { onError: (message: string) => void } = $props();
+  let {
+    onError,
+    divider = 'before',
+  }: { onError: (message: string) => void; divider?: 'before' | 'after' } = $props();
 
   const desktop = isDesktopShell();
   const googleHref = `${API_BASE_URL}/auth/google`;
@@ -89,7 +92,9 @@
   </svg>
 {/snippet}
 
-<p class="auth-divider"><span>or</span></p>
+{#if divider === 'before'}
+  <p class="auth-divider"><span>or</span></p>
+{/if}
 
 {#if desktop}
   <button
@@ -115,6 +120,10 @@
     {@render googleMark()}
     Sign in with Google
   </a>
+{/if}
+
+{#if divider === 'after'}
+  <p class="auth-divider"><span>or</span></p>
 {/if}
 
 <style>

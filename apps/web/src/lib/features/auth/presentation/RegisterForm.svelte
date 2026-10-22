@@ -164,6 +164,11 @@
     </div>
   {/if}
 
+  <p class="field-hint">
+    Have a university Google account? <a href="/login">Sign in with Google</a> instead — that
+    first sign-in creates your account already verified, with a Submitter role.
+  </p>
+
   <div class="field">
     <FloatingInput
       bind:value={fullName}
