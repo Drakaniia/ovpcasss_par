@@ -43,8 +43,8 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Verify
-        run: pnpm verify
+      # Verification for a tag push is the Deploy workflow's `verify` job; this
+      # job only builds and signs.
 
       # The tag is the release identity, so it is also the app version. Without
       # this, the committed 0.0.0 names the installers and fills latest.json,
