@@ -35,7 +35,7 @@ they do not change any decision in it. If a phase file disagrees with
 | #   | Phase file                                                   | Milestone | Screens / routes                                                                                                                     | Depends on             |
 | --- | ------------------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
 | 00  | [`00-foundation.md`](./00-foundation.md)                     | M0        | Tokens, shell, nav, shared primitives                                                                                                | —                      |
-| 01  | [`01-auth-and-account.md`](./01-auth-and-account.md)         | M1        | `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password`, `/awaiting-approval`, `/profile` (account + password) | 00                     |
+| 01  | [`01-auth-and-account.md`](./01-auth-and-account.md)         | M1        | `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password`, `/profile` (account + password)                       | 00                     |
 | 02  | [`02-work-inbox.md`](./02-work-inbox.md)                     | M1        | `/` work inbox, onboarding checklist                                                                                                 | 00, 01                 |
 | 03  | [`03-admin-users.md`](./03-admin-users.md)                   | M1        | `/admin/users`                                                                                                                       | 00, 01                 |
 | 04  | [`04-admin-reference-data.md`](./04-admin-reference-data.md) | M2        | `/admin/reference-data`                                                                                                              | 00, 03                 |
@@ -113,7 +113,7 @@ its §7.2.
 10. **English only, formal institutional voice.** No exclamation marks, "Oops",
     "Uh oh", or jokes.
 11. **Desktop widths only.** No mobile design in v1; below 1024 px shows the
-    notice defined in foundation. Auth and awaiting-approval pages are exempt.
+    notice defined in foundation. Auth pages are exempt.
 12. **Shared primitives are owned by phase 00.** Do not fork `StatusBadge`,
     `EmptyState`, `ErrorState`, `ConfirmDialog`, `ToastRegion`, table/form
     styles, or tokens inside a page phase. Extend the shared component and note

@@ -12,6 +12,7 @@ documentation.
 | [`key-rotation.md`](./key-rotation.md) | Email key, R2 S3 credentials, session revocation                    | No      |
 | [`uploads.md`](./uploads.md)           | Attachment pipeline, `pnpm provision`, R2 CORS and its manual steps | No      |
 | [`incident.md`](./incident.md)         | Failed email (log, resend, digest), account compromise, attachments | No      |
+| [`email-delivery.md`](./email-delivery.md) | Resend sender domain: records, verification, delivery check      | No      |
 
 Backups rely on D1 Time Travel plus a scheduled export to R2 (`apps/api/src/cron/backup.ts`,
 daily at 18:30 UTC). The restore runbook must be verified against a real copy

@@ -6,7 +6,7 @@
 dialog, toast), 01 (role/status vocabulary)
 **Source:** `par-ui-ux-spec.md` §7.15, §8.3, §8.4, §8.8; project spec §9 and
 `users` table (roles `SUBMITTER|REVIEWER|APPROVER|ADMIN`, status
-`PENDING_VERIFICATION|PENDING_ROLE|ACTIVE|DISABLED`)
+`PENDING_VERIFICATION|ACTIVE|DISABLED`)
 
 This is the administrator's queue for account requests and account state. It is
 not a profile editor for arbitrary user data beyond role and status.
@@ -17,9 +17,9 @@ not a profile editor for arbitrary user data beyond role and status.
 
 - Role: ADMIN only. A non-admin hitting the route gets the permission-denied
   state naming the required role, not a 404.
-- One primary action: **Assign role** inside the drawer when a role is pending.
-  The page itself has no filled navy button; filters and row actions are outline
-  or ghost.
+- No filled navy button on this page. **Assign role** in the drawer is an outline
+  action, like the filters and row actions: every account already has a role, so
+  a change corrects it rather than unblocking the person.
 - Table conventions from foundation §4.1: 40 px rows, sticky header, row click
   opens the drawer, ⋯ menu stops propagation, sort indicator, no checkboxes.
 - Form conventions from foundation §4.2: labels above, validation on blur/submit,
@@ -37,31 +37,26 @@ not a profile editor for arbitrary user data beyond role and status.
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │  Users & roles                                                               │
-│  2 accounts are waiting for a role assignment          [ Review requests ]   │  callout
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  [ Search name or email        ]  [ Role: All ▾ ]  [ Status: All ▾ ]       │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ NAME              EMAIL                 ROLE       STATUS        CAMPUS  REGISTERED  ⋯ │
 │ J. Dela Cruz      jd@university.edu     Submitter  Active        Main    12 Mar 26     │
-│ M. Santos         ms@university.edu     —          Pending role  Main    14 Mar 26     │
+│ M. Santos         ms@university.edu     Reviewer   Disabled      Main    14 Mar 26     │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  Showing 1–25 of 84                                          [ 1 2 3 … ]    │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Page header title "Users & roles"; no subtitle beyond the pending callout.
-- **Pending-role callout** appears only when the count is > 0: count in text
-  ("2 accounts are waiting for a role assignment") and a **Review requests**
-  action that clears the search and role filters and applies the `PENDING_ROLE`
-  status filter. The callout is not a modal and does not replace the table.
+- Page header title "Users & roles"; no subtitle and no callout.
 - **Filter bar:** search (name or email, debounced), role (All, Submitter,
-  Reviewer, Approver, Admin), status (All, Pending verification, Pending role,
-  Active, Disabled). Default status filter is **All**, so the directory lists
-  every account; the pending-role callout is the fast path to the queue.
-- Filters are URL state (`?status=PENDING_ROLE&role=REVIEWER&q=santos`) so a view
+  Reviewer, Approver, Admin), status (All, Pending verification, Active,
+  Disabled). Default status filter is **All**, so the directory lists every
+  account.
+- Filters are URL state (`?status=DISABLED&role=REVIEWER&q=santos`) so a view
   survives refresh and can be shared with another admin.
-- Table columns: Name, Email, Role (`—` when unassigned), Status, Campus,
-  Registered, ⋯. Registered uses `12 Mar 2026`; email is plain text, not a link.
+- Table columns: Name, Email, Role, Status, Campus, Registered, ⋯. Registered
+  uses `12 Mar 2026`; email is plain text, not a link.
 - Default sort: Registered ascending (oldest request first). Sortable: name,
   registered. Role/status are filtered, not sorted, in v1.
 - Pagination: 25 per page, "Showing 1–25 of 84", page size 25/50/100.
@@ -82,20 +77,17 @@ provides it.
 
 **Actions**, in this order:
 
-| Action      | When                                               | Behavior                                                                                                                                                 |
-| ----------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Assign role | Status is `PENDING_ROLE`, or role needs correction | Select Submitter / Reviewer / Approver / Admin, then confirm. On success the role updates and the row leaves the pending filter if it no longer matches. |
-| Activate    | `PENDING_ROLE` with a role assigned, or `DISABLED` | Confirms and sets `ACTIVE`; copy states the user can sign in after activation.                                                                           |
-| Disable     | `ACTIVE`                                           | Confirm names the user and consequence: "M. Santos will no longer be able to sign in. Their reports and audit history are kept." Maroon button.          |
+| Action      | When                     | Behavior                                                                                                                                        |
+| ----------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Assign role | Role needs correction    | Select Submitter / Reviewer / Approver / Admin, then confirm. On success the role updates; status is untouched.                                  |
+| Activate    | `DISABLED`               | Confirms and sets `ACTIVE`; copy states the user can sign in after activation.                                                                  |
+| Disable     | `ACTIVE`                 | Confirm names the user and consequence: "M. Santos will no longer be able to sign in. Their reports and audit history are kept." Maroon button. |
 
-- **Assign role** is the drawer's primary button only when the account is
-  pending; otherwise it is outline.
-- Activation is blocked with an adjacent reason if no role is assigned:
-  "Assign a role first."
+- **Assign role** is an outline action, never the drawer's primary button.
 - Role changes take effect on the user's next request; do not promise an instant
   sign-out. Say "The new role applies the next time they sign in or refresh."
-- Disable is not offered for `PENDING_VERIFICATION` or `PENDING_ROLE`; those
-  accounts are not active. Use the role/activation path instead.
+- Disable is not offered for `PENDING_VERIFICATION`; that account is not active.
+  Activate is the only switch for `DISABLED`.
 - All actions require confirmation via `ConfirmDialog` naming the person and the
   consequence. Success closes the drawer, fires a toast ("Role assigned",
   "Account activated", "Account disabled"), and refreshes the row in place.
@@ -119,7 +111,6 @@ On the signed-in admin's own row and drawer:
 - Empty (no filters): "No accounts yet." with a one-line explanation that
   registrations appear here.
 - Empty (filtered): "No accounts match these filters." plus **Clear filters**.
-- Empty pending callout: not rendered.
 - Error: full-page `ErrorState` with request id and Retry.
 - Permission denied: "This page requires the Admin role." No Retry.
 - A role assignment that conflicts with a concurrent change returns the server's
@@ -131,17 +122,15 @@ On the signed-in admin's own row and drawer:
 ## 5. Acceptance checklist
 
 - [ ] Only ADMIN can open the page; others see the permission-denied state.
-- [ ] Pending-role callout renders only with a count > 0 and its action opens
-      the pending queue (status `PENDING_ROLE`, search and role filters cleared).
 - [ ] Default status filter is All, so every account is listed; filters are URL
       state and survive refresh.
-- [ ] Table shows Name, Email, Role (`—` if unassigned), Status, Campus,
-      Registered, ⋯; default sort oldest first; pagination 25/50/100.
+- [ ] Table shows Name, Email, Role, Status, Campus, Registered, ⋯; default sort
+      oldest first; pagination 25/50/100.
 - [ ] Row click opens the drawer and Escape returns focus to the row.
 - [ ] Assign role, Activate, and Disable behave per the table; each confirms by
       naming the person and consequence.
 - [ ] Disable uses maroon styling and only appears for `ACTIVE` accounts.
-- [ ] Activate is blocked with adjacent reason text when no role is assigned.
+- [ ] Activate appears only for `DISABLED` accounts and sets them active.
 - [ ] Self role change and self disable are disabled with visible reasons.
 - [ ] Success closes the drawer, toasts, and updates the row without a full page
       reload; failure keeps the drawer open with an inline alert.
@@ -163,5 +152,5 @@ On the signed-in admin's own row and drawer:
    admin be protected from demotion/disable? Not specified.
 2. Does disabling invalidate existing sessions immediately, or only block the next
    sign-in? The copy currently says "next time they sign in or refresh."
-3. Confirm whether `PENDING_VERIFICATION` accounts appear in the default pending
-   filter (assumed no — default is `PENDING_ROLE`).
+3. Confirm whether a role change should notify the person by email as well as in
+   the in-app inbox (currently both).
