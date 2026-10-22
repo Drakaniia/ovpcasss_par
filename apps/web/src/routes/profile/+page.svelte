@@ -87,11 +87,11 @@
       <PasswordCard hasPassword={user.hasPassword ?? true} />
       <EmailPreferences />
       <UpdateCard />
-      {#if user.role === 'APPROVER'}
-        <div class="signature-slot">
-          <SignatureUpload />
-        </div>
-      {/if}
+      <!-- Every role keeps a signature: approvers sign with it, submitters
+           are offered it while authoring a report (signature spec W2). -->
+      <div class="signature-slot">
+        <SignatureUpload />
+      </div>
     </div>
   {/if}
 </div>
@@ -127,7 +127,7 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    /* The approver's signature card owns the full width for its 600 px canvas. */
+    /* The signature card owns the full width for its 600 px canvas. */
     .signature-slot {
       grid-column: 1 / -1;
     }

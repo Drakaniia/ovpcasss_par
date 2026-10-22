@@ -11,10 +11,11 @@
   import SignatureCapture from './SignatureCapture.svelte';
 
   /**
-   * The approver's Signature card (UI spec §7.14). Draw or upload, preview at
-   * 240 px, replace or remove with a confirmation. This signature is what an
-   * acknowledgement is printed with, so a failed upload always leaves the
-   * previous one in place.
+   * The Signature card (UI spec §7.14), for every role. Draw or upload, preview
+   * at 240 px, replace or remove with a confirmation. An approver's signature is
+   * what an acknowledgement is printed with, and every author is offered it
+   * while signing a report, so a failed upload always leaves the previous one in
+   * place.
    */
   const loadErrorCopy = 'We could not load your signature. Try again.';
 
@@ -127,7 +128,9 @@
 <section class="card card-body" aria-labelledby="signature-heading">
   <div class="card-head">
     <h2 id="signature-heading">Signature</h2>
-    <p class="card-copy">Your signature appears on approved acknowledgements.</p>
+    <p class="card-copy">
+      Your signature appears on approved acknowledgements, and is offered while you sign a report.
+    </p>
   </div>
 
   {#if loading}
@@ -163,7 +166,8 @@
         <img class="preview" src={preview} alt="Your signature" width="240" />
       {:else}
         <p class="preview-empty">
-          An approver without a signature cannot approve a report. Draw or upload one below.
+          Approving a report requires a signature. Draw or upload one below, or add one later while
+          editing a report.
         </p>
       {/if}
     </div>
@@ -209,7 +213,7 @@
 <ConfirmDialog
   bind:open={removeOpen}
   title="Remove signature?"
-  description="Acknowledgements cannot be approved until a signature is added again."
+  description="Reports cannot be approved until a signature is added again. Reports already signed keep the image they were signed with."
   confirmLabel="Remove signature"
   tone="destructive"
   onconfirm={() => void remove()}

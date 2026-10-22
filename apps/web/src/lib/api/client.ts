@@ -39,6 +39,7 @@ import type {
   ReportListResponse,
   ReportSearchQuery,
   ReportSearchResponse,
+  ReportSignatureInput,
   ReportPdfResponse,
   ReportValidationResponse,
   RepositoryQuery,
@@ -158,6 +159,14 @@ export const api = {
       }),
     /** Full report; used by the facsimile and the edit page. */
     get: (id: string) => apiFetch<ReportDetail>(`/reports/${id}`),
+    /** Snapshots a signature onto the report (signature spec §4.4). */
+    setSignature: (id: string, input: ReportSignatureInput) =>
+      apiFetch<ReportDetail>(`/reports/${id}/signature`, {
+        method: 'PUT',
+        body: JSON.stringify(input),
+      }),
+    removeSignature: (id: string) =>
+      apiFetch<ReportDetail>(`/reports/${id}/signature`, { method: 'DELETE' }),
     /** Server-rendered facsimile PDF; the server decides the watermark (§7.8). */
     pdf: (id: string) => apiFetch<ReportPdfResponse>(`/reports/${id}/pdf`),
     /** Server-generated acknowledgement for an approved report (phase 08 §6). */

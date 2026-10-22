@@ -12,6 +12,7 @@
   import AttachmentUploader from '$lib/features/attachments/presentation/AttachmentUploader.svelte';
 
   import CompletenessChecklist from './CompletenessChecklist.svelte';
+  import SignatureCard from './SignatureCard.svelte';
   import WizardField from './WizardField.svelte';
   import WizardStepClassify from './WizardStepClassify.svelte';
   import WizardStepDetails from './WizardStepDetails.svelte';
@@ -143,6 +144,10 @@
             {disabled}
           />
         </section>
+
+        <section class="signature-block" id="signature" aria-labelledby="signature-heading">
+          <SignatureCard {reportId} ensureReportId={async () => reportId} {disabled} />
+        </section>
       {/if}
     </fieldset>
   {/each}
@@ -201,6 +206,11 @@
   .attachments-block h3 {
     font-size: 13px;
     margin: 0;
+  }
+
+  .signature-block {
+    margin-top: 16px;
+    scroll-margin-top: 80px;
   }
 
   .required-labels {

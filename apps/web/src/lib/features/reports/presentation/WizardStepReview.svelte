@@ -10,6 +10,7 @@
   import type { WizardForm, WizardStep } from '../application/wizard-form';
   import { fieldDomId, type FieldErrors } from '../application/wizard-validation';
   import ReviewSummary from './ReviewSummary.svelte';
+  import SignatureCard from './SignatureCard.svelte';
   import WizardField from './WizardField.svelte';
 
   /**
@@ -114,6 +115,12 @@
     <AttachmentUploader bind:items={attachments} {reportId} {labelOptions} {ensureReportId} />
   </section>
 
+  <!-- After attachments, so the acknowledgment tick stays the last step. -->
+  <section class="block" aria-labelledby="wiz-signature-heading">
+    <h2 class="visually-hidden" id="wiz-signature-heading">Signature</h2>
+    <SignatureCard {reportId} {ensureReportId} />
+  </section>
+
   <section class="block" aria-labelledby="wiz-completeness-heading">
     <h2 id="wiz-completeness-heading">Before you submit</h2>
     {#if missing.length === 0}
@@ -215,5 +222,15 @@
     color: var(--text-secondary);
     font-size: 13px;
     margin: 0;
+  }
+
+  .visually-hidden {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
   }
 </style>
