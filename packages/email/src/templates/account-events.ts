@@ -59,8 +59,7 @@ export function roleAssignedTemplate(data: AccountEventData): EmailContent {
     heading: 'Your role has been assigned',
     intro: [
       `Hello ${data.fullName}. The OVPCASSS administrator assigned you the role of ${data.roleLabel ?? 'a role'}.`,
-      data.roleDescription ??
-        'The role decides which reports and queues your account can reach.',
+      data.roleDescription ?? 'The role decides which reports and queues your account can reach.',
       'Sign in to continue with the work available to that role.',
     ],
     ...(primary ? { action: primary } : {}),

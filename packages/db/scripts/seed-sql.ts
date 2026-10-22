@@ -114,12 +114,7 @@ function seedStatement(): string {
       insert(
         'ref_sdgs',
         ['id', 'number', 'title', ...BOOKKEEPING],
-        [
-          quote(`seed-sdg-${sdg.number}`),
-          String(sdg.number),
-          quote(sdg.title),
-          ...bookkeeping(),
-        ],
+        [quote(`seed-sdg-${sdg.number}`), String(sdg.number), quote(sdg.title), ...bookkeeping()],
         `number = ${sdg.number}`,
       ),
     );

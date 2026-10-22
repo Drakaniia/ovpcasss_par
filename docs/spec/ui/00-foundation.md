@@ -389,7 +389,7 @@ either way, and the action bar shows the key beside the button it stands for.
 | ≥1440     | Master–detail for Queues and Repository; facsimile + rail side by side; full tab row                          |
 | 1280–1439 | Lists navigate to detail pages; facsimile + rail side by side (rail 280 px)                                   |
 | 1024–1279 | Single column; rail stacks below document; wizard rail becomes completeness bar; table hides Type and College |
-| <1024     | Centered notice; auth pages remain usable                                                     |
+| <1024     | Centered notice; auth pages remain usable                                                                     |
 | Print     | A4 portrait, light tokens, no chrome                                                                          |
 
 No mobile design in v1; the decision is explicit.

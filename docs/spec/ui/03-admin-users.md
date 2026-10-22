@@ -77,11 +77,11 @@ provides it.
 
 **Actions**, in this order:
 
-| Action      | When                     | Behavior                                                                                                                                        |
-| ----------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Assign role | Role needs correction    | Select Submitter / Reviewer / Approver / Admin, then confirm. On success the role updates; status is untouched.                                  |
-| Activate    | `DISABLED`               | Confirms and sets `ACTIVE`; copy states the user can sign in after activation.                                                                  |
-| Disable     | `ACTIVE`                 | Confirm names the user and consequence: "M. Santos will no longer be able to sign in. Their reports and audit history are kept." Maroon button. |
+| Action      | When                  | Behavior                                                                                                                                        |
+| ----------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Assign role | Role needs correction | Select Submitter / Reviewer / Approver / Admin, then confirm. On success the role updates; status is untouched.                                 |
+| Activate    | `DISABLED`            | Confirms and sets `ACTIVE`; copy states the user can sign in after activation.                                                                  |
+| Disable     | `ACTIVE`              | Confirm names the user and consequence: "M. Santos will no longer be able to sign in. Their reports and audit history are kept." Maroon button. |
 
 - **Assign role** is an outline action, never the drawer's primary button.
 - Role changes take effect on the user's next request; do not promise an instant

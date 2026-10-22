@@ -211,13 +211,13 @@ repeat.
 
 ### 5.2 Account and security
 
-| Kind                | Fires when                  | To       | Subject                                                | Mute          |
-| ------------------- | --------------------------- | -------- | ------------------------------------------------------ | ------------- |
-| `VERIFY`            | Registration                | The user | `[OVPCASSS PAR] Verify your email address`             | never mutable |
-| `RESET`             | Forgot password             | The user | `[OVPCASSS PAR] Reset your password`                   | never mutable |
-| `ROLE_ASSIGNED`     | Admin assigns a role        | The user | `[OVPCASSS PAR] Your role has been assigned: Reviewer` | never mutable |
-| `ACCOUNT_ACTIVATED` | Admin reactivates a disabled account | The user | `[OVPCASSS PAR] Your account is active`      | never mutable |
-| `ACCOUNT_DISABLED`  | Admin disables the account  | The user | `[OVPCASSS PAR] Your account has been disabled`        | never mutable |
+| Kind                | Fires when                           | To       | Subject                                                | Mute          |
+| ------------------- | ------------------------------------ | -------- | ------------------------------------------------------ | ------------- |
+| `VERIFY`            | Registration                         | The user | `[OVPCASSS PAR] Verify your email address`             | never mutable |
+| `RESET`             | Forgot password                      | The user | `[OVPCASSS PAR] Reset your password`                   | never mutable |
+| `ROLE_ASSIGNED`     | Admin assigns a role                 | The user | `[OVPCASSS PAR] Your role has been assigned: Reviewer` | never mutable |
+| `ACCOUNT_ACTIVATED` | Admin reactivates a disabled account | The user | `[OVPCASSS PAR] Your account is active`                | never mutable |
+| `ACCOUNT_DISABLED`  | Admin disables the account           | The user | `[OVPCASSS PAR] Your account has been disabled`        | never mutable |
 
 `ACCOUNT` (the old single kind) is split into three **email** kinds. The
 role-assignment mail takes effect immediately: it names the new role and no

@@ -207,7 +207,8 @@ export function userActionStates(
       enabled: !isSelf,
       reason: isSelf ? 'You cannot change your own role.' : undefined,
     },
-    activate: !isSelf && activates ? { visible: true, enabled: true } : { visible: false, enabled: false },
+    activate:
+      !isSelf && activates ? { visible: true, enabled: true } : { visible: false, enabled: false },
     disable:
       user.status === 'ACTIVE'
         ? isSelf

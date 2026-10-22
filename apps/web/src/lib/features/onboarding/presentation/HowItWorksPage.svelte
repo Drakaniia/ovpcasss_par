@@ -55,8 +55,8 @@
     <p class="kicker">Guide</p>
     <h1>How the Post-Activity Report works</h1>
     <p class="lede">
-      Every report follows the same four stages. Choose a stage to read what happens, who acts,
-      and what reaches the people involved.
+      Every report follows the same four stages. Choose a stage to read what happens, who acts, and
+      what reaches the people involved.
     </p>
   </div>
   <a class="btn btn-primary" href="/reports/new">Start a report</a>

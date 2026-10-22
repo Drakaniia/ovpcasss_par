@@ -57,10 +57,10 @@ The work is done when all of the following are true, checked in the running app:
 | Single SPA, 24 `+page.svelte` routes; chrome wrapper `AppShell` (skip link, header, section tabs, `<main class="page-content">`)                                                                                                  | `apps/web/src/routes/`, `lib/components/AppShell.svelte` |
 | Design tokens: palette, status colours, 3 radii, 2 shadows, 3 fonts. **No spacing, type-size, control-height, z-index, or motion tokens**                                                                                         | `lib/styles/tokens.css` (90 lines)                       |
 | Shared component styles: `.page-content`, `.card`, `.btn*`, `.field*`, `.input/.select/.textarea`, `.table-scroll`, `.data-table`, `.dialog`, `.toast`, `.skeleton`, `.foundation-notice`                                         | `lib/styles/components.css` (433 lines)                  |
-| Feature stylesheets layered on top: `accounts.css` (60), `edit-returned.css` (193), `facsimile.css` (172)                                                                                                                       | `lib/styles/`                                            |
+| Feature stylesheets layered on top: `accounts.css` (60), `edit-returned.css` (193), `facsimile.css` (172)                                                                                                                         | `lib/styles/`                                            |
 | 24 shared components in `lib/components/` (incl. `AuthLayout`, `EditableSelect`, `DatePicker`, `SideDrawer`, `ConfirmDialog`, `CommandPalette`)                                                                                   | `lib/components/`                                        |
 | Ten feature-owned page headers, using six page-frame class names (`.page-head` ×4, `.entity-head`, `.audit-header`, `.page-header`, `.wizard-head`, `.inbox-head`) plus the facsimile's own document header, each with scoped CSS | `lib/features/*/presentation/*Header.svelte`             |
-| Desktop-only gate below 1024 px (fixed overlay), auth pages exempt                                                                                                                                                | `components.css` §Foundation notice, `AppShell.svelte`   |
+| Desktop-only gate below 1024 px (fixed overlay), auth pages exempt                                                                                                                                                                | `components.css` §Foundation notice, `AppShell.svelte`   |
 
 ### 3.2 Inconsistencies the refinement has to remove
 
@@ -102,7 +102,7 @@ to collapse it into tokens and shared contracts.
 | D13 | Tables                    | One `.table-scroll` contract; height from flex + `min-height: 0`, never from `100vh - N`                                                                                                             | Fixes the 12 magic numbers and short-viewport clipping                               |
 | D14 | Dialogs / drawers         | `max-height: calc(100dvh - 2 * var(--space-6))`, flex column, scrollable body, `width: min(<max>, calc(100vw - 2 * var(--gutter-page)))`                                                             | Usable at 600 px and 200 % zoom                                                      |
 | D15 | Auth layout               | No vertical centring: `padding-block-start: clamp(var(--space-10), 9vh, 96px)`, natural flow, page scrolls                                                                                           | The reported bug; centring is only correct when content is shorter than the viewport |
-| D16 | Responsive reach          | Chrome layouts must hold at ≥1024 px and 200 % zoom; auth fully responsive to 360 px                                                                                             | Preserves the product's desktop-only rule, fixes the exempt screens                  |
+| D16 | Responsive reach          | Chrome layouts must hold at ≥1024 px and 200 % zoom; auth fully responsive to 360 px                                                                                                                 | Preserves the product's desktop-only rule, fixes the exempt screens                  |
 | D17 | Navigation                | Keep the navy top bar + section tabs; refine spacing, active state, and hover only                                                                                                                   | Functional structure; no sidebar rebuild                                             |
 | D18 | Print                     | Facsimile and print preview keep cream paper, serif type, and no new chrome                                                                                                                          | Print fidelity is a contract                                                         |
 | D19 | Colour                    | No palette changes; add `--border-subtle`, `--border-field`, `--surface-sunken`, `--surface-raised`                                                                                                  | Brand stays; surfaces need one more step each                                        |
@@ -414,14 +414,14 @@ var(--gutter-page)` — the same two values as `page-content`.
 
 ### 9.1 Widths
 
-| Range     | Behaviour                                                                                    |
-| --------- | -------------------------------------------------------------------------------------------- |
-| ≥1440 px  | Content capped at `--page-max`, centred; master–detail splits allowed                        |
-| 1280–1439 | Full-width content, `--gutter-page`                                                          |
-| 1024–1279 | Secondary table columns collapse; page headers wrap; toolbars wrap                           |
-| 768–1023  | Chrome screens show the foundation notice (unchanged); auth renders fully                   |
-| <768      | Auth only: single column, decor removed, card padding `--space-4`                            |
-| <480      | Auth card fills the width minus gutters; brand lockup scales to 60 vw                        |
+| Range     | Behaviour                                                                 |
+| --------- | ------------------------------------------------------------------------- |
+| ≥1440 px  | Content capped at `--page-max`, centred; master–detail splits allowed     |
+| 1280–1439 | Full-width content, `--gutter-page`                                       |
+| 1024–1279 | Secondary table columns collapse; page headers wrap; toolbars wrap        |
+| 768–1023  | Chrome screens show the foundation notice (unchanged); auth renders fully |
+| <768      | Auth only: single column, decor removed, card padding `--space-4`         |
+| <480      | Auth card fills the width minus gutters; brand lockup scales to 60 vw     |
 
 ### 9.2 Heights
 
@@ -464,26 +464,26 @@ behaviour).
 
 ## 10. Route-by-route plan
 
-| Route                                                                                               | Container change                        | Specific work                                                                                                                                                  |
-| --------------------------------------------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`                       | Auth shell                              | §8.7; card padding/token pass; form controls at 36 px; decor drop under 768 px                                                                                 |
-| `/` (work inbox)                                                                                    | Page + 2–3 panels                       | `InboxPageHeader` → `PageHeader`; each group becomes a `.panel` with `.panel-header`; remove card shadows; empty/loading states inside the panel, not floating |
-| `/reports`                                                                                          | Panel with table                        | `ReportsPageHeader` → `PageHeader`; toolbar in `.panel-header`; table height from flex; remove `calc(100vh - 300px)`                                           |
-| `/reports/new`                                                                                      | Wizard: page header + step panel + rail | Steps are sections inside one panel; field gaps from tokens; fixed footer bar becomes a sticky panel footer inside the content width                           |
-| `/reports/[id]/edit`                                                                                | Wizard-like                             | Same treatment as `/reports/new`; conflict dialog per §8.6                                                                                                     |
-| `/reports/[id]`                                                                                     | Facsimile                               | Record mode: document panel + metadata inset + action bar. Paper styling untouched                                                                             |
-| `/reports/[id]?print=1`                                                                             | Print                                   | No change beyond ensuring no new chrome leaks into print                                                                                                       |
-| `/review`, `/approval`                                                                              | Tables + drawer                         | Queue header → `PageHeader`; row actions unchanged; drawer per §8.6                                                                                            |
-| `/review/[id]`, `/approval/[id]`                                                                    | Master detail                           | Document panel + decision inset; sticky action footer inside content width                                                                                     |
-| `/search`                                                                                           | Results + preview                       | Two panels; remove `calc(100vh - 340px)`/`240px`; toolbar in panel header                                                                                      |
-| `/notifications`                                                                                    | List panel                              | Header → `PageHeader`; rows as a divided list inside one panel, not cards                                                                                      |
-| `/exports`                                                                                          | Form + preview                          | Form in a panel with sections; preview dialog per §8.6; remove `calc(100vh - 240px)`                                                                           |
-| `/profile`                                                                                          | Sections                                | Account, password, signature as three panels with `--section-gap`                                                                                              |
-| `/admin/users`                                                                                      | Panel with table                        | Header → `PageHeader`; drawer for edits                                                                                                                        |
-| `/admin/reference-data`                                                                             | Tabs + panel                            | Tabs get the shared 40 px contract; entry drawer per §8.6; editable selects at 36 px                                                                           |
-| `/admin/audit`                                                                                      | Panel with table                        | Remove `calc(100vh - 48px)`; filter toolbar; 13 px mono cells                                                                                                  |
-| `/admin/import`                                                                                     | Form                                    | Panel sections; drop zone inset                                                                                                                                |
-| `/dev/components`                                                                                   | Gallery                                 | Becomes the contract page: tokens, panels, controls, states, floating layers, table, empty/error/skeleton                                                      |
+| Route                                                                         | Container change                        | Specific work                                                                                                                                                  |
+| ----------------------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email` | Auth shell                              | §8.7; card padding/token pass; form controls at 36 px; decor drop under 768 px                                                                                 |
+| `/` (work inbox)                                                              | Page + 2–3 panels                       | `InboxPageHeader` → `PageHeader`; each group becomes a `.panel` with `.panel-header`; remove card shadows; empty/loading states inside the panel, not floating |
+| `/reports`                                                                    | Panel with table                        | `ReportsPageHeader` → `PageHeader`; toolbar in `.panel-header`; table height from flex; remove `calc(100vh - 300px)`                                           |
+| `/reports/new`                                                                | Wizard: page header + step panel + rail | Steps are sections inside one panel; field gaps from tokens; fixed footer bar becomes a sticky panel footer inside the content width                           |
+| `/reports/[id]/edit`                                                          | Wizard-like                             | Same treatment as `/reports/new`; conflict dialog per §8.6                                                                                                     |
+| `/reports/[id]`                                                               | Facsimile                               | Record mode: document panel + metadata inset + action bar. Paper styling untouched                                                                             |
+| `/reports/[id]?print=1`                                                       | Print                                   | No change beyond ensuring no new chrome leaks into print                                                                                                       |
+| `/review`, `/approval`                                                        | Tables + drawer                         | Queue header → `PageHeader`; row actions unchanged; drawer per §8.6                                                                                            |
+| `/review/[id]`, `/approval/[id]`                                              | Master detail                           | Document panel + decision inset; sticky action footer inside content width                                                                                     |
+| `/search`                                                                     | Results + preview                       | Two panels; remove `calc(100vh - 340px)`/`240px`; toolbar in panel header                                                                                      |
+| `/notifications`                                                              | List panel                              | Header → `PageHeader`; rows as a divided list inside one panel, not cards                                                                                      |
+| `/exports`                                                                    | Form + preview                          | Form in a panel with sections; preview dialog per §8.6; remove `calc(100vh - 240px)`                                                                           |
+| `/profile`                                                                    | Sections                                | Account, password, signature as three panels with `--section-gap`                                                                                              |
+| `/admin/users`                                                                | Panel with table                        | Header → `PageHeader`; drawer for edits                                                                                                                        |
+| `/admin/reference-data`                                                       | Tabs + panel                            | Tabs get the shared 40 px contract; entry drawer per §8.6; editable selects at 36 px                                                                           |
+| `/admin/audit`                                                                | Panel with table                        | Remove `calc(100vh - 48px)`; filter toolbar; 13 px mono cells                                                                                                  |
+| `/admin/import`                                                               | Form                                    | Panel sections; drop zone inset                                                                                                                                |
+| `/dev/components`                                                             | Gallery                                 | Becomes the contract page: tokens, panels, controls, states, floating layers, table, empty/error/skeleton                                                      |
 
 ---
 
@@ -628,16 +628,16 @@ Add focused tests where behaviour is observable without a DOM:
 
 ### 13.2 Manual matrix (required, screenshots)
 
-| Width × height         | Screens                                                |
-| ---------------------- | ------------------------------------------------------ |
-| 1920×1080              | inbox, reports, report detail, gallery                 |
-| 1440×900               | reports, queues (split), search                        |
-| 1366×768               | inbox, wizard, queue row menu                          |
-| 1280×800               | reference data + drawer, exports                       |
-| 1024×600               | every route; dialogs and drawers on each               |
-| 800×600                | `/login`, `/register` with error                       |
-| 375×667                | `/login`, `/register`, `/reset-password`               |
-| 200 % zoom at 1280×800 | login, reports, wizard footer, dialog                  |
+| Width × height         | Screens                                  |
+| ---------------------- | ---------------------------------------- |
+| 1920×1080              | inbox, reports, report detail, gallery   |
+| 1440×900               | reports, queues (split), search          |
+| 1366×768               | inbox, wizard, queue row menu            |
+| 1280×800               | reference data + drawer, exports         |
+| 1024×600               | every route; dialogs and drawers on each |
+| 800×600                | `/login`, `/register` with error         |
+| 375×667                | `/login`, `/register`, `/reset-password` |
+| 200 % zoom at 1280×800 | login, reports, wizard footer, dialog    |
 
 Record failures as rows in the run log; a screenshot that shows clipping is a
 failed check, not a note.

@@ -154,9 +154,9 @@ describe('userActionStates', () => {
 
   it('offers Disable only for active accounts', () => {
     expect(userActionStates(user({ status: 'ACTIVE' }), false).disable.visible).toBe(true);
-    expect(
-      userActionStates(user({ status: 'PENDING_VERIFICATION' }), false).disable.visible,
-    ).toBe(false);
+    expect(userActionStates(user({ status: 'PENDING_VERIFICATION' }), false).disable.visible).toBe(
+      false,
+    );
     expect(userActionStates(user({ status: 'DISABLED' }), false).disable.visible).toBe(false);
   });
 

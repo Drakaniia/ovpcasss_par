@@ -4,8 +4,7 @@ import { ApiError } from '$lib/api/http';
 const CURRENT_MISMATCH = 'PASSWORD_CURRENT_MISMATCH';
 
 export type PasswordChangeFailure =
-  | { kind: 'field'; field: 'currentPassword'; message: string }
-  | { kind: 'alert'; message: string };
+  { kind: 'field'; field: 'currentPassword'; message: string } | { kind: 'alert'; message: string };
 
 /**
  * Maps a failed password change to what the card shows (UI spec §7.14). The API

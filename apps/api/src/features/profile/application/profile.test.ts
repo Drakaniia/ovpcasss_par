@@ -60,10 +60,6 @@ describe('change password', () => {
     );
 
     expect(outcome).toBe('ok');
-    expect(update).toHaveBeenCalledWith(
-      'u1',
-      expect.objectContaining({ hasPassword: true }),
-      AT,
-    );
+    expect(update).toHaveBeenCalledWith('u1', expect.objectContaining({ hasPassword: true }), AT);
   });
 });

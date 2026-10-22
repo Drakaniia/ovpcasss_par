@@ -33,37 +33,37 @@ origin and the account lifecycle:
 
 ### Current state (verified this session, 2026-10-22)
 
-| Fact | Evidence |
-| --- | --- |
-| Remote D1 `par-db` reference tables are empty | `select count(*)` returned 0 for campuses, units, programs, sdgs, departments, offices, terms |
-| Remote `users` has 2 rows, both `ADMIN` / `ACTIVE` (the two bootstrap addresses) | `select email, role, status` on remote D1 |
-| Worker `par-api` is deployed | `wrangler deployments list --name par-api`; latest deploy 2026-10-21T16:59Z |
-| Production origin is `https://par-api.floresaybaez574.workers.dev` | `apps/api/wrangler.toml`, desktop CSP, release workflow |
-| Seed constants already match the workbook | `SEED_CAMPUSES` 2, `SEED_UNITS` 27, `SEED_PROGRAMS` 44, `SEED_SDGS` 17 (imported with Node 24) |
-| `campus.png` has exactly one consumer | `apps/web/src/lib/components/AuthLayout.svelte` |
-| New accounts are role-less and pending | `register.ts`, `verify-email.ts`, `google.ts`, `password-reset.ts` |
-| Specs describe the old approval flow | 21 `PENDING_ROLE` mentions across 7 spec files |
-| Wrangler is authenticated as `floresaybaez574@gmail.com`, account `fab94f3e8a58d3b3509d01f11a67b843` | `wrangler whoami`; visible scope is `account (read)`, `workers (write)`, `d1 (write)` |
+| Fact                                                                                                 | Evidence                                                                                       |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Remote D1 `par-db` reference tables are empty                                                        | `select count(*)` returned 0 for campuses, units, programs, sdgs, departments, offices, terms  |
+| Remote `users` has 2 rows, both `ADMIN` / `ACTIVE` (the two bootstrap addresses)                     | `select email, role, status` on remote D1                                                      |
+| Worker `par-api` is deployed                                                                         | `wrangler deployments list --name par-api`; latest deploy 2026-10-21T16:59Z                    |
+| Production origin is `https://par-api.floresaybaez574.workers.dev`                                   | `apps/api/wrangler.toml`, desktop CSP, release workflow                                        |
+| Seed constants already match the workbook                                                            | `SEED_CAMPUSES` 2, `SEED_UNITS` 27, `SEED_PROGRAMS` 44, `SEED_SDGS` 17 (imported with Node 24) |
+| `campus.png` has exactly one consumer                                                                | `apps/web/src/lib/components/AuthLayout.svelte`                                                |
+| New accounts are role-less and pending                                                               | `register.ts`, `verify-email.ts`, `google.ts`, `password-reset.ts`                             |
+| Specs describe the old approval flow                                                                 | 21 `PENDING_ROLE` mentions across 7 spec files                                                 |
+| Wrangler is authenticated as `floresaybaez574@gmail.com`, account `fab94f3e8a58d3b3509d01f11a67b843` | `wrangler whoami`; visible scope is `account (read)`, `workers (write)`, `d1 (write)`          |
 
 ---
 
 ## 2. Decisions (from the interview)
 
-| # | Decision |
-| --- | --- |
-| D1 | One-time **rerunnable seed script** run against remote D1 now; keep `POST /api/v1/ref/seed` for reruns. |
-| D2 | Seed the workbook lists **and** create departments/offices from the units: Departments = colleges + graduate-school groups; Offices = satellite campuses + other units. |
-| D3 | New accounts become **SUBMITTER + ACTIVE after email verification** (or immediately for Google's verified address). |
-| D4 | **Remove `PENDING_ROLE` entirely** from the workflow, admin UI, inbox, and contracts; normalize legacy rows with a one-off remote SQL update. |
-| D5 | Rename the Worker to **`par`** and change the account workers.dev subdomain to **`ovpcasss`**; the owner performs the dashboard change with a step-by-step guide. |
-| D6 | Handle the rename end to end: Google OAuth console, email links, desktop CSP, release workflow, runbooks, and a locally built installer. No tag or GitHub release. |
-| D7 | **Delete `par-api`** after `par` is verified, so only one Worker owns the queue consumer and cron schedules. |
-| D8 | Successful password reset on an unverified account activates it as **SUBMITTER + ACTIVE**. |
-| D9 | Remove the admin pending-role queue/count/filter; role changes stay on the user row. |
-| D10 | Amend the specs (`par-paperless-spec.md` plus affected phase/spec files) rather than leave them contradicting the code. |
-| D11 | `db:seed` defaults to **local**; `--remote` is the explicit production target. |
-| D12 | Reruns **skip existing rows**; admin edits and deactivations are never overwritten. |
-| D13 | Seed command: rerunnable, explicit, CI-safe. No hidden seeding on read. |
+| #   | Decision                                                                                                                                                                |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | One-time **rerunnable seed script** run against remote D1 now; keep `POST /api/v1/ref/seed` for reruns.                                                                 |
+| D2  | Seed the workbook lists **and** create departments/offices from the units: Departments = colleges + graduate-school groups; Offices = satellite campuses + other units. |
+| D3  | New accounts become **SUBMITTER + ACTIVE after email verification** (or immediately for Google's verified address).                                                     |
+| D4  | **Remove `PENDING_ROLE` entirely** from the workflow, admin UI, inbox, and contracts; normalize legacy rows with a one-off remote SQL update.                           |
+| D5  | Rename the Worker to **`par`** and change the account workers.dev subdomain to **`ovpcasss`**; the owner performs the dashboard change with a step-by-step guide.       |
+| D6  | Handle the rename end to end: Google OAuth console, email links, desktop CSP, release workflow, runbooks, and a locally built installer. No tag or GitHub release.      |
+| D7  | **Delete `par-api`** after `par` is verified, so only one Worker owns the queue consumer and cron schedules.                                                            |
+| D8  | Successful password reset on an unverified account activates it as **SUBMITTER + ACTIVE**.                                                                              |
+| D9  | Remove the admin pending-role queue/count/filter; role changes stay on the user row.                                                                                    |
+| D10 | Amend the specs (`par-paperless-spec.md` plus affected phase/spec files) rather than leave them contradicting the code.                                                 |
+| D11 | `db:seed` defaults to **local**; `--remote` is the explicit production target.                                                                                          |
+| D12 | Reruns **skip existing rows**; admin edits and deactivations are never overwritten.                                                                                     |
+| D13 | Seed command: rerunnable, explicit, CI-safe. No hidden seeding on read.                                                                                                 |
 
 ---
 
@@ -71,14 +71,14 @@ origin and the account lifecycle:
 
 ### A1. What gets written
 
-| Table | Source | Rows | Natural key for idempotency |
-| --- | --- | --- | --- |
-| `ref_campuses` | `SEED_CAMPUSES` (MAIN, SATELLITE) | 2 | `code` |
-| `ref_units` | `SEED_UNITS` (7 colleges, 2 graduate groups, 15 satellite campuses, 3 other units) | 27 | `code` |
-| `ref_programs` | `SEED_PROGRAMS` | 44 | `code` |
-| `ref_sdgs` | `SEED_SDGS` | 17 | `number` |
-| `ref_departments` | colleges + graduate-school groups | 9 | `name` |
-| `ref_offices` | satellite campuses + other units | 18 | `name` |
+| Table             | Source                                                                             | Rows | Natural key for idempotency |
+| ----------------- | ---------------------------------------------------------------------------------- | ---- | --------------------------- |
+| `ref_campuses`    | `SEED_CAMPUSES` (MAIN, SATELLITE)                                                  | 2    | `code`                      |
+| `ref_units`       | `SEED_UNITS` (7 colleges, 2 graduate groups, 15 satellite campuses, 3 other units) | 27   | `code`                      |
+| `ref_programs`    | `SEED_PROGRAMS`                                                                    | 44   | `code`                      |
+| `ref_sdgs`        | `SEED_SDGS`                                                                        | 17   | `number`                    |
+| `ref_departments` | colleges + graduate-school groups                                                  | 9    | `name`                      |
+| `ref_offices`     | satellite campuses + other units                                                   | 18   | `name`                      |
 
 Every written row: `is_active = 1`, `is_seeded = 1`, `deleted_at = NULL`,
 `sort_order` as follows.
@@ -181,17 +181,17 @@ SELECT
 
 ### B1. Account lifecycle after the change
 
-| Path | Role written | Status written |
-| --- | --- | --- |
-| Email registration | `SUBMITTER` | `PENDING_VERIFICATION` |
-| Email verification link | `SUBMITTER` (already set) | `ACTIVE` |
-| Bootstrap admin verifies | `ADMIN` | `ACTIVE` |
-| Google, first sign-in | `SUBMITTER` (`ADMIN` for bootstrap) | `ACTIVE` |
-| Google, existing unverified account | `SUBMITTER` if null | `ACTIVE` |
-| Password reset, unverified account | `SUBMITTER` if null | `ACTIVE` |
-| Admin changes role | new role | status unchanged |
-| Disabled account | unchanged | `DISABLED` |
-| Reactivated by admin | unchanged | `ACTIVE` |
+| Path                                | Role written                        | Status written         |
+| ----------------------------------- | ----------------------------------- | ---------------------- |
+| Email registration                  | `SUBMITTER`                         | `PENDING_VERIFICATION` |
+| Email verification link             | `SUBMITTER` (already set)           | `ACTIVE`               |
+| Bootstrap admin verifies            | `ADMIN`                             | `ACTIVE`               |
+| Google, first sign-in               | `SUBMITTER` (`ADMIN` for bootstrap) | `ACTIVE`               |
+| Google, existing unverified account | `SUBMITTER` if null                 | `ACTIVE`               |
+| Password reset, unverified account  | `SUBMITTER` if null                 | `ACTIVE`               |
+| Admin changes role                  | new role                            | status unchanged       |
+| Disabled account                    | unchanged                           | `DISABLED`             |
+| Reactivated by admin                | unchanged                           | `ACTIVE`               |
 
 `PENDING_VERIFICATION` remains: it is what makes the emailed link meaningful.
 `PENDING_ROLE` is gone.
@@ -322,7 +322,7 @@ Verified: the only reference is `AuthLayout.svelte`.
 
 1. Delete the `.auth-scene` element (`{#if showScene}` block), the
    `showScene` prop, and the `.auth-scene` rules in the base, `max-width:
-   640px`, and `max-height: 700px` media queries.
+640px`, and `max-height: 700px` media queries.
 2. Delete `apps/web/src/lib/components/AuthLayoutNoBackground.svelte`; update
    its two consumers (`routes/login/+page.svelte`, `routes/register/+page.svelte`)
    to use `AuthLayout`.
@@ -339,14 +339,14 @@ Verified: the only reference is `AuthLayout.svelte`.
 
 ### D1. What changes in the repository
 
-| File | Change |
-| --- | --- |
-| `apps/api/wrangler.toml` | `name = "par"`; `APP_ORIGIN = "https://par.ovpcasss.workers.dev"`; update the origin comment |
-| `apps/desktop/src-tauri/tauri.conf.json` | CSP `connect-src` host → `https://par.ovpcasss.workers.dev` |
-| `.github/workflows/desktop-release.yml` | `VITE_API_BASE_URL` → `https://par.ovpcasss.workers.dev/api/v1` |
-| `docs/runbooks/deploy.md` | Worker name in scope line and `wrangler tail par` |
-| `docs/runbooks/incident.md`, `key-rotation.md` | `wrangler tail par` |
-| `docs/spec` + runbooks | Production origin examples where the real origin appears |
+| File                                           | Change                                                                                       |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `apps/api/wrangler.toml`                       | `name = "par"`; `APP_ORIGIN = "https://par.ovpcasss.workers.dev"`; update the origin comment |
+| `apps/desktop/src-tauri/tauri.conf.json`       | CSP `connect-src` host → `https://par.ovpcasss.workers.dev`                                  |
+| `.github/workflows/desktop-release.yml`        | `VITE_API_BASE_URL` → `https://par.ovpcasss.workers.dev/api/v1`                              |
+| `docs/runbooks/deploy.md`                      | Worker name in scope line and `wrangler tail par`                                            |
+| `docs/runbooks/incident.md`, `key-rotation.md` | `wrangler tail par`                                                                          |
+| `docs/spec` + runbooks                         | Production origin examples where the real origin appears                                     |
 
 Test fixtures using `par-api.example.workers.dev` are generic examples and
 stay. `apps/api/dist/README.md` is a build artifact and is not edited.
@@ -459,17 +459,17 @@ VITE_API_BASE_URL=https://par.ovpcasss.workers.dev/api/v1 pnpm --filter @par/des
 
 ## 7. Risks and mitigations
 
-| Risk | Mitigation |
-| --- | --- |
-| Old desktop installs break at cutover | Documented; locally built installer is the upgrade path; auto-update is not armed |
-| Google sign-in breaks until the console is updated | Update the console immediately after the subdomain change; keep the old origin entries until verified |
-| Duplicate cron jobs / queue consumer during the overlap | Delete `par-api` after `par` is healthy, before the subdomain change |
-| `ovpcasss` subdomain unavailable | Fall back to `ovpcasss-par`; update the same three config values |
-| Remote seed duplicates | `WHERE NOT EXISTS` on natural keys + deterministic ids; rerun test |
-| Seed overwrites office edits | Skip-existing rule; no UPDATE statements in the seed |
-| Legacy `PENDING_ROLE` rows break the enum | Two-statement backfill before deploy; verify `count(*) where status='PENDING_ROLE'` is 0 |
-| New user can submit without a role check | `requireRole` still enforces every route; the default is a real `SUBMITTER` role, not a bypass |
-| Email links point at a dead host in the cutover window | Deploy away from `:17`; keep the window minutes |
+| Risk                                                                      | Mitigation                                                                                                             |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Old desktop installs break at cutover                                     | Documented; locally built installer is the upgrade path; auto-update is not armed                                      |
+| Google sign-in breaks until the console is updated                        | Update the console immediately after the subdomain change; keep the old origin entries until verified                  |
+| Duplicate cron jobs / queue consumer during the overlap                   | Delete `par-api` after `par` is healthy, before the subdomain change                                                   |
+| `ovpcasss` subdomain unavailable                                          | Fall back to `ovpcasss-par`; update the same three config values                                                       |
+| Remote seed duplicates                                                    | `WHERE NOT EXISTS` on natural keys + deterministic ids; rerun test                                                     |
+| Seed overwrites office edits                                              | Skip-existing rule; no UPDATE statements in the seed                                                                   |
+| Legacy `PENDING_ROLE` rows break the enum                                 | Two-statement backfill before deploy; verify `count(*) where status='PENDING_ROLE'` is 0                               |
+| New user can submit without a role check                                  | `requireRole` still enforces every route; the default is a real `SUBMITTER` role, not a bypass                         |
+| Email links point at a dead host in the cutover window                    | Deploy away from `:17`; keep the window minutes                                                                        |
 | New Worker starts without secrets (renaming creates a script, not a copy) | Re-set the secrets on `par` right after its first deploy; the old script's values are unrecoverable once it is deleted |
 
 ---
@@ -532,7 +532,7 @@ Specs:
 
 - [ ] `pnpm verify` passes (lint, typecheck, every package's tests).
 - [ ] Remote D1 counts: 2 / 27 / 44 / 17 / 9 / 18, and a second `db:seed
-      --remote` changes nothing.
+    --remote` changes nothing.
 - [ ] `/admin/reference-data` shows all six lists; a new report's campus,
       college, program, department, and office selectors have real values on
       a second device.

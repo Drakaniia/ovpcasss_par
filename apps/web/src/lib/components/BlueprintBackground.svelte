@@ -18,8 +18,16 @@
   const contours: string[] = [];
   {
     const outer: Array<[number, number]> = [
-      [0, 645], [50, 650], [100, 710], [140, 770], [175, 822], [218, 830], [226, 885],
-      [233, 945], [120, 1090], [0, 1130],
+      [0, 645],
+      [50, 650],
+      [100, 710],
+      [140, 770],
+      [175, 822],
+      [218, 830],
+      [226, 885],
+      [233, 945],
+      [120, 1090],
+      [0, 1130],
     ];
     for (let i = 0; i < 10; i++) {
       const k = 1 - i * 0.085;
@@ -70,7 +78,9 @@
     <g class="dot dim">
       {#each rightDots as d, i (i)}<circle cx={d.x} cy={d.y} r="1.1" />{/each}
     </g>
-    <g class="line">{#each topHatch as d, i (i)}<path {d} />{/each}</g>
+    <g class="line"
+      >{#each topHatch as d, i (i)}<path {d} />{/each}</g
+    >
     <g class="line thin"><path d="M1243 185h16M1251 177v16" /></g>
     <g class="line">
       <path d="M1407 247H1527" />
@@ -85,7 +95,9 @@
   </svg>
 
   <svg class="bp-bl" viewBox="0 620 545 372">
-    <g class="line dim">{#each contours as d, i (i)}<path {d} />{/each}</g>
+    <g class="line dim"
+      >{#each contours as d, i (i)}<path {d} />{/each}</g
+    >
     <g class="line dim">
       <path d="M256 827H452" />
       {#each nodeXs as x (x)}<path d={`M${x} 812V958`} />{/each}
@@ -117,9 +129,13 @@
     </g>
     <g class="dot">
       <circle cx="1552" cy="563" r="2.5" />
-      <path d="M1552 480l-3 8h6zM1552 790l-3-8h6zM1407 563l7-3v6zM1015 932l7-3v6zM1417 812l-3 8h6z" />
+      <path
+        d="M1552 480l-3 8h6zM1552 790l-3-8h6zM1407 563l7-3v6zM1015 932l7-3v6zM1417 812l-3 8h6z"
+      />
     </g>
-    <g class="line">{#each bottomHatch as d, i (i)}<path {d} />{/each}</g>
+    <g class="line"
+      >{#each bottomHatch as d, i (i)}<path {d} />{/each}</g
+    >
   </svg>
 </div>
 
@@ -140,19 +156,54 @@
     position: absolute;
   }
 
-  .bp-tl { left: 0; top: 0; width: 22.7%; }
-  .bp-tc { left: 37.8%; top: 0; width: 14.5%; }
-  .bp-tr { right: 0; top: 0; width: 21.8%; }
-  .bp-bl { bottom: 0; left: 0; width: 34.4%; }
-  .bp-br { bottom: 0; right: 0; width: 37%; }
+  .bp-tl {
+    left: 0;
+    top: 0;
+    width: 22.7%;
+  }
+  .bp-tc {
+    left: 37.8%;
+    top: 0;
+    width: 14.5%;
+  }
+  .bp-tr {
+    right: 0;
+    top: 0;
+    width: 21.8%;
+  }
+  .bp-bl {
+    bottom: 0;
+    left: 0;
+    width: 34.4%;
+  }
+  .bp-br {
+    bottom: 0;
+    right: 0;
+    width: 37%;
+  }
 
-  .line { fill: none; stroke: currentColor; stroke-width: 1; }
-  .line.thin { stroke-width: 0.8; }
-  .line.dim { opacity: 0.9; }
-  .dot { fill: currentColor; stroke: none; }
-  .dot.dim { opacity: 0.8; }
+  .line {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+  }
+  .line.thin {
+    stroke-width: 0.8;
+  }
+  .line.dim {
+    opacity: 0.9;
+  }
+  .dot {
+    fill: currentColor;
+    stroke: none;
+  }
+  .dot.dim {
+    opacity: 0.8;
+  }
 
   @media (max-width: 640px) {
-    .bp-tc { display: none; }
+    .bp-tc {
+      display: none;
+    }
   }
 </style>

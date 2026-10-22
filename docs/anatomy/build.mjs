@@ -1,21 +1,21 @@
-import { writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import * as k from "file:///C:/Users/Qwenzy/.agents/skills/anatomy/kit/iso-kit.mjs";
-import * as G from "file:///C:/Users/Qwenzy/.agents/skills/anatomy/kit/lathe.mjs";
-import { tubePieces, tubeSvg } from "file:///C:/Users/Qwenzy/.agents/skills/anatomy/kit/tube.mjs";
-import * as A from "file:///C:/Users/Qwenzy/.agents/skills/anatomy/kit/audit.mjs";
-import { kitScript } from "file:///C:/Users/Qwenzy/.agents/skills/anatomy/scripts/inline-kit.mjs";
+import { writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import * as k from 'file:///C:/Users/Qwenzy/.agents/skills/anatomy/kit/iso-kit.mjs';
+import * as G from 'file:///C:/Users/Qwenzy/.agents/skills/anatomy/kit/lathe.mjs';
+import { tubePieces, tubeSvg } from 'file:///C:/Users/Qwenzy/.agents/skills/anatomy/kit/tube.mjs';
+import * as A from 'file:///C:/Users/Qwenzy/.agents/skills/anatomy/kit/audit.mjs';
+import { kitScript } from 'file:///C:/Users/Qwenzy/.agents/skills/anatomy/scripts/inline-kit.mjs';
 import {
   DIAL_POSITIONS,
   TRACKING_NUMBER,
   WORKFLOW_STEPS,
   dialAngleRadForStatus,
   formatReadout,
-} from "./model.mjs";
+} from './model.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const THEME = process.argv.includes("--light") ? "light" : "dark";
+const THEME = process.argv.includes('--light') ? 'light' : 'dark';
 
 const WIDTH = 640;
 const HEIGHT = 390;
@@ -28,12 +28,7 @@ const PLATE_H = 10;
 const FOOT_H = 5;
 
 const P = k.fitProjection(
-  [
-    ...k.boxCorners(PLATE, -PLATE_H - FOOT_H, 0),
-    [-126, -48, 72],
-    [124, 48, 79],
-    [-18, -38, 63],
-  ],
+  [...k.boxCorners(PLATE, -PLATE_H - FOOT_H, 0), [-126, -48, 72], [124, 48, 79], [-18, -38, 63]],
   WIDTH,
   HEIGHT,
   { pad: 22, azimuth: AZIMUTH, elevation: ELEVATION },
@@ -48,29 +43,65 @@ const Dots = (points, style) => k.dotsSvg(points, style);
 const R = A.recorder(P);
 const record = R.solid;
 
-function put(name, ref, svg, shapes = [], { bias = 0, cls = "", attrs = "", ...rest } = {}) {
-  return R.put({ name, at: ref, bias, svg, shapes, piece: "rig", cls, attrs, ...rest });
+function put(name, ref, svg, shapes = [], { bias = 0, cls = '', attrs = '', ...rest } = {}) {
+  return R.put({ name, at: ref, bias, svg, shapes, piece: 'rig', cls, attrs, ...rest });
 }
 
-function box(name, [x0, y0, z0], [x1, y1, z1], style = {}, { r = 0.6, steps = 3, bevel = 0, extra = "", inner = "", bias = 0, cls = "", attrs = "", owner, ground = false } = {}) {
+function box(
+  name,
+  [x0, y0, z0],
+  [x1, y1, z1],
+  style = {},
+  {
+    r = 0.6,
+    steps = 3,
+    bevel = 0,
+    extra = '',
+    inner = '',
+    bias = 0,
+    cls = '',
+    attrs = '',
+    owner,
+    ground = false,
+  } = {},
+) {
   const plan = { x: x0, y: y0, w: x1 - x0, d: y1 - y0, r };
   const shape = record(A.slab(plan, z0, z1 - z0, { name, owner, ground }, steps));
   put(
     name,
     [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2],
-    S(k.slabOf(plan, z0, z1 - z0, P, steps, bevel), { tone: "mid", ...style, inner }) + extra,
+    S(k.slabOf(plan, z0, z1 - z0, P, steps, bevel), { tone: 'mid', ...style, inner }) + extra,
     [shape],
     { bias, cls, attrs },
   );
   return shape;
 }
 
-function cyl(name, cx, cy, r, z0, h, style = {}, { steps = 32, bevel = 0, extra = "", inner = "", bias = 0, cls = "", attrs = "", owner, ground = false } = {}) {
+function cyl(
+  name,
+  cx,
+  cy,
+  r,
+  z0,
+  h,
+  style = {},
+  {
+    steps = 32,
+    bevel = 0,
+    extra = '',
+    inner = '',
+    bias = 0,
+    cls = '',
+    attrs = '',
+    owner,
+    ground = false,
+  } = {},
+) {
   const shape = record(A.cylinder(cx, cy, r, z0, h, { name, owner, ground }));
   put(
     name,
     [cx, cy, z0 + h / 2],
-    S(k.cylinder(cx, cy, r, z0, h, P, steps, bevel), { tone: "mid", ...style, inner }) + extra,
+    S(k.cylinder(cx, cy, r, z0, h, P, steps, bevel), { tone: 'mid', ...style, inner }) + extra,
     [shape],
     { bias, cls, attrs },
   );
@@ -78,20 +109,54 @@ function cyl(name, cx, cy, r, z0, h, style = {}, { steps = 32, bevel = 0, extra 
 }
 
 const CABLES = [];
-function cable(name, points, r = 0.55, { tone = "mid", bend = 3.2, ends = [true, true], shells = [false, false], rings, maxLength = 14, bias = 0.05, limp = true, touch, bundle } = {}) {
+function cable(
+  name,
+  points,
+  r = 0.55,
+  {
+    tone = 'mid',
+    bend = 3.2,
+    ends = [true, true],
+    shells = [false, false],
+    rings,
+    maxLength = 14,
+    bias = 0.05,
+    limp = true,
+    touch,
+    bundle,
+  } = {},
+) {
   const route = G.fillet(points, Math.max(bend, r * 2.8), 10, { P, tube: r });
   const total = G.pathLength(route);
   const SHELL = Math.max(1.6, r * 2.4);
   const gaps = [...(shells[0] ? [[0, SHELL]] : []), ...(shells[1] ? [[total - SHELL, total]] : [])];
-  R.route(name, route, r, { gaps, limp, touch, bundle, rims: shells.map((on) => (on ? r * 1.9 : r)), piece: "rig" });
+  R.route(name, route, r, {
+    gaps,
+    limp,
+    touch,
+    bundle,
+    rims: shells.map((on) => (on ? r * 1.9 : r)),
+    piece: 'rig',
+  });
   CABLES.push(name);
-  tubePieces(route, r, P, { maxLength, spacing: Math.max(0.6, Math.min(1.4, r)), gaps, ...(rings ? { rings } : {}) }).forEach((piece, index) =>
-    put(`${name}:${index}`, piece.mid, tubeSvg(piece, { tone }), [A.tube(piece.points, piece.radii)], {
-      bias,
-      route: name,
-      chunk: index,
-      attrs: ` data-route="${name}" data-chunk="${index}"`,
-    }),
+  tubePieces(route, r, P, {
+    maxLength,
+    spacing: Math.max(0.6, Math.min(1.4, r)),
+    gaps,
+    ...(rings ? { rings } : {}),
+  }).forEach((piece, index) =>
+    put(
+      `${name}:${index}`,
+      piece.mid,
+      tubeSvg(piece, { tone }),
+      [A.tube(piece.points, piece.radii)],
+      {
+        bias,
+        route: name,
+        chunk: index,
+        attrs: ` data-route="${name}" data-chunk="${index}"`,
+      },
+    ),
   );
   [0, 1].forEach((index) => {
     const end = index ? route[route.length - 1] : route[0];
@@ -99,10 +164,29 @@ function cable(name, points, r = 0.55, { tone = "mid", bend = 3.2, ends = [true,
       const tangent = G.tangentAlong(route, index ? total : 0);
       const F = G.frameAlong(end, tangent);
       const [s0, s1] = index ? [-SHELL, 0] : [0, SHELL];
-      const shape = record(A.disc(F, s0, s1, r * 1.9, { name: `${name}.shell${index}`, owner: name }));
-      put(`${name}.shell${index}`, G.add3(end, G.mul3(tangent, (s0 + s1) / 2)), S(G.disc(s0, s1, r * 1.9, F, P, { steps: 20, bevel: 0.2 }), { tone: "mid" }), [shape], { bias: bias + 0.1 });
+      const shape = record(
+        A.disc(F, s0, s1, r * 1.9, { name: `${name}.shell${index}`, owner: name }),
+      );
+      put(
+        `${name}.shell${index}`,
+        G.add3(end, G.mul3(tangent, (s0 + s1) / 2)),
+        S(G.disc(s0, s1, r * 1.9, F, P, { steps: 20, bevel: 0.2 }), { tone: 'mid' }),
+        [shape],
+        { bias: bias + 0.1 },
+      );
     } else if (ends[index]) {
-      put(`${name}.end${index}`, end, Dots([at(end)], { size: Math.max(0.5, r * KS * 0.9), tone: "hi" }), [A.ball(end, Math.max(0.5, r * KS * 0.9) / KS, { name: `${name}.end${index}`, owner: name })], { bias: bias + 0.15 });
+      put(
+        `${name}.end${index}`,
+        end,
+        Dots([at(end)], { size: Math.max(0.5, r * KS * 0.9), tone: 'hi' }),
+        [
+          A.ball(end, Math.max(0.5, r * KS * 0.9) / KS, {
+            name: `${name}.end${index}`,
+            owner: name,
+          }),
+        ],
+        { bias: bias + 0.15 },
+      );
     }
   });
   return route;
@@ -113,42 +197,70 @@ function cable(name, points, r = 0.55, { tone = "mid", bend = 3.2, ends = [true,
 // ============================================================================
 const back = [];
 back.push(`<path class="iso-halo" d="${k.haloOf(PLATE, -PLATE_H - FOOT_H, PLATE_H, P)}"/>`);
-const byDepth = (points) => [...points].sort((a, b) => k.depthOf([a[0], a[1], 0], P) - k.depthOf([b[0], b[1], 0], P));
+const byDepth = (points) =>
+  [...points].sort((a, b) => k.depthOf([a[0], a[1], 0], P) - k.depthOf([b[0], b[1], 0], P));
 for (const [x, y] of byDepth(k.corners(PLATE, 20))) {
-  back.push(S(k.cylinder(x, y, 7, -PLATE_H - FOOT_H, 1.6, P, 28), { tone: "lo" }));
-  back.push(S(k.cylinder(x, y, 5.4, -PLATE_H - FOOT_H + 1.6, FOOT_H - 1.6, P, 28), { tone: "mid" }));
-  record(A.cylinder(x, y, 7, -PLATE_H - FOOT_H, FOOT_H, { name: "stand.foot", ground: true }));
+  back.push(S(k.cylinder(x, y, 7, -PLATE_H - FOOT_H, 1.6, P, 28), { tone: 'lo' }));
+  back.push(
+    S(k.cylinder(x, y, 5.4, -PLATE_H - FOOT_H + 1.6, FOOT_H - 1.6, P, 28), { tone: 'mid' }),
+  );
+  record(A.cylinder(x, y, 7, -PLATE_H - FOOT_H, FOOT_H, { name: 'stand.foot', ground: true }));
 }
 back.push(
   S(k.slabOf(PLATE, -PLATE_H, PLATE_H, P, 8, 1.6), {
-    tone: "mid",
-    inner: Ln(k.sideSeam(PLATE, -4, P, 8), { tone: "faint" }),
+    tone: 'mid',
+    inner: Ln(k.sideSeam(PLATE, -4, P, 8), { tone: 'faint' }),
   }),
 );
-back.push(Ln(k.planOutline(k.insetPlan(PLATE, 4.5), 0, P, 8), { tone: "lo" }));
+back.push(Ln(k.planOutline(k.insetPlan(PLATE, 4.5), 0, P, 8), { tone: 'lo' }));
 const plateScrews = k.corners(PLATE, 9.5);
-back.push(Ln(plateScrews.map(([x, y]) => k.ring(x, y, 2.2, 0, P, 16)).join(""), { tone: "lo" }));
-back.push(Dots(plateScrews.map(([x, y]) => at([x, y, 0])), { size: 0.5 }));
-record(A.slab(PLATE, -PLATE_H, PLATE_H, { name: "stand.plate", ground: true }, 8));
+back.push(Ln(plateScrews.map(([x, y]) => k.ring(x, y, 2.2, 0, P, 16)).join(''), { tone: 'lo' }));
+back.push(
+  Dots(
+    plateScrews.map(([x, y]) => at([x, y, 0])),
+    { size: 0.5 },
+  ),
+);
+record(A.slab(PLATE, -PLATE_H, PLATE_H, { name: 'stand.plate', ground: true }, 8));
 
 // Front ruler strip on base plate
 const STRIP = { x: -118, y: PLATE.y + PLATE.d - 12, w: 170, d: 6, r: 1 };
-back.push(S(k.slabOf(STRIP, 0, 0.6, P, 3), { tone: "lo", crease: "none" }));
-const stripTicks = k.topTicks(STRIP.x + 4, STRIP.x + STRIP.w - 4, 4, 5, STRIP.y, 0.6, [1.8, 3.4], P);
-back.push(Ln(stripTicks.minor, { tone: "lo" }), Ln(stripTicks.major, { tone: "mid" }));
-back.push(Dots([at([STRIP.x + 2, STRIP.y + 3, 0.6]), at([STRIP.x + STRIP.w - 2, STRIP.y + 3, 0.6])], { size: 0.42 }));
-record(A.slab(STRIP, 0, 0.6, { name: "stand.ruler", ground: true }, 3));
+back.push(S(k.slabOf(STRIP, 0, 0.6, P, 3), { tone: 'lo', crease: 'none' }));
+const stripTicks = k.topTicks(
+  STRIP.x + 4,
+  STRIP.x + STRIP.w - 4,
+  4,
+  5,
+  STRIP.y,
+  0.6,
+  [1.8, 3.4],
+  P,
+);
+back.push(Ln(stripTicks.minor, { tone: 'lo' }), Ln(stripTicks.major, { tone: 'mid' }));
+back.push(
+  Dots([at([STRIP.x + 2, STRIP.y + 3, 0.6]), at([STRIP.x + STRIP.w - 2, STRIP.y + 3, 0.6])], {
+    size: 0.42,
+  }),
+);
+record(A.slab(STRIP, 0, 0.6, { name: 'stand.ruler', ground: true }, 3));
 
 // Engraved brass/gold institutional nameplate on front-right of base plate
 const LABEL_PLATE = { x: 60, y: PLATE.y + PLATE.d - 14, w: 58, d: 9, r: 1.2 };
 back.push(
-  `<g class="par-gold-trim">${S(k.slabOf(LABEL_PLATE, 0, 0.8, P, 3), { tone: "mid", crease: "none" })}` +
-    Ln(k.planOutline(k.insetPlan(LABEL_PLATE, 1.4), 0.8, P, 3), { tone: "faint" }) +
+  `<g class="par-gold-trim">${S(k.slabOf(LABEL_PLATE, 0, 0.8, P, 3), { tone: 'mid', crease: 'none' })}` +
+    Ln(k.planOutline(k.insetPlan(LABEL_PLATE, 1.4), 0.8, P, 3), { tone: 'faint' }) +
     Ln(
       [38, 26, 32]
-        .map((w, i) => k.lineOnTop([LABEL_PLATE.x + 5, LABEL_PLATE.y + 2.5 + i * 2], [LABEL_PLATE.x + 5 + w, LABEL_PLATE.y + 2.5 + i * 2], 0.8, P))
-        .join(""),
-      { tone: "lo", free: true },
+        .map((w, i) =>
+          k.lineOnTop(
+            [LABEL_PLATE.x + 5, LABEL_PLATE.y + 2.5 + i * 2],
+            [LABEL_PLATE.x + 5 + w, LABEL_PLATE.y + 2.5 + i * 2],
+            0.8,
+            P,
+          ),
+        )
+        .join(''),
+      { tone: 'lo', free: true },
     ) +
     Dots(
       [
@@ -159,7 +271,7 @@ back.push(
     ) +
     `</g>`,
 );
-record(A.slab(LABEL_PLATE, 0, 0.8, { name: "stand.label", ground: true }, 3));
+record(A.slab(LABEL_PLATE, 0, 0.8, { name: 'stand.label', ground: true }, 3));
 
 // ============================================================================
 // MAIN TRACK RAILS & SUPPORT PEDESTALS (y = -8.5 and y = +8.5, x = -88 to +84)
@@ -174,7 +286,7 @@ for (const rx of [-72, 24]) {
     `rail.stanchion.${rx}`,
     [rx - 3.5, -10.5, 0],
     [rx + 3.5, 10.5, RAIL_Z0],
-    { tone: "lo" },
+    { tone: 'lo' },
     {
       r: 0.8,
       steps: 2,
@@ -184,19 +296,25 @@ for (const rx of [-72, 24]) {
 }
 
 // Far rail (y = -10.5..-6.5) and Near rail (y = 6.5..10.5) spanning x = -88 .. +84
-box("rail.far", [RAIL_X0, -10.5, RAIL_Z0], [RAIL_X1, -6.5, RAIL_Z0 + RAIL_H], { tone: "mid" }, { r: 0.8, steps: 2, bevel: 0.4 });
+box(
+  'rail.far',
+  [RAIL_X0, -10.5, RAIL_Z0],
+  [RAIL_X1, -6.5, RAIL_Z0 + RAIL_H],
+  { tone: 'mid' },
+  { r: 0.8, steps: 2, bevel: 0.4 },
+);
 {
   const rTicks = k.topTicks(RAIL_X0 + 6, RAIL_X1 - 6, 4, 5, 6.5, RAIL_Z0 + RAIL_H, [1.4, 2.6], P);
   box(
-    "rail.near",
+    'rail.near',
     [RAIL_X0, 6.5, RAIL_Z0],
     [RAIL_X1, 10.5, RAIL_Z0 + RAIL_H],
-    { tone: "mid" },
+    { tone: 'mid' },
     {
       r: 0.8,
       steps: 2,
       bevel: 0.4,
-      extra: Ln(rTicks.minor, { tone: "lo" }) + Ln(rTicks.major, { tone: "mid" }),
+      extra: Ln(rTicks.minor, { tone: 'lo' }) + Ln(rTicks.major, { tone: 'mid' }),
     },
   );
 }
@@ -205,62 +323,88 @@ box("rail.far", [RAIL_X0, -10.5, RAIL_Z0], [RAIL_X1, -6.5, RAIL_Z0 + RAIL_H], { 
 // STATION 1: SUBMITTER INTAKE TRAY (x = -124 .. -88, y = -16 .. +16)
 // ============================================================================
 box(
-  "intake.plinth",
+  'intake.plinth',
   [-124, -16, 0],
   [-88, 16, 10],
-  { tone: "lo" },
+  { tone: 'lo' },
   {
     r: 2,
     steps: 4,
     bevel: 0.6,
-    inner: Ln(k.sideSeam({ x: -124, y: -16, w: 36, d: 32, r: 2 }, 5, P, 4), { tone: "faint" }),
+    inner: Ln(k.sideSeam({ x: -124, y: -16, w: 36, d: 32, r: 2 }, 5, P, 4), { tone: 'faint' }),
   },
 );
 box(
-  "intake.bed",
+  'intake.bed',
   [-124, -14, 10],
   [-88, 14, 13.2],
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     r: 1.6,
     steps: 3,
     bevel: 0.5,
     extra:
-      Ln(k.planOutline({ x: -119, y: -10, w: 26, d: 20, r: 1.2 }, 13.2, P, 3), { tone: "lo" }) +
+      Ln(k.planOutline({ x: -119, y: -10, w: 26, d: 20, r: 1.2 }, 13.2, P, 3), { tone: 'lo' }) +
       Dots(
-        [
-          at([-121, -12, 13.2]),
-          at([-91, -12, 13.2]),
-          at([-121, 12, 13.2]),
-          at([-91, 12, 13.2]),
-        ],
+        [at([-121, -12, 13.2]), at([-91, -12, 13.2]), at([-121, 12, 13.2]), at([-91, 12, 13.2])],
         { size: 0.45 },
       ),
   },
 );
 // Back and side hopper guide rails on intake tray
-box("intake.guide.far", [-122, -13.5, 13.2], [-90, -10.5, 17.5], { tone: "mid" }, { r: 0.6, steps: 2, bevel: 0.3 });
-box("intake.guide.left", [-122, -10.5, 13.2], [-118.5, 10.5, 17.5], { tone: "mid" }, { r: 0.6, steps: 2, bevel: 0.3 });
+box(
+  'intake.guide.far',
+  [-122, -13.5, 13.2],
+  [-90, -10.5, 17.5],
+  { tone: 'mid' },
+  { r: 0.6, steps: 2, bevel: 0.3 },
+);
+box(
+  'intake.guide.left',
+  [-122, -10.5, 13.2],
+  [-118.5, 10.5, 17.5],
+  { tone: 'mid' },
+  { r: 0.6, steps: 2, bevel: 0.3 },
+);
 // Optical presence sensor post at intake with decorative gold bezel
-cyl("intake.sensor", -92, -12, 1.8, 17.5, 4, { tone: "hi" }, { steps: 20, cls: "par-gold-trim", extra: Dots([at([-92, -12, 21.5])], { size: 0.55, tone: "hi" }) });
+cyl(
+  'intake.sensor',
+  -92,
+  -12,
+  1.8,
+  17.5,
+  4,
+  { tone: 'hi' },
+  {
+    steps: 20,
+    cls: 'par-gold-trim',
+    extra: Dots([at([-92, -12, 21.5])], { size: 0.55, tone: 'hi' }),
+  },
+);
 
 // Station 1 Control: ONE filled navy push-button on left console of intake (x = -124..-112, y = 16..28)
-box("intake.ctrl.pedestal", [-124, 16, 0], [-112, 28, 11], { tone: "mid" }, { r: 1.5, steps: 3, bevel: 0.4 });
-cyl("intake.ctrl.bezel", -118, 22, 4.2, 11, 1.4, { tone: "lo" }, { steps: 28 });
+box(
+  'intake.ctrl.pedestal',
+  [-124, 16, 0],
+  [-112, 28, 11],
+  { tone: 'mid' },
+  { r: 1.5, steps: 3, bevel: 0.4 },
+);
+cyl('intake.ctrl.bezel', -118, 22, 4.2, 11, 1.4, { tone: 'lo' }, { steps: 28 });
 cyl(
-  "intake.ctrl.navy",
+  'intake.ctrl.navy',
   -118,
   22,
   3.2,
   12.4,
   2.8,
-  { tone: "hi" },
+  { tone: 'hi' },
   {
     steps: 28,
     bevel: 0.4,
-    cls: "par-navy-control",
+    cls: 'par-navy-control',
     attrs: ' data-station="submit"',
-    extra: Ln(k.knurl(-118, 22, 3.2, 12.8, 14.8, 24, P, 0.25), { tone: "lo" }),
+    extra: Ln(k.knurl(-118, 22, 3.2, 12.8, 14.8, 24, P, 0.25), { tone: 'lo' }),
   },
 );
 
@@ -268,210 +412,272 @@ cyl(
 // STATION 2: TRACKING-NUMBER STAMPER (x = -54, y = 0)
 // Punches OFF-2026-0001 once on first submission; cam latch holds it on resubmission
 // ============================================================================
-box("stamper.base.far", [-61, -21, 0], [-47, -10.5, 14], { tone: "lo" }, { r: 1.2, steps: 3, bevel: 0.4 });
-box("stamper.base.near", [-61, 10.5, 0], [-47, 20, 14], { tone: "lo" }, { r: 1.2, steps: 3, bevel: 0.4 });
+box(
+  'stamper.base.far',
+  [-61, -21, 0],
+  [-47, -10.5, 14],
+  { tone: 'lo' },
+  { r: 1.2, steps: 3, bevel: 0.4 },
+);
+box(
+  'stamper.base.near',
+  [-61, 10.5, 0],
+  [-47, 20, 14],
+  { tone: 'lo' },
+  { r: 1.2, steps: 3, bevel: 0.4 },
+);
 cyl(
-  "stamper.col.far",
+  'stamper.col.far',
   -54,
   -15.5,
   2.6,
   14,
   32,
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     steps: 24,
-    inner: Ln(k.sideArc(-54, -15.5, 2.6, 24, P, 16) + k.sideArc(-54, -15.5, 2.6, 36, P, 16), { tone: "faint" }),
+    inner: Ln(k.sideArc(-54, -15.5, 2.6, 24, P, 16) + k.sideArc(-54, -15.5, 2.6, 36, P, 16), {
+      tone: 'faint',
+    }),
   },
 );
 cyl(
-  "stamper.col.near",
+  'stamper.col.near',
   -54,
   15,
   2.6,
   14,
   32,
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     steps: 24,
-    inner: Ln(k.sideArc(-54, 15, 2.6, 24, P, 16) + k.sideArc(-54, 15, 2.6, 36, P, 16), { tone: "faint" }),
+    inner: Ln(k.sideArc(-54, 15, 2.6, 24, P, 16) + k.sideArc(-54, 15, 2.6, 36, P, 16), {
+      tone: 'faint',
+    }),
   },
 );
-box("stamper.anvil", [-60, -6.5, 0], [-48, 6.5, 13.2], { tone: "lo" }, { r: 1, steps: 2 });
+box('stamper.anvil', [-60, -6.5, 0], [-48, 6.5, 13.2], { tone: 'lo' }, { r: 1, steps: 2 });
 
 // Stamper bridge yoke at z = 46..54
 box(
-  "stamper.yoke",
+  'stamper.yoke',
   [-61, -19, 46],
   [-47, 18.5, 54],
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     r: 2,
     steps: 4,
     bevel: 0.6,
-    inner: Ln(k.sideSeam({ x: -61, y: -19, w: 14, d: 37.5, r: 2 }, 50, P, 4), { tone: "faint" }),
+    inner: Ln(k.sideSeam({ x: -61, y: -19, w: 14, d: 37.5, r: 2 }, 50, P, 4), { tone: 'faint' }),
     extra:
-      Ln(k.planOutline({ x: -58.5, y: -16.5, w: 9, d: 32.5, r: 1.2 }, 54, P, 3), { tone: "faint" }) +
-      Dots([at([-54, -15.5, 54]), at([-54, 15, 54])], { size: 0.5, tone: "hi" }),
+      Ln(k.planOutline({ x: -58.5, y: -16.5, w: 9, d: 32.5, r: 1.2 }, 54, P, 3), {
+        tone: 'faint',
+      }) + Dots([at([-54, -15.5, 54]), at([-54, 15, 54])], { size: 0.5, tone: 'hi' }),
   },
 );
 
 // Gold decorative bezel collar on stamper yoke top
-cyl("stamper.collar.gold", -54, 0, 4.8, 54, 2.2, { tone: "mid" }, { steps: 28, bevel: 0.3, cls: "par-gold-trim" });
+cyl(
+  'stamper.collar.gold',
+  -54,
+  0,
+  4.8,
+  54,
+  2.2,
+  { tone: 'mid' },
+  { steps: 28, bevel: 0.3, cls: 'par-gold-trim' },
+);
 
 // Station 2 Control: ONE filled navy solenoid actuator cap on stamper top (z = 56.2 .. 61.5)
 cyl(
-  "stamper.cap.top",
+  'stamper.cap.top',
   -54,
   0,
   3.4,
   56.2,
   5.2,
-  { tone: "hi" },
+  { tone: 'hi' },
   {
     steps: 28,
     bevel: 0.4,
-    cls: "par-navy-control",
+    cls: 'par-navy-control',
     attrs: ' data-move="stamp-ram" data-station="submit"',
-    extra: Ln(k.knurl(-54, 0, 3.4, 56.8, 60.8, 22, P, 0.25), { tone: "lo" }),
+    extra: Ln(k.knurl(-54, 0, 3.4, 56.8, 60.8, 22, P, 0.25), { tone: 'lo' }),
   },
 );
 
 // Lower moving stamper ram & punch head below yoke (z = 25 .. 46)
 cyl(
-  "stamper.ram",
+  'stamper.ram',
   -54,
   0,
   2.2,
   30,
   16,
-  { tone: "hi" },
+  { tone: 'hi' },
   {
     steps: 24,
     bevel: 0.3,
     attrs: ' data-move="stamp-ram"',
     extra: Ln(
-      Array.from({ length: 5 }, (_, i) => k.ring(-54, 0, 3.4, 33 + i * 2.4, P, 20)).join(""),
-      { tone: "mid" },
+      Array.from({ length: 5 }, (_, i) => k.ring(-54, 0, 3.4, 33 + i * 2.4, P, 20)).join(''),
+      { tone: 'mid' },
     ),
   },
 );
 box(
-  "stamper.head",
+  'stamper.head',
   [-59.5, -6.2, 25],
   [-48.5, 6.2, 30],
-  { tone: "hi" },
+  { tone: 'hi' },
   {
     r: 1,
     steps: 3,
     bevel: 0.4,
     attrs: ' data-move="stamp-head"',
-    extra: k.faceTextSvg(k.topMatrix([-54, 1.5], 30, P, "x"), "OFF-26", { size: 2.3, tone: "lo", anchor: "middle" }),
+    extra: k.faceTextSvg(k.topMatrix([-54, 1.5], 30, P, 'x'), 'OFF-26', {
+      size: 2.3,
+      tone: 'lo',
+      anchor: 'middle',
+    }),
   },
 );
 
 // One-shot mechanical lockout cam pawl on the right side of the stamper yoke (flush at x = -47)
 box(
-  "stamper.pawl.mount",
+  'stamper.pawl.mount',
   [-47, -4, 47],
   [-42.5, 4, 53],
-  { tone: "lo" },
+  { tone: 'lo' },
   { r: 0.6, steps: 2, extra: Dots([at([-44.5, 0, 53])], { size: 0.45 }) },
 );
 box(
-  "stamper.pawl.latch",
+  'stamper.pawl.latch',
   [-47, -2.2, 42],
   [-42.5, 2.2, 47],
-  { tone: "hi" },
-  { r: 0.5, steps: 2, bevel: 0.3, cls: "par-gold-trim", attrs: ' data-part="stamp-latch"' },
+  { tone: 'hi' },
+  { r: 0.5, steps: 2, bevel: 0.3, cls: 'par-gold-trim', attrs: ' data-part="stamp-latch"' },
 );
 
 // ============================================================================
 // STATION 3: REVIEWER'S INSPECTION DESK & DIVERT GATE (x = -24 .. +8)
 // ============================================================================
 box(
-  "review.plinth",
+  'review.plinth',
   [-24, -18, 0],
   [8, 18, 10],
-  { tone: "lo" },
+  { tone: 'lo' },
   {
     r: 2,
     steps: 4,
     bevel: 0.5,
-    inner: Ln(k.sideSeam({ x: -24, y: -18, w: 32, d: 36, r: 2 }, 5, P, 4), { tone: "faint" }),
+    inner: Ln(k.sideSeam({ x: -24, y: -18, w: 32, d: 36, r: 2 }, 5, P, 4), { tone: 'faint' }),
   },
 );
 box(
-  "review.bed",
+  'review.bed',
   [-22, -6.5, 10],
   [6, 6.5, 13.2],
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     r: 1.2,
     steps: 3,
     bevel: 0.4,
-    extra: Ln(k.planOutline({ x: -19, y: -4.5, w: 22, d: 9, r: 0.8 }, 13.2, P, 3), { tone: "lo" }),
+    extra: Ln(k.planOutline({ x: -19, y: -4.5, w: 22, d: 9, r: 0.8 }, 13.2, P, 3), { tone: 'lo' }),
   },
 );
-box("review.deck.far", [-22, -16.5, 10], [6, -10.5, 13.2], { tone: "mid" }, { r: 1, steps: 2, bevel: 0.3 });
-box("review.deck.near", [-22, 10.5, 10], [6, 18, 12.2], { tone: "mid" }, { r: 1, steps: 2, bevel: 0.3 });
+box(
+  'review.deck.far',
+  [-22, -16.5, 10],
+  [6, -10.5, 13.2],
+  { tone: 'mid' },
+  { r: 1, steps: 2, bevel: 0.3 },
+);
+box(
+  'review.deck.near',
+  [-22, 10.5, 10],
+  [6, 18, 12.2],
+  { tone: 'mid' },
+  { r: 1, steps: 2, bevel: 0.3 },
+);
 
 // Optical inspection column & lens hood over Reviewer Desk (back deck y = -13.5)
-cyl("review.post.base", -8, -13.5, 2.8, 13.2, 3, { tone: "lo" }, { steps: 24 });
+cyl('review.post.base', -8, -13.5, 2.8, 13.2, 3, { tone: 'lo' }, { steps: 24 });
 cyl(
-  "review.post",
+  'review.post',
   -8,
   -13.5,
   2.0,
   16.2,
   24,
-  { tone: "mid" },
-  { steps: 22, inner: Ln(k.sideArc(-8, -13.5, 2.0, 28, P, 16), { tone: "faint" }) },
+  { tone: 'mid' },
+  { steps: 22, inner: Ln(k.sideArc(-8, -13.5, 2.0, 28, P, 16), { tone: 'faint' }) },
 );
-box("review.arm", [-12, -15.5, 40.2], [-4, 1.5, 44], { tone: "mid" }, { r: 1, steps: 3, bevel: 0.4, extra: Dots([at([-8, -13.5, 44]), at([-8, -1, 44])], { size: 0.45 }) });
+box(
+  'review.arm',
+  [-12, -15.5, 40.2],
+  [-4, 1.5, 44],
+  { tone: 'mid' },
+  {
+    r: 1,
+    steps: 3,
+    bevel: 0.4,
+    extra: Dots([at([-8, -13.5, 44]), at([-8, -1, 44])], { size: 0.45 }),
+  },
+);
 cyl(
-  "review.lens.bezel",
+  'review.lens.bezel',
   -8,
   -1,
   6.2,
   36.5,
   3.7,
-  { tone: "hi" },
+  { tone: 'hi' },
   {
     steps: 32,
     bevel: 0.4,
-    cls: "par-gold-trim",
-    extra: Ln(k.ring(-8, -1, 4.4, 40.2, P, 28), { tone: "lo" }),
+    cls: 'par-gold-trim',
+    extra: Ln(k.ring(-8, -1, 4.4, 40.2, P, 28), { tone: 'lo' }),
   },
 );
 
 // Reviewer divert gate blade (flush beside pivot post at x = 2.0)
-cyl("review.gate.pivot", 3.6, -4.5, 1.5, 13.2, 4.2, { tone: "lo" }, { steps: 18, extra: Dots([at([3.6, -4.5, 17.4])], { size: 0.45, tone: "hi" }) });
+cyl(
+  'review.gate.pivot',
+  3.6,
+  -4.5,
+  1.5,
+  13.2,
+  4.2,
+  { tone: 'lo' },
+  { steps: 18, extra: Dots([at([3.6, -4.5, 17.4])], { size: 0.45, tone: 'hi' }) },
+);
 box(
-  "review.gate.blade",
+  'review.gate.blade',
   [-11, -5.4, 13.2],
   [2.1, -3.6, 16.8],
-  { tone: "hi" },
+  { tone: 'hi' },
   { r: 0.4, steps: 2, bevel: 0.2, attrs: ' data-part="review-gate"' },
 );
 
 // Station 3 Control: ONE filled navy rotary knob on Reviewer front console deck (x = -16, y = 14)
-cyl("review.ctrl.collar", -16, 14, 3.0, 12.2, 1.2, { tone: "lo" }, { steps: 28 });
+cyl('review.ctrl.collar', -16, 14, 3.0, 12.2, 1.2, { tone: 'lo' }, { steps: 28 });
 cyl(
-  "review.ctrl.navy",
+  'review.ctrl.navy',
   -16,
   14,
   2.5,
   13.4,
   3.4,
-  { tone: "hi" },
+  { tone: 'hi' },
   {
     steps: 28,
     bevel: 0.4,
-    cls: "par-navy-control",
+    cls: 'par-navy-control',
     attrs: ' data-station="review"',
     extra:
-      Ln(k.knurl(-16, 14, 2.5, 13.8, 16.4, 20, P, 0.25), { tone: "lo" }) +
-      Ln(k.lineOnTop([-16, 14], [-16, 16.1], 16.8, P), { tone: "hi", free: "start" }),
+      Ln(k.knurl(-16, 14, 2.5, 13.8, 16.4, 20, P, 0.25), { tone: 'lo' }) +
+      Ln(k.lineOnTop([-16, 14], [-16, 16.1], 16.8, P), { tone: 'hi', free: 'start' }),
   },
 );
 
@@ -479,34 +685,36 @@ cyl(
 // SEPARATION OF DUTIES GUARD BAR (x = 24, between Reviewer/Submitter & Approver)
 // "A small separator bar keeps the submitter's hand out of the approver's press."
 // ============================================================================
-box("guard.foot.far", [20.5, -16, 0], [27.5, -10.5, 13.2], { tone: "lo" }, { r: 0.8, steps: 2 });
-box("guard.foot.near", [20.5, 10.5, 0], [27.5, 16, 13.2], { tone: "lo" }, { r: 0.8, steps: 2 });
-cyl("guard.post.far", 24, -13.2, 1.9, 13.2, 22, { tone: "mid" }, { steps: 20 });
-cyl("guard.post.near", 24, 13.2, 1.9, 13.2, 22, { tone: "mid" }, { steps: 20 });
+box('guard.foot.far', [20.5, -16, 0], [27.5, -10.5, 13.2], { tone: 'lo' }, { r: 0.8, steps: 2 });
+box('guard.foot.near', [20.5, 10.5, 0], [27.5, 16, 13.2], { tone: 'lo' }, { r: 0.8, steps: 2 });
+cyl('guard.post.far', 24, -13.2, 1.9, 13.2, 22, { tone: 'mid' }, { steps: 20 });
+cyl('guard.post.near', 24, 13.2, 1.9, 13.2, 22, { tone: 'mid' }, { steps: 20 });
 box(
-  "guard.crossbar",
+  'guard.crossbar',
   [21.2, -15.5, 35.2],
   [26.8, 15.5, 39.2],
-  { tone: "hi" },
+  { tone: 'hi' },
   {
     r: 1,
     steps: 3,
     bevel: 0.5,
-    cls: "par-gold-trim",
+    cls: 'par-gold-trim',
     extra:
-      Ln(k.planOutline({ x: 22.4, y: -12, w: 3.2, d: 24, r: 0.6 }, 39.2, P, 2), { tone: "lo" }) +
-      Dots([at([24, -13.2, 39.2]), at([24, 13.2, 39.2])], { size: 0.48, tone: "hi" }),
+      Ln(k.planOutline({ x: 22.4, y: -12, w: 3.2, d: 24, r: 0.6 }, 39.2, P, 2), { tone: 'lo' }) +
+      Dots([at([24, -13.2, 39.2]), at([24, 13.2, 39.2])], { size: 0.48, tone: 'hi' }),
   },
 );
 box(
-  "guard.shield",
+  'guard.shield',
   [23.1, -11.3, 22.5],
   [24.9, 11.3, 35.2],
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     r: 0.4,
     steps: 2,
-    inner: Ln(k.sideSeam({ x: 23.1, y: -11.3, w: 1.8, d: 22.6, r: 0.4 }, 28.5, P, 2), { tone: "faint" }),
+    inner: Ln(k.sideSeam({ x: 23.1, y: -11.3, w: 1.8, d: 22.6, r: 0.4 }, 28.5, P, 2), {
+      tone: 'faint',
+    }),
   },
 );
 
@@ -514,137 +722,171 @@ box(
 // STATION 4: APPROVER'S SEAL PRESS (x = 40 .. 72, y = -18 .. +18)
 // ============================================================================
 box(
-  "approver.plinth",
+  'approver.plinth',
   [40, -18, 0],
   [72, 18, 10],
-  { tone: "lo" },
+  { tone: 'lo' },
   {
     r: 2,
     steps: 4,
     bevel: 0.5,
-    inner: Ln(k.sideSeam({ x: 40, y: -18, w: 32, d: 36, r: 2 }, 5, P, 4), { tone: "faint" }),
+    inner: Ln(k.sideSeam({ x: 40, y: -18, w: 32, d: 36, r: 2 }, 5, P, 4), { tone: 'faint' }),
   },
 );
 box(
-  "approver.bed",
+  'approver.bed',
   [42, -6.5, 10],
   [70, 6.5, 13.2],
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     r: 1.2,
     steps: 3,
     bevel: 0.4,
-    extra: Ln(k.ring(56, 0, 5.2, 13.2, P, 28), { tone: "lo" }),
+    extra: Ln(k.ring(56, 0, 5.2, 13.2, P, 28), { tone: 'lo' }),
   },
 );
-box("approver.deck.far", [42, -16.5, 10], [70, -10.5, 13.2], { tone: "mid" }, { r: 1, steps: 2, bevel: 0.3 });
-box("approver.deck.near", [42, 10.5, 10], [70, 18, 12.2], { tone: "mid" }, { r: 1, steps: 2, bevel: 0.3 });
+box(
+  'approver.deck.far',
+  [42, -16.5, 10],
+  [70, -10.5, 13.2],
+  { tone: 'mid' },
+  { r: 1, steps: 2, bevel: 0.3 },
+);
+box(
+  'approver.deck.near',
+  [42, 10.5, 10],
+  [70, 18, 12.2],
+  { tone: 'mid' },
+  { r: 1, steps: 2, bevel: 0.3 },
+);
 
 // Heavy twin columns of the Approver Seal Press (on the far/near decks at y = -13.5 and y = +13.5)
 cyl(
-  "approver.col.far",
+  'approver.col.far',
   56,
   -13.5,
   2.5,
   13.2,
   36,
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     steps: 24,
-    inner: Ln(k.sideArc(56, -13.5, 2.5, 25, P, 16) + k.sideArc(56, -13.5, 2.5, 38, P, 16), { tone: "faint" }),
+    inner: Ln(k.sideArc(56, -13.5, 2.5, 25, P, 16) + k.sideArc(56, -13.5, 2.5, 38, P, 16), {
+      tone: 'faint',
+    }),
   },
 );
 cyl(
-  "approver.col.near",
+  'approver.col.near',
   56,
   13.5,
   2.5,
   12.2,
   37,
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     steps: 24,
-    inner: Ln(k.sideArc(56, 13.5, 2.5, 25, P, 16) + k.sideArc(56, 13.5, 2.5, 38, P, 16), { tone: "faint" }),
+    inner: Ln(k.sideArc(56, 13.5, 2.5, 25, P, 16) + k.sideArc(56, 13.5, 2.5, 38, P, 16), {
+      tone: 'faint',
+    }),
   },
 );
 
 // Press crown bridge at z = 49.2..58
 box(
-  "approver.crown",
+  'approver.crown',
   [48, -16.5, 49.2],
   [64, 16.5, 58],
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     r: 2,
     steps: 4,
     bevel: 0.7,
-    inner: Ln(k.sideSeam({ x: 48, y: -16.5, w: 16, d: 33, r: 2 }, 53.6, P, 4), { tone: "faint" }),
+    inner: Ln(k.sideSeam({ x: 48, y: -16.5, w: 16, d: 33, r: 2 }, 53.6, P, 4), { tone: 'faint' }),
     extra:
-      Ln(k.planOutline({ x: 50.5, y: -14, w: 11, d: 28, r: 1.2 }, 58, P, 3), { tone: "faint" }) +
-      Dots([at([56, -13.5, 58]), at([56, 13.5, 58])], { size: 0.55, tone: "hi" }),
+      Ln(k.planOutline({ x: 50.5, y: -14, w: 11, d: 28, r: 1.2 }, 58, P, 3), { tone: 'faint' }) +
+      Dots([at([56, -13.5, 58]), at([56, 13.5, 58])], { size: 0.55, tone: 'hi' }),
   },
 );
 
 // Decorative gold seal ring on the press crown top
-cyl("approver.crown.gold", 56, 0, 5.6, 58, 2.2, { tone: "mid" }, { steps: 32, bevel: 0.3, cls: "par-gold-trim" });
+cyl(
+  'approver.crown.gold',
+  56,
+  0,
+  5.6,
+  58,
+  2.2,
+  { tone: 'mid' },
+  { steps: 32, bevel: 0.3, cls: 'par-gold-trim' },
+);
 
 // Upper press screw stem above crown gold ring (z = 60.2..64)
-cyl("approver.screw.upper", 56, 0, 2.5, 60.2, 3.8, { tone: "hi" }, { steps: 24, attrs: ' data-move="seal-ram"' });
+cyl(
+  'approver.screw.upper',
+  56,
+  0,
+  2.5,
+  60.2,
+  3.8,
+  { tone: 'hi' },
+  { steps: 24, attrs: ' data-move="seal-ram"' },
+);
 
 // Lower moving seal press screw & die head below crown (z = 26..49.2)
 cyl(
-  "approver.screw",
+  'approver.screw',
   56,
   0,
   2.5,
   31,
   18.2,
-  { tone: "hi" },
+  { tone: 'hi' },
   {
     steps: 24,
     bevel: 0.3,
     attrs: ' data-move="seal-ram"',
     extra: Ln(
-      Array.from({ length: 6 }, (_, i) => k.ring(56, 0, 3.8, 34 + i * 2.2, P, 20)).join(""),
-      { tone: "mid" },
+      Array.from({ length: 6 }, (_, i) => k.ring(56, 0, 3.8, 34 + i * 2.2, P, 20)).join(''),
+      { tone: 'mid' },
     ),
   },
 );
 cyl(
-  "approver.die",
+  'approver.die',
   56,
   0,
   6.2,
   26,
   5,
-  { tone: "hi" },
+  { tone: 'hi' },
   {
     steps: 36,
     bevel: 0.5,
-    cls: "par-gold-trim",
+    cls: 'par-gold-trim',
     attrs: ' data-move="seal-die"',
-    extra: Ln(k.ring(56, 0, 4.5, 31, P, 28), { tone: "lo" }),
+    extra: Ln(k.ring(56, 0, 4.5, 31, P, 28), { tone: 'lo' }),
   },
 );
 
 // Station 4 Control: ONE filled navy fly-wheel / press cap at top of screw (z = 64..69)
 cyl(
-  "approver.ctrl.navy",
+  'approver.ctrl.navy',
   56,
   0,
   8.2,
   64,
   4.8,
-  { tone: "hi" },
+  { tone: 'hi' },
   {
     steps: 40,
     bevel: 0.6,
-    cls: "par-navy-control",
+    cls: 'par-navy-control',
     attrs: ' data-move="seal-cap" data-station="approve"',
     extra:
-      Ln(k.knurl(56, 0, 8.2, 64.6, 68.2, 36, P, 0.3), { tone: "lo" }) +
-      Ln(k.ring(56, 0, 5.6, 68.8, P, 32), { tone: "faint" }) +
-      Dots([at([56, 0, 68.8])], { size: 0.6, tone: "hi" }),
+      Ln(k.knurl(56, 0, 8.2, 64.6, 68.2, 36, P, 0.3), { tone: 'lo' }) +
+      Ln(k.ring(56, 0, 5.6, 68.8, P, 32), { tone: 'faint' }) +
+      Dots([at([56, 0, 68.8])], { size: 0.6, tone: 'hi' }),
   },
 );
 
@@ -666,20 +908,20 @@ CHUTE_SPANS.forEach(([x0, x1], idx) => {
     `chute.pier.${idx}`,
     [cx - 3.5, 22.5, 0],
     [cx + 3.5, 29.5, 10.0],
-    { tone: "lo" },
+    { tone: 'lo' },
     { r: 0.8, steps: 2 },
   );
   box(
     `chute.bed.${idx}`,
     [x0, 21, 10.0],
     [x1, 30.2, 12.2],
-    { tone: "mid" },
+    { tone: 'mid' },
     {
       r: 0.4,
       steps: 2,
       bevel: 0.25,
-      cls: "par-maroon-chute",
-      extra: Dots([at([x0 + 5, 25.6, 12.2]), at([x1 - 5, 25.6, 12.2])], { size: 0.36, tone: "lo" }),
+      cls: 'par-maroon-chute',
+      extra: Dots([at([x0 + 5, 25.6, 12.2]), at([x1 - 5, 25.6, 12.2])], { size: 0.36, tone: 'lo' }),
     },
   );
   // Near curb on each span
@@ -687,54 +929,92 @@ CHUTE_SPANS.forEach(([x0, x1], idx) => {
     `chute.curb.near.${idx}`,
     [x0, 28.6, 12.2],
     [x1, 30.2, 14.4],
-    { tone: "mid" },
-    { r: 0.3, steps: 2, bevel: 0.2, cls: "par-maroon-chute" },
+    { tone: 'mid' },
+    { r: 0.3, steps: 2, bevel: 0.2, cls: 'par-maroon-chute' },
   );
 });
 
 // Far curb segments with openings at Intake (-98..-90), Reviewer (-12..-4), and Approver (58..68)
-box("chute.curb.far.0", [-90, 21, 12.2], [-66, 22.5, 14.4], { tone: "mid" }, { r: 0.3, steps: 2, cls: "par-maroon-chute" });
-box("chute.curb.far.1", [-66, 21, 12.2], [-32, 22.5, 14.4], { tone: "mid" }, { r: 0.3, steps: 2, cls: "par-maroon-chute" });
-box("chute.curb.far.2", [-32, 21, 12.2], [-12, 22.5, 14.4], { tone: "mid" }, { r: 0.3, steps: 2, cls: "par-maroon-chute" });
-box("chute.curb.far.3", [-4, 21, 12.2], [36, 22.5, 14.4], { tone: "mid" }, { r: 0.3, steps: 2, cls: "par-maroon-chute" });
-box("chute.curb.far.4", [36, 21, 12.2], [58, 22.5, 14.4], { tone: "mid" }, { r: 0.3, steps: 2, cls: "par-maroon-chute" });
+box(
+  'chute.curb.far.0',
+  [-90, 21, 12.2],
+  [-66, 22.5, 14.4],
+  { tone: 'mid' },
+  { r: 0.3, steps: 2, cls: 'par-maroon-chute' },
+);
+box(
+  'chute.curb.far.1',
+  [-66, 21, 12.2],
+  [-32, 22.5, 14.4],
+  { tone: 'mid' },
+  { r: 0.3, steps: 2, cls: 'par-maroon-chute' },
+);
+box(
+  'chute.curb.far.2',
+  [-32, 21, 12.2],
+  [-12, 22.5, 14.4],
+  { tone: 'mid' },
+  { r: 0.3, steps: 2, cls: 'par-maroon-chute' },
+);
+box(
+  'chute.curb.far.3',
+  [-4, 21, 12.2],
+  [36, 22.5, 14.4],
+  { tone: 'mid' },
+  { r: 0.3, steps: 2, cls: 'par-maroon-chute' },
+);
+box(
+  'chute.curb.far.4',
+  [36, 21, 12.2],
+  [58, 22.5, 14.4],
+  { tone: 'mid' },
+  { r: 0.3, steps: 2, cls: 'par-maroon-chute' },
+);
 
 // Crossover transfer bridges connecting Reviewer (x=-12..-4, y=18..21) and Approver (x=58..66, y=18..21) to Return Chute
 box(
-  "chute.branch.rev",
+  'chute.branch.rev',
   [-12, 18, 10.0],
   [-4, 21, 12.2],
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     r: 0.4,
     steps: 2,
-    cls: "par-maroon-chute",
-    extra: Ln(k.lineOnTop([-10, 18], [-10, 21], 12.2, P) + k.lineOnTop([-6, 18], [-6, 21], 12.2, P), { tone: "lo" }),
+    cls: 'par-maroon-chute',
+    extra: Ln(
+      k.lineOnTop([-10, 18], [-10, 21], 12.2, P) + k.lineOnTop([-6, 18], [-6, 21], 12.2, P),
+      { tone: 'lo' },
+    ),
   },
 );
 box(
-  "chute.branch.app",
+  'chute.branch.app',
   [58, 18, 10.0],
   [66, 21, 12.2],
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     r: 0.4,
     steps: 2,
-    cls: "par-maroon-chute",
-    extra: Ln(k.lineOnTop([60, 18], [60, 21], 12.2, P) + k.lineOnTop([64, 18], [64, 21], 12.2, P), { tone: "lo" }),
+    cls: 'par-maroon-chute',
+    extra: Ln(k.lineOnTop([60, 18], [60, 21], 12.2, P) + k.lineOnTop([64, 18], [64, 21], 12.2, P), {
+      tone: 'lo',
+    }),
   },
 );
 // Return feed ramp at Intake (x=-98..-90, y=16..21) returning token into intake tray
 box(
-  "chute.return.intake",
+  'chute.return.intake',
   [-98, 16, 10.0],
   [-90, 21, 12.2],
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     r: 0.4,
     steps: 2,
-    cls: "par-maroon-chute",
-    extra: Ln(k.lineOnTop([-96, 16], [-96, 21], 12.2, P) + k.lineOnTop([-92, 16], [-92, 21], 12.2, P), { tone: "lo" }),
+    cls: 'par-maroon-chute',
+    extra: Ln(
+      k.lineOnTop([-96, 16], [-96, 21], 12.2, P) + k.lineOnTop([-92, 16], [-92, 21], 12.2, P),
+      { tone: 'lo' },
+    ),
   },
 );
 
@@ -742,106 +1022,120 @@ box(
 // STATION 5: CARD-INDEX DRAWER & GLASS LIGHT-ARCHIVE CYLINDER (x = 84 .. 124)
 // ============================================================================
 box(
-  "archive.cabinet",
+  'archive.cabinet',
   [84, -22, 0],
   [124, 22, 26],
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     r: 2.2,
     steps: 4,
     bevel: 0.8,
-    inner: Ln(k.sideSeam({ x: 84, y: -22, w: 40, d: 44, r: 2.2 }, 13, P, 4), { tone: "faint" }),
+    inner: Ln(k.sideSeam({ x: 84, y: -22, w: 40, d: 44, r: 2.2 }, 13, P, 4), { tone: 'faint' }),
     extra:
-      Ln(k.planOutline({ x: 87, y: -19, w: 34, d: 38, r: 1.5 }, 26, P, 4), { tone: "lo" }) +
-      Dots([at([87, -19, 26]), at([121, -19, 26]), at([87, 19, 26]), at([121, 19, 26])], { size: 0.5 }),
+      Ln(k.planOutline({ x: 87, y: -19, w: 34, d: 38, r: 1.5 }, 26, P, 4), { tone: 'lo' }) +
+      Dots([at([87, -19, 26]), at([121, -19, 26]), at([87, 19, 26]), at([121, 19, 26])], {
+        size: 0.5,
+      }),
   },
 );
 
 // Sliding Card-Index Drawer extending from the front (+y = 22) face of the archive cabinet
 box(
-  "archive.drawer.box",
+  'archive.drawer.box',
   [90, 22, 4],
   [118, 29, 21],
-  { tone: "lo" },
+  { tone: 'lo' },
   {
     r: 1,
     steps: 2,
     attrs: ' data-move="drawer"',
     extra: Ln(
-      [1.5, 3.5, 5.5].map((dy) => k.lineOnTop([90, 22 + dy], [118, 22 + dy], 21, P)).join(""),
-      { tone: "mid" },
+      [1.5, 3.5, 5.5].map((dy) => k.lineOnTop([90, 22 + dy], [118, 22 + dy], 21, P)).join(''),
+      { tone: 'mid' },
     ),
   },
 );
 box(
-  "archive.drawer.front",
+  'archive.drawer.front',
   [88, 29, 3],
   [120, 32, 22],
-  { tone: "hi" },
+  { tone: 'hi' },
   {
     r: 1.2,
     steps: 3,
     bevel: 0.4,
     attrs: ' data-move="drawer"',
-    inner: Ln(k.sideSeam({ x: 88, y: 29, w: 32, d: 3, r: 1.2 }, 12.5, P, 3), { tone: "faint" }),
+    inner: Ln(k.sideSeam({ x: 88, y: 29, w: 32, d: 3, r: 1.2 }, 12.5, P, 3), { tone: 'faint' }),
   },
 );
 // Brass label frame and navy pull handle on the card-index drawer front
 box(
-  "archive.drawer.frame",
+  'archive.drawer.frame',
   [96, 32, 13.5],
   [112, 33.2, 19.5],
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     r: 0.4,
     steps: 2,
-    cls: "par-gold-trim",
+    cls: 'par-gold-trim',
     attrs: ' data-move="drawer"',
     extra: Dots([at([97.5, 33.2, 16.5]), at([110.5, 33.2, 16.5])], { size: 0.4 }),
   },
 );
 // Station 5 Control: ONE filled navy drawer pull handle on the card-index drawer
 box(
-  "archive.ctrl.navy",
+  'archive.ctrl.navy',
   [98, 32, 6.5],
   [110, 35.2, 10.2],
-  { tone: "hi" },
+  { tone: 'hi' },
   {
     r: 0.8,
     steps: 2,
     bevel: 0.3,
-    cls: "par-navy-control",
+    cls: 'par-navy-control',
     attrs: ' data-move="drawer" data-station="archive"',
   },
 );
 
 // Glass Light-Archive Cylinder mounted atop the Card-Index Cabinet (x = 104, y = 0, z = 26..76)
-cyl("archive.base.ring", 104, 0, 13.5, 26, 3.5, { tone: "lo" }, { steps: 44, bevel: 0.5 });
-cyl("archive.plinth.gold", 104, 0, 12.2, 29.5, 2.0, { tone: "mid" }, { steps: 44, bevel: 0.3, cls: "par-gold-trim" });
+cyl('archive.base.ring', 104, 0, 13.5, 26, 3.5, { tone: 'lo' }, { steps: 44, bevel: 0.5 });
+cyl(
+  'archive.plinth.gold',
+  104,
+  0,
+  12.2,
+  29.5,
+  2.0,
+  { tone: 'mid' },
+  { steps: 44, bevel: 0.3, cls: 'par-gold-trim' },
+);
 
 // Outer glass cylinder wall & luminous light-core stacks inside
 {
-  const glassRings = [36, 42, 48, 54, 60, 66]
-    .map((z) => k.ring(104, 0, 7.6, z, P, 36))
-    .join("");
+  const glassRings = [36, 42, 48, 54, 60, 66].map((z) => k.ring(104, 0, 7.6, z, P, 36)).join('');
   const coreDiscs = [36, 42, 48, 54, 60, 66]
-    .map((z, idx) => `<path class="par-light-disc" data-disc="${idx}" d="${k.ring(104, 0, 6.4, z, P, 32)}"/>`)
-    .join("");
+    .map(
+      (z, idx) =>
+        `<path class="par-light-disc" data-disc="${idx}" d="${k.ring(104, 0, 6.4, z, P, 32)}"/>`,
+    )
+    .join('');
   cyl(
-    "archive.glass",
+    'archive.glass',
     104,
     0,
     11.2,
     31.5,
     40,
-    { tone: "hi" },
+    { tone: 'hi' },
     {
       steps: 48,
       bevel: 0.5,
-      cls: "par-glass-cylinder",
+      cls: 'par-glass-cylinder',
       attrs: ' data-part="archive-glass"',
-      inner: Ln(k.sideArc(104, 0, 11.2, 44, P, 32) + k.sideArc(104, 0, 11.2, 58, P, 32), { tone: "faint" }),
-      extra: `<g class="par-archive-cores" data-part="archive-cores">${coreDiscs}${Ln(glassRings, { tone: "mid" })}</g>`,
+      inner: Ln(k.sideArc(104, 0, 11.2, 44, P, 32) + k.sideArc(104, 0, 11.2, 58, P, 32), {
+        tone: 'faint',
+      }),
+      extra: `<g class="par-archive-cores" data-part="archive-cores">${coreDiscs}${Ln(glassRings, { tone: 'mid' })}</g>`,
     },
   );
 }
@@ -852,26 +1146,49 @@ for (const [idx, [tx, ty]] of [
   [104 - 4, 12.2],
   [104 + 4, -12.2],
 ].entries()) {
-  cyl(`archive.rod.${idx}`, tx, ty, 0.75, 29.5, 42, { tone: "mid" }, { steps: 14, cls: "par-gold-trim" });
+  cyl(
+    `archive.rod.${idx}`,
+    tx,
+    ty,
+    0.75,
+    29.5,
+    42,
+    { tone: 'mid' },
+    { steps: 14, cls: 'par-gold-trim' },
+  );
 }
 // Archive cylinder top cap & finial
 cyl(
-  "archive.cap",
+  'archive.cap',
   104,
   0,
   12.4,
   71.5,
   4.2,
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     steps: 44,
     bevel: 0.6,
     extra:
-      Ln(k.knurl(104, 0, 12.4, 72.2, 75.2, 48, P, 0.3), { tone: "lo" }) +
-      Ln(k.ring(104, 0, 9.2, 75.7, P, 36), { tone: "lo" }),
+      Ln(k.knurl(104, 0, 12.4, 72.2, 75.2, 48, P, 0.3), { tone: 'lo' }) +
+      Ln(k.ring(104, 0, 9.2, 75.7, P, 36), { tone: 'lo' }),
   },
 );
-cyl("archive.finial.gold", 104, 0, 3.8, 75.7, 3.2, { tone: "hi" }, { steps: 28, bevel: 0.4, cls: "par-gold-trim", extra: Dots([at([104, 0, 78.9])], { size: 0.55, tone: "hi" }) });
+cyl(
+  'archive.finial.gold',
+  104,
+  0,
+  3.8,
+  75.7,
+  3.2,
+  { tone: 'hi' },
+  {
+    steps: 28,
+    bevel: 0.4,
+    cls: 'par-gold-trim',
+    extra: Dots([at([104, 0, 78.9])], { size: 0.55, tone: 'hi' }),
+  },
+);
 
 // ============================================================================
 // STATUS DIAL TURRET (7 true positions, back-center x = -18, y = -38, z = 0..64)
@@ -884,15 +1201,17 @@ const DIAL_TOP = DIAL_Z0 + DIAL_H;
 const DIAL_R = 23;
 
 box(
-  "dial.pedestal",
+  'dial.pedestal',
   [DIAL_X - 16, DIAL_Y - 11, 0],
   [DIAL_X + 16, DIAL_Y + 10, 18],
-  { tone: "lo" },
+  { tone: 'lo' },
   {
     r: 2.2,
     steps: 4,
     bevel: 0.6,
-    inner: Ln(k.sideSeam({ x: DIAL_X - 16, y: DIAL_Y - 11, w: 32, d: 21, r: 2.2 }, 9, P, 4), { tone: "faint" }),
+    inner: Ln(k.sideSeam({ x: DIAL_X - 16, y: DIAL_Y - 11, w: 32, d: 21, r: 2.2 }, 9, P, 4), {
+      tone: 'faint',
+    }),
     extra: Dots(
       [
         at([DIAL_X - 12, DIAL_Y - 7, 18]),
@@ -904,18 +1223,30 @@ box(
     ),
   },
 );
-cyl("dial.collar", DIAL_X, DIAL_Y, 6.8, 18, 4, { tone: "mid" }, { steps: 28, bevel: 0.4, cls: "par-gold-trim" });
 cyl(
-  "dial.column",
+  'dial.collar',
+  DIAL_X,
+  DIAL_Y,
+  6.8,
+  18,
+  4,
+  { tone: 'mid' },
+  { steps: 28, bevel: 0.4, cls: 'par-gold-trim' },
+);
+cyl(
+  'dial.column',
   DIAL_X,
   DIAL_Y,
   4.6,
   22,
   DIAL_Z0 - 22,
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     steps: 28,
-    inner: Ln(k.sideArc(DIAL_X, DIAL_Y, 4.6, 32, P, 20) + k.sideArc(DIAL_X, DIAL_Y, 4.6, 42, P, 20), { tone: "faint" }),
+    inner: Ln(
+      k.sideArc(DIAL_X, DIAL_Y, 4.6, 32, P, 20) + k.sideArc(DIAL_X, DIAL_Y, 4.6, 42, P, 20),
+      { tone: 'faint' },
+    ),
   },
 );
 
@@ -932,7 +1263,7 @@ cyl(
       DIAL_TOP,
       P,
     );
-  }).join("");
+  }).join('');
   const detentDots = DIAL_POSITIONS.map((pos) => {
     const a = (pos.angleDeg * Math.PI) / 180;
     const rDot = DIAL_R - 7.4;
@@ -940,24 +1271,24 @@ cyl(
   });
 
   cyl(
-    "dial.case",
+    'dial.case',
     DIAL_X,
     DIAL_Y,
     DIAL_R,
     DIAL_Z0,
     DIAL_H,
-    { tone: "hi" },
+    { tone: 'hi' },
     {
       steps: 64,
       bevel: 0.8,
-      inner: Ln(k.sideArc(DIAL_X, DIAL_Y, DIAL_R, DIAL_TOP - 3.2, P, 40), { tone: "faint" }),
+      inner: Ln(k.sideArc(DIAL_X, DIAL_Y, DIAL_R, DIAL_TOP - 3.2, P, 40), { tone: 'faint' }),
       extra:
-        Ln(k.knurl(DIAL_X, DIAL_Y, DIAL_R, DIAL_TOP - 3.2, DIAL_TOP, 72, P, 0.3), { tone: "lo" }) +
-        `<g class="par-gold-trim">${Ln(k.ring(DIAL_X, DIAL_Y, DIAL_R - 2.0, DIAL_TOP, P, 64), { tone: "mid" })}</g>` +
-        Ln(minorTicks.minor, { tone: "faint" }) +
-        Ln(trueTicks, { tone: "hi" }) +
-        Dots(detentDots, { size: 0.58, tone: "hi" }) +
-        Ln(k.ring(DIAL_X, DIAL_Y, 2.4, DIAL_TOP, P, 20), { tone: "mid" }),
+        Ln(k.knurl(DIAL_X, DIAL_Y, DIAL_R, DIAL_TOP - 3.2, DIAL_TOP, 72, P, 0.3), { tone: 'lo' }) +
+        `<g class="par-gold-trim">${Ln(k.ring(DIAL_X, DIAL_Y, DIAL_R - 2.0, DIAL_TOP, P, 64), { tone: 'mid' })}</g>` +
+        Ln(minorTicks.minor, { tone: 'faint' }) +
+        Ln(trueTicks, { tone: 'hi' }) +
+        Dots(detentDots, { size: 0.58, tone: 'hi' }) +
+        Ln(k.ring(DIAL_X, DIAL_Y, 2.4, DIAL_TOP, P, 20), { tone: 'mid' }),
     },
   );
 }
@@ -966,62 +1297,67 @@ cyl(
 // CABLE RUNS WITH CONNECTORS
 // ============================================================================
 box(
-  "dial.junction",
+  'dial.junction',
   [-30, -28, 2],
   [-6, -24, 11],
-  { tone: "mid" },
+  { tone: 'mid' },
   {
     r: 0.8,
     steps: 2,
     extra: Dots(
       [-26, -21, -15, -10].map((jx) => at([jx, -24, 9.2])),
-      { size: 0.45, tone: "hi" },
+      { size: 0.45, tone: 'hi' },
     ),
   },
 );
 
 cable(
-  "cable.intake",
+  'cable.intake',
   [
     [-34, -38, 5],
     [-104, -38, 5],
     [-104, -16, 5],
   ],
   0.55,
-  { tone: "mid", bend: 4, shells: [true, true] },
+  { tone: 'mid', bend: 4, shells: [true, true] },
 );
 
 cable(
-  "cable.stamper",
+  'cable.stamper',
   [
     [-26, -24, 5.5],
     [-26, -15.5, 5.5],
     [-47, -15.5, 5.5],
   ],
   0.55,
-  { tone: "mid", bend: 3.5, shells: [true, true] },
+  { tone: 'mid', bend: 3.5, shells: [true, true] },
 );
 
 cable(
-  "cable.approver",
+  'cable.approver',
   [
     [-2, -34, 5],
     [56, -34, 5],
     [56, -18, 5],
   ],
   0.55,
-  { tone: "mid", bend: 4, shells: [true, true] },
+  { tone: 'mid', bend: 4, shells: [true, true] },
 );
 
 cable(
-  "cable.archive",
+  'cable.archive',
   [
     [-2, -42, 6],
     [104, -42, 6],
     [104, -22, 6],
   ],
   0.6,
-  { tone: "mid", bend: 4.5, shells: [true, true], rings: { pitch: 2.2, twist: 0.7, cross: true, fade: [0.1, 0.55] } },
+  {
+    tone: 'mid',
+    bend: 4.5,
+    shells: [true, true],
+    rings: { pitch: 2.2, twist: 0.7, cross: true, fade: [0.1, 0.55] },
+  },
 );
 
 // ============================================================================
@@ -1030,30 +1366,25 @@ cable(
 function buildTokenAtOrigin() {
   const plan = { x: -8.5, y: -5.2, w: 17, d: 10.4, r: 1.4 };
   const out = [];
-  out.push(S(k.slabOf(plan, 0, 2.8, P, 4, 0.5), { tone: "hi", lit: true }));
-  out.push(Ln(k.planOutline(k.insetPlan(plan, 1.5), 2.8, P, 3), { tone: "lo" }));
+  out.push(S(k.slabOf(plan, 0, 2.8, P, 4, 0.5), { tone: 'hi', lit: true }));
+  out.push(Ln(k.planOutline(k.insetPlan(plan, 1.5), 2.8, P, 3), { tone: 'lo' }));
   out.push(
-    Dots(
-      [
-        at([-6.8, -3.6, 2.8]),
-        at([6.8, -3.6, 2.8]),
-        at([-6.8, 3.6, 2.8]),
-        at([6.8, 3.6, 2.8]),
-      ],
-      { size: 0.42, tone: "lo" },
-    ),
+    Dots([at([-6.8, -3.6, 2.8]), at([6.8, -3.6, 2.8]), at([-6.8, 3.6, 2.8]), at([6.8, 3.6, 2.8])], {
+      size: 0.42,
+      tone: 'lo',
+    }),
   );
   out.push(
     `<g data-part="token-stamp" style="opacity:0">${k.faceTextSvg(
-      k.topMatrix([0, 1.1], 2.82, P, "x"),
-      "OFF-26",
-      { size: 2.5, tone: "hi", anchor: "middle" },
+      k.topMatrix([0, 1.1], 2.82, P, 'x'),
+      'OFF-26',
+      { size: 2.5, tone: 'hi', anchor: 'middle' },
     )}</g>`,
   );
   out.push(
-    `<g data-part="token-blank">${Ln(k.lineOnTop([-4.5, 0], [4.5, 0], 2.82, P), { tone: "lo", free: true })}</g>`,
+    `<g data-part="token-blank">${Ln(k.lineOnTop([-4.5, 0], [4.5, 0], 2.82, P), { tone: 'lo', free: true })}</g>`,
   );
-  return out.join("");
+  return out.join('');
 }
 
 function dialNeedleAt(angleRad) {
@@ -1072,51 +1403,51 @@ function dialNeedleAt(angleRad) {
 // Tier 1 (bias    0): overhead bridges/heads, near-side station columns/decks, archive cabinet, and return chute beds & far curbs
 // Tier 2 (bias +160): return chute near curbs & archive drawer front (in front of a token in the return chute)
 const TIER0 = new Set([
-  "rail.stanchion.-72",
-  "rail.stanchion.24",
-  "rail.far",
-  "rail.near",
-  "intake.plinth",
-  "intake.bed",
-  "intake.guide.far",
-  "intake.guide.left",
-  "intake.sensor",
-  "stamper.base.far",
-  "stamper.col.far",
-  "stamper.anvil",
-  "review.plinth",
-  "review.bed",
-  "review.deck.far",
-  "review.post.base",
-  "review.post",
-  "review.gate.pivot",
-  "review.gate.blade",
-  "guard.foot.far",
-  "guard.post.far",
-  "approver.plinth",
-  "approver.bed",
-  "approver.deck.far",
-  "approver.col.far",
-  "dial.pedestal",
-  "dial.collar",
-  "dial.column",
-  "dial.case",
-  "dial.junction",
+  'rail.stanchion.-72',
+  'rail.stanchion.24',
+  'rail.far',
+  'rail.near',
+  'intake.plinth',
+  'intake.bed',
+  'intake.guide.far',
+  'intake.guide.left',
+  'intake.sensor',
+  'stamper.base.far',
+  'stamper.col.far',
+  'stamper.anvil',
+  'review.plinth',
+  'review.bed',
+  'review.deck.far',
+  'review.post.base',
+  'review.post',
+  'review.gate.pivot',
+  'review.gate.blade',
+  'guard.foot.far',
+  'guard.post.far',
+  'approver.plinth',
+  'approver.bed',
+  'approver.deck.far',
+  'approver.col.far',
+  'dial.pedestal',
+  'dial.collar',
+  'dial.column',
+  'dial.case',
+  'dial.junction',
 ]);
 const TIER2 = new Set([
-  "chute.curb.near.0",
-  "chute.curb.near.1",
-  "chute.curb.near.2",
-  "chute.curb.near.3",
-  "chute.curb.near.4",
-  "archive.drawer.box",
-  "archive.drawer.front",
-  "archive.drawer.frame",
-  "archive.ctrl.navy",
+  'chute.curb.near.0',
+  'chute.curb.near.1',
+  'chute.curb.near.2',
+  'chute.curb.near.3',
+  'chute.curb.near.4',
+  'archive.drawer.box',
+  'archive.drawer.front',
+  'archive.drawer.frame',
+  'archive.ctrl.navy',
 ]);
 
 for (const item of R.items) {
-  if (TIER0.has(item.name) || item.name.startsWith("cable.")) {
+  if (TIER0.has(item.name) || item.name.startsWith('cable.')) {
     item.key -= 160;
   } else if (TIER2.has(item.name)) {
     item.key += 160;
@@ -1131,18 +1462,19 @@ R.items.sort((a, b) => a.key - b.key);
 let trackSlotAfter = 0;
 let chuteSlotAfter = 0;
 R.items.forEach((item, idx) => {
-  if (TIER0.has(item.name) || item.name.startsWith("cable.")) trackSlotAfter = Math.max(trackSlotAfter, idx);
+  if (TIER0.has(item.name) || item.name.startsWith('cable.'))
+    trackSlotAfter = Math.max(trackSlotAfter, idx);
   if (!TIER2.has(item.name)) chuteSlotAfter = Math.max(chuteSlotAfter, idx);
 });
 
 const initialPos = WORKFLOW_STEPS[0].tokenWaypoints[0];
-const initialNeedleAngle = dialAngleRadForStatus("DRAFT");
+const initialNeedleAngle = dialAngleRadForStatus('DRAFT');
 
 const sortedSvg = R.items
   .map((item, idx) => {
-    const clsAttr = item.cls ? `it ${item.cls}` : "it";
-    const g = `<g class="${clsAttr}" data-name="${item.name}"${item.attrs ?? ""}>${item.svg}</g>`;
-    let extra = "";
+    const clsAttr = item.cls ? `it ${item.cls}` : 'it';
+    const g = `<g class="${clsAttr}" data-name="${item.name}"${item.attrs ?? ''}>${item.svg}</g>`;
+    let extra = '';
     if (idx === trackSlotAfter) {
       extra += `<g data-slot="track"><g data-part="token" transform="${k.translateAlong(P, initialPos)}">${buildTokenAtOrigin()}</g></g>`;
     }
@@ -1151,7 +1483,7 @@ const sortedSvg = R.items
     }
     return g + extra;
   })
-  .join("");
+  .join('');
 
 const dialNeedleSvg = `<path data-part="dial-needle" class="iso-line" data-tone="lit" data-free="both" d="${dialNeedleAt(initialNeedleAngle)}" style="stroke-width:1.25"/>`;
 
@@ -1495,23 +1827,27 @@ draw();
 const body =
   `<style>${CSS}</style>` +
   k.plateHtml({
-    fig: "Fig 1",
-    title: "Post-Activity Report",
-    hint: "Click stations or press ← → · R to return",
-    readout: formatReadout("DRAFT", false),
+    fig: 'Fig 1',
+    title: 'Post-Activity Report',
+    hint: 'Click stations or press ← → · R to return',
+    readout: formatReadout('DRAFT', false),
     keys: [
-      { mark: "lit", label: "Report token and 7-position status dial needle" },
-      { mark: "raised", label: "Intake tray, OFF-2026-0001 stamper, reviewer desk, separator bar, approver seal press, and light-archive cylinder" },
-      { mark: "edge", label: "Return chute feeding returned tokens backwards to the intake" },
+      { mark: 'lit', label: 'Report token and 7-position status dial needle' },
+      {
+        mark: 'raised',
+        label:
+          'Intake tray, OFF-2026-0001 stamper, reviewer desk, separator bar, approver seal press, and light-archive cylinder',
+      },
+      { mark: 'edge', label: 'Return chute feeding returned tokens backwards to the intake' },
     ],
     caption:
       "The OVPCASSS paperless Post-Activity Report sorting machine on a bench. A submitter drops a report token into the left intake tray; on first submission the stamper punches OFF-2026-0001 onto its plate and latches out so later resubmissions never alter the tracking number. At the reviewer's inspection desk or the approver's seal press, a returned token diverts onto the front return chute and glides backwards to the intake as the same report. A separation-of-duties guard bar keeps the submitter's hand clear of the approver's press, and approved tokens file through the card-index drawer into the glass archive cylinder as stored rings of light.",
     body: `<div class="iso-stage par-stage" tabindex="0" role="slider" aria-label="Post-Activity Report sorting machine: left and right arrows step through the 7 workflow statuses; R diverts the report down the return chute" aria-valuemin="0" aria-valuemax="${WORKFLOW_STEPS.length - 1}" aria-valuenow="0" aria-valuetext="DRAFT · unissued">${svg}<span class="par-sr" role="status" aria-live="polite" data-status></span></div>`,
   });
 
-const outName = THEME === "light" ? "par-machine-light.html" : "par-machine.html";
+const outName = THEME === 'light' ? 'par-machine-light.html' : 'par-machine.html';
 const page = k.pageHtml({
-  title: "Post-Activity Report",
+  title: 'Post-Activity Report',
   theme: THEME,
   body,
   script: kitScript() + LIVE,
@@ -1519,7 +1855,7 @@ const page = k.pageHtml({
 });
 writeFileSync(join(HERE, outName), page);
 console.log(
-  "wrote",
+  'wrote',
   outName,
   `${(page.length / 1024).toFixed(0)} KB`,
   `${R.solids.length} solids`,

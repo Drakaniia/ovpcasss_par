@@ -95,9 +95,7 @@ export async function seedReferenceData(db: Database): Promise<void> {
     entity: 'departments' | 'offices',
     entries: readonly SeedDirectoryEntry[],
   ): Promise<void> {
-    const existing = new Set(
-      (await reference.list(entity)).map((row) => directoryName(row.name)),
-    );
+    const existing = new Set((await reference.list(entity)).map((row) => directoryName(row.name)));
 
     for (const entry of entries) {
       if (existing.has(directoryName(entry.name))) continue;
