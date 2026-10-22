@@ -9,8 +9,9 @@ import { isBootstrapAdmin, parseBootstrapAdmins } from './config';
 export type VerifyEmailOutcome = { ok: true } | { ok: false; code: 'TOKEN_INVALID' };
 
 /**
- * Redeems a verification link (spec §7.4). The token is single-use, so losing
- * the race to `markUsed` is treated exactly like an expired link.
+ * Redeems a verification link (spec §7.4) and activates the account. The token
+ * is single-use, so losing the race to `markUsed` is treated exactly like an
+ * expired link.
  */
 export async function verifyEmail(c: Context<AppEnv>, token: string): Promise<VerifyEmailOutcome> {
   const db = createDb(c.env.DB);
@@ -25,10 +26,9 @@ export async function verifyEmail(c: Context<AppEnv>, token: string): Promise<Ve
   if (!user) return { ok: false, code: 'TOKEN_INVALID' };
 
   const patch: Partial<NewUserRow> = { emailVerifiedAt: now };
-  if (user.role === null && user.status === 'PENDING_VERIFICATION') {
-    patch.status = 'PENDING_ROLE';
-  }
-  // A bootstrap address skips role approval so the office has an admin to start with.
+  if (user.status === 'PENDING_VERIFICATION') patch.status = 'ACTIVE';
+  if (user.role === null) patch.role = 'SUBMITTER';
+  // A bootstrap address becomes an Admin so the office has one to start with.
   if (isBootstrapAdmin(user.email, parseBootstrapAdmins(c.env.BOOTSTRAP_ADMIN_EMAILS))) {
     patch.role = 'ADMIN';
     patch.status = 'ACTIVE';

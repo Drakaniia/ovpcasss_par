@@ -23,14 +23,13 @@ export const USER_ROLE_LABELS: Record<Role, string> = {
 };
 
 export type UserStatusTone = 'info' | 'gold' | 'success' | 'neutral';
-export type UserStatusIcon = 'mail' | 'clock' | 'check' | 'ban';
+export type UserStatusIcon = 'mail' | 'check' | 'ban';
 
 export const USER_STATUS_PRESENTATION: Record<
   UserStatus,
   { label: string; tone: UserStatusTone; icon: UserStatusIcon }
 > = {
   PENDING_VERIFICATION: { label: 'Pending verification', tone: 'info', icon: 'mail' },
-  PENDING_ROLE: { label: 'Pending role', tone: 'gold', icon: 'clock' },
   ACTIVE: { label: 'Active', tone: 'success', icon: 'check' },
   DISABLED: { label: 'Disabled', tone: 'neutral', icon: 'ban' },
 };
@@ -59,17 +58,6 @@ export const DEFAULT_USER_FILTERS: UserFilters = {
   dir: 'asc',
   page: 1,
   pageSize: 25,
-};
-
-/**
- * The queue the pending-role callout opens. It clears the search and the role
- * filter so the administrator sees every account waiting for a role, and it
- * differs from the default view, so the button always does something.
- */
-export const PENDING_QUEUE_PATCH: Partial<UserFilters> = {
-  q: '',
-  role: 'ALL',
-  status: 'PENDING_ROLE',
 };
 
 function isRole(value: string | null): value is Role {
@@ -203,14 +191,15 @@ export type UserActionState = {
 };
 
 /**
- * Which drawer actions apply to this account (phase 03 §3). Activate is hidden
- * for the signed-in admin because it is meaningless for an active account.
+ * Which drawer actions apply to this account (phase 03 §3). Every account has a
+ * role, so Activate is only ever the disabled-to-active switch; it is hidden for
+ * the signed-in admin because it is meaningless for an active account.
  */
 export function userActionStates(
   user: AdminUser,
   isSelf: boolean,
 ): Record<UserActionKind, UserActionState> {
-  const activates = user.status === 'DISABLED' || user.status === 'PENDING_ROLE';
+  const activates = user.status === 'DISABLED';
 
   return {
     'assign-role': {
@@ -218,14 +207,7 @@ export function userActionStates(
       enabled: !isSelf,
       reason: isSelf ? 'You cannot change your own role.' : undefined,
     },
-    activate:
-      !isSelf && activates
-        ? {
-            visible: true,
-            enabled: user.role !== null,
-            reason: user.role === null ? 'Assign a role first.' : undefined,
-          }
-        : { visible: false, enabled: false },
+    activate: !isSelf && activates ? { visible: true, enabled: true } : { visible: false, enabled: false },
     disable:
       user.status === 'ACTIVE'
         ? isSelf

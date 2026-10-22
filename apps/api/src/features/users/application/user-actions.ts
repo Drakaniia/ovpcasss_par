@@ -12,7 +12,7 @@ import { recordAudit } from '../../../lib/audit';
 import { toAdminUser } from '../../../lib/user-view';
 import { notify } from '../../notifications/application/notify';
 import { isSelfTarget } from '../domain/admin-guard';
-import { roleLabel, statusAfterRoleAssignment } from '../domain/role-change';
+import { roleLabel } from '../domain/role-change';
 
 /** What each role lets the account do, in the words the assignment mail uses. */
 const ROLE_DESCRIPTIONS: Record<Role, string> = {
@@ -47,11 +47,7 @@ export async function assignRole(
     return { status: 'forbidden', message: 'You cannot change your own role.' };
   }
 
-  const updated = await users.update(
-    targetId,
-    { role, status: statusAfterRoleAssignment(target.status) },
-    new Date().toISOString(),
-  );
+  const updated = await users.update(targetId, { role }, new Date().toISOString());
 
   if (!updated) return { status: 'not-found' };
 

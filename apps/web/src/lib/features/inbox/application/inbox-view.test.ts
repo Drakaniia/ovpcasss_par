@@ -64,7 +64,7 @@ const allSections = () =>
         occurredAt: '2026-03-20T08:00:00Z',
       },
     ],
-    admin: { pendingRoleApprovals: 2, failedEmails: 0, auditEvents: [] },
+    admin: { failedEmails: 1, auditEvents: [] },
   });
 
 describe('inboxSectionsFor', () => {
@@ -106,7 +106,7 @@ describe('inboxSectionsFor', () => {
     const data = inbox({
       review: section(),
       approval: section(),
-      admin: { pendingRoleApprovals: 2, failedEmails: 0, auditEvents: [] },
+      admin: { failedEmails: 1, auditEvents: [] },
     });
 
     expect(inboxSectionsFor(roles, data)).toEqual(['review', 'approval', 'admin']);
@@ -116,7 +116,6 @@ describe('inboxSectionsFor', () => {
     const roles: Role[] = ['ADMIN'];
     const data = inbox({
       admin: {
-        pendingRoleApprovals: 0,
         failedEmails: 0,
         auditEvents: [{ id: 'audit-1', summary: 'Role assigned', occurredAt: NOW.toISOString() }],
       },
@@ -184,22 +183,12 @@ describe('row mapping', () => {
 });
 
 describe('adminActionsFor', () => {
-  it('omits zero-count cards and keeps the fixed order', () => {
-    expect(
-      adminActionsFor({ pendingRoleApprovals: 3, failedEmails: 2, auditEvents: [] }).map(
-        (action) => action.id,
-      ),
-    ).toEqual(['role-approvals', 'failed-emails']);
-
-    expect(
-      adminActionsFor({ pendingRoleApprovals: 0, failedEmails: 2, auditEvents: [] }).map(
-        (action) => action.id,
-      ),
-    ).toEqual(['failed-emails']);
-
-    expect(adminActionsFor({ pendingRoleApprovals: 0, failedEmails: 0, auditEvents: [] })).toEqual(
-      [],
+  it('omits the zero-count card', () => {
+    expect(adminActionsFor({ failedEmails: 2, auditEvents: [] }).map((action) => action.id)).toEqual(
+      ['failed-emails'],
     );
+
+    expect(adminActionsFor({ failedEmails: 0, auditEvents: [] })).toEqual([]);
   });
 });
 

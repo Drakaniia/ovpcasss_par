@@ -40,14 +40,12 @@ export async function buildInbox(
 
 /** The admin block; an Admin also acts as a submitter, reviewer, and approver. */
 async function buildAdmin(queries: InboxQueries): Promise<InboxAdmin> {
-  const [pendingRoleApprovals, failedEmails, recent] = await Promise.all([
-    queries.users.countByStatus('PENDING_ROLE'),
+  const [failedEmails, recent] = await Promise.all([
     queries.emailOutbox.countFailed(),
     queries.audit.listRecent(3),
   ]);
 
   return {
-    pendingRoleApprovals,
     failedEmails,
     auditEvents: recent.map((row) => ({
       id: row.id,

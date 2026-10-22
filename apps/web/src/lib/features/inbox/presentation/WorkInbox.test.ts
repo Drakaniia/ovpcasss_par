@@ -114,7 +114,6 @@ describe('WorkInbox', () => {
       inbox({
         review: section({ total: 4 }),
         admin: {
-          pendingRoleApprovals: 2,
           failedEmails: 1,
           auditEvents: [
             {
@@ -128,7 +127,6 @@ describe('WorkInbox', () => {
       ['ADMIN'],
     );
 
-    expect(html).toContain('Awaiting role approvals');
     expect(html).toContain('Failed emails');
     expect(html).toContain('Recent audit activity');
     expect(html).toContain('Awaiting your review');

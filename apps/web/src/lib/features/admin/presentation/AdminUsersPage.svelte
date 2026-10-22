@@ -19,7 +19,6 @@
   import { toast } from '$lib/toast/toast.svelte';
 
   import {
-    PENDING_QUEUE_PATCH,
     clearedFilters,
     filtersEqual,
     filtersFromParams,
@@ -225,10 +224,7 @@
   />
 {:else}
   <div class="admin-users">
-    <UsersPageHeader
-      pendingRoleCount={list?.pendingRoleCount ?? 0}
-      onreview={() => void applyFilters(PENDING_QUEUE_PATCH)}
-    />
+    <UsersPageHeader />
 
     <UsersFilterBar {filters} onchange={(patch) => void applyFilters(patch)} />
 

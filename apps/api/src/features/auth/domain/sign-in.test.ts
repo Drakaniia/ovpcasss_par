@@ -7,10 +7,6 @@ describe('signInGate', () => {
     expect(signInGate('ACTIVE')).toEqual({ allowed: true });
   });
 
-  it('lets a pending-role account sign in to reach the awaiting-approval screen', () => {
-    expect(signInGate('PENDING_ROLE')).toEqual({ allowed: true });
-  });
-
   it('blocks an unverified account', () => {
     expect(signInGate('PENDING_VERIFICATION')).toEqual({
       allowed: false,

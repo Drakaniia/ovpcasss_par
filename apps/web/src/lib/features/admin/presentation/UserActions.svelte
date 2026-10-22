@@ -179,7 +179,7 @@
       </div>
 
       <button
-        class={user.status === 'PENDING_ROLE' ? 'btn btn-primary' : 'btn btn-outline'}
+        class="btn btn-outline"
         type="button"
         disabled={!actions['assign-role'].enabled || busy !== null}
         aria-describedby={actions['assign-role'].reason ? `${idPrefix}-role-reason` : undefined}

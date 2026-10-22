@@ -9,8 +9,6 @@ export function destinationAfterSignIn(account: Pick<Account, 'status' | 'email'
   switch (account.status) {
     case 'ACTIVE':
       return '/';
-    case 'PENDING_ROLE':
-      return '/awaiting-approval';
     case 'PENDING_VERIFICATION':
       return `/verify-email?email=${encodeURIComponent(account.email)}`;
     case 'DISABLED':

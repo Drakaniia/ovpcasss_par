@@ -5,8 +5,8 @@ import type { EmailContent } from '../provider';
 /**
  * Account and security mail (email spec §5.2). These kinds have no mute switch:
  * a person cannot opt out of being told their password was reset or that their
- * account was disabled. `ROLE_ASSIGNED` no longer claims the account is active,
- * because an assigned role still waits for activation.
+ * account was disabled. `ROLE_ASSIGNED` takes effect immediately: no activation
+ * step follows a role change.
  */
 export interface AccountEventData {
   fullName: string;
@@ -60,8 +60,8 @@ export function roleAssignedTemplate(data: AccountEventData): EmailContent {
     intro: [
       `Hello ${data.fullName}. The OVPCASSS administrator assigned you the role of ${data.roleLabel ?? 'a role'}.`,
       data.roleDescription ??
-        'The role decides which reports and queues your account can reach once it is active.',
-      'Your account still needs to be activated by an administrator. You will receive a separate message when it is active.',
+        'The role decides which reports and queues your account can reach.',
+      'Sign in to continue with the work available to that role.',
     ],
     ...(primary ? { action: primary } : {}),
   });

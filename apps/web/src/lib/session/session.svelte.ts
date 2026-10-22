@@ -6,7 +6,8 @@ import { forgetSessionToken, restoreSessionToken } from '$lib/platform/session-t
 
 /**
  * Signed-in user. Phase 01 loads it from `GET /me`; the shell and pages only
- * read it. `role` is null until an administrator assigns one (PENDING_ROLE).
+ * read it. Every account starts as a Submitter; an administrator may change the
+ * role later.
  */
 export type SessionUser = {
   id: string;

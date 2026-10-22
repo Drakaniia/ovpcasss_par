@@ -32,13 +32,6 @@ describe('startupDestination', () => {
     expect(startupDestination('/register', account({ status: 'ACTIVE' }))).toBe('/');
   });
 
-  it('sends a pending-role account to the status page', () => {
-    expect(startupDestination('/', account({ status: 'PENDING_ROLE' }))).toBe('/awaiting-approval');
-    expect(
-      startupDestination('/awaiting-approval', account({ status: 'PENDING_ROLE' })),
-    ).toBeNull();
-  });
-
   it('sends an unverified account to the verify screen with the address', () => {
     expect(startupDestination('/', account({ status: 'PENDING_VERIFICATION' }))).toBe(
       '/verify-email?email=juan.delacruz%40university.edu',

@@ -1,12 +1,7 @@
 export const ROLES = ['SUBMITTER', 'REVIEWER', 'APPROVER', 'ADMIN'] as const;
 export type Role = (typeof ROLES)[number];
 
-export const USER_STATUSES = [
-  'PENDING_VERIFICATION',
-  'PENDING_ROLE',
-  'ACTIVE',
-  'DISABLED',
-] as const;
+export const USER_STATUSES = ['PENDING_VERIFICATION', 'ACTIVE', 'DISABLED'] as const;
 export type UserStatus = (typeof USER_STATUSES)[number];
 
 export const REPORT_TYPES = ['OFF_CAMPUS', 'EDUCATIONAL_TOUR', 'IN_CAMPUS'] as const;

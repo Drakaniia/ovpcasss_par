@@ -1,5 +1,3 @@
-import type { UserStatus } from '@par/shared';
-
 const AUTHORIZE_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 
 export interface GoogleAuthUrlInput {
@@ -20,11 +18,6 @@ export function buildGoogleAuthUrl({ clientId, redirectUri, state }: GoogleAuthU
   });
 
   return `${AUTHORIZE_ENDPOINT}?${params}`;
-}
-
-/** ACTIVE lands in the app; every other status waits on the approval screen. */
-export function googleLandingPath(status: UserStatus): string {
-  return status === 'ACTIVE' ? '/' : '/awaiting-approval';
 }
 
 /**

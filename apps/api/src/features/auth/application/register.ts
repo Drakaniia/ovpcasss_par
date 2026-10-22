@@ -16,8 +16,9 @@ export type RegisterOutcome = { ok: true } | { ok: false; code: 'DOMAIN_NOT_ALLO
 const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Creates a pending account and mails its verification link (spec §7.4). An
- * address that is already registered returns success without a write, so the
+ * Creates an account as a Submitter and mails its verification link (spec §7.4).
+ * Confirming the address activates it; no administrator gate stands in between.
+ * An address that is already registered returns success without a write, so the
  * response never reveals whether an account exists (UI spec §7.1).
  */
 export async function register(c: Context<AppEnv>, input: RegisterInput): Promise<RegisterOutcome> {
@@ -39,7 +40,7 @@ export async function register(c: Context<AppEnv>, input: RegisterInput): Promis
     passwordHash: hash,
     hashParams: params,
     fullName: input.fullName,
-    role: null,
+    role: 'SUBMITTER',
     status: 'PENDING_VERIFICATION',
     campusUnit: input.campusUnit ?? null,
     campusId: input.campusId ?? null,
