@@ -4,6 +4,7 @@
   import { Search, X } from '@lucide/svelte';
   import { untrack } from 'svelte';
 
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
   import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
 
   import {
@@ -42,6 +43,24 @@
     onclear: () => void;
     ontogglepanel: () => void;
   } = $props();
+
+  const TYPE_OPTIONS = [
+    { value: '', label: 'All types' },
+    ...REPORT_TYPES.map((type) => ({ value: type, label: REPORT_TYPE_LABELS[type] })),
+  ];
+
+  const STATUS_OPTIONS = REPOSITORY_STATUSES.map((status) => ({
+    value: status,
+    label: statusLabel(status),
+  }));
+
+  const termOptions = $derived([
+    { value: '', label: 'All terms' },
+    ...optionsWithCurrent(facets?.terms ?? [], filters.termId).map((term) => ({
+      value: term.id,
+      label: term.isActive ? term.label : `${term.label} (inactive)`,
+    })),
+  ]);
 
   let query = $state(untrack(() => filters.q));
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -93,40 +112,39 @@
   </div>
 
   <div class="filter-row">
-    <select
-      class="select quick"
-      aria-label="Filter by type"
-      value={filters.type}
-      onchange={(event) => onchange({ type: event.currentTarget.value as ReportType | '' })}
-    >
-      <option value="">All types</option>
-      {#each REPORT_TYPES as type (type)}
-        <option value={type}>{REPORT_TYPE_LABELS[type]}</option>
-      {/each}
-    </select>
+    <div class="quick">
+      <EditableSelect
+        id="search-toolbar-type"
+        label="Type"
+        placeholder="All types"
+        value={filters.type}
+        options={TYPE_OPTIONS}
+        searchable={false}
+        onchange={(value) => onchange({ type: value as ReportType | '' })}
+      />
+    </div>
 
-    <select
-      class="select quick"
-      aria-label="Filter by term"
-      value={filters.termId}
-      onchange={(event) => onchange({ termId: event.currentTarget.value })}
-    >
-      <option value="">All terms</option>
-      {#each optionsWithCurrent(facets?.terms ?? [], filters.termId) as term (term.id)}
-        <option value={term.id}>{term.label}{term.isActive ? '' : ' (inactive)'}</option>
-      {/each}
-    </select>
+    <div class="quick">
+      <EditableSelect
+        id="search-toolbar-term"
+        label="Term"
+        placeholder="All terms"
+        value={filters.termId}
+        options={termOptions}
+        onchange={(value) => onchange({ termId: value })}
+      />
+    </div>
 
-    <select
-      class="select quick"
-      aria-label="Filter by status"
-      value={filters.status}
-      onchange={(event) => onchange({ status: event.currentTarget.value as RepositoryStatus })}
-    >
-      {#each REPOSITORY_STATUSES as status (status)}
-        <option value={status}>{statusLabel(status)}</option>
-      {/each}
-    </select>
+    <div class="quick">
+      <EditableSelect
+        id="search-toolbar-status"
+        label="Status"
+        value={filters.status}
+        options={STATUS_OPTIONS}
+        searchable={false}
+        onchange={(value) => onchange({ status: value as RepositoryStatus })}
+      />
+    </div>
 
     {#if chips.length > 0}
       <div class="chips" aria-label="Active filters">

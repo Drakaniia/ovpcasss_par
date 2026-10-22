@@ -5,6 +5,7 @@
   import { untrack } from 'svelte';
 
   import DatePicker from '$lib/components/DatePicker.svelte';
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
   import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
 
   import {
@@ -34,6 +35,27 @@
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const filterCount = $derived(activeFilterCount(filters));
+
+  const TYPE_OPTIONS = [
+    { value: '', label: 'All types' },
+    ...REPORT_TYPES.map((type) => ({ value: type, label: REPORT_TYPE_LABELS[type] })),
+  ];
+
+  const campusOptions = $derived([
+    { value: '', label: 'All campuses' },
+    ...(facets?.campuses ?? []).map((campus) => ({
+      value: campus.id,
+      label: campus.isActive ? campus.label : `${campus.label} (inactive)`,
+    })),
+  ]);
+
+  const termOptions = $derived([
+    { value: '', label: 'All terms' },
+    ...(facets?.terms ?? []).map((term) => ({
+      value: term.id,
+      label: term.isActive ? term.label : `${term.label} (inactive)`,
+    })),
+  ]);
 
   // URL changes (Clear all, Back) win; typing does not echo back through the URL.
   $effect(() => {
@@ -80,45 +102,39 @@
   </div>
 
   <div class="panel" class:is-open={panelOpen} id="report-filter-panel">
-    <select
-      class="select filter-select"
-      aria-label="Filter by type"
-      value={filters.type}
-      onchange={(event) => onchange({ type: event.currentTarget.value as ReportType | '' })}
-    >
-      <option value="">All types</option>
-      {#each REPORT_TYPES as type (type)}
-        <option value={type}>{REPORT_TYPE_LABELS[type]}</option>
-      {/each}
-    </select>
+    <div class="filter-select">
+      <EditableSelect
+        id="report-filter-type"
+        label="Type"
+        placeholder="All types"
+        value={filters.type}
+        options={TYPE_OPTIONS}
+        searchable={false}
+        onchange={(value) => onchange({ type: value as ReportType | '' })}
+      />
+    </div>
 
-    <select
-      class="select filter-select"
-      aria-label="Filter by campus"
-      value={filters.campusId}
-      onchange={(event) => onchange({ campusId: event.currentTarget.value })}
-    >
-      <option value="">All campuses</option>
-      {#each facets?.campuses ?? [] as campus (campus.id)}
-        <option value={campus.id}>
-          {campus.label}{campus.isActive ? '' : ' (inactive)'}
-        </option>
-      {/each}
-    </select>
+    <div class="filter-select">
+      <EditableSelect
+        id="report-filter-campus"
+        label="Campus"
+        placeholder="All campuses"
+        value={filters.campusId}
+        options={campusOptions}
+        onchange={(value) => onchange({ campusId: value })}
+      />
+    </div>
 
-    <select
-      class="select filter-select"
-      aria-label="Filter by term"
-      value={filters.termId}
-      onchange={(event) => onchange({ termId: event.currentTarget.value })}
-    >
-      <option value="">All terms</option>
-      {#each facets?.terms ?? [] as term (term.id)}
-        <option value={term.id}>
-          {term.label}{term.isActive ? '' : ' (inactive)'}
-        </option>
-      {/each}
-    </select>
+    <div class="filter-select">
+      <EditableSelect
+        id="report-filter-term"
+        label="Term"
+        placeholder="All terms"
+        value={filters.termId}
+        options={termOptions}
+        onchange={(value) => onchange({ termId: value })}
+      />
+    </div>
 
     <div class="date-range" role="group" aria-label="Activity date range">
       <div class="date-field">

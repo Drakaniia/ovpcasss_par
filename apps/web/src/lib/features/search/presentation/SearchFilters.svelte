@@ -11,6 +11,7 @@
   import { RotateCcw } from '@lucide/svelte';
   import { untrack } from 'svelte';
 
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
   import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
   import {
     CLASSIFICATION_OPTIONS,
@@ -94,6 +95,47 @@
   }
 
   const options = (entries: readonly ReportFilterOption[] | undefined) => entries ?? [];
+
+  const TYPE_OPTIONS = [
+    { value: '', label: 'All types' },
+    ...REPORT_TYPES.map((type) => ({ value: type, label: REPORT_TYPE_LABELS[type] })),
+  ];
+
+  const CLASSIFICATION_SELECT = [
+    { value: '', label: 'All classifications' },
+    ...CLASSIFICATION_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+  ];
+
+  const LEVEL_SELECT = [
+    { value: '', label: 'All levels' },
+    ...LEVEL_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+  ];
+
+  const STATUS_OPTIONS = REPOSITORY_STATUSES.map((status) => ({
+    value: status,
+    label: statusLabel(status),
+  }));
+
+  /** Facet rows, plus the row that clears the filter. */
+  function facetOptions(
+    entries: readonly ReportFilterOption[] | undefined,
+    current: string,
+    allLabel: string,
+  ): { value: string; label: string }[] {
+    return [
+      { value: '', label: allLabel },
+      ...optionsWithCurrent(options(entries), current).map((entry) => ({
+        value: entry.id,
+        label: entry.isActive ? entry.label : `${entry.label} (inactive)`,
+      })),
+    ];
+  }
+
+  const campusOptions = $derived(facetOptions(facets?.campuses, draft.campusId, 'All campuses'));
+  const collegeOptions = $derived(
+    facetOptions(facets?.colleges, draft.collegeId, 'All colleges and units'),
+  );
+  const termOptions = $derived(facetOptions(facets?.terms, draft.termId, 'All terms'));
 </script>
 
 <div class="panel" class:is-open={open} id="repository-filter-panel">
@@ -125,75 +167,64 @@
 
       <label class="field">
         <span class="field-label">Type</span>
-        <select
-          class="select"
+        <EditableSelect
+          id="repository-type"
+          label="Type"
+          placeholder="All types"
           value={draft.type}
-          onchange={(event) => set('type', event.currentTarget.value as ReportType | '')}
-        >
-          <option value="">All types</option>
-          {#each REPORT_TYPES as type (type)}
-            <option value={type}>{REPORT_TYPE_LABELS[type]}</option>
-          {/each}
-        </select>
+          options={TYPE_OPTIONS}
+          searchable={false}
+          onchange={(value) => set('type', value as ReportType | '')}
+        />
       </label>
 
       <label class="field">
         <span class="field-label">Classification</span>
-        <select
-          class="select"
+        <EditableSelect
+          id="repository-classification"
+          label="Classification"
+          placeholder="All classifications"
           value={draft.classification}
-          onchange={(event) =>
-            set('classification', event.currentTarget.value as Classification | '')}
-        >
-          <option value="">All classifications</option>
-          {#each CLASSIFICATION_OPTIONS as option (option.value)}
-            <option value={option.value}>{option.label}</option>
-          {/each}
-        </select>
+          options={CLASSIFICATION_SELECT}
+          searchable={false}
+          onchange={(value) => set('classification', value as Classification | '')}
+        />
       </label>
 
       <label class="field">
         <span class="field-label">Campus</span>
-        <select
-          class="select"
+        <EditableSelect
+          id="repository-campus"
+          label="Campus"
+          placeholder="All campuses"
           value={draft.campusId}
-          onchange={(event) => set('campusId', event.currentTarget.value)}
-        >
-          <option value="">All campuses</option>
-          {#each optionsWithCurrent(options(facets?.campuses), draft.campusId) as campus (campus.id)}
-            <option value={campus.id}>{campus.label}{campus.isActive ? '' : ' (inactive)'}</option>
-          {/each}
-        </select>
+          options={campusOptions}
+          onchange={(value) => set('campusId', value)}
+        />
       </label>
 
       <label class="field">
         <span class="field-label">College or unit</span>
-        <select
-          class="select"
+        <EditableSelect
+          id="repository-college"
+          label="College or unit"
+          placeholder="All colleges and units"
           value={draft.collegeId}
-          onchange={(event) => set('collegeId', event.currentTarget.value)}
-        >
-          <option value="">All colleges and units</option>
-          {#each optionsWithCurrent(options(facets?.colleges), draft.collegeId) as college (college.id)}
-            <option value={college.id}
-              >{college.label}{college.isActive ? '' : ' (inactive)'}</option
-            >
-          {/each}
-        </select>
+          options={collegeOptions}
+          onchange={(value) => set('collegeId', value)}
+        />
       </label>
 
       <label class="field">
         <span class="field-label">Term</span>
-        <select
-          class="select"
+        <EditableSelect
+          id="repository-term"
+          label="Term"
+          placeholder="All terms"
           value={draft.termId}
-          onchange={(event) => set('termId', event.currentTarget.value)}
-        >
-          <option value="">All terms</option>
-          {#each optionsWithCurrent(options(facets?.terms), draft.termId) as term (term.id)}
-            <option value={term.id}>{term.label}{term.isActive ? '' : ' (inactive)'}</option>
-          {/each}
-        </select>
+          options={termOptions}
+          onchange={(value) => set('termId', value)}
+        />
       </label>
 
       <label class="field">
@@ -222,29 +253,27 @@
 
       <label class="field">
         <span class="field-label">Level</span>
-        <select
-          class="select"
+        <EditableSelect
+          id="repository-level"
+          label="Level"
+          placeholder="All levels"
           value={draft.level}
-          onchange={(event) => set('level', event.currentTarget.value as Level | '')}
-        >
-          <option value="">All levels</option>
-          {#each LEVEL_OPTIONS as option (option.value)}
-            <option value={option.value}>{option.label}</option>
-          {/each}
-        </select>
+          options={LEVEL_SELECT}
+          searchable={false}
+          onchange={(value) => set('level', value as Level | '')}
+        />
       </label>
 
       <label class="field">
         <span class="field-label">Status</span>
-        <select
-          class="select"
+        <EditableSelect
+          id="repository-status"
+          label="Status"
           value={draft.status}
-          onchange={(event) => set('status', event.currentTarget.value as RepositoryStatus)}
-        >
-          {#each REPOSITORY_STATUSES as status (status)}
-            <option value={status}>{statusLabel(status)}</option>
-          {/each}
-        </select>
+          options={STATUS_OPTIONS}
+          searchable={false}
+          onchange={(value) => set('status', value as RepositoryStatus)}
+        />
       </label>
 
       <label class="field">

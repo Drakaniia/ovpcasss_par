@@ -11,6 +11,8 @@
     type EmailKind,
   } from '@par/shared';
 
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
+
   import type { EmailLogFilters } from '../application/email-log.svelte';
 
   let {
@@ -22,6 +24,19 @@
     onchange: (patch: Partial<EmailLogFilters>) => void;
     onshowall: () => void;
   } = $props();
+
+  const STATUS_OPTIONS = [
+    ...EMAIL_DELIVERY_STATUSES.map((status) => ({
+      value: status,
+      label: EMAIL_DELIVERY_STATUS_LABELS[status],
+    })),
+    { value: 'ALL', label: 'All statuses' },
+  ];
+
+  const KIND_OPTIONS = [
+    { value: 'ALL', label: 'All kinds' },
+    ...EMAIL_KINDS.map((kind) => ({ value: kind, label: EMAIL_KIND_LABELS[kind] })),
+  ];
 
   let query = $state(untrack(() => filters.to));
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -55,30 +70,27 @@
     />
   </div>
 
-  <select
-    class="select filter-select"
-    aria-label="Filter by delivery status"
-    value={filters.status}
-    onchange={(event) =>
-      onchange({ status: event.currentTarget.value as EmailDeliveryStatus | 'ALL' })}
-  >
-    {#each EMAIL_DELIVERY_STATUSES as status (status)}
-      <option value={status}>{EMAIL_DELIVERY_STATUS_LABELS[status]}</option>
-    {/each}
-    <option value="ALL">All statuses</option>
-  </select>
+  <div class="filter-select">
+    <EditableSelect
+      id="email-log-status"
+      label="Delivery status"
+      value={filters.status}
+      options={STATUS_OPTIONS}
+      searchable={false}
+      onchange={(value) => onchange({ status: value as EmailDeliveryStatus | 'ALL' })}
+    />
+  </div>
 
-  <select
-    class="select filter-select"
-    aria-label="Filter by message kind"
-    value={filters.kind}
-    onchange={(event) => onchange({ kind: event.currentTarget.value as EmailKind | 'ALL' })}
-  >
-    <option value="ALL">All kinds</option>
-    {#each EMAIL_KINDS as kind (kind)}
-      <option value={kind}>{EMAIL_KIND_LABELS[kind]}</option>
-    {/each}
-  </select>
+  <div class="filter-select">
+    <EditableSelect
+      id="email-log-kind"
+      label="Message kind"
+      value={filters.kind}
+      options={KIND_OPTIONS}
+      searchable={false}
+      onchange={(value) => onchange({ kind: value as EmailKind | 'ALL' })}
+    />
+  </div>
 
   {#if filters.status !== 'ALL'}
     <button class="btn btn-ghost btn-sm" type="button" onclick={onshowall}>
