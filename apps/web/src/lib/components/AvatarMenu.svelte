@@ -67,6 +67,7 @@
       </div>
 
       <a class="menu-item" href="/profile" onclick={closeMenu}>Profile</a>
+      <a class="menu-item" href="/how-it-works" onclick={closeMenu}>How the report works</a>
       <button class="menu-item" type="button" onclick={openShortcuts}>Keyboard shortcuts</button>
 
       <div class="menu-end">
