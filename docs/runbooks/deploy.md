@@ -47,7 +47,21 @@ Migrations run **before** the Worker that needs them. Never the other way round.
    ```
    Review the pending list before confirming. Migrations are forward-only; see
    `rollback.md`.
-4. **Seed reference data (fresh database only).** Campus, unit, program, SDG,
+4. **Backfill the retired role state (one-off).** Only when upgrading a database
+   created before `PENDING_ROLE` was removed. Run it before the new Worker,
+   which rejects the old value, and confirm zero rows remain.
+
+   ```bash
+   pnpm --filter @par/db exec wrangler d1 execute par-db --remote --config ../../apps/api/wrangler.toml \
+     --command "UPDATE users SET role='SUBMITTER', updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE role IS NULL; UPDATE users SET status='ACTIVE', updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE status='PENDING_ROLE';"
+   pnpm --filter @par/db exec wrangler d1 execute par-db --remote --config ../../apps/api/wrangler.toml \
+     --command "SELECT count(*) AS pending FROM users WHERE status='PENDING_ROLE';"
+   ```
+
+   Expect `pending` to be 0. This is a data fix, not a migration; no environment
+   can create the state again.
+
+5. **Seed reference data (fresh database only).** Campus, unit, program, SDG,
    department, and office lists come from the workbook seed. The command is
    idempotent: it skips a row whose natural key already exists, so office edits
    survive a rerun.
@@ -55,11 +69,11 @@ Migrations run **before** the Worker that needs them. Never the other way round.
    pnpm db:seed --remote
    ```
    Terms and attachment requirements are not seeded; the office maintains them.
-5. **Deploy the Worker** (API plus the static assets from step 2).
+6. **Deploy the Worker** (API plus the static assets from step 2).
    ```bash
    pnpm --filter @par/api exec wrangler deploy
    ```
-6. **Smoke test** the deployed origin:
+7. **Smoke test** the deployed origin:
    ```bash
    curl -fsS https://<origin>/api/health          # {"status":"ok"}
    ```
@@ -93,7 +107,9 @@ pnpm --filter @par/desktop build
 The NSIS installer lands in `apps/desktop/src-tauri/target/release/bundle/nsis/`.
 Unsigned installers trigger SmartScreen. Auto-update is configured but not armed:
 `plugins.updater.endpoints` and `pubkey` are empty, so no signed update is
-published yet (M7 remainder).
+published yet (M7 remainder). An installed copy has the API host baked into the
+build, so changing the host means uninstalling and reinstalling from the new
+installer; there is no in-app upgrade path.
 
 ## After the deploy
 
