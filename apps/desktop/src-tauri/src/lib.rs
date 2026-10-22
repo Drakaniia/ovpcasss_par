@@ -110,9 +110,8 @@ async fn google_sign_in(start_url: String, nonce: String) -> Result<String, Stri
             .map_err(|error| error.to_string())?;
         let request = String::from_utf8_lossy(&buffer[..read]).to_string();
 
-        let page = "<!doctype html><meta charset=\"utf-8\"><title>Paperless PAR</title>\
-            <p style=\"font-family: system-ui, sans-serif; padding: 48px; text-align: center\">\
-            Return to the Paperless PAR app to continue.</p>";
+        // Kept beside this file so the handoff reads as a page, not a format string.
+        let page = include_str!("handoff.html");
         let response = format!(
             "HTTP/1.1 200 OK\r\ncontent-type: text/html; charset=utf-8\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{page}",
             page.len()

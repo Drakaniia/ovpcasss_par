@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Signed in — Paperless PAR</title>
+    <style>
+      /* Served by the shell's loopback listener, so everything is inline:
+         no fonts, images or scripts are fetched from the network. */
+      :root {
+        color-scheme: light;
+        --navy-900: #0f1a33;
+        --navy-800: #1e2c52;
+        --navy-700: #2c3f70;
+        --navy-100: #e9edf6;
+        --gold-600: #b8862b;
+        --gold-400: #d3a44f;
+        --gold-100: #f6efdd;
+        --page: #f5f4f1;
+        --card: #ffffff;
+        --ink: #14203c;
+        --muted: #55617c;
+        --border: #e2e0da;
+        --display: ui-serif, Georgia, 'Times New Roman', serif;
+        --ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        align-items: center;
+        background: var(--page);
+        color: var(--ink);
+        display: flex;
+        font-family: var(--ui);
+        justify-content: center;
+        margin: 0;
+        min-height: 100vh;
+        padding: 32px 20px;
+      }
+
+      .sheet {
+        animation: settle 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 18px 40px -24px rgba(15, 26, 51, 0.35);
+        max-width: 460px;
+        overflow: hidden;
+        text-align: center;
+        width: 100%;
+      }
+
+      /* The mark sits on a navy band so the page opens with the office's colour. */
+      .band {
+        background: linear-gradient(160deg, var(--navy-800), var(--navy-900));
+        padding: 30px 24px 26px;
+      }
+
+      .seal {
+        display: block;
+        height: 68px;
+        margin: 0 auto 14px;
+        width: 68px;
+      }
+
+      .office {
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        margin: 0;
+        opacity: 0.82;
+        text-transform: uppercase;
+      }
+
+      .body {
+        padding: 30px 30px 28px;
+      }
+
+      h1 {
+        font-family: var(--display);
+        font-size: 25px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        line-height: 1.25;
+        margin: 0;
+      }
+
+      .lede {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 12px 0 0;
+      }
+
+      .rule {
+        background: linear-gradient(90deg, transparent, var(--gold-400), transparent);
+        height: 1px;
+        margin: 22px auto;
+        width: 72px;
+      }
+
+      .note {
+        color: var(--muted);
+        font-size: 12.5px;
+        margin: 0;
+      }
+
+      .note strong {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .close-hint {
+        align-items: center;
+        background: var(--navy-100);
+        border-radius: 8px;
+        color: var(--navy-700);
+        display: inline-flex;
+        font-size: 12px;
+        gap: 6px;
+        margin-top: 18px;
+        padding: 7px 12px;
+      }
+
+      kbd {
+        background: #ffffff;
+        border: 1px solid #cdd5e6;
+        border-radius: 4px;
+        box-shadow: 0 1px 0 #cdd5e6;
+        font-family: var(--ui);
+        font-size: 11px;
+        padding: 1px 5px;
+      }
+
+      /* The illustration the office supplies replaces this block's SVG only. */
+      .art {
+        border-top: 1px solid var(--border);
+        padding: 18px 30px 22px;
+      }
+
+      .art svg {
+        display: block;
+        height: auto;
+        margin: 0 auto;
+        max-width: 220px;
+        width: 100%;
+      }
+
+      @keyframes settle {
+        from {
+          opacity: 0;
+          transform: translateY(8px) scale(0.99);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .sheet {
+          animation: none;
+        }
+      }
+
+      @media (prefers-contrast: more) {
+        .sheet {
+          border-color: var(--navy-800);
+        }
+        .lede,
+        .note {
+          color: #2b3550;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sheet">
+      <div class="band">
+        <svg class="seal" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="32" r="30" fill="none" stroke="#d3a44f" stroke-width="1.5" />
+          <circle cx="32" cy="32" r="25" fill="none" stroke="#d3a44f" stroke-width="0.75" opacity="0.6" />
+          <path d="M20 39V25l12-6 12 6v14l-12 6z" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round" />
+          <path d="M26 31h12M26 35h8" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />
+        </svg>
+        <p class="office">OVPCASSS · Bukidnon State University</p>
+      </div>
+
+      <div class="body">
+        <h1>Return to the Paperless PAR app to continue.</h1>
+        <p class="lede">
+          Your Google account is connected. The app has finished signing you in and is ready
+          for the next step.
+        </p>
+
+        <div class="rule" aria-hidden="true"></div>
+
+        <p class="note">
+          <strong>You can close this tab.</strong> If the app did not open, switch back to its
+          window and sign in again.
+        </p>
+
+        <p class="close-hint"><kbd>Ctrl</kbd> + <kbd>W</kbd> closes this tab</p>
+      </div>
+
+      <!--
+        Office artwork slot: replace this SVG with the generated illustration
+        once it is available. Keep it inline (no <img src>), because this page is
+        served by the shell's loopback listener and never has network access.
+      -->
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 220 96" role="presentation">
+          <path d="M4 78h212" stroke="#e2e0da" stroke-width="1" />
+          <path d="M38 78V36h44v42" fill="none" stroke="#c9cfdd" stroke-width="1.2" />
+          <path d="M124 78V52h42v26" fill="none" stroke="#c9cfdd" stroke-width="1.2" />
+          <path d="M48 46h24M48 54h24M48 62h16" stroke="#2c3f70" stroke-width="1.2" stroke-linecap="round" opacity="0.55" />
+          <circle cx="163" cy="30" r="11" fill="none" stroke="#d3a44f" stroke-width="1.4" />
+          <path d="M159 30.5l3 3 5.5-6" fill="none" stroke="#b8862b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M104 30h34M104 38h22" stroke="#c9cfdd" stroke-width="1.2" stroke-linecap="round" />
+        </svg>
+      </div>
+    </main>
+  </body>
+</html>
