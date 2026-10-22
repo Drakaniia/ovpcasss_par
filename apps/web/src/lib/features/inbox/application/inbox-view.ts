@@ -40,6 +40,57 @@ export function capabilitiesFor(roles: readonly Role[]): InboxCapabilities {
 export type InboxSectionId =
   'returned' | 'review' | 'approval' | 'admin' | 'drafts' | 'waiting' | 'activity';
 
+export type InboxStat = {
+  id: 'review' | 'approval' | 'returned' | 'drafts';
+  label: string;
+  count: number;
+  href: string;
+};
+
+/**
+ * At-a-glance numbers (signature spec §6.3). Only sections this role owns and
+ * that actually have rows: a zero is never turned into a tile.
+ */
+export function inboxStatsFor(roles: readonly Role[], inbox: InboxResponse): InboxStat[] {
+  const caps = capabilitiesFor(roles);
+  const stats: InboxStat[] = [];
+
+  if (caps.reviewer && inbox.review.total > 0) {
+    stats.push({
+      id: 'review',
+      label: 'Awaiting review',
+      count: inbox.review.total,
+      href: '/review',
+    });
+  }
+  if (caps.approver && inbox.approval.total > 0) {
+    stats.push({
+      id: 'approval',
+      label: 'Awaiting approval',
+      count: inbox.approval.total,
+      href: '/approval',
+    });
+  }
+  if (caps.submitter && inbox.returned.total > 0) {
+    stats.push({
+      id: 'returned',
+      label: 'Returned to you',
+      count: inbox.returned.total,
+      href: '/reports?tab=returned',
+    });
+  }
+  if (caps.submitter && inbox.drafts.total > 0) {
+    stats.push({
+      id: 'drafts',
+      label: 'Drafts',
+      count: inbox.drafts.total,
+      href: '/reports?tab=drafts',
+    });
+  }
+
+  return stats;
+}
+
 export function inboxSectionsFor(roles: readonly Role[], inbox: InboxResponse): InboxSectionId[] {
   const caps = capabilitiesFor(roles);
   const admin = caps.admin ? inbox.admin : null;
@@ -70,6 +121,8 @@ export type InboxRow = {
   trackingNumber: string | null;
   title: string;
   meta: string;
+  /** An administrator's own report stays visible, marked rather than hidden. */
+  isOwn?: boolean;
 };
 
 /** Returned rows open the edit page, not the facsimile (phase 02 §3.1). */
@@ -80,6 +133,7 @@ export function returnedRows(items: readonly InboxItem[], now: Date = new Date()
     trackingNumber: item.trackingNumber,
     title: item.title,
     meta: `${STATUS_PRESENTATION[item.status].label} · ${formatRelativeTime(item.updatedAt, now)}`,
+    isOwn: item.isOwn ?? false,
   }));
 }
 
@@ -95,6 +149,7 @@ export function queueRows(
     trackingNumber: item.trackingNumber,
     title: item.title,
     meta: `Submitted · ${formatAge(item.submittedAt ?? item.updatedAt, now)}`,
+    isOwn: item.isOwn ?? false,
   }));
 }
 
@@ -108,6 +163,7 @@ export function waitingRows(items: readonly InboxItem[], now: Date = new Date())
       item.submittedAt ?? item.updatedAt,
       now,
     )}`,
+    isOwn: item.isOwn ?? false,
   }));
 }
 
@@ -166,6 +222,31 @@ export function reportActivityRows(
     prefix: 'Your report',
     label: event.trackingNumber ?? event.title,
     suffix: ACTIVITY_SUFFIX[event.kind],
+    occurredAt: event.occurredAt,
+    relative: formatRelativeTime(event.occurredAt, now),
+    exact: formatDateTime(event.occurredAt),
+  }));
+}
+
+const DECIDED_SUFFIX: Record<InboxActivityKind, string> = {
+  SUBMITTED: 'was submitted by you',
+  RESUBMITTED: 'was resubmitted by you',
+  RETURNED_BY_REVIEWER: 'you returned as reviewer',
+  RETURNED_BY_APPROVER: 'you returned as approver',
+  ENDORSED: 'you endorsed',
+  APPROVED: 'you approved',
+};
+
+/** Decisions the caller recorded; the label reads as the action it took. */
+export function recentlyDecidedRows(
+  decided: readonly InboxActivity[],
+  now: Date = new Date(),
+): ActivityRow[] {
+  return decided.slice(0, 3).map((event) => ({
+    id: event.id,
+    href: `/reports/${event.reportId}`,
+    label: event.trackingNumber ?? event.title,
+    suffix: DECIDED_SUFFIX[event.kind],
     occurredAt: event.occurredAt,
     relative: formatRelativeTime(event.occurredAt, now),
     exact: formatDateTime(event.occurredAt),

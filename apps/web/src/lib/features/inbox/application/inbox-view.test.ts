@@ -8,7 +8,9 @@ import {
   completedStepCount,
   hasInboxContent,
   inboxSectionsFor,
+  inboxStatsFor,
   queueRows,
+  recentlyDecidedRows,
   reportActivityRows,
   returnedRows,
   waitingRows,
@@ -125,6 +127,72 @@ describe('inboxSectionsFor', () => {
   });
 });
 
+describe('at-a-glance stats', () => {
+  it('keeps only the numbers the role owns and that are not zero', () => {
+    const stats = inboxStatsFor(
+      ['SUBMITTER'],
+      inbox({ returned: section({ total: 2 }), drafts: section({ total: 0 }) }),
+    );
+
+    expect(stats.map((stat) => stat.id)).toEqual(['returned']);
+    expect(stats[0]?.count).toBe(2);
+    expect(stats[0]?.href).toBe('/reports?tab=returned');
+  });
+
+  it('gives an admin the queue numbers it can act on', () => {
+    const stats = inboxStatsFor(['ADMIN'], inbox({ review: section({ total: 4 }) }));
+
+    expect(stats).toEqual([{ id: 'review', label: 'Awaiting review', count: 4, href: '/review' }]);
+  });
+});
+
+describe('recently decided', () => {
+  it('reads as the action the caller took, capped at three rows', () => {
+    const rows = recentlyDecidedRows(
+      [
+        {
+          id: 'e1',
+          reportId: 'report-1',
+          trackingNumber: 'OFF-2026-0014',
+          title: 'Coastal cleanup',
+          kind: 'APPROVED',
+          occurredAt: '2026-03-20T08:00:00Z',
+        },
+        {
+          id: 'e2',
+          reportId: 'report-2',
+          trackingNumber: null,
+          title: 'Outreach program',
+          kind: 'RETURNED_BY_REVIEWER',
+          occurredAt: '2026-03-19T08:00:00Z',
+        },
+        {
+          id: 'e3',
+          reportId: 'report-3',
+          trackingNumber: 'INC-2026-0009',
+          title: 'Clean-up drive',
+          kind: 'ENDORSED',
+          occurredAt: '2026-03-18T08:00:00Z',
+        },
+        {
+          id: 'e4',
+          reportId: 'report-4',
+          trackingNumber: 'INC-2026-0010',
+          title: 'Forum',
+          kind: 'ENDORSED',
+          occurredAt: '2026-03-17T08:00:00Z',
+        },
+      ],
+      NOW,
+    );
+
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toMatchObject({ label: 'OFF-2026-0014', suffix: 'you approved' });
+    expect(rows[1]?.suffix).toBe('you returned as reviewer');
+    expect(rows[2]?.label).toBe('INC-2026-0009');
+  });
+});
+
 describe('row mapping', () => {
   it('opens returned reports on the edit page', () => {
     const [row] = returnedRows([item({ status: 'RETURNED_BY_REVIEWER' })], NOW);
@@ -134,6 +202,13 @@ describe('row mapping', () => {
       trackingNumber: 'OFF-2026-0014',
       meta: 'Returned by reviewer · 2 days ago',
     });
+  });
+
+  it('marks an own report without changing its destination', () => {
+    const [own] = queueRows([item({ isOwn: true })], 'review', NOW);
+
+    expect(own?.isOwn).toBe(true);
+    expect(own?.href).toBe('/review/report-1');
   });
 
   it('opens queue rows on the matching detail route', () => {
@@ -184,9 +259,9 @@ describe('row mapping', () => {
 
 describe('adminActionsFor', () => {
   it('omits the zero-count card', () => {
-    expect(adminActionsFor({ failedEmails: 2, auditEvents: [] }).map((action) => action.id)).toEqual(
-      ['failed-emails'],
-    );
+    expect(
+      adminActionsFor({ failedEmails: 2, auditEvents: [] }).map((action) => action.id),
+    ).toEqual(['failed-emails']);
 
     expect(adminActionsFor({ failedEmails: 0, auditEvents: [] })).toEqual([]);
   });

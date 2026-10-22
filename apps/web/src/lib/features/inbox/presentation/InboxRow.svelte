@@ -1,4 +1,6 @@
 <script lang="ts">
+  import OwnReportChip from '$lib/components/OwnReportChip.svelte';
+
   import type { InboxRow as InboxRowModel } from '../application/inbox-view';
 
   let { row }: { row: InboxRowModel } = $props();
@@ -7,7 +9,10 @@
 <li class="row-item">
   <a class="row" href={row.href}>
     <span class="tracking mono">{row.trackingNumber ?? '—'}</span>
-    <span class="title">{row.title}</span>
+    <span class="title">
+      <span class="title-text">{row.title}</span>
+      {#if row.isOwn}<OwnReportChip />{/if}
+    </span>
     <span class="meta">{row.meta}</span>
   </a>
 </li>
@@ -50,7 +55,14 @@
   }
 
   .title {
+    align-items: center;
+    display: flex;
     font-size: 13px;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .title-text {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

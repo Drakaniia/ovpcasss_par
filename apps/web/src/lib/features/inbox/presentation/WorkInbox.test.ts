@@ -133,6 +133,43 @@ describe('WorkInbox', () => {
     expect(html).not.toContain('New report');
   });
 
+  it('adds the stat row, the own-report chip, and the notifications digest', () => {
+    const html = renderInbox(
+      inbox({
+        returned: section({
+          total: 2,
+          items: [item({ status: 'RETURNED_BY_REVIEWER', isOwn: true })],
+        }),
+        notificationsUnread: 3,
+        recentlyDecided: [
+          {
+            id: 'e2',
+            reportId: 'report-9',
+            trackingNumber: 'INC-2026-0009',
+            title: 'Outreach program',
+            kind: 'ENDORSED',
+            occurredAt: '2026-03-19T08:00:00Z',
+          },
+        ],
+      }),
+      ['ADMIN'],
+    );
+
+    expect(html).toContain('At a glance');
+    expect(html).toContain('Returned to you');
+    expect(html).toContain('3 unread notifications');
+    expect(html).toContain('href="/notifications"');
+    expect(html).toContain('Your report');
+    expect(html).toContain('Recently decided by you');
+  });
+
+  it('renders no digest line at zero unread', () => {
+    const html = renderInbox(submitterInbox(), ['SUBMITTER']);
+
+    expect(html).not.toContain('unread notification');
+    expect(html).not.toContain('href="/notifications"');
+  });
+
   it('shows the onboarding checklist only when a submitter has nothing else', () => {
     const html = renderInbox(inbox(), ['SUBMITTER']);
 
