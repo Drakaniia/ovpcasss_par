@@ -66,6 +66,12 @@ fn token_clear() -> Result<(), String> {
 /// Stops the pending sign-in when the user cancels or nothing arrives back.
 static GOOGLE_CANCEL: Mutex<Option<oneshot::Sender<()>>> = Mutex::new(None);
 
+/// `CREATE_NO_WINDOW` from the Windows process-creation flags. The shell is a
+/// GUI-subsystem binary, so launching `cmd.exe` without it makes Windows open a
+/// console for the child and the window flashes while the browser starts.
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
 /// Reads one query parameter from a raw HTTP request line.
 fn query_param(request: &str, key: &str) -> Option<String> {
     let target = request.lines().next()?.split_whitespace().nth(1)?;
@@ -91,9 +97,16 @@ async fn google_sign_in(start_url: String, nonce: String) -> Result<String, Stri
         .port();
 
     let url = format!("{start_url}&port={port}&nonce={nonce}");
-    std::process::Command::new("cmd")
-        .arg("/C")
-        .raw_arg(format!("start \"\" \"{url}\""))
+    let mut launcher = std::process::Command::new("cmd");
+    launcher.arg("/C").raw_arg(format!("start \"\" \"{url}\""));
+
+    // `cmd /C start` still resolves the default browser and quotes the URL, but
+    // without this flag it brings a console window with it (W1 of the signature
+    // spec). Error handling is unchanged: a failed spawn still reports back.
+    #[cfg(windows)]
+    launcher.creation_flags(CREATE_NO_WINDOW);
+
+    launcher
         .spawn()
         .map_err(|error| format!("Could not open the browser: {error}"))?;
 
