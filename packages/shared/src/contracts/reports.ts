@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { CLASSIFICATIONS, LEVELS, REPORT_STATUSES, REPORT_TYPES, ROLES } from '../domain/enums';
 import { attachmentSchema } from './attachments';
-import { emailSchema } from './auth';
+import { emailSchema, signatureUploadSchema } from './auth';
 import { idSchema, isoDateTimeSchema } from './common';
 
 /** A person in charge: name is required, email and phone are validated when supplied. */
@@ -304,6 +304,30 @@ export const reportApprovalSchema = z.object({
 });
 export type ReportApproval = z.infer<typeof reportApprovalSchema>;
 
+/**
+ * The submitter's signature, snapshotted onto the report when they sign it
+ * (signature spec W2). Distinct from `approval`, so the two slots never share a
+ * source: replacing the profile image later leaves a signed report as signed.
+ */
+export const reportSubmitterSignatureSchema = z.object({
+  signerName: z.string().min(1),
+  signedAt: isoDateTimeSchema,
+  /** Short-lived signed URL to the report's own copy of the image. */
+  signatureUrl: z.string().min(1).optional(),
+});
+export type ReportSubmitterSignature = z.infer<typeof reportSubmitterSignatureSchema>;
+
+/**
+ * `PUT /reports/:id/signature` takes either an inline data URL (drawn or an
+ * uploaded PNG the browser already cleaned) or `{ fromProfile: true }`, which
+ * asks the server to copy the profile image onto the report.
+ */
+export const reportSignatureSchema = z.union([
+  signatureUploadSchema,
+  z.object({ fromProfile: z.literal(true) }),
+]);
+export type ReportSignatureInput = z.infer<typeof reportSignatureSchema>;
+
 /** Full report used by the facsimile and the edit-returned page. */
 export const reportDetailSchema = z.object({
   id: idSchema,
@@ -327,6 +351,8 @@ export const reportDetailSchema = z.object({
   /** Every return round with its comment, oldest first. */
   commentRounds: z.array(reportCommentRoundSchema).optional(),
   approval: reportApprovalSchema.nullable().optional(),
+  /** The submitter's snapshotted signature; null when unsigned. */
+  submitterSignature: reportSubmitterSignatureSchema.nullable().optional(),
   /** Who last changed the report, when the API supplies it (409 copy). */
   updatedByName: z.string().optional(),
 });

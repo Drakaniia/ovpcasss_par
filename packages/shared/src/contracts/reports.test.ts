@@ -7,6 +7,7 @@ import {
   reportPdfResponseSchema,
   reportSearchQuerySchema,
   reportSearchResponseSchema,
+  reportSignatureSchema,
 } from './reports';
 
 const detail = {
@@ -88,6 +89,35 @@ describe('reportDetailSchema', () => {
 
   it('rejects a status the workflow does not have', () => {
     expect(reportDetailSchema.safeParse({ ...detail, status: 'IN_PROGRESS' }).success).toBe(false);
+  });
+});
+
+describe('report signature', () => {
+  it('accepts either an inline image or a request to copy the profile one', () => {
+    expect(reportSignatureSchema.parse({ image: 'data:image/png;base64,AAAA' })).toEqual({
+      image: 'data:image/png;base64,AAAA',
+    });
+    expect(reportSignatureSchema.parse({ fromProfile: true })).toEqual({ fromProfile: true });
+  });
+
+  it('rejects an empty image and the old boolean spelling', () => {
+    expect(reportSignatureSchema.safeParse({ image: '' }).success).toBe(false);
+    expect(reportSignatureSchema.safeParse({ fromProfile: false }).success).toBe(false);
+    expect(reportSignatureSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('parses the detail with a snapshotted submitter signature', () => {
+    const parsed = reportDetailSchema.parse({
+      ...detail,
+      submitterSignature: {
+        signerName: 'J. Dela Cruz',
+        signedAt: '2026-03-14T01:00:00.000Z',
+        signatureUrl: 'https://signed',
+      },
+    });
+
+    expect(parsed.submitterSignature?.signatureUrl).toBe('https://signed');
+    expect(reportDetailSchema.parse(detail).submitterSignature).toBeUndefined();
   });
 });
 
