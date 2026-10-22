@@ -49,10 +49,14 @@ describe('report access', () => {
     expect(canEditReport(admin, 'u2', 'DRAFT')).toBe(false);
   });
 
-  it('lets an admin decide on reports it did not submit', () => {
+  it('lets an admin decide any report, including one it submitted', () => {
     const admin = { userId: 'u1', role: 'ADMIN' as const };
+    const approver = { userId: 'u1', role: 'APPROVER' as const };
 
-    expect(canDecide(admin, 'u1')).toBe(false);
+    // Admin stands in for every role (signature spec W3); everyone else keeps
+    // the separation-of-duties rule.
+    expect(canDecide(admin, 'u1')).toBe(true);
     expect(canDecide(admin, 'u2')).toBe(true);
+    expect(canDecide(approver, 'u1')).toBe(false);
   });
 });

@@ -32,9 +32,14 @@ export function reportSearchScope(viewer: Viewer): { ownerUserId?: string } {
   return viewer.role === 'SUBMITTER' ? { ownerUserId: viewer.userId } : {};
 }
 
-/** A decision is never allowed on the submitter's own report (spec §9). */
+/**
+ * Separation of duties: nobody decides a report they submitted — except an
+ * Admin, which stands in for every role and may walk its own report through the
+ * whole flow (owner decision, signature spec W3). The audit trail names it as
+ * the actor; there is no bypass marker and no test mode.
+ */
 export function canDecide(viewer: Viewer, ownerUserId: string): boolean {
-  return viewer.userId !== ownerUserId;
+  return viewer.userId !== ownerUserId || viewer.role === 'ADMIN';
 }
 
 /** True for the role that owns the next transition. */
