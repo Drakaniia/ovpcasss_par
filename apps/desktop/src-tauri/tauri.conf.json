@@ -44,7 +44,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://par-api.floresaybaez574.workers.dev"
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://par.ovpcasss.workers.dev"
     }
   },
   "bundle": {
