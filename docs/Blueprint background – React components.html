@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Blueprint background – React components</title>
+<style>
+:root{--page:#ecebe6;--ink:#2b2a27;--card:#fff;--edge:#d6d3ca;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--page:#1c1c1a;--ink:#e8e6df;--card:#262624;--edge:#3a3936}}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--page);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.bar h1{font-size:18px;margin:0 auto 0 0;font-weight:600}
+button{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--edge);border-radius:8px;padding:7px 14px;cursor:pointer}
+button[aria-pressed="true"]{background:var(--ink);color:var(--page)}
+button:focus-visible{outline:2px solid #6b8cae;outline-offset:2px}
+.stage{border:1px solid var(--edge);border-radius:10px;overflow:hidden;aspect-ratio:1586/992;width:100%}
+pre{margin:0;max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--edge);border-radius:10px;padding:16px;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre}
+.note{margin-top:12px;font-size:13px;opacity:.75}
+
+/* ---- Background layer styles (copy these too) ---- */
+.bp-bg{position:relative;width:100%;height:100%;overflow:hidden;background:#f8f6f1;--bp-line:#b4b1a8}
+.bp-bg>svg{position:absolute;height:auto;pointer-events:none;color:var(--bp-line);overflow:visible}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <h1>Blueprint background</h1>
+    <button id="t-prev" aria-pressed="true">Preview</button>
+    <button id="t-code" aria-pressed="false">Code</button>
+    <button id="t-copy" hidden>Copy code</button>
+  </div>
+  <div id="root"></div>
+  <p class="note">Five components: TopLeftRings, TopCenterCompass, TopRightDots, BottomLeftContours, BottomRightTarget. Wrapped by <code>BlueprintBackground</code>. Put your page content inside it as children.</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+
+<script type="text/babel" id="bg-src">
+// ===== BlueprintBackground.jsx =====
+// Usage: <BlueprintBackground>{/* your page */}</BlueprintBackground>
+// Add the .bp-bg CSS (see bottom of this file) to your stylesheet.
+
+const S = { fill: "none", stroke: "currentColor", strokeWidth: 1 };
+const dotP = { fill: "currentColor", stroke: "none" };
+
+function Cross({ x, y, s = 7 }) {
+  return (
+    <g {...S} strokeWidth={0.8}>
+      <path d={`M${x - s} ${y}H${x + s}M${x} ${y - s}V${y + s}`} />
+    </g>
+  );
+}
+
+function Hatch({ x, y, w, h }) {
+  const lines = [];
+  for (let i = 0; x + i * 6 + h * 0.5 <= x + w; i++) {
+    lines.push(<path key={i} d={`M${x + i * 6} ${y + h}l${h * 0.5} ${-h}`} />);
+  }
+  return <g {...S}>{lines}</g>;
+}
+
+/* 1 — top-left: concentric rings, diagonal, arrowed axes */
+function TopLeftRings() {
+  return (
+    <svg viewBox="0 0 360 330" style={{ top: 0, left: 0, width: "22.7%" }} aria-hidden="true">
+      <g {...S}>
+        <path d="M112 0A162 162 0 0 1 0 155" />
+        <path d="M168 0A219.7 219.7 0 0 1 0 187" />
+        <path d="M0 15L183 185" />
+        <path d="M152 67H313" />
+        <path d="M313 0V67" strokeDasharray="4 3" />
+        <path d="M313 67H356" strokeDasharray="4 3" />
+        <path d="M52 100V320" />
+        <path d="M0 125H72" strokeDasharray="4 3" />
+      </g>
+      <g {...dotP}>
+        <circle cx="68" cy="67" r="2" /><circle cx="140" cy="92" r="2" />
+        <circle cx="112" cy="126" r="2" /><circle cx="82" cy="154" r="2" />
+        <circle cx="313" cy="67" r="2.5" /><circle cx="52" cy="272" r="2" />
+        <path d="M52 98l-3 7h6zM52 322l-3-7h6zM357 67l-7-3v6zM72 125l-7-3v6z" />
+      </g>
+      <Cross x={27} y={95} /><Cross x={178} y={228} />
+    </svg>
+  );
+}
+
+/* 2 — top-center: half circle, axis, dashed arc with arrow */
+function TopCenterCompass() {
+  return (
+    <svg viewBox="600 0 230 175" style={{ top: 0, left: "37.8%", width: "14.5%" }} aria-hidden="true">
+      <g {...S}>
+        <path d="M619 0A98 100 0 0 0 717 100A98 100 0 0 0 815 0" />
+        <path d="M699 0V167" />
+        <path d="M606 28Q620 108 700 112L818 115" strokeDasharray="4 3" />
+      </g>
+      <g {...dotP}>
+        <path d="M604 24l-3 8l6-1zM819 115l-7-3v6z" />
+      </g>
+      <Cross x={666} y={41} s={5} />
+    </svg>
+  );
+}
+
+/* 3 — top-right: dot matrix, hatch block, arrowed rules */
+function TopRightDots() {
+  const dots = [];
+  for (let r = 0; r < 6; r++)
+    for (let c = 0; c < 14; c++)
+      dots.push(<circle key={`${r}-${c}`} cx={1278 + c * 21.5} cy={31 + r * 22.5} r="1.1" />);
+  for (let r = 0; r < 2; r++)
+    for (let c = 6; c < 14; c++)
+      dots.push(<circle key={`l${r}-${c}`} cx={1278 + c * 21.5} cy={163 + r * 23} r="1.1" />);
+  return (
+    <svg viewBox="1240 0 346 335" style={{ top: 0, right: 0, width: "21.8%" }} aria-hidden="true">
+      <g {...dotP} opacity=".8">{dots}</g>
+      <Hatch x={1438} y={172} w={88} h={18} />
+      <Cross x={1251} y={185} s={8} />
+      <g {...S}>
+        <path d="M1407 247H1527" />
+        <path d="M1368 262H1526" />
+        <path d="M1557 222V325" />
+        <path d="M1538 247H1573" />
+      </g>
+      <g {...dotP}>
+        <circle cx="1407" cy="247" r="2" /><circle cx="1557" cy="247" r="2" />
+        <path d="M1367 262l7-3v6z" />
+      </g>
+    </svg>
+  );
+}
+
+/* 4 — bottom-left: topographic contours + node grid */
+function BottomLeftContours() {
+  // every contour is the same wavy loop, scaled toward an anchor on the left edge
+  const outer = [[0,645],[50,650],[100,710],[140,770],[175,822],[218,830],[226,885],[233,945],[120,1090],[0,1130]];
+  const contours = [];
+  for (let i = 0; i < 10; i++) {
+    const k = 1 - i * 0.085;
+    const p = outer.map(([x, y]) => [(x * k).toFixed(1), (935 + (y - 935) * k).toFixed(1)]);
+    contours.push(
+      <path key={i} d={`M${p[0]}C${p[1]} ${p[2]} ${p[3]}C${p[4]} ${p[5]} ${p[6]}C${p[7]} ${p[8]} ${p[9]}`} />
+    );
+  }
+  const xs = [271, 303, 334, 366, 397, 429];
+  const ys = [861, 899, 937];
+  return (
+    <svg viewBox="0 620 545 372" style={{ bottom: 0, left: 0, width: "34.4%" }} aria-hidden="true">
+      <g {...S} opacity=".9">{contours}</g>
+      <g {...S} opacity=".8">
+        <path d="M256 827H452" />
+        {xs.map((x) => <path key={x} d={`M${x} 812V958`} />)}
+        {ys.map((y) => <path key={y} d={`M256 ${y}H445`} />)}
+        <path d="M429 803V958" />
+        <path d="M421 829l3 6M431 829l3 6" strokeWidth="0.8" />
+        <path d="M430 861H540" strokeDasharray="4 3" />
+      </g>
+      <g {...dotP} opacity=".9">
+        {xs.flatMap((x) => ys.map((y) => <circle key={`${x}-${y}`} cx={x} cy={y} r="2.2" />))}
+      </g>
+      <Cross x={77} y={630} s={8} /><Cross x={158} y={710} s={8} /><Cross x={228} y={962} s={7} />
+    </svg>
+  );
+}
+
+/* 5 — bottom-right: dashed target circle, crosshair axes, hatch */
+function BottomRightTarget() {
+  return (
+    <svg viewBox="1000 470 586 522" style={{ bottom: 0, right: 0, width: "37%" }} aria-hidden="true">
+      <g {...S}>
+        <path d="M1552 482V788" />
+        <path d="M1408 563H1552" />
+        <path d="M1552 770V788" strokeDasharray="3 3" />
+        <circle cx="1255" cy="935" r="158" strokeDasharray="5 4" />
+        <path d="M1277 770V992" />
+        <path d="M1015 932H1586" />
+        <path d="M1252 871H1428" />
+        <path d="M1417 814V992" />
+      </g>
+      <g {...dotP}>
+        <circle cx="1552" cy="563" r="2.5" />
+        <path d="M1552 480l-3 8h6zM1552 790l-3-8h6zM1407 563l7-3v6zM1015 932l7-3v6zM1417 812l-3 8h6z" />
+      </g>
+      <Hatch x={1438} y={852} w={114} h={43} />
+    </svg>
+  );
+}
+
+function BlueprintBackground({ children, className = "" }) {
+  return (
+    <div className={`bp-bg ${className}`}>
+      <TopLeftRings />
+      <TopCenterCompass />
+      <TopRightDots />
+      <BottomLeftContours />
+      <BottomRightTarget />
+      <div style={{ position: "relative", zIndex: 1, height: "100%" }}>{children}</div>
+    </div>
+  );
+}
+
+/* ---- CSS to add to your stylesheet ----
+.bp-bg{position:relative;width:100%;height:100%;overflow:hidden;background:#f8f6f1;--bp-line:#b4b1a8}
+.bp-bg>svg{position:absolute;height:auto;pointer-events:none;color:var(--bp-line);overflow:visible}
+-------------------------------------------- */
+// export default BlueprintBackground;
+</script>
+
+<script type="text/babel">
+function App() {
+  const [tab, setTab] = React.useState("preview");
+  const code = document.getElementById("bg-src").textContent;
+  const [copied, setCopied] = React.useState(false);
+  React.useEffect(() => {
+    const p = document.getElementById("t-prev"), c = document.getElementById("t-code"), k = document.getElementById("t-copy");
+    p.onclick = () => setTab("preview");
+    c.onclick = () => setTab("code");
+    k.onclick = () => {
+      const done = () => { setCopied(true); setTimeout(() => setCopied(false), 1500); };
+      try { navigator.clipboard.writeText(code).then(done, done); } catch (e) { done(); }
+    };
+  }, []);
+  React.useEffect(() => {
+    document.getElementById("t-prev").setAttribute("aria-pressed", tab === "preview");
+    document.getElementById("t-code").setAttribute("aria-pressed", tab === "code");
+    const k = document.getElementById("t-copy");
+    k.hidden = tab !== "code";
+    k.textContent = copied ? "Copied" : "Copy code";
+  }, [tab, copied]);
+  return tab === "preview" ? (
+    <div className="stage"><BlueprintBackground /></div>
+  ) : (
+    <pre>{code}</pre>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

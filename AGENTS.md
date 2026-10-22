@@ -141,8 +141,8 @@ brand hex lives only in `tokens.css`.
   button. Maroon means "sent back" in workflow contexts.
 - Keyboard is a shortcut, never a requirement; single-letter shortcuts stay
   suppressed while typing. WCAG 2.2 AA, visible focus, skip link first.
-- Desktop widths only: below 1024 px show the foundation notice; auth and
-  awaiting-approval are exempt.
+- Desktop widths only: below 1024 px show the foundation notice; auth pages are
+  exempt.
 - English, formal institutional voice, office terms verbatim. No exclamation
   marks.
 - Shared primitives (`StatusBadge`, `EmptyState`, `ErrorState`, `ConfirmDialog`,

@@ -84,18 +84,38 @@ is the draft report only in suer localstoreage?
 
 Checked item by item against the working tree. `pnpm verify` (lint, typecheck, tests) passes.
 
+**Closed 2026-10-22**
+
+- **Month and year picker**: the month label in `CalendarPopover` now opens a month grid with a year stepper; Left/Right move the year and Escape returns to the label.
+- **Password reveal**: `FloatingInput` shows an eye control on hover or focus for every password field, and the profile password card carries the same control on its three inputs.
+- **Sign-in handoff page**: the shell serves `apps/desktop/src-tauri/src/handoff.html` instead of an inline string — the office mark, the confirmation, and a marked slot for the artwork.
+- **Interactive "How the Post-Activity Report works"**: `/how-it-works`, reachable from the account menu. Four stages anchored to the seven API statuses, each with its owner, what happens, the statuses, the mail, and one note; a test holds the status coverage.
+- **Dropdown polish**: filter bars and search now use `EditableSelect` (reports, queues, users, email log, audit, repository); fixed short lists open without a search box.
+
 **Still open**
 
-- **Month and year picker**: `CalendarPopover` moves one month at a time; there is no month or year jump.
-- **Password reveal**: no show/hide control on the login, register, reset, or profile password inputs.
-- **Sign-in handoff illustration**: the "Return to the Paperless PAR app to continue." page is bare HTML in the shell; no image, prompt, or illustration exists.
-- **Interactive "How the Post-Activity Report works"**: not in the tree. The first-run tour covers navigation; no workflow explainer screen exists.
-- **Dropdown polish**: the wizard's classification fields use the apple-design `EditableSelect` (add/rename/remove); filter bars, admin filters, and search still use native `<select>`.
+- **Sign-in handoff artwork**: the page carries a placeholder illustration and a comment marking where the generated image replaces it.
 - **Auth illustration regression**: `ParLine.svelte` and `par-line/` are deleted in the staged working tree, so the animated right-side auth SVG is currently absent.
 - **End-to-end QA**: no automated E2E suite; the phase 16 manual acceptance checklists remain unchecked.
+- **Native selects left on purpose**: rows-per-page (Reports, Users), the attachment label picker, export school year and semester, admin role assignment, and reference-data entry. These are form controls, not filters.
 
 **Needs deployed configuration, not code**
 
 - Google sign-in in the installed MSI/EXE needs `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set as Worker secrets; the installer only carries the API URL.
 - Verification and approved mail need `EMAIL_API_KEY` and a verified sender on the deployed Worker.
+
+
+deploy real seed data @OVPCASSS-PAPERLESS_PROCESS_FOR_PAR.md  to the cloudflare storage, not in local so it sync in all device..  so that  dropdown actually has real values
+
+all first time user that logins or signup..  their role should automatically asign as submitter role,  so no extra step for the admin to asign them each role..  the admin will later assign them if what their role
+
+complety remove the campus.png  in all places in auth pages
+
+can we rename the worders api into  par.ovpcasss or something like ovpcass,   not the old  floresaybaez574  my default clouflare name
+
+did you now removed the harcoded OVPCASSS-PAPERLESS_PROCESS_FOR_PAR.md  values in .ts and should load from remote or online?
+
+is all queues and repository are both on remote and not local?
+
+email sending is blocked on DNS, not code: `send.buksu.edu.ph` exists in Resend (domain id 11096304-b51e-4c25-8fa3-0fa141cfaf62) but its four records are still pending from university IT, because `buksu.edu.ph` lives in a different Cloudflare account than this one. Until those records land Resend answers 403 for every send, so registration and password reset cannot complete; the two bootstrap admins are already verified and unaffected. `EMAIL_API_KEY`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set on the `par` Worker.
 

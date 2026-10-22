@@ -216,13 +216,13 @@ repeat.
 | `VERIFY`            | Registration                | The user | `[OVPCASSS PAR] Verify your email address`             | never mutable |
 | `RESET`             | Forgot password             | The user | `[OVPCASSS PAR] Reset your password`                   | never mutable |
 | `ROLE_ASSIGNED`     | Admin assigns a role        | The user | `[OVPCASSS PAR] Your role has been assigned: Reviewer` | never mutable |
-| `ACCOUNT_ACTIVATED` | Admin activates the account | The user | `[OVPCASSS PAR] Your account is active`                | never mutable |
+| `ACCOUNT_ACTIVATED` | Admin reactivates a disabled account | The user | `[OVPCASSS PAR] Your account is active`      | never mutable |
 | `ACCOUNT_DISABLED`  | Admin disables the account  | The user | `[OVPCASSS PAR] Your account has been disabled`        | never mutable |
 
-`ACCOUNT` (the old single kind) is split into three **email** kinds. Today the
-role-assignment mail says "your role has been assigned and your account is
-active", which is false while the account is still `PENDING_ROLE`, and activation
-sends nothing at all. `roleApprovedTemplate` is removed.
+`ACCOUNT` (the old single kind) is split into three **email** kinds. The
+role-assignment mail takes effect immediately: it names the new role and no
+longer promises a later activation. `ACCOUNT_ACTIVATED` is sent when a disabled
+account is reactivated. `roleApprovedTemplate` is removed.
 
 The inbox and the outbox use different vocabularies: the inbox keeps one `ACCOUNT`
 chip (a disabled account cannot read its own inbox anyway), while `email_outbox.kind`

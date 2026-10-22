@@ -395,9 +395,9 @@ Run once per document in `onMount` (not `$effect` — effects re-run):
    bounce:
    - `account === null` on a chrome route → `/login`.
    - `account === null` on an auth route (`/login`, `/register`, `/verify-email`,
-     `/forgot-password`, `/reset-password`, `/awaiting-approval`) → no change.
-   - `PENDING_ROLE` → `/awaiting-approval`; `PENDING_VERIFICATION` →
-     `/verify-email?email=…`; `ACTIVE` on `/login` or `/register` → `/`.
+     `/forgot-password`, `/reset-password`) → no change.
+   - `PENDING_VERIFICATION` → `/verify-email?email=…`; `ACTIVE` on `/login` or
+     `/register` → `/`.
    - `DISABLED` or already on the target → `null`.
      When `target` is non-null, `await goto(target, { replaceState: true })`.
      The pages' own post-load redirects then see the correct URL (and any
@@ -471,9 +471,8 @@ No changes to `apps/api`, `packages/*`, or `.github/workflows` are needed.
 | In-app reload (Ctrl+R, HMR full reload)            | No splash: it was closed at first reveal                                           |
 | Vite dev server not up yet                         | Main window shows its own failure; splash still times out                          |
 | API unreachable / slow                             | Probe rejects or resolves `null`; reveal proceeds                                  |
-| Signed-in user launches into `/login`              | One `goto('/')` (or `/awaiting-approval`) before reveal; no login flash            |
+| Signed-in user launches into `/login`              | One `goto('/')` before reveal; no login flash                                      |
 | Signed-out launch                                  | Gate navigates to `/login` before reveal; the inbox skeleton never becomes visible |
-| `PENDING_ROLE` launch                              | Redirect to `/awaiting-approval` before reveal                                     |
 | `DISABLED` account with a stored token             | Probe clears the session (`loadSession` handles 401/403); login shows              |
 | Primary monitor smaller than 420×240               | Window still opens; Tauri clamps it; no crash                                      |
 | 200% display scaling                               | CSS px scale correctly; the window is 420×240 logical                              |
@@ -498,8 +497,8 @@ pnpm verify                      # check:structure -> lint -> typecheck -> test
   paint 500 ms ago → 0, no paint → 0.
 - Add `startup-route.test.ts` covering: signed out on `/` → `/login`; signed out
   on `/login` → no redirect; ACTIVE on `/login` → `/`; ACTIVE on `/` → no
-  redirect; PENDING_ROLE on `/` → `/awaiting-approval`; PENDING_VERIFICATION →
-  `/verify-email?email=…`; DISABLED → no redirect.
+  redirect; PENDING_VERIFICATION → `/verify-email?email=…`; DISABLED → no
+  redirect.
 - The static splash page is reviewable directly at
   `http://localhost:5173/splash.html` while `pnpm --filter @par/web dev` runs;
   capture a screenshot for the report (both shells' visuals must match).

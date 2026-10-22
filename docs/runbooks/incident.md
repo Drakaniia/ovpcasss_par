@@ -6,7 +6,7 @@ done.
 
 ## 1. Everyone is signed out / sign-in fails
 
-- Check `/api/health` and `wrangler tail par-api` first; a deploy is more likely
+- Check `/api/health` and `wrangler tail par` first; a deploy is more likely
   than an auth bug.
 - Rate limiting is a D1 counter per route + IP/account. A burst of failures in
   the audit log (`LOGIN_FAILED`) with a short lockout is expected behaviour, not

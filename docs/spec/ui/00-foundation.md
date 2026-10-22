@@ -223,7 +223,6 @@ Never say "In progress" or invent an intermediate state.
 | `/admin/reference-data`                                                       | Reference data               | ADMIN                        | Admin → Reference data |
 | `/admin/audit`                                                                | Audit log                    | ADMIN                        | Admin → Audit          |
 | `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` | Auth                         | public                       | none (auth layout)     |
-| `/awaiting-approval`                                                          | Account pending role         | PENDING_ROLE                 | none (status page)     |
 
 Existing scaffold routes are preserved. `/search` is labelled **Repository** in
 the UI; `/exports` is a Repository tab. This keeps URLs stable while labels match
@@ -272,7 +271,7 @@ union. A Submitter never sees Queues, Repository, or Admin.
 - Avatar menu: full name + role, Profile, Keyboard shortcuts, Sign out.
 - Skip link ("Skip to content") is the first focusable element.
 - Below 1024 px: a single centered notice ("This system is designed for screens
-  1024 px and wider"); auth and awaiting-approval pages are exempt.
+  1024 px and wider"); auth pages are exempt.
 
 ### 3.4 Build in this phase
 
@@ -390,7 +389,7 @@ either way, and the action bar shows the key beside the button it stands for.
 | ≥1440     | Master–detail for Queues and Repository; facsimile + rail side by side; full tab row                          |
 | 1280–1439 | Lists navigate to detail pages; facsimile + rail side by side (rail 280 px)                                   |
 | 1024–1279 | Single column; rail stacks below document; wizard rail becomes completeness bar; table hides Type and College |
-| <1024     | Centered notice; auth and awaiting-approval remain usable                                                     |
+| <1024     | Centered notice; auth pages remain usable                                                     |
 | Print     | A4 portrait, light tokens, no chrome                                                                          |
 
 No mobile design in v1; the decision is explicit.
@@ -475,7 +474,7 @@ feature folder; only cross-feature primitives live in `lib/components`; no
       focus ring; drawer/dialog primitives trap and restore focus.
 - [ ] Bell slot, avatar menu (name + role, Profile, Keyboard shortcuts, Sign out),
       and `/` search affordance render for the correct roles.
-- [ ] <1024 px shows the notice; auth and awaiting-approval routes are exempt.
+- [ ] <1024 px shows the notice; auth routes are exempt.
 - [ ] `StatusBadge` renders all seven statuses with label, icon, and color; a
       text-only rendering is still unambiguous.
 - [ ] `NextStepStrip` matches the §2.8 mapping for all seven statuses.

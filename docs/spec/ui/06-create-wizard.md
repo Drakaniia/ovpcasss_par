@@ -291,7 +291,7 @@ Rail card (sticky; collapsed meter below 1280 px):
 ```mermaid
 flowchart TD
   A[Sign in] --> B{Account active?}
-  B -- no --> C[Awaiting role approval]
+  B -- no --> C[Verify email]
   B -- yes --> D[Work inbox]
   D --> E[Create report wizard]
   E --> F[Step 1 classification]

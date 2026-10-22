@@ -92,14 +92,14 @@ At each width, walk the main flows and record clipping/overflow:
 | 1440+     | Master–detail selects preview; facsimile + rail side by side; full tab row              |
 | 1280–1439 | Lists navigate to detail; facsimile + rail side by side; wizard rail collapsed to a bar |
 | 1024–1279 | Single column; rail stacks; Type/College hidden before Title/Status; filters collapse   |
-| <1024     | Only the notice renders; auth and awaiting-approval remain usable                       |
+| <1024     | Only the notice renders; auth pages remain usable                                       |
 
 - [ ] At 200% browser zoom and 1280 px, no action is clipped, the rail stacks
       below the document, and horizontal scrolling is limited to tables/exports
       preview.
 - [ ] No fixed-width element forces a horizontal scrollbar on form pages.
 - [ ] Sticky headers/rails do not cover focused fields or the action bar.
-- [ ] The 1024 px notice is not shown on auth or awaiting-approval.
+- [ ] The 1024 px notice is not shown on auth pages.
 - [ ] Windows display scaling at 125% does not break the shell (desktop).
 
 ---

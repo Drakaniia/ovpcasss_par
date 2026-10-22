@@ -1,7 +1,7 @@
 # Deploy
 
-Owner: OVPCASSS system administrator. Scope: the `par-api` Worker, the web build
-it serves, and the Windows desktop installer.
+Owner: OVPCASSS system administrator. Scope: the `par` Worker, the web build it
+serves, and the Windows desktop installer.
 
 ## Preconditions
 
@@ -9,7 +9,17 @@ it serves, and the Windows desktop installer.
 - `pnpm install --frozen-lockfile` on a clean checkout.
 - Wrangler authenticated (`wrangler login` locally, `CLOUDFLARE_API_TOKEN` in CI).
 - Worker secrets already set (see `key-rotation.md`); secrets are not part of a
-  deploy and survive it.
+  deploy and survive a redeploy. They are **per Worker**, not per account: a
+  renamed Worker is a new script and starts with none, so re-set every secret on
+  it before the first deploy (`wrangler secret put <NAME> --name par`).
+- Renaming the account's `workers.dev` subdomain moves every Worker at once and
+  breaks two things outside Cloudflare: every Worker is a new script and starts
+  with no secrets (above), and any OAuth client that names the old host rejects
+  the callback with `redirect_uri_mismatch`. Update `APP_ORIGIN` in
+  `wrangler.toml`, then add the new origin and
+  `<origin>/api/v1/auth/google/callback` to the Google client before testing
+  Google sign-in. The API derives the redirect URI from the request origin, so
+  no code changes with the move.
 - Cloudflare resources exist for the target environment: D1 `par-db`, R2
   `par-attachments` with its CORS policy, Queue `par-email` and `par-email-dlq`.
   `pnpm provision --apply` creates the missing ones and applies CORS; the
@@ -35,11 +45,19 @@ Migrations run **before** the Worker that needs them. Never the other way round.
    ```
    Review the pending list before confirming. Migrations are forward-only; see
    `rollback.md`.
-4. **Deploy the Worker** (API plus the static assets from step 2).
+4. **Seed reference data (fresh database only).** Campus, unit, program, SDG,
+   department, and office lists come from the workbook seed. The command is
+   idempotent: it skips a row whose natural key already exists, so office edits
+   survive a rerun.
+   ```bash
+   pnpm db:seed --remote
+   ```
+   Terms and attachment requirements are not seeded; the office maintains them.
+5. **Deploy the Worker** (API plus the static assets from step 2).
    ```bash
    pnpm --filter @par/api exec wrangler deploy
    ```
-5. **Smoke test** the deployed origin:
+6. **Smoke test** the deployed origin:
    ```bash
    curl -fsS https://<origin>/api/health          # {"status":"ok"}
    ```
@@ -77,7 +95,7 @@ published yet (M7 remainder).
 
 ## After the deploy
 
-- `wrangler tail par-api` for the first few minutes; watch for structured
+- `wrangler tail par` for the first few minutes; watch for structured
   `level: "error"` lines.
 - Confirm the cron schedules are live: `wrangler deployments status` (or the
   dashboard) should show `17 * * * *` and `30 18 * * *`.

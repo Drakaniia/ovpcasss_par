@@ -140,7 +140,6 @@ Tooling: Node 22 LTS, pnpm, Turborepo tasks `dev`, `build`, `lint`, `typecheck`,
 | Screen                                                                  | Roles                                |
 | ----------------------------------------------------------------------- | ------------------------------------ |
 | Register / Verify email / Sign in / Forgot password                     | public                               |
-| Awaiting role approval                                                  | new users                            |
 | My Reports (drafts, submitted, returned, approved)                      | Submitter                            |
 | PAR form (create/edit, attachments, validation summary)                 | Submitter                            |
 | Report detail (timeline, comments, attachments, acknowledgement)        | all with access                      |
@@ -148,7 +147,7 @@ Tooling: Node 22 LTS, pnpm, Turborepo tasks `dev`, `build`, `lint`, `typecheck`,
 | Approval queue and approval screen (approve / return)                   | Approver                             |
 | Search and repository                                                   | Reviewer, Approver, Admin            |
 | Monitoring sheet export (choose type, semester, SY)                     | Reviewer, Admin                      |
-| Admin: users and role approvals                                         | Admin                                |
+| Admin: users and roles                                                  | Admin                                |
 | Admin: reference data (campuses, colleges, programs, SDGs, terms, etc.) | Admin                                |
 | Profile: password, signature image                                      | Approver (signature), all (password) |
 | Audit log viewer                                                        | Admin                                |
@@ -214,7 +213,7 @@ Separate D1/R2/Queue resources for **staging** and **production**. Preview deplo
 ### 7.4 Authentication details
 
 - Registration is allowed only for emails on the configured university domain list (env/config, e.g. `ALLOWED_EMAIL_DOMAINS`). Email verification link required before the account can sign in.
-- After verification the account is `PENDING_ROLE`. An admin assigns a role (Submitter, Reviewer, Approver, Admin) and activates the account.
+- A new account starts as a **Submitter**. After verification it is `ACTIVE`; there is no approval wait. An admin may change the role later (Submitter, Reviewer, Approver, Admin); a role change takes effect immediately and never gates activation.
 - **Password hashing:** Workers limit WebCrypto PBKDF2 iteration counts, so the choice is PBKDF2-SHA256 at the platform maximum, or scrypt/Argon2 via a WASM build. Decide at scaffold time and store the algorithm and parameters per hash so it can be upgraded on login.
 - Sessions: random opaque tokens, stored **hashed** in D1 with expiry and last-seen. Web: `HttpOnly; Secure; SameSite=Lax` cookie. Desktop: bearer token from the OS credential store.
 - Brute-force protection: per-IP and per-account rate limiting (Workers rate limiting binding or a D1 counter), short lockout, uniform error messages.
@@ -315,7 +314,7 @@ All tables: `id` (ULID/UUID text), `created_at`, `updated_at` (UTC ISO text). So
 
 **Identity**
 
-- `users`: email (unique, lowercase), password_hash, hash_params, full_name, role (`SUBMITTER|REVIEWER|APPROVER|ADMIN`), status (`PENDING_VERIFICATION|PENDING_ROLE|ACTIVE|DISABLED`), campus_id, unit_id, contact_number, signature_object_key (nullable), email_verified_at
+- `users`: email (unique, lowercase), password_hash, hash_params, full_name, role (`SUBMITTER|REVIEWER|APPROVER|ADMIN`), status (`PENDING_VERIFICATION|ACTIVE|DISABLED`), campus_id, unit_id, contact_number, signature_object_key (nullable), email_verified_at
 - `sessions`: token_hash, user_id, expires_at, last_seen_at, user_agent, ip
 - `email_tokens`: user_id, kind (`VERIFY|RESET`), token_hash, expires_at, used_at
 

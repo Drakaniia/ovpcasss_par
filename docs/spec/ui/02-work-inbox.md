@@ -119,7 +119,7 @@ your approval**. Render only the sections the role can have.
 | REVIEWER                    | Awaiting your review, Recent activity                                                                                                              |
 | APPROVER                    | Awaiting your approval, Recent activity                                                                                                            |
 | REVIEWER + APPROVER         | Both queue sections, in the fixed order above, then Recent activity                                                                                |
-| ADMIN (without report role) | Awaiting role approvals (count + link to `/admin/users`), Failed emails (only if any, link to admin), Recent audit events (link to `/admin/audit`) |
+| ADMIN (without report role) | Failed emails (only if any, link to admin), Recent audit events (link to `/admin/audit`)                                                          |
 
 - Admin does not see review/approval queues by virtue of being Admin.
 - A user with several capabilities sees the union, still in the fixed order.

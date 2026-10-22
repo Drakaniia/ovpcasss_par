@@ -99,8 +99,8 @@ contract, or new dependency is involved.
    account to `/` (or the deep link it requested). A user who first lands on
    `/reports` sees the tour later, on their first Home visit — not on the deep
    link.
-3. **`PENDING`/`PENDING_ROLE` accounts are skipped** until they are `ACTIVE`.
-   `/awaiting-approval` has no shell, so the tour cannot and should not run there.
+3. **`PENDING_VERIFICATION` and `DISABLED` accounts are skipped** until they are
+   `ACTIVE`.
 4. **One shell at a time.** The tour is not shown twice in the same document;
    a completed/skipped tour cannot re-open until a reset or a version bump.
 5. **The desktop shell counts as a separate origin.** Web and Tauri each keep

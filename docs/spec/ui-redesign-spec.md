@@ -60,7 +60,7 @@ The work is done when all of the following are true, checked in the running app:
 | Feature stylesheets layered on top: `accounts.css` (60), `edit-returned.css` (193), `facsimile.css` (172)                                                                                                                       | `lib/styles/`                                            |
 | 24 shared components in `lib/components/` (incl. `AuthLayout`, `EditableSelect`, `DatePicker`, `SideDrawer`, `ConfirmDialog`, `CommandPalette`)                                                                                   | `lib/components/`                                        |
 | Ten feature-owned page headers, using six page-frame class names (`.page-head` ×4, `.entity-head`, `.audit-header`, `.page-header`, `.wizard-head`, `.inbox-head`) plus the facsimile's own document header, each with scoped CSS | `lib/features/*/presentation/*Header.svelte`             |
-| Desktop-only gate below 1024 px (fixed overlay), auth and awaiting-approval exempt                                                                                                                                                | `components.css` §Foundation notice, `AppShell.svelte`   |
+| Desktop-only gate below 1024 px (fixed overlay), auth pages exempt                                                                                                                                                | `components.css` §Foundation notice, `AppShell.svelte`   |
 
 ### 3.2 Inconsistencies the refinement has to remove
 
@@ -102,7 +102,7 @@ to collapse it into tokens and shared contracts.
 | D13 | Tables                    | One `.table-scroll` contract; height from flex + `min-height: 0`, never from `100vh - N`                                                                                                             | Fixes the 12 magic numbers and short-viewport clipping                               |
 | D14 | Dialogs / drawers         | `max-height: calc(100dvh - 2 * var(--space-6))`, flex column, scrollable body, `width: min(<max>, calc(100vw - 2 * var(--gutter-page)))`                                                             | Usable at 600 px and 200 % zoom                                                      |
 | D15 | Auth layout               | No vertical centring: `padding-block-start: clamp(var(--space-10), 9vh, 96px)`, natural flow, page scrolls                                                                                           | The reported bug; centring is only correct when content is shorter than the viewport |
-| D16 | Responsive reach          | Chrome layouts must hold at ≥1024 px and 200 % zoom; auth + awaiting-approval fully responsive to 360 px                                                                                             | Preserves the product's desktop-only rule, fixes the exempt screens                  |
+| D16 | Responsive reach          | Chrome layouts must hold at ≥1024 px and 200 % zoom; auth fully responsive to 360 px                                                                                             | Preserves the product's desktop-only rule, fixes the exempt screens                  |
 | D17 | Navigation                | Keep the navy top bar + section tabs; refine spacing, active state, and hover only                                                                                                                   | Functional structure; no sidebar rebuild                                             |
 | D18 | Print                     | Facsimile and print preview keep cream paper, serif type, and no new chrome                                                                                                                          | Print fidelity is a contract                                                         |
 | D19 | Colour                    | No palette changes; add `--border-subtle`, `--border-field`, `--surface-sunken`, `--surface-raised`                                                                                                  | Brand stays; surfaces need one more step each                                        |
@@ -419,7 +419,7 @@ var(--gutter-page)` — the same two values as `page-content`.
 | ≥1440 px  | Content capped at `--page-max`, centred; master–detail splits allowed                        |
 | 1280–1439 | Full-width content, `--gutter-page`                                                          |
 | 1024–1279 | Secondary table columns collapse; page headers wrap; toolbars wrap                           |
-| 768–1023  | Chrome screens show the foundation notice (unchanged); auth + awaiting-approval render fully |
+| 768–1023  | Chrome screens show the foundation notice (unchanged); auth renders fully                   |
 | <768      | Auth only: single column, decor removed, card padding `--space-4`                            |
 | <480      | Auth card fills the width minus gutters; brand lockup scales to 60 vw                        |
 
@@ -443,8 +443,7 @@ overflow: auto }`, pages that need a fixed table body use
 
 Before: `min-height: 100vh`, `justify-content: flex-start`, `overflow: hidden`,
 fixed `clamp(84px, 12vh, 130px)` top padding, `align-items: center`. The card is
-centred-ish by a fixed pad; when the viewport shortens or the card grows (register,
-reset with errors, awaiting-approval) the bottom is cut off and cannot be reached.
+centred-ish by a fixed pad; when the viewport shortens or the card grows(register, reset with errors) the bottom is cut off and cannot be reached.
 
 After:
 
@@ -467,7 +466,7 @@ behaviour).
 
 | Route                                                                                               | Container change                        | Specific work                                                                                                                                                  |
 | --------------------------------------------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/awaiting-approval` | Auth shell                              | §8.7; card padding/token pass; form controls at 36 px; decor drop under 768 px                                                                                 |
+| `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`                       | Auth shell                              | §8.7; card padding/token pass; form controls at 36 px; decor drop under 768 px                                                                                 |
 | `/` (work inbox)                                                                                    | Page + 2–3 panels                       | `InboxPageHeader` → `PageHeader`; each group becomes a `.panel` with `.panel-header`; remove card shadows; empty/loading states inside the panel, not floating |
 | `/reports`                                                                                          | Panel with table                        | `ReportsPageHeader` → `PageHeader`; toolbar in `.panel-header`; table height from flex; remove `calc(100vh - 300px)`                                           |
 | `/reports/new`                                                                                      | Wizard: page header + step panel + rail | Steps are sections inside one panel; field gaps from tokens; fixed footer bar becomes a sticky panel footer inside the content width                           |
@@ -636,7 +635,7 @@ Add focused tests where behaviour is observable without a DOM:
 | 1366×768               | inbox, wizard, queue row menu                          |
 | 1280×800               | reference data + drawer, exports                       |
 | 1024×600               | every route; dialogs and drawers on each               |
-| 800×600                | `/login`, `/register` with error, `/awaiting-approval` |
+| 800×600                | `/login`, `/register` with error                       |
 | 375×667                | `/login`, `/register`, `/reset-password`               |
 | 200 % zoom at 1280×800 | login, reports, wizard footer, dialog                  |
 
@@ -684,8 +683,8 @@ failed check, not a note.
 ## 16. Assumptions
 
 - **A1** Visual-only: no route, contract, permission, or workflow change.
-- **A2** The 1024 px foundation notice remains for chrome routes; auth and
-  awaiting-approval stay exempt and must work down to 360 px.
+- **A2** The 1024 px foundation notice remains for chrome routes; auth pages
+  stay exempt and must work down to 360 px.
 - **A3** Montserrat stays the UI face; no new font, no CDN.
 - **A4** Light mode only.
 - **A5** Tailwind remains a reset/utility layer; the design system lives in

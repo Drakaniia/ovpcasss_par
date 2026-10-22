@@ -63,5 +63,5 @@ rotate the real values and update the local file by hand. Never commit it.
 
 ## After any rotation
 
-- `wrangler tail par-api` for errors while doing one real operation.
+- `wrangler tail par` for errors while doing one real operation.
 - Note the date and the operator in the incident/change log.
