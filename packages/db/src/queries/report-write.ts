@@ -219,6 +219,28 @@ export function createReportWriteQueries(db: Database) {
       }
     },
 
+    /**
+     * Attaches or clears the report's snapshotted signature (signature spec W2).
+     * The report version is untouched on purpose: signing is not a content edit,
+     * so it must not invalidate a client's `If-Match` copy of the form.
+     */
+    async setSignature(
+      id: string,
+      input: { key: string | null; signedAt: string | null; now: string },
+    ): Promise<ReportRow | null> {
+      const rows = await db
+        .update(reports)
+        .set({
+          submitterSignatureKey: input.key,
+          submitterSignedAt: input.signedAt,
+          updatedAt: input.now,
+        })
+        .where(eq(reports.id, id))
+        .returning();
+
+      return rows[0] ?? null;
+    },
+
     async insertComment(input: ReportCommentInput): Promise<void> {
       await db.insert(reportComments).values(input);
     },

@@ -54,6 +54,13 @@ export const reports = sqliteTable(
     /** Exact partial input while the report is a draft; columns are the projection. */
     draftForm: text('draft_form'),
     submittedAt: text('submitted_at'),
+    /**
+     * The submitter's signature, snapshotted onto the report when they sign it
+     * (signature spec W2). Nullable: reports filed before this, or filed
+     * without signing, keep the ruled line on the facsimile.
+     */
+    submitterSignatureKey: text('submitter_signature_key'),
+    submitterSignedAt: text('submitter_signed_at'),
     endorsedAt: text('endorsed_at'),
     approvedAt: text('approved_at'),
     approvedByUserId: text('approved_by_user_id'),

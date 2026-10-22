@@ -64,6 +64,8 @@ function existing(overrides: Partial<ReportRow> = {}): ReportRow {
     narrative: 'Long narrative',
     draftForm: null,
     submittedAt: '2026-03-14T00:00:00.000Z',
+    submitterSignatureKey: null,
+    submitterSignedAt: null,
     endorsedAt: null,
     approvedAt: '2026-03-20T00:00:00.000Z',
     approvedByUserId: 'usr_approver',

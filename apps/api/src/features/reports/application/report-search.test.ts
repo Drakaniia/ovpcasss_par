@@ -27,6 +27,8 @@ function row(overrides: Partial<ReportSearchRow['report']> = {}): ReportSearchRo
       narrative: 'Students walked the shoreline and collected waste along the breakwater.',
       draftForm: null,
       submittedAt: '2026-03-14T01:12:00.000Z',
+      submitterSignatureKey: null,
+      submitterSignedAt: null,
       endorsedAt: null,
       approvedAt: null,
       approvedByUserId: null,
