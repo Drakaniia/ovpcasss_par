@@ -246,7 +246,8 @@ RETURNED_BY_APPROVER → RESUBMITTED   (goes back through review)
 Rules:
 
 - Only the owning Submitter edits `DRAFT` / `RETURNED_*` reports. Everything else is read-only.
-- A user cannot review or approve a report they submitted (separation of duties), even if they hold multiple capabilities.
+- A user cannot review or approve a report they submitted (separation of duties), even if they hold multiple capabilities. An ADMIN is the one exception: it stands in for every role and may walk its own report through review and approval, which is recorded in the audit trail like any other decision.
+- The owner may attach a signature to a `DRAFT` or `RETURNED_*` report. It is optional, snapshotted onto the report, and printed in the facsimile's "Submitted by" slot; later changes to the profile signature never alter a signed report.
 - Every transition writes an audit event and bumps `version`.
 - `APPROVED` is terminal; later changes require an admin-controlled amendment process (not in v1).
 
@@ -371,7 +372,7 @@ Indexes: `reports(status, type)`, `reports(owner_user_id)`, `reports(tracking_nu
 | View all reports and attachments            |           |    ✓     |    ✓     |   ✓   |
 | Review, comment, return, endorse            |           |    ✓     |          |   ✓   |
 | Approve or return endorsed reports          |           |          |    ✓     |   ✓   |
-| Upload own signature image                  |           |          |    ✓     |       |
+| Upload own signature image                  |     ✓     |    ✓     |    ✓     |   ✓   |
 | Export monitoring sheets                    |           |    ✓     |    ✓     |   ✓   |
 | Manage users and roles                      |           |          |          |   ✓   |
 | Manage reference data                       |           |          |          |   ✓   |
@@ -382,7 +383,8 @@ Indexes: `reports(status, type)`, `reports(owner_user_id)`, `reports(tracking_nu
   submit reports and make reviewer and approver decisions, so a small office can
   run the whole process with one administrator account.
 - A user can never act on their own report as reviewer or approver, whatever
-  role they hold.
+  role they hold — except an ADMIN, which may decide its own report so one
+  administrator account can exercise the whole flow (2026-10-22).
 
 ---
 

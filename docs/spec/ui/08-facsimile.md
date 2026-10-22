@@ -164,17 +164,17 @@ strip. The API is the source of truth; map statuses 1:1.
 
 ## 4. Facsimile document structure (§8.1)
 
-| Section                    | Fields                                                                                           |
-| -------------------------- | ------------------------------------------------------------------------------------------------ |
-| Letterhead                 | Seal, "OVPCASSS", "POST-ACTIVITY REPORT", gold rule                                              |
-| Reference block            | Tracking number, status (screen only), date received, date completed                             |
-| I. Activity classification | Type, classification, campus, college/unit, department, office, level                            |
-| II. Activity               | Title, date(s) of activity, location, SDG(s)                                                     |
-| III. Participants          | Total number of students, total number of PIC, name(s) of personnel in-charge, PIC email/contact |
-| IV. Narrative              | Narrative prose                                                                                  |
-| V. Attachments             | Attachment labels and file names (screen); attachment list (print)                               |
-| VI. Review history         | Rounds of returns and comments (screen only)                                                     |
-| Signatures                 | Submitted by (name, date) / Approved by (name, date, signature image)                            |
+| Section                    | Fields                                                                                             |
+| -------------------------- | -------------------------------------------------------------------------------------------------- |
+| Letterhead                 | Seal, "OVPCASSS", "POST-ACTIVITY REPORT", gold rule                                                |
+| Reference block            | Tracking number, status (screen only), date received, date completed                               |
+| I. Activity classification | Type, classification, campus, college/unit, department, office, level                              |
+| II. Activity               | Title, date(s) of activity, location, SDG(s)                                                       |
+| III. Participants          | Total number of students, total number of PIC, name(s) of personnel in-charge, PIC email/contact   |
+| IV. Narrative              | Narrative prose                                                                                    |
+| V. Attachments             | Attachment labels and file names (screen); attachment list (print)                                 |
+| VI. Review history         | Rounds of returns and comments (screen only)                                                       |
+| Signatures                 | Submitted by (name, date, signature image when signed) / Approved by (name, date, signature image) |
 
 - Field labels use the official terms exactly; do not paraphrase.
 - Values align right in a two-column key/value grid at ≥1024 px; stacked below.

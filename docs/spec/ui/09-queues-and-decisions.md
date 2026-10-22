@@ -16,14 +16,16 @@ drawer, without losing the facsimile or attachments.
 ## 1. Context for this run
 
 - REVIEWER sees `/review`; APPROVER sees `/approval`; a user with both sees both
-  tabs under **Queues**. Admin does not gain either queue by being Admin.
+  tabs under **Queues**. Admin stands in for both roles, so it sees both queues
+  and the decisions on them.
 - One primary action per screen: in the queue, none (rows and filters only); in
   the drawer, the decision button — navy for Endorse/Approve, maroon for Return.
 - Decisions are audited server-side. The UI never fakes a status change; it
   updates from the API response.
 - Separation of duties: a reviewer cannot endorse a report they submitted; an
   approver cannot approve their own report. The action is disabled with an
-  adjacent reason, not just a tooltip.
+  adjacent reason, not just a tooltip. ADMIN is the exception — it keeps the
+  buttons on its own report, which is marked **Your report**.
 - `StatusBadge`, table rules, form rules, and drawer focus behavior come from
   foundation.
 - The full facsimile from phase 08 is reused on detail routes; do not duplicate
@@ -182,7 +184,9 @@ Appended below the Password card on `/profile` (phase 01 page).
   expose the key in the DOM.
 - Loading/error states inline on the card; failed upload keeps the previous
   signature.
-- Only APPROVER users see this card. Submitters, reviewers, and admins do not.
+- Every role sees this card: an approver signs approvals with it, and every
+  author is offered it while signing a report. Uploaded photos are cleaned to
+  ink on transparent paper in the card before they are sent.
 
 ---
 
@@ -217,8 +221,10 @@ Appended below the Password card on `/profile` (phase 01 page).
 
 ## 7. Acceptance checklist
 
-- [ ] `/review` and `/approval` are role-gated; Admin without the role cannot see
-      them.
+- [ ] `/review` and `/approval` are role-gated; Admin stands in for both roles
+      and sees them.
+- [ ] A report the caller submitted is marked **Your report** in the queue row
+      and the detail header; an admin keeps its decision buttons on it.
 - [ ] Queue table shows tracking, title, type, college, submitted (endorsed on
       the approval queue), age (working days with text warning >3), and status;
       default sort is oldest first.
@@ -242,9 +248,11 @@ Appended below the Password card on `/profile` (phase 01 page).
 - [ ] Failure keeps the drawer open with the comment preserved and an inline
       alert.
 - [ ] Already-decided and attachments-uploading states are handled.
-- [ ] Signature card exists only for APPROVERs: 600×200 canvas, Draw/Upload,
+- [ ] Signature card exists for every role: 600×200 canvas, Draw/Upload,
       clear/undo, PNG/JPEG, 240 px preview, Replace/Remove with confirm, Save
-      disabled until changed.
+      disabled until changed. An uploaded photo is cleaned to transparent ink,
+      shows a checkerboard preview with a "Background removed/kept" line, and
+      offers **Use original** before saving.
 - [ ] `R`/`E`/`A` work only on detail pages, are suppressed while typing, and
       have visible buttons.
 - [ ] `pnpm lint`, `pnpm typecheck`, and `pnpm build` results reported.

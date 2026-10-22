@@ -96,8 +96,10 @@ desktop → nothing from apps
 - `audit_events` is append-only — never write an update or delete path for it.
 - Tracking numbers (`OFF-2026-0001`, `EDU`, `INC`) are issued atomically at first
   submission and never change on resubmission.
-- Nobody reviews or approves a report they submitted. Admin stands in for every
-  role (spec §9, 2026-10-20) but separation of duties still applies to its own.
+- Nobody reviews or approves a report they submitted, except ADMIN, which stands
+  in for every role (spec §9, 2026-10-20) and may decide its own report so one
+  account can exercise the whole flow; the audit event still names it as actor.
+  Its own reports are shown and marked "Your report", never hidden.
 - Migrations are generated, never hand-edited, forward-only; destructive changes
   use expand/contract. CI fails if `db:generate` leaves the migrations dirty.
 
