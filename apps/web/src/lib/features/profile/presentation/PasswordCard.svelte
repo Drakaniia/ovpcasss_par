@@ -1,6 +1,6 @@
 <script lang="ts">
   import { changePasswordSchema } from '@par/shared';
-  import { AlertCircle, LoaderCircle } from '@lucide/svelte';
+  import { AlertCircle, Eye, EyeOff, LoaderCircle } from '@lucide/svelte';
   import { tick } from 'svelte';
 
   import { api } from '$lib/api/client';
@@ -24,6 +24,9 @@
   let alert = $state<string | null>(null);
   let saving = $state(false);
   let alertEl = $state<HTMLElement | null>(null);
+
+  /** Each field reveals independently; the icon clears when the form resets. */
+  let reveal = $state({ current: false, new: false, confirm: false });
 
   const strength = $derived(passwordStrengthText(newPassword));
 
@@ -92,6 +95,22 @@
   }
 </script>
 
+{#snippet revealToggle(field: 'current' | 'new' | 'confirm', name: string)}
+  <button
+    class="reveal"
+    type="button"
+    aria-label={reveal[field] ? `Hide ${name}` : `Show ${name}`}
+    aria-pressed={reveal[field]}
+    onclick={() => (reveal[field] = !reveal[field])}
+  >
+    {#if reveal[field]}
+      <EyeOff size={16} aria-hidden="true" />
+    {:else}
+      <Eye size={16} aria-hidden="true" />
+    {/if}
+  </button>
+{/snippet}
+
 <section class="card card-body" aria-labelledby="password-heading">
   <div class="card-head">
     <h2 id="password-heading">Password</h2>
@@ -122,17 +141,20 @@
 
       <div class="field">
         <label class="field-label" for="currentPassword">Current password</label>
-        <input
-          class="input"
-          id="currentPassword"
-          name="currentPassword"
-          type="password"
-          autocomplete="current-password"
-          bind:value={currentPassword}
-          onblur={checkCurrentPassword}
-          aria-invalid={errors.currentPassword ? 'true' : undefined}
-          aria-describedby={errors.currentPassword ? 'currentPassword-error' : undefined}
-        />
+        <div class="password-field">
+          <input
+            class="input"
+            id="currentPassword"
+            name="currentPassword"
+            type={reveal.current ? 'text' : 'password'}
+            autocomplete="current-password"
+            bind:value={currentPassword}
+            onblur={checkCurrentPassword}
+            aria-invalid={errors.currentPassword ? 'true' : undefined}
+            aria-describedby={errors.currentPassword ? 'currentPassword-error' : undefined}
+          />
+          {@render revealToggle('current', 'current password')}
+        </div>
         {#if errors.currentPassword}
           <p class="field-error" id="currentPassword-error">
             <AlertCircle size={16} aria-hidden="true" />
@@ -144,23 +166,26 @@
 
       <div class="field">
         <label class="field-label" for="newPassword">New password</label>
-        <input
-          class="input"
-          id="newPassword"
-          name="newPassword"
-          type="password"
-          autocomplete="new-password"
-          bind:value={newPassword}
-          onblur={checkNewPassword}
-          aria-invalid={errors.newPassword ? 'true' : undefined}
-          aria-describedby={[
-            errors.newPassword ? 'newPassword-error' : '',
-            strength ? 'newPassword-strength' : '',
-            'newPassword-rule',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-        />
+        <div class="password-field">
+          <input
+            class="input"
+            id="newPassword"
+            name="newPassword"
+            type={reveal.new ? 'text' : 'password'}
+            autocomplete="new-password"
+            bind:value={newPassword}
+            onblur={checkNewPassword}
+            aria-invalid={errors.newPassword ? 'true' : undefined}
+            aria-describedby={[
+              errors.newPassword ? 'newPassword-error' : '',
+              strength ? 'newPassword-strength' : '',
+              'newPassword-rule',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          />
+          {@render revealToggle('new', 'new password')}
+        </div>
         <p class="field-hint" id="newPassword-rule">Use at least 12 characters.</p>
         {#if strength}
           <p class="field-hint" id="newPassword-strength" aria-live="polite">{strength}</p>
@@ -175,17 +200,20 @@
 
       <div class="field">
         <label class="field-label" for="confirmPassword">Confirm new password</label>
-        <input
-          class="input"
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          autocomplete="new-password"
-          bind:value={confirmPassword}
-          onblur={checkConfirmPassword}
-          aria-invalid={errors.confirmPassword ? 'true' : undefined}
-          aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
-        />
+        <div class="password-field">
+          <input
+            class="input"
+            id="confirmPassword"
+            name="confirmPassword"
+            type={reveal.confirm ? 'text' : 'password'}
+            autocomplete="new-password"
+            bind:value={confirmPassword}
+            onblur={checkConfirmPassword}
+            aria-invalid={errors.confirmPassword ? 'true' : undefined}
+            aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
+          />
+          {@render revealToggle('confirm', 'confirmation password')}
+        </div>
         {#if errors.confirmPassword}
           <p class="field-error" id="confirmPassword-error">
             <AlertCircle size={16} aria-hidden="true" />
@@ -232,5 +260,42 @@
     color: var(--text-secondary);
     font-size: 13px;
     margin: 4px 0 0;
+  }
+
+  .password-field {
+    position: relative;
+  }
+
+  .password-field .input {
+    padding-right: 44px;
+  }
+
+  /* Matches the field primitive: the reveal waits for hover or focus. */
+  .reveal {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-card);
+    color: var(--text-disabled);
+    display: inline-flex;
+    height: 30px;
+    justify-content: center;
+    opacity: 0;
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: opacity 140ms ease;
+    width: 30px;
+  }
+
+  .password-field:hover .reveal,
+  .password-field:focus-within .reveal {
+    opacity: 1;
+  }
+
+  .reveal:hover {
+    background: var(--surface-page);
+    color: var(--text-primary);
   }
 </style>
