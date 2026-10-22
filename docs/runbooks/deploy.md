@@ -5,7 +5,9 @@ serves, and the Windows desktop installer.
 
 ## Preconditions
 
-- Node 22 and pnpm 12.3.4 (`engine-strict` rejects anything else).
+- Node 22.18 or newer and pnpm 12.3.4 (`engine-strict` rejects anything else).
+  22.18 is the floor because `db:seed` runs a `.ts` file with Node's built-in
+  type stripping.
 - `pnpm install --frozen-lockfile` on a clean checkout.
 - Wrangler authenticated (`wrangler login` locally, `CLOUDFLARE_API_TOKEN` in CI).
 - Worker secrets already set (see `key-rotation.md`); secrets are not part of a

@@ -127,7 +127,7 @@ desktop → nothing from apps
   `pnpm --filter @par/desktop exec tauri icon <png>` before `tauri build`.
 - Merging to `main` does not deploy. Production is a `v*` tag or a manual
   dispatch, with D1 migrations applied before the Worker (`.github/workflows/deploy.yml`).
-- `.npmrc` sets `engine-strict=true`: Node >=22, pnpm 12.3.4. Dependency versions
+- `.npmrc` sets `engine-strict=true`: Node >=22.18, pnpm 12.3.4. Dependency versions
   are pinned exactly; do not bump one without checking peers.
 
 ## UI work
