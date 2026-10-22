@@ -4,13 +4,17 @@ import { createDb, createSessionQueries, createUserQueries } from '@par/db';
 import {
   changePasswordSchema,
   emailPreferencesInputSchema,
+  signatureUploadSchema,
   updateProfileSchema,
 } from '@par/shared';
 
 import type { AppEnv } from '../../env';
 import { recordAudit } from '../../lib/audit';
+import { signedDownloadUrl } from '../../lib/download-url';
 import { readSessionCookie } from '../../lib/session-cookie';
+import { parseSignatureImage, profileSignatureKey } from '../../lib/signature-image';
 import { requireSession } from '../../middleware/auth';
+import { rateLimit } from '../../middleware/rate-limit';
 import { createNotificationRepository } from '../notifications/infrastructure/notification-repository';
 import {
   changePassword,
@@ -22,7 +26,8 @@ import {
 
 /**
  * The signed-in account (spec §7.3, UI spec §7.14). Mounted at `/me`, so `GET /`
- * is `GET /me`. Signature paths (`/me/signature*`) are M4 and deliberately absent.
+ * is `GET /me`. Every role may keep a signature: it signs approvals and is
+ * offered while authoring a report (signature spec W2).
  */
 export const profileRoutes = new Hono<AppEnv>();
 
@@ -133,6 +138,122 @@ profileRoutes.post('/password', async (c) => {
 
   return c.body(null, 204);
 });
+
+/**
+ * Store or replace the caller's signature (signature spec §4.4). The previous
+ * object is deleted only after the new key is written, so a failed write leaves
+ * the old signature in place.
+ */
+profileRoutes.put('/signature', rateLimit({ limit: 20, windowSeconds: 60 }), async (c) => {
+  const userId = c.get('userId');
+  if (!userId) return unauthorized(c);
+
+  const parsed = signatureUploadSchema.safeParse(await readBody(c));
+  if (!parsed.success) return validationError(c, parsed.error.issues);
+
+  const image = parseSignatureImage(parsed.data.image);
+  if (!image) {
+    return c.json(
+      {
+        error: {
+          code: 'INVALID_SIGNATURE',
+          message: 'Use a PNG or JPEG image under 2 MB.',
+        },
+      },
+      400,
+    );
+  }
+
+  const users = createUserQueries(createDb(c.env.DB));
+  const user = await users.findById(userId);
+  if (!user) return unauthorized(c);
+
+  const key = profileSignatureKey(userId);
+  await c.env.BUCKET.put(key, image.bytes, {
+    httpMetadata: { contentType: image.mimeType },
+  });
+
+  const at = new Date().toISOString();
+  const updated = await users.update(user.id, { signatureObjectKey: key }, at);
+  if (!updated) return unauthorized(c);
+
+  if (user.signatureObjectKey) {
+    await c.env.BUCKET.delete(user.signatureObjectKey).catch(() => undefined);
+  }
+
+  await recordAudit(c, {
+    actorUserId: userId,
+    actorRole: c.get('role'),
+    action: 'SIGNATURE_UPDATED',
+    entityType: 'user',
+    entityId: userId,
+  });
+
+  return c.json({ hasSignature: true, updatedAt: updated.updatedAt });
+});
+
+profileRoutes.delete('/signature', rateLimit({ limit: 20, windowSeconds: 60 }), async (c) => {
+  const userId = c.get('userId');
+  if (!userId) return unauthorized(c);
+
+  const users = createUserQueries(createDb(c.env.DB));
+  const user = await users.findById(userId);
+  if (!user) return unauthorized(c);
+
+  if (user.signatureObjectKey) {
+    await c.env.BUCKET.delete(user.signatureObjectKey).catch(() => undefined);
+  }
+
+  await users.update(user.id, { signatureObjectKey: null }, new Date().toISOString());
+
+  await recordAudit(c, {
+    actorUserId: userId,
+    actorRole: c.get('role'),
+    action: 'SIGNATURE_REMOVED',
+    entityType: 'user',
+    entityId: userId,
+  });
+
+  return c.json({ hasSignature: false });
+});
+
+/** Short-lived URL for the profile card; 404 is the ordinary "none on file". */
+profileRoutes.get('/signature/url', async (c) => {
+  const userId = c.get('userId');
+  if (!userId) return unauthorized(c);
+
+  const user = await createUserQueries(createDb(c.env.DB)).findById(userId);
+  if (!user) return unauthorized(c);
+  if (!user.signatureObjectKey) return signatureMissing(c);
+
+  const url = await signedDownloadUrl(c, user.signatureObjectKey, '/api/v1/me/signature/file');
+
+  return c.json({ url, expiresAt: new Date(Date.now() + 5 * 60_000).toISOString() });
+});
+
+/** Storage-free fallback for `wrangler dev`, where R2 signing is unavailable. */
+profileRoutes.get('/signature/file', async (c) => {
+  const userId = c.get('userId');
+  if (!userId) return unauthorized(c);
+
+  const user = await createUserQueries(createDb(c.env.DB)).findById(userId);
+  if (!user?.signatureObjectKey) return signatureMissing(c);
+
+  const object = await c.env.BUCKET.get(user.signatureObjectKey);
+  if (!object) return signatureMissing(c);
+
+  return new Response(object.body as BodyInit, {
+    status: 200,
+    headers: {
+      'content-type': object.httpMetadata?.contentType ?? 'image/png',
+      'cache-control': 'private, no-store',
+    },
+  });
+});
+
+function signatureMissing(c: Context<AppEnv>) {
+  return c.json({ error: { code: 'NOT_FOUND', message: 'No signature is on file' } }, 404);
+}
 
 function unauthorized(c: Context<AppEnv>) {
   return c.json(

@@ -26,6 +26,7 @@ import {
   workflowFor,
 } from './application/workflow-context';
 import { registerReportPdfRoutes } from './pdf-routes';
+import { registerReportSignatureRoutes } from './signature-routes';
 
 /** States a report can be edited in (spec §7.5): draft and both returns. */
 const EDITABLE: readonly ReportStatus[] = ['DRAFT', 'RETURNED_BY_REVIEWER', 'RETURNED_BY_APPROVER'];
@@ -78,6 +79,23 @@ function versionFrom(c: Context<AppEnv>): number | undefined | null {
 function partialForm(body: unknown): ReportDraftForm | null {
   const parsed = reportFormSchema.partial().safeParse(body);
   return parsed.success ? (parsed.data as ReportDraftForm) : null;
+}
+
+function reportDetail(
+  c: Context<AppEnv>,
+  stack: ReturnType<typeof reportDependencies>,
+  reportId: string,
+) {
+  return buildReportDetail(
+    {
+      read: stack.read,
+      users: stack.users,
+      audit: stack.audit,
+      env: c.env,
+      origin: new URL(c.req.url).origin,
+    },
+    reportId,
+  );
 }
 
 function editable(viewer: NonNullable<ReturnType<typeof viewerOf>>, row: ReportRow): boolean {
@@ -166,10 +184,7 @@ reportRoutes.get('/:id', async (c) => {
   if (!row) return notFound(c);
   if (!canViewReport(viewer, row.ownerUserId)) return notFound(c);
 
-  const detail = await buildReportDetail(
-    { read: stack.read, users: stack.users, audit: stack.audit },
-    row.id,
-  );
+  const detail = await reportDetail(c, stack, row.id);
 
   return detail ? c.json(detail) : notFound(c);
 });
@@ -182,10 +197,7 @@ reportRoutes.get('/:id/events', async (c) => {
   const row = await stack.read.findById(c.req.param('id') ?? '');
   if (!row || !canViewReport(viewer, row.ownerUserId)) return notFound(c);
 
-  const detail = await buildReportDetail(
-    { read: stack.read, users: stack.users, audit: stack.audit },
-    row.id,
-  );
+  const detail = await reportDetail(c, stack, row.id);
 
   return c.json({ items: detail?.history ?? [] });
 });
@@ -251,6 +263,10 @@ reportRoutes.delete('/:id', requireRole('SUBMITTER'), async (c) => {
       c.env.BUCKET.delete(attachment.objectKey).catch(() => undefined),
     ),
   );
+
+  if (row.submitterSignatureKey) {
+    await c.env.BUCKET.delete(row.submitterSignatureKey).catch(() => undefined);
+  }
 
   if (!(await stack.write.deleteDraft(row.id))) return conflict(c, 'REPORT_NOT_DRAFT');
 
@@ -366,3 +382,4 @@ reportRoutes.post('/:id/submit', requireRole('SUBMITTER'), (c) => submit(c, fals
 reportRoutes.post('/:id/resubmit', requireRole('SUBMITTER'), (c) => submit(c, true));
 
 registerReportPdfRoutes(reportRoutes);
+registerReportSignatureRoutes(reportRoutes);

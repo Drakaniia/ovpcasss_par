@@ -1,4 +1,7 @@
 import type { AuditEventRow, AuditQueries, ReportReadQueries, UserQueries } from '@par/db';
+
+import type { Env } from '../../../env';
+import { PresignUnavailableError, presignGet } from '../../attachments/infrastructure/r2-presign';
 import type {
   ReportCommentRound,
   ReportDetail,
@@ -14,6 +17,10 @@ export interface ReportDetailDependencies {
   read: ReportReadQueries;
   users: UserQueries;
   audit: AuditQueries;
+  /** Needed to resolve the two signature slots; absent means no image URLs. */
+  env?: Env;
+  /** The API's own origin, used for the storage-free fallback path. */
+  origin?: string;
 }
 
 const HISTORY_LABELS: Record<string, string> = {
@@ -55,6 +62,9 @@ export async function buildReportDetail(
   ]);
 
   const names = await actorNames(deps.users, events, row.ownerUserId, row.approvedByUserId);
+  const approverUser = row.approvedByUserId
+    ? await deps.users.findById(row.approvedByUserId)
+    : null;
   const roles = new Map<string, Role>();
   for (const event of events) {
     if (event.actorUserId && event.actorRole) roles.set(event.actorUserId, event.actorRole);
@@ -92,6 +102,18 @@ export async function buildReportDetail(
 
   const lastEvent = events.at(-1) ?? null;
 
+  const submitterSignatureUrl =
+    row.submitterSignatureKey && row.submitterSignedAt
+      ? await imageUrl(deps, row.submitterSignatureKey, `/api/v1/reports/${row.id}/signature/file`)
+      : undefined;
+  const approvalSignatureUrl = approverUser?.signatureObjectKey
+    ? await imageUrl(
+        deps,
+        approverUser.signatureObjectKey,
+        `/api/v1/reports/${row.id}/approval-signature/file`,
+      )
+    : undefined;
+
   return {
     id: row.id,
     ownerUserId: row.ownerUserId,
@@ -122,7 +144,19 @@ export async function buildReportDetail(
     commentRounds,
     approval:
       row.approvedAt && row.approvedByUserId
-        ? { signerName: nameOf(row.approvedByUserId), signedAt: row.approvedAt }
+        ? {
+            signerName: nameOf(row.approvedByUserId),
+            signedAt: row.approvedAt,
+            ...(approvalSignatureUrl ? { signatureUrl: approvalSignatureUrl } : {}),
+          }
+        : null,
+    submitterSignature:
+      row.submitterSignatureKey && row.submitterSignedAt
+        ? {
+            signerName: nameOf(row.ownerUserId),
+            signedAt: row.submitterSignedAt,
+            ...(submitterSignatureUrl ? { signatureUrl: submitterSignatureUrl } : {}),
+          }
         : null,
     ...(lastEvent ? { updatedByName: nameOf(lastEvent.actorUserId) } : {}),
   };
@@ -161,6 +195,27 @@ function lastActor(
   }
 
   return null;
+}
+
+/**
+ * A short-lived presigned URL where storage signing is configured, and the
+ * authenticated report route otherwise, so `wrangler dev` still renders the
+ * image (the same fallback the attachment and facsimile endpoints use).
+ */
+async function imageUrl(
+  deps: ReportDetailDependencies,
+  key: string,
+  fallbackPath: string,
+): Promise<string | undefined> {
+  if (!deps.env) return undefined;
+
+  try {
+    return await presignGet(deps.env, key);
+  } catch (error) {
+    if (!(error instanceof PresignUnavailableError)) throw error;
+  }
+
+  return deps.origin ? `${deps.origin}${fallbackPath}` : fallbackPath;
 }
 
 async function actorNames(

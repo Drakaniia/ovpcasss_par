@@ -122,7 +122,13 @@ export async function handleDecision(c: Context<AppEnv>, kind: DecisionKind): Pr
   }
 
   const detail = await buildReportDetail(
-    { read: stack.read, users: stack.users, audit: stack.audit },
+    {
+      read: stack.read,
+      users: stack.users,
+      audit: stack.audit,
+      env: c.env,
+      origin: new URL(c.req.url).origin,
+    },
     outcome.row.id,
   );
 
