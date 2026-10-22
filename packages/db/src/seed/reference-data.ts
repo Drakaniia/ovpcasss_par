@@ -26,6 +26,9 @@ export type SeedProgram = {
 
 export type SeedSdg = { number: number; title: string };
 
+/** A department or office entry, keyed by the unit code it is derived from. */
+export type SeedDirectoryEntry = { key: string; name: string; sortOrder: number };
+
 export const SEED_CAMPUSES: SeedCampus[] = [
   { code: 'MAIN', name: 'MAIN', sortOrder: 1 },
   { code: 'SATELLITE', name: 'SATELLITE', sortOrder: 2 },
@@ -505,6 +508,31 @@ export const SEED_PROGRAMS: SeedProgram[] = [
     sortOrder: 44,
   },
 ];
+
+/**
+ * Departments and offices have no source list of their own (spec §8; the
+ * workbook's units table is the only input). Departments are the academic units
+ * — the seven colleges and the two graduate-school groups — and offices are the
+ * support units — the satellite campuses and the three other units. Deriving
+ * both here keeps a unit rename from drifting between the three lists.
+ */
+function directoryEntries(kinds: readonly UnitKind[]): SeedDirectoryEntry[] {
+  return SEED_UNITS.filter((unit) => kinds.includes(unit.kind)).map((unit, index) => ({
+    key: unit.code.toLowerCase(),
+    name: unit.name,
+    sortOrder: index + 1,
+  }));
+}
+
+export const SEED_DEPARTMENTS: SeedDirectoryEntry[] = directoryEntries([
+  'COLLEGE',
+  'GRADUATE_SCHOOL_GROUP',
+]);
+
+export const SEED_OFFICES: SeedDirectoryEntry[] = directoryEntries([
+  'SATELLITE_CAMPUS',
+  'OTHER_UNIT',
+]);
 
 export const SEED_SDGS: SeedSdg[] = [
   { number: 1, title: 'No Poverty' },

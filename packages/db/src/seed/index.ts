@@ -1,6 +1,14 @@
 import type { Database } from '../client';
 import { createReferenceQueries } from '../queries/reference-data';
-import { SEED_CAMPUSES, SEED_PROGRAMS, SEED_SDGS, SEED_UNITS } from './reference-data';
+import {
+  SEED_CAMPUSES,
+  SEED_DEPARTMENTS,
+  SEED_OFFICES,
+  SEED_PROGRAMS,
+  SEED_SDGS,
+  SEED_UNITS,
+  type SeedDirectoryEntry,
+} from './reference-data';
 
 function requireId(ids: Map<string, string>, key: string): string {
   const id = ids.get(key);
@@ -9,9 +17,16 @@ function requireId(ids: Map<string, string>, key: string): string {
   return id;
 }
 
+/** Directory names are compared trimmed and case-insensitively; no code exists. */
+function directoryName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
 /**
- * Seeds campuses, units, programs, and SDGs (spec §8). Idempotent: a row whose
- * natural key already exists is left untouched, so re-running never duplicates.
+ * Seeds campuses, units, programs, SDGs, and the department/office lists derived
+ * from the academic and support units (spec §8). Idempotent: a row whose natural
+ * key already exists is left untouched, so re-running never duplicates and never
+ * overwrites an office edit.
  */
 export async function seedReferenceData(db: Database): Promise<void> {
   const reference = createReferenceQueries(db);
@@ -75,6 +90,32 @@ export async function seedReferenceData(db: Database): Promise<void> {
     });
     programIdByCode.set(program.code, row.id);
   }
+
+  async function seedDirectory(
+    entity: 'departments' | 'offices',
+    entries: readonly SeedDirectoryEntry[],
+  ): Promise<void> {
+    const existing = new Set(
+      (await reference.list(entity)).map((row) => directoryName(row.name)),
+    );
+
+    for (const entry of entries) {
+      if (existing.has(directoryName(entry.name))) continue;
+
+      await reference.create(entity, {
+        id: crypto.randomUUID(),
+        name: entry.name,
+        sortOrder: entry.sortOrder,
+        isActive: true,
+        isSeeded: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  }
+
+  await seedDirectory('departments', SEED_DEPARTMENTS);
+  await seedDirectory('offices', SEED_OFFICES);
 
   const sdgNumbers = new Set((await reference.list('sdgs')).map((row) => row.number));
   for (const sdg of SEED_SDGS) {
