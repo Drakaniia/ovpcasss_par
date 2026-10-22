@@ -45,12 +45,13 @@ describe('SearchFilters', () => {
     expect(body).toContain('4 Quality education');
   });
 
-  it('offers no Draft status: drafts are not repository records', () => {
+  it('opens on the Approved scope and never offers a Draft status', () => {
     const { body } = renderPanel();
 
     expect(body).not.toContain('Draft');
-    expect(body).toContain('Approved');
-    expect(body).toContain('Returned by approver');
+    // The status listbox is closed, so it shows the value it starts on.
+    expect(body).toContain('id="repository-status"');
+    expect(body).toContain('>Approved</span>');
   });
 
   it('starts collapsed or open according to the URL state', () => {

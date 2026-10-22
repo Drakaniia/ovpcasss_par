@@ -61,12 +61,11 @@ describe('ReportFilterBar', () => {
     };
     const html = renderBar(filters);
 
-    expect(html).toContain('Filter by type');
-    expect(html).toContain('All types');
+    // Three listboxes, each closed on the value the URL carries.
+    expect((html.match(/aria-haspopup="listbox"/g) ?? []).length).toBe(3);
     expect(html).toContain('Off-campus');
-    expect(html).toContain('All campuses');
-    expect(html).toContain('Main Campus');
     expect(html).toContain('North Campus (inactive)');
+    expect(html).toContain('All terms');
     expect(html).toContain('for="filter-from"');
     expect(html).toContain('for="filter-to"');
     expect(html).toContain('aria-label="Choose activity date from"');

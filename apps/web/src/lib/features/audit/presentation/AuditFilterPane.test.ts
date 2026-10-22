@@ -29,27 +29,16 @@ describe('AuditFilterPane', () => {
     expect(body).toContain('Reset</button>');
   });
 
-  it('contains expected action options', () => {
+  // The values live in a listbox that opens on demand, so the closed control is
+  // asserted by its label and its empty-state text.
+  it('offers action and entity-type listboxes that start unfiltered', () => {
     const { body } = renderPane();
 
+    expect(body).toContain('id="filter-action"');
     expect(body).toContain('All actions');
-    expect(body).toContain('Registered');
-    expect(body).toContain('Logged in');
-    expect(body).toContain('Role changed');
-    expect(body).toContain('Endorsed');
-    expect(body).toContain('Approved');
-  });
-
-  it('contains expected entity type options', () => {
-    const { body } = renderPane();
-
+    expect(body).toContain('id="filter-entity-type"');
     expect(body).toContain('All entity types');
-    expect(body).toContain('User');
-    expect(body).toContain('Report');
-    expect(body).toContain('Attachment');
-    expect(body).toContain('Reference data');
-    expect(body).toContain('Export');
-    expect(body).toContain('Session');
+    expect((body.match(/aria-haspopup="listbox"/g) ?? []).length).toBe(4);
   });
 
   it('labels each end of the date range visibly', () => {

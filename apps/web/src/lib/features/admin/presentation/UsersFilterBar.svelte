@@ -2,6 +2,8 @@
   import { Search } from '@lucide/svelte';
   import { untrack } from 'svelte';
 
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
+
   import {
     USER_ROLE_LABELS,
     USER_ROLES_ALL,
@@ -17,6 +19,19 @@
     filters: UserFilters;
     onchange: (patch: Partial<UserFilters>) => void;
   } = $props();
+
+  const ROLE_OPTIONS = [
+    { value: 'ALL', label: 'All roles' },
+    ...USER_ROLES_ALL.map((role) => ({ value: role, label: USER_ROLE_LABELS[role] })),
+  ];
+
+  const STATUS_OPTIONS = [
+    { value: 'ALL', label: 'All statuses' },
+    ...USER_STATUSES_ALL.map((status) => ({
+      value: status,
+      label: USER_STATUS_PRESENTATION[status].label,
+    })),
+  ];
 
   let query = $state(untrack(() => filters.q));
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -53,29 +68,27 @@
     />
   </div>
 
-  <select
-    class="select filter-select"
-    aria-label="Filter by role"
-    value={filters.role}
-    onchange={(event) => onchange({ role: event.currentTarget.value as UserFilters['role'] })}
-  >
-    <option value="ALL">All roles</option>
-    {#each USER_ROLES_ALL as role (role)}
-      <option value={role}>{USER_ROLE_LABELS[role]}</option>
-    {/each}
-  </select>
+  <div class="filter-select">
+    <EditableSelect
+      id="users-filter-role"
+      label="Role"
+      value={filters.role}
+      options={ROLE_OPTIONS}
+      searchable={false}
+      onchange={(value) => onchange({ role: value as UserFilters['role'] })}
+    />
+  </div>
 
-  <select
-    class="select filter-select"
-    aria-label="Filter by status"
-    value={filters.status}
-    onchange={(event) => onchange({ status: event.currentTarget.value as UserFilters['status'] })}
-  >
-    <option value="ALL">All statuses</option>
-    {#each USER_STATUSES_ALL as status (status)}
-      <option value={status}>{USER_STATUS_PRESENTATION[status].label}</option>
-    {/each}
-  </select>
+  <div class="filter-select">
+    <EditableSelect
+      id="users-filter-status"
+      label="Status"
+      value={filters.status}
+      options={STATUS_OPTIONS}
+      searchable={false}
+      onchange={(value) => onchange({ status: value as UserFilters['status'] })}
+    />
+  </div>
 </div>
 
 <style>

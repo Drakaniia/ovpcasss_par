@@ -2,6 +2,7 @@
   import type { QueueFacets, QueueSort, ReportType } from '@par/shared';
   import { QUEUE_SORTS, REPORT_TYPES } from '@par/shared';
 
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
   import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
 
   import { QUEUE_SORT_LABELS, type QueueFilters } from '../application/queue-filters';
@@ -16,62 +17,82 @@
     facets: QueueFacets | null;
     onchange: (patch: Partial<QueueFilters>) => void;
   } = $props();
+
+  const TYPE_OPTIONS = [
+    { value: '', label: 'All types' },
+    ...REPORT_TYPES.map((type) => ({ value: type, label: REPORT_TYPE_LABELS[type] })),
+  ];
+
+  const SORT_OPTIONS = QUEUE_SORTS.map((sort) => ({
+    value: sort,
+    label: QUEUE_SORT_LABELS[sort],
+  }));
+
+  const campusOptions = $derived([
+    { value: '', label: 'All campuses' },
+    ...(facets?.campuses ?? []).map((campus) => ({
+      value: campus.id,
+      label: campus.isActive ? campus.label : `${campus.label} (inactive)`,
+    })),
+  ]);
+
+  const collegeOptions = $derived([
+    { value: '', label: 'All colleges' },
+    ...(facets?.colleges ?? []).map((college) => ({
+      value: college.id,
+      label: college.isActive ? college.label : `${college.label} (inactive)`,
+    })),
+  ]);
 </script>
 
 <div class="filter-bar" role="search" aria-label="Filter the queue">
-  <select
-    class="select filter-select"
-    aria-label="Filter by type"
-    value={filters.type}
-    onchange={(event) => onchange({ type: event.currentTarget.value as ReportType | '' })}
-  >
-    <option value="">All types</option>
-    {#each REPORT_TYPES as type (type)}
-      <option value={type}>{REPORT_TYPE_LABELS[type]}</option>
-    {/each}
-  </select>
+  <div class="filter-select">
+    <EditableSelect
+      id="queue-type"
+      label="Type"
+      placeholder="All types"
+      value={filters.type}
+      options={TYPE_OPTIONS}
+      searchable={false}
+      onchange={(value) => onchange({ type: value as ReportType | '' })}
+    />
+  </div>
 
-  <select
-    class="select filter-select"
-    aria-label="Filter by campus"
-    value={filters.campusId}
-    onchange={(event) => onchange({ campusId: event.currentTarget.value })}
-  >
-    <option value="">All campuses</option>
-    {#each facets?.campuses ?? [] as campus (campus.id)}
-      <option value={campus.id}>
-        {campus.label}{campus.isActive ? '' : ' (inactive)'}
-      </option>
-    {/each}
-  </select>
+  <div class="filter-select">
+    <EditableSelect
+      id="queue-campus"
+      label="Campus"
+      placeholder="All campuses"
+      value={filters.campusId}
+      options={campusOptions}
+      onchange={(value) => onchange({ campusId: value })}
+    />
+  </div>
 
-  <select
-    class="select filter-select"
-    aria-label="Filter by college"
-    value={filters.collegeId}
-    onchange={(event) => onchange({ collegeId: event.currentTarget.value })}
-  >
-    <option value="">All colleges</option>
-    {#each facets?.colleges ?? [] as college (college.id)}
-      <option value={college.id}>
-        {college.label}{college.isActive ? '' : ' (inactive)'}
-      </option>
-    {/each}
-  </select>
+  <div class="filter-select">
+    <EditableSelect
+      id="queue-college"
+      label="College"
+      placeholder="All colleges"
+      value={filters.collegeId}
+      options={collegeOptions}
+      onchange={(value) => onchange({ collegeId: value })}
+    />
+  </div>
 
-  <label class="sort">
+  <div class="sort">
     <span class="sort-label">Sort</span>
-    <select
-      class="select filter-select"
-      aria-label="Sort the queue"
-      value={filters.sort}
-      onchange={(event) => onchange({ sort: event.currentTarget.value as QueueSort })}
-    >
-      {#each QUEUE_SORTS as sort (sort)}
-        <option value={sort}>{QUEUE_SORT_LABELS[sort]}</option>
-      {/each}
-    </select>
-  </label>
+    <div class="filter-select">
+      <EditableSelect
+        id="queue-sort"
+        label="Sort the queue"
+        value={filters.sort}
+        options={SORT_OPTIONS}
+        searchable={false}
+        onchange={(value) => onchange({ sort: value as QueueSort })}
+      />
+    </div>
+  </div>
 </div>
 
 <style>

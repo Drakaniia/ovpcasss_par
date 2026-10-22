@@ -28,6 +28,8 @@
     invalid = false,
     describedBy,
     disabled = false,
+    /** Short, fixed lists read faster without a search box. */
+    searchable = true,
     allowCustom = false,
     manage,
     emptyMessage = 'No entries yet.',
@@ -41,6 +43,7 @@
     invalid?: boolean;
     describedBy?: string;
     disabled?: boolean;
+    searchable?: boolean;
     /** Anyone may type a value the list does not hold. */
     allowCustom?: boolean;
     /** Present only where the list itself may be edited; values are the names. */
@@ -97,7 +100,8 @@
     await tick();
     above = flips();
     await tick();
-    search?.focus();
+    if (searchable) search?.focus();
+    else list?.focus();
   }
 
   /** Below the trigger unless that would overflow and there is room above it. */
@@ -288,30 +292,32 @@
       class:is-closing={closing}
       bind:this={popover}
       role="presentation"
+      onkeydown={walk}
     >
-      <div class="search-row">
-        <span class="search-icon"><Search size={14} aria-hidden="true" /></span>
-        <input
-          class="search"
-          type="text"
-          autocomplete="off"
-          spellcheck="false"
-          role="combobox"
-          aria-expanded="true"
-          aria-controls={listId}
-          aria-autocomplete="list"
-          aria-labelledby={`${id}-search-label`}
-          aria-activedescendant={activeRow ? `${id}-row-${active}` : undefined}
-          placeholder={`Search ${label.toLowerCase()}`}
-          bind:this={search}
-          bind:value={query}
-          oninput={() => (active = 0)}
-          onkeydown={walk}
-        />
-        <span class="visually-hidden" id={`${id}-search-label`}>{label}</span>
-      </div>
+      {#if searchable}
+        <div class="search-row">
+          <span class="search-icon"><Search size={14} aria-hidden="true" /></span>
+          <input
+            class="search"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls={listId}
+            aria-autocomplete="list"
+            aria-labelledby={`${id}-search-label`}
+            aria-activedescendant={activeRow ? `${id}-row-${active}` : undefined}
+            placeholder={`Search ${label.toLowerCase()}`}
+            bind:this={search}
+            bind:value={query}
+            oninput={() => (active = 0)}
+          />
+          <span class="visually-hidden" id={`${id}-search-label`}>{label}</span>
+        </div>
+      {/if}
 
-      <div class="list" bind:this={list}>
+      <div class="list" bind:this={list} tabindex="-1" role="presentation">
         <ul id={listId} role="listbox" aria-label={label}>
           {#if rows.length === 0}
             <li class="empty">{emptyMessage}</li>
@@ -562,6 +568,7 @@
 
   .list {
     max-height: 244px;
+    outline: none;
     overscroll-behavior: contain;
     overflow-y: auto;
     padding: 4px;

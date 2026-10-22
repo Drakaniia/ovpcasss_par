@@ -2,6 +2,7 @@
   import type { ReportFilterOption, ReportType, RepositoryFacets } from '@par/shared';
   import { REPORT_TYPES } from '@par/shared';
 
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
   import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
 
   import type { RepositoryFilters } from '../application/repository-filters';
@@ -23,53 +24,73 @@
   } = $props();
 
   const options = (entries: readonly ReportFilterOption[] | undefined) => entries ?? [];
+
+  const TYPE_OPTIONS = [
+    { value: '', label: 'All types' },
+    ...REPORT_TYPES.map((type) => ({ value: type, label: REPORT_TYPE_LABELS[type] })),
+  ];
+
+  const termOptions = $derived(facetOptions(facets?.terms, filters.termId, 'All terms'));
+  const collegeOptions = $derived(
+    facetOptions(facets?.colleges, filters.collegeId, 'All colleges and units'),
+  );
+
+  /** Facet rows, plus the row that clears the filter. */
+  function facetOptions(
+    entries: readonly ReportFilterOption[] | undefined,
+    current: string,
+    allLabel: string,
+  ): { value: string; label: string }[] {
+    return [
+      { value: '', label: allLabel },
+      ...optionsWithCurrent(options(entries), current).map((entry) => ({
+        value: entry.id,
+        label: entry.isActive ? entry.label : `${entry.label} (inactive)`,
+      })),
+    ];
+  }
 </script>
 
 <div class="suggestions" role="group" aria-label="Suggested filters">
   <p class="lead">Most-used filters</p>
 
   <div class="controls">
-    <label class="suggestion">
+    <div class="suggestion">
       <span>Type</span>
-      <select
-        class="select"
+      <EditableSelect
+        id="search-suggestion-type"
+        label="Type"
+        placeholder="All types"
         value={filters.type}
-        onchange={(event) => onapply({ type: event.currentTarget.value as ReportType | '' })}
-      >
-        <option value="">All types</option>
-        {#each REPORT_TYPES as type (type)}
-          <option value={type}>{REPORT_TYPE_LABELS[type]}</option>
-        {/each}
-      </select>
-    </label>
+        options={TYPE_OPTIONS}
+        searchable={false}
+        onchange={(value) => onapply({ type: value as ReportType | '' })}
+      />
+    </div>
 
-    <label class="suggestion">
+    <div class="suggestion">
       <span>Term</span>
-      <select
-        class="select"
+      <EditableSelect
+        id="search-suggestion-term"
+        label="Term"
+        placeholder="All terms"
         value={filters.termId}
-        onchange={(event) => onapply({ termId: event.currentTarget.value })}
-      >
-        <option value="">All terms</option>
-        {#each optionsWithCurrent(options(facets?.terms), filters.termId) as term (term.id)}
-          <option value={term.id}>{term.label}{term.isActive ? '' : ' (inactive)'}</option>
-        {/each}
-      </select>
-    </label>
+        options={termOptions}
+        onchange={(value) => onapply({ termId: value })}
+      />
+    </div>
 
-    <label class="suggestion">
+    <div class="suggestion">
       <span>College</span>
-      <select
-        class="select"
+      <EditableSelect
+        id="search-suggestion-college"
+        label="College or unit"
+        placeholder="All colleges and units"
         value={filters.collegeId}
-        onchange={(event) => onapply({ collegeId: event.currentTarget.value })}
-      >
-        <option value="">All colleges and units</option>
-        {#each optionsWithCurrent(options(facets?.colleges), filters.collegeId) as college (college.id)}
-          <option value={college.id}>{college.label}{college.isActive ? '' : ' (inactive)'}</option>
-        {/each}
-      </select>
-    </label>
+        options={collegeOptions}
+        onchange={(value) => onapply({ collegeId: value })}
+      />
+    </div>
   </div>
 </div>
 

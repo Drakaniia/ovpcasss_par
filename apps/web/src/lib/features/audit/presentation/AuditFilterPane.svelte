@@ -2,6 +2,7 @@
   import { untrack } from 'svelte';
 
   import DatePicker from '$lib/components/DatePicker.svelte';
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
 
   import {
     filtersToParams,
@@ -114,20 +115,29 @@
 
     <div class="field-group">
       <label class="field-label" for="filter-action">Action</label>
-      <select class="field-select" id="filter-action" bind:value={draft.action} {disabled}>
-        {#each ACTION_OPTIONS as opt (opt.value)}
-          <option value={opt.value}>{opt.label}</option>
-        {/each}
-      </select>
+      <EditableSelect
+        id="filter-action"
+        label="Action"
+        placeholder="All actions"
+        value={draft.action}
+        options={ACTION_OPTIONS}
+        {disabled}
+        onchange={(value) => (draft.action = value)}
+      />
     </div>
 
     <div class="field-group">
       <label class="field-label" for="filter-entity-type">Entity type</label>
-      <select class="field-select" id="filter-entity-type" bind:value={draft.entityType} {disabled}>
-        {#each ENTITY_OPTIONS as opt (opt.value)}
-          <option value={opt.value}>{opt.label}</option>
-        {/each}
-      </select>
+      <EditableSelect
+        id="filter-entity-type"
+        label="Entity type"
+        placeholder="All entity types"
+        value={draft.entityType}
+        options={ENTITY_OPTIONS}
+        searchable={false}
+        {disabled}
+        onchange={(value) => (draft.entityType = value)}
+      />
     </div>
 
     <div class="field-group">
@@ -182,31 +192,29 @@
       <div class="status-inputs">
         <div class="status-col">
           <label class="sub-label" for="filter-from-status">From</label>
-          <select
-            class="field-select"
+          <EditableSelect
             id="filter-from-status"
-            aria-label="From status"
-            bind:value={draft.fromStatus}
+            label="From status"
+            placeholder="Any status"
+            value={draft.fromStatus}
+            options={STATUS_OPTIONS}
+            searchable={false}
             {disabled}
-          >
-            {#each STATUS_OPTIONS as opt (opt.value)}
-              <option value={opt.value}>{opt.label}</option>
-            {/each}
-          </select>
+            onchange={(value) => (draft.fromStatus = value)}
+          />
         </div>
         <div class="status-col">
           <label class="sub-label" for="filter-to-status">To</label>
-          <select
-            class="field-select"
+          <EditableSelect
             id="filter-to-status"
-            aria-label="To status"
-            bind:value={draft.toStatus}
+            label="To status"
+            placeholder="Any status"
+            value={draft.toStatus}
+            options={STATUS_OPTIONS}
+            searchable={false}
             {disabled}
-          >
-            {#each STATUS_OPTIONS as opt (opt.value)}
-              <option value={opt.value}>{opt.label}</option>
-            {/each}
-          </select>
+            onchange={(value) => (draft.toStatus = value)}
+          />
         </div>
       </div>
     </fieldset>
@@ -281,8 +289,7 @@
     font-size: 12px;
   }
 
-  .field-input,
-  .field-select {
+  .field-input {
     background: var(--surface-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-badge);
@@ -293,8 +300,7 @@
     width: 100%;
   }
 
-  .field-input:focus,
-  .field-select:focus {
+  .field-input:focus {
     border-color: var(--primary);
     outline: 2px solid var(--focus-ring);
   }
