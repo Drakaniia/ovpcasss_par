@@ -40,6 +40,10 @@
   const stats = $derived(inboxStatsFor(roles, inbox));
   const decided = $derived(recentlyDecidedRows(inbox.recentlyDecided ?? [], now));
   const unread = $derived(inbox.notificationsUnread ?? 0);
+  // One text node so the digest copy stays contiguous in the rendered HTML.
+  const digest = $derived(
+    `${unread} ${unread === 1 ? 'unread notification' : 'unread notifications'}`,
+  );
 
   const adminAudit = $derived(caps.admin ? (inbox.admin?.auditEvents ?? []) : []);
   const showingAudit = $derived(inbox.activity.length === 0 && adminAudit.length > 0);
@@ -55,10 +59,7 @@
 
 {#if unread > 0}
   <p class="digest">
-    <a href="/notifications">
-      {unread}
-      {unread === 1 ? 'unread notification' : 'unread notifications'}
-    </a>
+    <a href="/notifications">{digest}</a>
   </p>
 {/if}
 
