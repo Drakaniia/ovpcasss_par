@@ -1,17 +1,16 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import AuthTitleBar from '$lib/features/window-chrome/presentation/AuthTitleBar.svelte';
+  import BlueprintBackground from '$lib/components/BlueprintBackground.svelte';
 
   let {
     children,
     heading,
     showMachine = true,
-    showScene = true,
   }: {
     children: import('svelte').Snippet;
     heading: string;
     showMachine?: boolean;
-    showScene?: boolean;
   } = $props();
 
   let frame: HTMLIFrameElement | undefined = $state();
@@ -30,9 +29,7 @@
 <AuthTitleBar />
 
 <div class="auth-page">
-  {#if showScene}
-    <div class="auth-scene" aria-hidden="true"></div>
-  {/if}
+  <BlueprintBackground />
 
   <div class="auth-layout" class:with-machine={showMachine}>
     <div class="auth-stack">
@@ -91,20 +88,6 @@
 
   /* The stack owns the vertical seat: auto margins split the free space when the
      viewport is tall, and collapse to zero the moment the content fills it. */
-  /* The photograph is a faint wash in the lower-right corner: lightened, then
-     faded as a whole so the paper tone shows through it. */
-  .auth-scene {
-    background: url('/brand/campus.png') right bottom / contain no-repeat;
-    bottom: 0;
-    filter: brightness(1.18) saturate(1.04);
-    height: clamp(200px, 42vh, 620px);
-    opacity: 0.62;
-    pointer-events: none;
-    position: absolute;
-    right: 0;
-    width: clamp(240px, 42vw, 780px);
-  }
-
   .auth-layout {
     align-items: center;
     display: grid;
@@ -206,14 +189,10 @@
     }
   }
 
-  /* Small screens: tighter seat, smaller mark, no photograph behind the text. */
+  /* Small screens: tighter seat, smaller mark. */
   @media (max-width: 640px) {
     .auth-logo {
       width: min(72vw, 300px);
-    }
-
-    .auth-scene {
-      display: none;
     }
   }
 
@@ -226,10 +205,6 @@
 
     .auth-logo {
       width: clamp(200px, 24vw, 320px);
-    }
-
-    .auth-scene {
-      opacity: 0.4;
     }
   }
 </style>
