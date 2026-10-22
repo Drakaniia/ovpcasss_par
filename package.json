@@ -16,6 +16,7 @@
     "format:check": "prettier --check .",
     "db:generate": "pnpm --filter @par/db db:generate",
     "db:migrate": "pnpm --filter @par/db db:migrate",
+    "db:seed": "node packages/db/scripts/seed-sql.ts --out .turbo/seed.sql && pnpm --filter @par/db exec wrangler d1 execute par-db --config ../../apps/api/wrangler.toml --file ../../.turbo/seed.sql",
     "verify": "pnpm lint && pnpm typecheck && pnpm test"
   },
   "devDependencies": {

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { SEED_CAMPUSES, SEED_PROGRAMS, SEED_SDGS, SEED_UNITS } from './reference-data';
+import {
+  SEED_CAMPUSES,
+  SEED_DEPARTMENTS,
+  SEED_OFFICES,
+  SEED_PROGRAMS,
+  SEED_SDGS,
+  SEED_UNITS,
+} from './reference-data';
 
 const CODE_PATTERN = /^[A-Z0-9][A-Z0-9-]*$/;
 
@@ -25,6 +32,30 @@ describe('seed reference data', () => {
     for (const unit of SEED_UNITS) {
       expect(campusCodes.has(unit.campusCode)).toBe(true);
     }
+  });
+
+  it('derives nine academic departments from the units', () => {
+    expect(SEED_DEPARTMENTS).toHaveLength(9);
+
+    const academic = SEED_UNITS.filter(
+      (unit) => unit.kind === 'COLLEGE' || unit.kind === 'GRADUATE_SCHOOL_GROUP',
+    ).map((unit) => unit.name);
+    expect(SEED_DEPARTMENTS.map((entry) => entry.name)).toEqual(academic);
+    expect(SEED_DEPARTMENTS.map((entry) => entry.sortOrder)).toEqual(
+      Array.from({ length: 9 }, (_, index) => index + 1),
+    );
+  });
+
+  it('derives eighteen support offices from the units', () => {
+    expect(SEED_OFFICES).toHaveLength(18);
+
+    const support = SEED_UNITS.filter(
+      (unit) => unit.kind === 'SATELLITE_CAMPUS' || unit.kind === 'OTHER_UNIT',
+    ).map((unit) => unit.name);
+    expect(SEED_OFFICES.map((entry) => entry.name)).toEqual(support);
+    expect(SEED_OFFICES.map((entry) => entry.sortOrder)).toEqual(
+      Array.from({ length: 18 }, (_, index) => index + 1),
+    );
   });
 
   it('has 44 programs and resolves every unitCode to a unit', () => {
@@ -65,6 +96,11 @@ describe('seed reference data', () => {
 
     for (const sdg of SEED_SDGS) {
       expect(sdg.title).toBe(sdg.title.trim());
+    }
+
+    for (const entry of [...SEED_DEPARTMENTS, ...SEED_OFFICES]) {
+      expect(entry.name).toBe(entry.name.trim());
+      expect(entry.key).toBe(entry.key.toLowerCase());
     }
   });
 });
