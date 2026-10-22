@@ -104,4 +104,9 @@
   /* Print always uses light values. */
   --print-surface: #ffffff;
   --print-text: #14203c;
+
+  /* The signature preview sits on this pair so a transparent background is
+     visible rather than implied (signature spec §4.5.1). */
+  --signature-checker-a: #f2f0eb;
+  --signature-checker-b: #e2ded5;
 }

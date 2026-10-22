@@ -23,6 +23,14 @@
   /** The panel that comes in only fades in once a tab has been picked. */
   let switched = $state(false);
 
+  /** The last processed upload, so the card can report and undo the cleanup. */
+  let upload = $state<{
+    dataUrl: string;
+    background: 'removed' | 'kept';
+    original: string;
+  } | null>(null);
+  let showingOriginal = $state(false);
+
   let tabRow: HTMLElement | undefined = $state();
 
   function select(next: Tab) {
@@ -46,7 +54,26 @@
       return;
     }
 
+    upload = {
+      dataUrl: result.image.image,
+      background: result.background,
+      original: result.original.image,
+    };
+    showingOriginal = false;
     onchange(result.image.image);
+  }
+
+  /** Restores the untouched upload while it is still pending. */
+  function useOriginal() {
+    if (!upload) return;
+    showingOriginal = true;
+    onchange(upload.original);
+  }
+
+  function useProcessed() {
+    if (!upload) return;
+    showingOriginal = false;
+    onchange(upload.dataUrl);
   }
 </script>
 
@@ -105,8 +132,38 @@
       onchange={pick}
     />
     <p class="field-hint" id="signature-file-hint">
-      PNG or JPEG under {SIGNATURE_LIMIT_LABEL}. A transparent background is preferred.
+      PNG or JPEG under {SIGNATURE_LIMIT_LABEL}. A photo of paper works: the background is removed
+      automatically.
     </p>
+
+    {#if upload}
+      <div class="upload-preview">
+        <img
+          class="preview sheet"
+          class:is-original={showingOriginal}
+          src={showingOriginal ? upload.original : upload.dataUrl}
+          alt="Uploaded signature preview"
+        />
+        <p class="preview-status" role="status">
+          {#if showingOriginal}
+            Using the original image. It will print as it appears here.
+          {:else if upload.background === 'removed'}
+            Background removed. Transparent areas print as paper.
+          {:else}
+            Background kept — this image is not dark ink on a light background.
+          {/if}
+        </p>
+        {#if upload.background === 'removed'}
+          <button
+            class="btn btn-ghost btn-sm"
+            type="button"
+            onclick={showingOriginal ? useProcessed : useOriginal}
+          >
+            {showingOriginal ? 'Use cleaned image' : 'Use original'}
+          </button>
+        {/if}
+      </div>
+    {/if}
     {#if uploadError}
       <p class="field-error">
         <AlertCircle size={16} aria-hidden="true" />
@@ -148,6 +205,59 @@
 
   .panel {
     margin-bottom: 16px;
+  }
+
+  .upload-preview {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  /* The checkerboard makes the transparency visible, not implied. */
+  .preview {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    display: block;
+    height: auto;
+    max-width: 320px;
+    padding: 4px;
+    width: 100%;
+  }
+
+  .preview.is-original {
+    background: var(--surface-card);
+  }
+
+  .sheet {
+    background-color: var(--signature-checker-a);
+    background-image:
+      linear-gradient(
+        45deg,
+        var(--signature-checker-b) 25%,
+        transparent 25%,
+        transparent 75%,
+        var(--signature-checker-b) 75%
+      ),
+      linear-gradient(
+        45deg,
+        var(--signature-checker-b) 25%,
+        transparent 25%,
+        transparent 75%,
+        var(--signature-checker-b) 75%
+      );
+    background-position:
+      0 0,
+      8px 8px;
+    background-size: 16px 16px;
+  }
+
+  .preview-status {
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin: 0;
+    max-width: 52ch;
   }
 
   /* The panel that comes in settles instead of blinking into place. */
