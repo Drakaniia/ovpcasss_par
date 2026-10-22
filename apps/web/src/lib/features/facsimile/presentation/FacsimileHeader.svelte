@@ -3,7 +3,9 @@
   import { ArrowLeft } from '@lucide/svelte';
 
   import NextStepStrip from '$lib/components/NextStepStrip.svelte';
+  import OwnReportChip from '$lib/components/OwnReportChip.svelte';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
+  import { session } from '$lib/session/session.svelte';
 
   import TrackingNumber from './TrackingNumber.svelte';
 
@@ -31,6 +33,7 @@
       <TrackingNumber value={detail.trackingNumber} />
       <span class="separator" aria-hidden="true">·</span>
       <h1>{detail.form.title}</h1>
+      {#if session.user?.id === detail.ownerUserId}<OwnReportChip />{/if}
     </div>
 
     <div class="tools">

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { QueueKind } from '@par/shared';
 
+  import OwnReportChip from '$lib/components/OwnReportChip.svelte';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
 
   import type { QueueRow } from '../application/queue-rows';
@@ -66,7 +67,10 @@
           </td>
 
           <td class="col-title">
-            <span class="title-text" title={row.title}>{row.title}</span>
+            <span class="title-cell">
+              <span class="title-text" title={row.title}>{row.title}</span>
+              {#if row.isOwn}<OwnReportChip />{/if}
+            </span>
           </td>
 
           <td class="col-type type">{row.typeLabel}</td>
@@ -104,6 +108,12 @@
 
   .col-title {
     min-width: 200px;
+  }
+
+  .title-cell {
+    align-items: center;
+    display: flex;
+    gap: 8px;
   }
 
   .title-text {

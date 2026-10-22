@@ -48,6 +48,8 @@ export const queueItemSchema = z.object({
   waitingSince: isoDateTimeSchema,
   /** An attachment still uploading blocks a decision (UI spec §7.9 §6). */
   hasPendingAttachments: z.boolean().default(false),
+  /** The caller submitted it; an administrator may still decide it. */
+  isOwn: z.boolean().optional(),
 });
 export type QueueItem = z.infer<typeof queueItemSchema>;
 

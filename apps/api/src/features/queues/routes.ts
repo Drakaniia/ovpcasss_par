@@ -31,6 +31,7 @@ function queueRouter(kind: QueueKind) {
     }
 
     const page = await reportDependencies(c).read.queue(kind, parsed.data);
+    const viewerId = c.get('userId');
 
     return c.json({
       items: page.rows.map((row) => ({
@@ -46,6 +47,8 @@ function queueRouter(kind: QueueKind) {
         college: row.unitName ?? '',
         waitingSince: (kind === 'review' ? row.submittedAt : row.endorsedAt) ?? row.updatedAt,
         hasPendingAttachments: row.pendingAttachments,
+        // An admin's own report stays in the queue, marked rather than hidden.
+        isOwn: row.ownerUserId === viewerId,
       })),
       total: page.total,
       page: parsed.data.page,

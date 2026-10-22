@@ -26,6 +26,8 @@ export type QueueRow = {
   ageAttention: boolean;
   submitterName: string;
   hasPendingAttachments: boolean;
+  /** The caller submitted it; an administrator may still decide it. */
+  isOwn: boolean;
 };
 
 export function queueTitle(kind: QueueKind): string {
@@ -61,6 +63,7 @@ export function queueRowFromItem(
     ageAttention: queueAgeAttention(ageDays),
     submitterName: item.submitterName,
     hasPendingAttachments: item.hasPendingAttachments,
+    isOwn: item.isOwn ?? false,
   };
 }
 
