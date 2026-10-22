@@ -56,6 +56,8 @@ export function personRows(detail: ReportDetail): PersonRow[] {
 export type SignatureBlock = {
   submittedBy: string;
   submittedAt?: string;
+  /** The submitter's snapshotted image; absent on an unsigned report. */
+  submitterSignatureUrl?: string;
   /** Only set on an approved report; a returned report keeps the block blank. */
   approvedBy?: string;
   approvedAt?: string;
@@ -70,6 +72,9 @@ export function signatureBlock(detail: ReportDetail): SignatureBlock {
   return {
     submittedBy: submitter ?? '—',
     ...(detail.submittedAt ? { submittedAt: detail.submittedAt } : {}),
+    ...(detail.submitterSignature?.signatureUrl
+      ? { submitterSignatureUrl: detail.submitterSignature.signatureUrl }
+      : {}),
     ...(approval
       ? {
           approvedBy: approval.signerName,

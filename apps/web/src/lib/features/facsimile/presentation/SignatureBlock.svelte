@@ -4,9 +4,10 @@
   import type { SignatureBlock } from '../application/facsimile-people';
 
   /**
-   * The signature block (UI spec §8.1): submitted by (name, date) and approved
-   * by (name, date, signature image). A returned report keeps the approval side
-   * blank until it is approved (open question 4).
+   * The signature block (UI spec §8.1): submitted by (name, date, and the
+   * submitter's snapshotted image) and approved by (name, date, signature
+   * image). A returned report keeps the approval side blank until it is approved
+   * (open question 4). A missing image is a ruled line, never a placeholder.
    */
   let { block }: { block: SignatureBlock } = $props();
 </script>
@@ -16,7 +17,15 @@
 
   <div class="signature-grid">
     <div class="signature">
-      <div class="signature-line" aria-hidden="true"></div>
+      {#if block.submitterSignatureUrl}
+        <img
+          class="signature-image"
+          src={block.submitterSignatureUrl}
+          alt="Signature of {block.submittedBy}"
+        />
+      {:else}
+        <div class="signature-line" aria-hidden="true"></div>
+      {/if}
       <p class="signature-name">{block.submittedBy}</p>
       <p class="signature-label">Submitted by</p>
       {#if block.submittedAt}
@@ -82,7 +91,7 @@
 
   .signature-image {
     display: block;
-    height: 34px;
+    height: 44px;
     margin-bottom: 6px;
     max-width: 100%;
     object-fit: contain;
