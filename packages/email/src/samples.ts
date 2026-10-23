@@ -8,87 +8,71 @@ import {
   roleAssignedTemplate,
   verifyEmailTemplate,
 } from './templates/account-events';
-import { failureDigestTemplate, workbookTemplate } from './templates/operations';
 import {
-  approvedTemplate,
-  endorsedTemplate,
-  receiptTemplate,
+  assignedTemplate,
+  picRemovedTemplate,
+  receiptIssuedTemplate,
   reminderTemplate,
-  resubmittedTemplate,
   returnedTemplate,
   submittedTemplate,
-  type ReportEventData,
-} from './templates/report-events';
+  type NarrativeEventData,
+} from './templates/narrative-events';
+import { failureDigestTemplate, workbookTemplate } from './templates/operations';
 
-/**
- * One dataset per kind (email spec §6.1). The dev preview and the snapshot tests
- * read the same samples, so the copy is reviewed against the data it ships with.
- */
 export interface EmailSample {
   kind: EmailKind;
-  /** Who receives it, in the office's words. */
   audience: string;
   content: EmailContent;
 }
 
 export const SAMPLE_ORIGIN = 'https://par.buksu.edu.ph';
 
-const REPORT: ReportEventData = {
-  trackingNumber: 'OFF-2026-0014',
+const RECORD: NarrativeEventData = {
+  referenceNo: 'AR No. 0001',
   title: 'Coastal cleanup and mangrove planting',
-  actorName: 'J. Dela Cruz',
+  activityDate: '2026-10-21',
+  location: 'Brgy. Poblacion, Malaybalay City',
+  picName: 'M. Santos',
   submitterName: 'M. Santos',
+  approvedAt: '2026-10-22T06:05:00.000Z',
+  waitingDays: 7,
   origin: SAMPLE_ORIGIN,
-  receivedAt: '2026-10-13T02:14:25.000Z',
-  classification: 'Non-curricular',
-  campus: 'Malaybalay City Campus',
-  college: 'College of Arts and Sciences',
-  revisionRound: 2,
-  approvedAt: '2026-10-20T06:05:00.000Z',
-  waitingSince: '2026-10-12T01:00:00.000Z',
-  workingDays: 4,
   hasAttachment: true,
 };
 
-const COMMENTS =
-  'Add the attendance sheet and correct the participant count. The narrative also needs the date of the cleanup itself, not only the planning meeting.';
+const COMMENTS = 'Add the attendance sheet and correct the participant count.';
 
 export function emailSamples(): EmailSample[] {
   return [
     {
+      kind: 'ASSIGNED',
+      audience: 'Every personnel in charge named on the record',
+      content: assignedTemplate(RECORD),
+    },
+    {
       kind: 'SUBMITTED',
-      audience: 'Every active Reviewer except the submitter',
-      content: submittedTemplate(REPORT),
-    },
-    {
-      kind: 'RECEIPT',
-      audience: 'The submitter, on first submission only',
-      content: receiptTemplate(REPORT),
-    },
-    {
-      kind: 'RESUBMITTED',
-      audience: 'Every active Reviewer except the submitter',
-      content: resubmittedTemplate(REPORT),
+      audience: 'The office',
+      content: submittedTemplate(RECORD),
     },
     {
       kind: 'RETURNED',
-      audience: 'The submitter',
-      content: returnedTemplate({ ...REPORT, comments: COMMENTS }),
+      audience: 'Every personnel in charge named on the record',
+      content: returnedTemplate({ ...RECORD, comments: COMMENTS }),
     },
     {
-      kind: 'ENDORSED',
-      audience: 'Every active Approver except the actor',
-      content: endorsedTemplate(REPORT),
-    },
-    {
-      kind: 'APPROVED',
-      audience: 'The submitter',
-      content: approvedTemplate(REPORT),
+      kind: 'RECEIPT_ISSUED',
+      audience: 'Each personnel in charge, with their own receipt attached',
+      content: receiptIssuedTemplate(RECORD),
     },
     {
       kind: 'REMINDER',
-      audience: 'The holders of the queue that is holding the report',
-      content: reminderTemplate({ ...REPORT, queue: 'review' }),
+      audience: 'Personnel in charge who have not submitted',
+      content: reminderTemplate(RECORD),
+    },
+    {
+      kind: 'PIC_REMOVED',
+      audience: 'The person removed from the record',
+      content: picRemovedTemplate(RECORD),
     },
     {
       kind: 'WORKBOOK',
@@ -116,11 +100,6 @@ export function emailSamples(): EmailSample[] {
             to: 'm.santos@student.buksu.edu.ph',
             error: 'The domain is not verified',
           },
-          {
-            kind: 'REMINDER',
-            to: 'j.delacruz@buksu.edu.ph',
-            error: 'Mailbox unavailable',
-          },
         ],
         origin: SAMPLE_ORIGIN,
       }),
@@ -146,9 +125,9 @@ export function emailSamples(): EmailSample[] {
       audience: 'The account whose role changed',
       content: roleAssignedTemplate({
         fullName: 'J. Dela Cruz',
-        roleLabel: 'Reviewer',
+        roleLabel: 'Personnel',
         roleDescription:
-          'A Reviewer reads submitted reports and either endorses them to the approving officer or returns them with comments.',
+          'Personnel in charge write and submit the narrative report for each activity assigned to them.',
         actionUrl: `${SAMPLE_ORIGIN}/login`,
       }),
     },

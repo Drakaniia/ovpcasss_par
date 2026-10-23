@@ -4,7 +4,7 @@ import { renderShell } from '../shell';
 
 /**
  * Operational mail (email spec §11.2, §9.5): the term-end workbook hand-off and
- * the administrator's failure digest. Neither carries a tracking number, so the
+ * the administrator's failure digest. Neither carries an AR No., so the
  * footer names the term or the count instead.
  */
 export interface WorkbookMailData {

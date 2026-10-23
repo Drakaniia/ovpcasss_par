@@ -16,14 +16,10 @@ import { roleLabel } from '../domain/role-change';
 
 /** What each role lets the account do, in the words the assignment mail uses. */
 const ROLE_DESCRIPTIONS: Record<Role, string> = {
-  SUBMITTER:
-    'A Submitter prepares post-activity reports, uploads the supporting documents, and files them for review.',
-  REVIEWER:
-    'A Reviewer reads submitted reports and either endorses them to the approving officer or returns them with comments.',
-  APPROVER:
-    'An Approver reads endorsed reports, approves them with a signature, or returns them for further revision.',
+  PERSONNEL:
+    'Personnel in charge write and submit the narrative report for each activity assigned to them.',
   ADMIN:
-    'An Administrator manages accounts, reference data, and the audit trail, and may stand in for the other roles.',
+    'An Administrator registers activities, reviews submitted narratives, manages accounts and reference data, and records decisions.',
 };
 
 /** Every mutating action reports one of these; the route turns it into HTTP. */

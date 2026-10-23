@@ -1,242 +1,176 @@
-import type { AuditEventRow, AuditQueries, ReportReadQueries, UserQueries } from '@par/db';
+import {
+  createAuditQueries,
+  createDb,
+  createReceiptQueries,
+  createReportReadQueries,
+  createUserQueries,
+  type ReportCommentRow,
+  type ReportPicRow,
+  type ReportRow,
+} from '@par/db';
+import type { ReportDetail, ReportHistoryEvent } from '@par/shared';
 
 import type { Env } from '../../../env';
-import { PresignUnavailableError, presignGet } from '../../attachments/infrastructure/r2-presign';
-import type {
-  ReportCommentRound,
-  ReportDetail,
-  ReportHistoryEvent,
-  ReportPerson,
-  ReportStatus,
-  Role,
-} from '@par/shared';
+import { toAttachment } from './record-shape';
 
-import { toAttachment, toDetailForm } from './report-shape';
-
-export interface ReportDetailDependencies {
-  read: ReportReadQueries;
-  users: UserQueries;
-  audit: AuditQueries;
-  /** Needed to resolve the two signature slots; absent means no image URLs. */
-  env?: Env;
-  /** The API's own origin, used for the storage-free fallback path. */
-  origin?: string;
+function formOf(row: ReportRow, pics: readonly ReportPicRow[], sdgIds: readonly string[]) {
+  return {
+    type: row.type,
+    classification: row.classification,
+    campusId: row.campusId,
+    unitId: row.unitId,
+    ...(row.department ? { department: row.department } : {}),
+    ...(row.office ? { office: row.office } : {}),
+    level: row.level,
+    title: row.title,
+    activityStartDate: row.activityStartDate,
+    activityEndDate: row.activityEndDate,
+    location: row.location,
+    activityCount: row.activityCount,
+    totalStudents: row.totalStudents,
+    totalPic: row.totalPic,
+    pics: pics.map((pic) => ({
+      id: pic.id,
+      name: pic.name,
+      email: pic.email,
+      ...(pic.phone ? { phone: pic.phone } : {}),
+      ...(pic.userId ? { userId: pic.userId } : {}),
+    })),
+    sdgIds: [...sdgIds],
+    narrative: row.narrative,
+  };
 }
 
-const HISTORY_LABELS: Record<string, string> = {
-  SUBMITTED: 'Submitted',
-  RESUBMITTED: 'Resubmitted',
-  ENDORSED: 'Endorsed',
-  APPROVED: 'Approved',
-  RETURNED_BY_REVIEWER: 'Returned by reviewer',
-  RETURNED_BY_APPROVER: 'Returned by approver',
-  ATTACHMENT_ADDED: 'Attachment added',
-  ATTACHMENT_REMOVED: 'Attachment removed',
-  EXPORTED: 'Exported',
-  DRAFT_DELETED: 'Draft deleted',
-};
-
-/** The audit timeline's action copy; the UI never builds it from the code. */
-export function historyActionLabel(action: string): string {
-  return HISTORY_LABELS[action] ?? action.replaceAll('_', ' ').toLowerCase();
-}
-
-/**
- * Builds the one shape the facsimile, the edit-returned page, and the queue
- * preview read (spec §7.6-§7.7). Every fact comes from a stored row or the
- * append-only audit trail; nothing is inferred from the status alone.
- */
+/** The detail the register page, the narrative editor, and the receipts read. */
 export async function buildReportDetail(
-  deps: ReportDetailDependencies,
-  reportId: string,
-): Promise<ReportDetail | null> {
-  const row = await deps.read.findById(reportId);
-  if (!row) return null;
+  env: Env,
+  row: ReportRow,
+  options: {
+    canWriteNarrative: boolean;
+    canManage: boolean;
+    /** Set for a non-admin reader: only their own receipt is disclosed. */
+    receiptsForUserId?: string;
+  },
+): Promise<ReportDetail> {
+  const db = createDb(env.DB);
+  const read = createReportReadQueries(db);
+  const users = createUserQueries(db);
 
-  const [pics, sdgIds, attachmentRows, comments, events] = await Promise.all([
-    deps.read.listPics(reportId),
-    deps.read.listSdgIds(reportId),
-    deps.read.listAttachments(reportId),
-    deps.read.listComments(reportId),
-    deps.audit.listForEntity('report', reportId),
+  const [
+    pics,
+    sdgIds,
+    attachments,
+    receipts,
+    comments,
+    history,
+    createdBy,
+    submittedBy,
+    decidedBy,
+  ] = await Promise.all([
+    read.listPics(row.id),
+    read.listSdgIds(row.id),
+    read.listAttachments(row.id),
+    createReceiptQueries(db).listForReport(row.id),
+    read.listComments(row.id),
+    createAuditQueries(db).listForEntity('report', row.id),
+    users.findById(row.createdByUserId),
+    row.submittedByUserId ? users.findById(row.submittedByUserId) : Promise.resolve(null),
+    row.approvedByUserId ? users.findById(row.approvedByUserId) : Promise.resolve(null),
   ]);
 
-  const names = await actorNames(deps.users, events, row.ownerUserId, row.approvedByUserId);
-  const approverUser = row.approvedByUserId
-    ? await deps.users.findById(row.approvedByUserId)
-    : null;
-  const roles = new Map<string, Role>();
-  for (const event of events) {
-    if (event.actorUserId && event.actorRole) roles.set(event.actorUserId, event.actorRole);
-  }
+  const visibleReceipts = options.receiptsForUserId
+    ? receipts.filter((receipt) => receipt.recipientUserId === options.receiptsForUserId)
+    : receipts;
 
-  const nameOf = (userId: string | null | undefined): string =>
-    (userId ? names.get(userId) : undefined) ?? 'OVPCASSS';
-  const roleOf = (userId: string | null | undefined): Role =>
-    (userId ? roles.get(userId) : undefined) ?? 'SUBMITTER';
+  const latestReturn: ReportCommentRow | undefined = [...comments]
+    .reverse()
+    .find((comment) => comment.kind === 'RETURN');
 
-  const returns = comments.filter((comment) => comment.kind === 'RETURN');
-  const latestReturn = returns.at(-1) ?? null;
-  const submitter = person(row.ownerUserId, nameOf(row.ownerUserId), 'SUBMITTER', row.submittedAt);
-  const reviewer = lastActor(events, 'REVIEWER', ['ENDORSED', 'RETURNED_BY_REVIEWER'], nameOf);
-  const approver = lastActor(events, 'APPROVER', ['APPROVED', 'RETURNED_BY_APPROVER'], nameOf);
-
-  const history: ReportHistoryEvent[] = events.map((event) => ({
+  const events: ReportHistoryEvent[] = history.map((event) => ({
     id: event.id,
     at: event.createdAt,
-    actorName: nameOf(event.actorUserId),
-    actorRole: event.actorRole ?? roleOf(event.actorUserId),
-    action: historyActionLabel(event.action),
-    fromStatus: event.fromStatus as ReportStatus | null,
-    toStatus: event.toStatus as ReportStatus | null,
+    actorName:
+      [createdBy, submittedBy, decidedBy].find((user) => user?.id === event.actorUserId)
+        ?.fullName ?? 'Office',
+    actorRole: event.actorRole ?? 'ADMIN',
+    action: event.action,
+    ...(event.fromStatus
+      ? { fromStatus: event.fromStatus as ReportHistoryEvent['fromStatus'] }
+      : {}),
+    ...(event.toStatus ? { toStatus: event.toStatus as ReportHistoryEvent['toStatus'] } : {}),
     ...(event.comment ? { comment: event.comment } : {}),
   }));
 
-  const commentRounds: ReportCommentRound[] = returns.map((comment) => ({
-    round: comment.round,
-    authorName: comment.authorName,
-    authorRole: comment.authorRole ?? 'REVIEWER',
-    createdAt: comment.createdAt,
-    comments: comment.body,
-  }));
-
-  const lastEvent = events.at(-1) ?? null;
-
-  const submitterSignatureUrl =
-    row.submitterSignatureKey && row.submitterSignedAt
-      ? await imageUrl(deps, row.submitterSignatureKey, `/api/v1/reports/${row.id}/signature/file`)
-      : undefined;
-  const approvalSignatureUrl = approverUser?.signatureObjectKey
-    ? await imageUrl(
-        deps,
-        approverUser.signatureObjectKey,
-        `/api/v1/reports/${row.id}/approval-signature/file`,
-      )
-    : undefined;
-
   return {
     id: row.id,
-    ownerUserId: row.ownerUserId,
-    trackingNumber: row.trackingNumber,
+    referenceNo: row.referenceNo,
+    createdByUserId: row.createdByUserId,
     status: row.status,
     version: row.version,
+    createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-    form: toDetailForm(row, pics, sdgIds),
-    attachments: attachmentRows.map(toAttachment),
-    returnEvent: latestReturn
+    form: formOf(row, pics, sdgIds),
+    pics: pics.map((pic) => ({
+      id: pic.id,
+      name: pic.name,
+      email: pic.email,
+      ...(pic.phone ? { phone: pic.phone } : {}),
+      ...(pic.userId ? { userId: pic.userId } : {}),
+    })),
+    attachments: attachments.map(toAttachment),
+    receipts: visibleReceipts.map((receipt) => ({
+      id: receipt.id,
+      recipientName: receipt.recipientName,
+      generatedAt: receipt.generatedAt,
+      ...(receipt.emailedAt ? { emailedAt: receipt.emailedAt } : {}),
+    })),
+    ...(latestReturn
       ? {
-          round: latestReturn.round,
-          comments: latestReturn.body,
-          authorName: latestReturn.authorName,
-          authorRole: latestReturn.authorRole ?? 'REVIEWER',
-          createdAt: latestReturn.createdAt,
+          returnEvent: {
+            comments: latestReturn.body,
+            authorName:
+              comments.find((comment) => comment.id === latestReturn.id)?.authorName ?? 'Office',
+            createdAt: latestReturn.createdAt,
+          },
         }
-      : null,
+      : {}),
     ...(row.submittedAt ? { submittedAt: row.submittedAt } : {}),
-    ...(latestReturn ? { returnedAt: latestReturn.createdAt } : {}),
-    ...(row.approvedAt ? { completedAt: row.approvedAt } : {}),
+    ...(submittedBy ? { submittedByName: submittedBy.fullName } : {}),
+    ...(row.approvedAt ? { approvedAt: row.approvedAt } : {}),
     people: {
-      submitter,
-      ...(reviewer ? { reviewer } : {}),
-      ...(approver ? { approver } : {}),
+      createdBy: {
+        userId: row.createdByUserId,
+        fullName: createdBy?.fullName ?? 'Office',
+        role: 'ADMIN',
+      },
+      personnel: pics.map((pic) => ({
+        ...(pic.userId ? { userId: pic.userId } : {}),
+        fullName: pic.name,
+        role: 'PERSONNEL' as const,
+      })),
+      ...(decidedBy
+        ? {
+            decidedBy: {
+              userId: decidedBy.id,
+              fullName: decidedBy.fullName,
+              role: 'ADMIN' as const,
+              ...(row.approvedAt ? { actedAt: row.approvedAt } : {}),
+            },
+          }
+        : {}),
     },
-    history,
-    commentRounds,
-    approval:
-      row.approvedAt && row.approvedByUserId
-        ? {
-            signerName: nameOf(row.approvedByUserId),
-            signedAt: row.approvedAt,
-            ...(approvalSignatureUrl ? { signatureUrl: approvalSignatureUrl } : {}),
-          }
-        : null,
-    submitterSignature:
-      row.submitterSignatureKey && row.submitterSignedAt
-        ? {
-            signerName: nameOf(row.ownerUserId),
-            signedAt: row.submitterSignedAt,
-            ...(submitterSignatureUrl ? { signatureUrl: submitterSignatureUrl } : {}),
-          }
-        : null,
-    ...(lastEvent ? { updatedByName: nameOf(lastEvent.actorUserId) } : {}),
+    history: events,
+    ...(row.narrativeSignatureKey && row.narrativeSignedAt
+      ? {
+          narrativeSignature: {
+            signerName: submittedBy?.fullName ?? 'Personnel in charge',
+            signedAt: row.narrativeSignedAt,
+            /** Byte endpoint: works for a cookie and a bearer-token client alike. */
+            signatureUrl: `/api/v1/reports/${row.id}/signature/file`,
+          },
+        }
+      : {}),
+    canWriteNarrative: options.canWriteNarrative,
+    canManage: options.canManage,
   };
-}
-
-function person(
-  userId: string,
-  fullName: string,
-  role: Role,
-  actedAt: string | null,
-): ReportPerson {
-  return {
-    userId,
-    fullName,
-    role,
-    ...(actedAt ? { actedAt } : {}),
-  };
-}
-
-function lastActor(
-  events: readonly AuditEventRow[],
-  role: Role,
-  actions: readonly string[],
-  nameOf: (id: string | null) => string,
-): ReportPerson | null {
-  for (let index = events.length - 1; index >= 0; index -= 1) {
-    const event = events[index];
-    if (!event || event.actorRole !== role || !actions.includes(event.action)) continue;
-
-    return {
-      ...(event.actorUserId ? { userId: event.actorUserId } : {}),
-      fullName: nameOf(event.actorUserId),
-      role,
-      actedAt: event.createdAt,
-    };
-  }
-
-  return null;
-}
-
-/**
- * A short-lived presigned URL where storage signing is configured, and the
- * authenticated report route otherwise, so `wrangler dev` still renders the
- * image (the same fallback the attachment and facsimile endpoints use).
- */
-async function imageUrl(
-  deps: ReportDetailDependencies,
-  key: string,
-  fallbackPath: string,
-): Promise<string | undefined> {
-  if (!deps.env) return undefined;
-
-  try {
-    return await presignGet(deps.env, key);
-  } catch (error) {
-    if (!(error instanceof PresignUnavailableError)) throw error;
-  }
-
-  return deps.origin ? `${deps.origin}${fallbackPath}` : fallbackPath;
-}
-
-async function actorNames(
-  users: UserQueries,
-  events: readonly AuditEventRow[],
-  ownerUserId: string,
-  approvedByUserId: string | null,
-): Promise<Map<string, string>> {
-  const ids = new Set<string>([ownerUserId]);
-  if (approvedByUserId) ids.add(approvedByUserId);
-  for (const event of events) {
-    if (event.actorUserId) ids.add(event.actorUserId);
-  }
-
-  const names = new Map<string, string>();
-  await Promise.all(
-    [...ids].map(async (id) => {
-      const user = await users.findById(id);
-      if (user) names.set(id, user.fullName);
-    }),
-  );
-
-  return names;
 }

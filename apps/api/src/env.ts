@@ -5,7 +5,6 @@ export interface Env {
   DB: D1Database;
   BUCKET: R2Bucket;
   EMAIL_QUEUE: Queue;
-  ALLOWED_EMAIL_DOMAINS: string;
   /** Comma-separated addresses that become an active Admin once verified. */
   BOOTSTRAP_ADMIN_EMAILS?: string;
   EMAIL_PROVIDER: EmailProviderKind;
@@ -30,10 +29,9 @@ export interface Env {
    * request's own origin, so this is only needed for cron.
    */
   APP_ORIGIN?: string;
-  /** Working-day threshold before a reminder; defaults to the queue's 3. */
-  REMINDER_AFTER_WORKING_DAYS?: string;
-  /** Manila hour at which the daily reminder sweep sends; defaults to 9. */
-  REMINDER_LOCAL_HOUR?: string;
+  /** Fixed signatory block on the OVPCASSS-F-013 receipt (spec §10.1). */
+  RECEIPT_SIGNATORY_NAME?: string;
+  RECEIPT_SIGNATORY_TITLE?: string;
   /** Total attachment budget per message; defaults to 8 MiB. */
   EMAIL_MAX_ATTACHMENT_BYTES?: string;
   /** Mounts the dev-only rendered preview of every template. Never set in production. */

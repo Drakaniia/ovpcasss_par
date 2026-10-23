@@ -4,7 +4,7 @@ import { roleLabel } from './role-change';
 
 describe('roleLabel', () => {
   it('renders the role enum as the office writes it', () => {
-    expect(roleLabel('REVIEWER')).toBe('Reviewer');
+    expect(roleLabel('PERSONNEL')).toBe('Personnel');
     expect(roleLabel('ADMIN')).toBe('Admin');
   });
 });

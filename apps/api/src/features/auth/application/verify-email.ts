@@ -27,7 +27,7 @@ export async function verifyEmail(c: Context<AppEnv>, token: string): Promise<Ve
 
   const patch: Partial<NewUserRow> = { emailVerifiedAt: now };
   if (user.status === 'PENDING_VERIFICATION') patch.status = 'ACTIVE';
-  if (user.role === null) patch.role = 'SUBMITTER';
+  if (user.role === null) patch.role = 'PERSONNEL';
   // A bootstrap address becomes an Admin so the office has one to start with.
   if (isBootstrapAdmin(user.email, parseBootstrapAdmins(c.env.BOOTSTRAP_ADMIN_EMAILS))) {
     patch.role = 'ADMIN';

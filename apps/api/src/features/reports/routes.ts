@@ -1,63 +1,106 @@
-import { createIdempotencyQueries, type ReportRow } from '@par/db';
 import {
-  reportFormSchema,
+  createAttachmentQueries,
+  createAuditQueries,
+  createDb,
+  createReceiptQueries,
+  createReportReadQueries,
+  createReportWriteQueries,
+  createUserQueries,
+  type ReportPicRow,
+  type ReportRow,
+} from '@par/db';
+import {
+  formatReferenceNo,
+  reportActivitySchema,
+  reportDecisionSchema,
   reportListQuerySchema,
-  reportSearchQuerySchema,
-  type ReportDraftForm,
-  type ReportStatus,
-  type SubmitReportResponse,
+  reportNarrativeSchema,
+  sourcesFor,
+  validateActivity,
+  validateNarrative,
+  type ReportListItem,
 } from '@par/shared';
 import { Hono, type Context } from 'hono';
 
 import type { AppEnv } from '../../env';
+import { sendReturnedEmail, sendSubmittedEmail } from '../../email/report-mail';
 import { recordAudit } from '../../lib/audit';
+import { signedDownloadUrl } from '../../lib/download-url';
+import {
+  findStoredResponse,
+  idempotencyKey,
+  requestFingerprint,
+  storeResponse,
+} from '../../lib/idempotency';
 import { requireSession } from '../../middleware/auth';
 import { requireRole } from '../../middleware/authorize';
-import { buildReportDetail } from './application/report-detail';
-import { reportListFilter } from './application/report-list';
-import { toReportSearchItem } from './application/report-search';
-import { canEditReport, canViewReport, reportSearchScope } from './domain/report-access';
-import { toDetailForm, toReportHead, toReportListItem } from './application/report-shape';
-import { submitReportRow, validateStoredReport } from './application/report-workflow';
+import { notify } from '../notifications/application/notify';
+import { issueReceipts, renderReceiptBytes } from '../receipts/application/issue-receipts';
 import {
-  reportDependencies,
-  transitionActor,
-  viewerOf,
-  workflowFor,
-} from './application/workflow-context';
+  canDecide,
+  canDeleteRecord,
+  canManageRecord,
+  canViewReport,
+  canWriteNarrative,
+  isAdmin,
+  type Viewer,
+} from './domain/report-access';
+import { ensurePicAccounts, mailAssignedPics, mailRemovedPics } from './application/pic-accounts';
+import { buildReportDetail } from './application/report-detail';
+import { toAttachment, toReportHead, toReportListItem } from './application/record-shape';
+import {
+  r2SignatureStorage,
+  snapshotApprovalSignature,
+  snapshotSubmittedSignature,
+} from './application/signature-snapshot';
 import { registerReportPdfRoutes } from './pdf-routes';
 import { registerReportSignatureRoutes } from './signature-routes';
 
-/** States a report can be edited in (spec §7.5): draft and both returns. */
-const EDITABLE: readonly ReportStatus[] = ['DRAFT', 'RETURNED_BY_REVIEWER', 'RETURNED_BY_APPROVER'];
-
-/**
- * Draft create, list, detail, edit, validate, submit, and resubmit (spec §7.3).
- * Sub-resources live in their own routers and are merged onto `/reports` in
- * `app.ts`; the state machine itself is in `@par/shared`.
- */
 export const reportRoutes = new Hono<AppEnv>();
 
 reportRoutes.use('*', requireSession);
 
+function viewerOf(c: Context<AppEnv>): Viewer | null {
+  const userId = c.get('userId');
+  if (!userId) return null;
+  return { userId, role: c.get('role') };
+}
+
+function stack(c: Context<AppEnv>) {
+  const db = createDb(c.env.DB);
+  return {
+    db,
+    read: createReportReadQueries(db),
+    write: createReportWriteQueries(db),
+    attachments: createAttachmentQueries(db),
+    users: createUserQueries(db),
+    audit: createAuditQueries(db),
+    receipts: createReceiptQueries(db),
+  };
+}
+
 function unauthorized(c: Context<AppEnv>) {
-  return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sign in to manage reports' } }, 401);
+  return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sign in to continue' } }, 401);
 }
 
 function notFound(c: Context<AppEnv>) {
-  return c.json({ error: { code: 'NOT_FOUND', message: 'This report does not exist' } }, 404);
+  return c.json({ error: { code: 'NOT_FOUND', message: 'This record does not exist' } }, 404);
 }
 
 function forbidden(c: Context<AppEnv>, message: string) {
   return c.json({ error: { code: 'FORBIDDEN', message } }, 403);
 }
 
-function conflict(c: Context<AppEnv>, code = 'REPORT_NOT_PENDING') {
+function conflict(c: Context<AppEnv>, message: string) {
+  return c.json({ error: { code: 'REPORT_CHANGED', message } }, 409);
+}
+
+function idempotencyConflict(c: Context<AppEnv>) {
   return c.json(
     {
       error: {
-        code,
-        message: 'This report changed on the server. Reload it and try again.',
+        code: 'IDEMPOTENCY_CONFLICT',
+        message: 'This request key was already used for a different request.',
       },
     },
     409,
@@ -71,315 +114,727 @@ function invalid(c: Context<AppEnv>, details: unknown, message = 'Check the high
 function versionFrom(c: Context<AppEnv>): number | undefined | null {
   const header = c.req.header('if-match');
   if (header === undefined || header.trim() === '') return undefined;
-
   const value = Number(header);
   return Number.isInteger(value) && value >= 0 ? value : null;
 }
 
-function partialForm(body: unknown): ReportDraftForm | null {
-  const parsed = reportFormSchema.partial().safeParse(body);
-  return parsed.success ? (parsed.data as ReportDraftForm) : null;
-}
-
-function reportDetail(
+async function detailOf(
   c: Context<AppEnv>,
-  stack: ReturnType<typeof reportDependencies>,
-  reportId: string,
-) {
-  return buildReportDetail(
-    {
-      read: stack.read,
-      users: stack.users,
-      audit: stack.audit,
-      env: c.env,
-      origin: new URL(c.req.url).origin,
-    },
-    reportId,
-  );
+  row: ReportRow,
+): Promise<Awaited<ReturnType<typeof buildReportDetail>>> {
+  const viewer = viewerOf(c);
+  if (!viewer) throw new Error('Sign in to continue');
+  const read = stack(c).read;
+  const isPic = await read.isPic(row.id, viewer.userId);
+  return buildReportDetail(c.env, row, {
+    canWriteNarrative: canWriteNarrative(viewer, isPic, row.status),
+    canManage: canManageRecord(viewer, row.status),
+    ...(isAdmin(viewer) ? {} : { receiptsForUserId: viewer.userId }),
+  });
 }
 
-function editable(viewer: NonNullable<ReturnType<typeof viewerOf>>, row: ReportRow): boolean {
-  return canEditReport(viewer, row.ownerUserId, row.status);
+async function picUsers(c: Context<AppEnv>, pics: readonly ReportPicRow[]) {
+  const users = stack(c).users;
+  return Promise.all(pics.map((pic) => (pic.userId ? users.findById(pic.userId) : null)));
 }
+
+/* ---------- Register ---------- */
 
 reportRoutes.get('/', async (c) => {
   const viewer = viewerOf(c);
   if (!viewer) return unauthorized(c);
 
   const parsed = reportListQuerySchema.safeParse(c.req.query());
-  if (!parsed.success)
-    return invalid(c, parsed.error.issues, 'That report filter is not supported');
+  if (!parsed.success) return invalid(c, parsed.error.issues, 'That filter is not supported');
 
-  const stack = reportDependencies(c);
-  const term = parsed.data.term ? await stack.read.findTerm(parsed.data.term) : null;
-  const [page, facets] = await Promise.all([
-    stack.read.list(
-      reportListFilter(viewer, parsed.data, {
-        from: parsed.data.from ?? term?.startsOn,
-        to: parsed.data.to ?? term?.endsOn,
-      }),
-    ),
-    stack.read.listFacets(),
-  ]);
+  const store = stack(c);
+  const page = await store.read.list({
+    viewer: { userId: viewer.userId, isAdmin: isAdmin(viewer) },
+    tab: parsed.data.tab,
+    type: parsed.data.type,
+    campus: parsed.data.campus,
+    from: parsed.data.from,
+    to: parsed.data.to,
+    q: parsed.data.q,
+    sort: parsed.data.sort,
+    dir: parsed.data.dir,
+    page: parsed.data.page,
+    size: parsed.data.size,
+  });
+
+  const items: ReportListItem[] = [];
+  for (const row of page.rows) {
+    items.push(toReportListItem(row, await store.read.listPics(row.id)));
+  }
 
   return c.json({
-    items: page.rows.map(toReportListItem),
+    items,
     total: page.total,
     page: parsed.data.page,
     size: parsed.data.size,
-    facets,
+    facets: await store.read.listFacets(),
   });
 });
 
-/**
- * The command palette's report half (phase 12 §4). Registered before `/:id`,
- * which would otherwise read `search` as a report id. The scope is the same
- * rule `canViewReport` enforces row by row, applied in the query.
- */
-reportRoutes.get('/search', async (c) => {
+reportRoutes.post('/', requireRole('ADMIN'), async (c) => {
   const viewer = viewerOf(c);
   if (!viewer) return unauthorized(c);
 
-  const parsed = reportSearchQuerySchema.safeParse(c.req.query());
-  if (!parsed.success) return invalid(c, parsed.error.issues, 'That search is not valid');
+  const body = await c.req.json().catch(() => null);
+  const parsed = reportActivitySchema.safeParse(body);
+  if (!parsed.success) return invalid(c, parsed.error.issues);
+  const issues = validateActivity(parsed.data);
+  if (issues.length > 0) return invalid(c, issues);
 
-  const stack = reportDependencies(c);
-  const term = parsed.data.q ?? '';
-  const rows = await stack.read.search({
-    ...(term ? { term } : {}),
-    scope: reportSearchScope(viewer),
-    limit: parsed.data.limit,
-  });
+  const store = stack(c);
+  const key = idempotencyKey(c);
+  const fingerprint = key ? await requestFingerprint(body) : '';
+  if (key) {
+    const stored = await findStoredResponse(store.db, key, viewer.userId);
+    if (stored) {
+      if (stored.requestHash !== fingerprint) return idempotencyConflict(c);
+      return c.json(JSON.parse(stored.response), 201);
+    }
+  }
 
-  return c.json({ items: rows.map((row) => toReportSearchItem(row, term)) });
-});
-
-reportRoutes.post('/', requireRole('SUBMITTER'), async (c) => {
-  const viewer = viewerOf(c);
-  if (!viewer) return unauthorized(c);
-
-  const form = partialForm(await c.req.json().catch(() => null));
-  if (!form) return invalid(c, [], 'The draft is not valid');
-
-  const stack = reportDependencies(c);
+  const origin = new URL(c.req.url).origin;
   const now = new Date().toISOString();
-  const row = await stack.write.insertDraft({
+  const sequence = await store.write.nextReferenceSequence();
+  const referenceNo = formatReferenceNo(sequence);
+  const assigned = await ensurePicAccounts(c.env, parsed.data.pics, origin);
+
+  const row = await store.write.insertRecord({
     id: crypto.randomUUID(),
-    ownerUserId: viewer.userId,
-    form,
+    referenceNo,
+    sequence,
+    createdByUserId: viewer.userId,
+    form: parsed.data,
     now,
   });
 
-  await stack.write.replaceLists(row.id, form.sdgIds ?? [], form.pics ?? []);
+  await store.write.replaceLists(
+    row.id,
+    parsed.data.sdgIds,
+    assigned.map((pic) => ({
+      userId: pic.userId,
+      name: pic.name,
+      email: pic.email,
+      phone: pic.phone,
+      invitedAt: now,
+    })),
+  );
 
-  return c.json(toReportHead(row), 201);
+  await mailAssignedPics(
+    c.env,
+    assigned,
+    {
+      referenceNo,
+      title: row.title,
+      activityDate: row.activityStartDate,
+      location: row.location,
+      origin,
+    },
+    row.id,
+  );
+
+  for (const pic of assigned) {
+    await notify(c.env, {
+      userId: pic.userId,
+      kind: 'ASSIGNED',
+      description: `${referenceNo} was assigned to you`,
+      target: { kind: 'report', reportId: row.id },
+    });
+  }
+
+  await recordAudit(c, {
+    actorUserId: viewer.userId,
+    actorRole: viewer.role,
+    action: 'RECORD_CREATED',
+    entityType: 'report',
+    entityId: row.id,
+    toStatus: 'DRAFT',
+    comment: referenceNo,
+  });
+
+  const pics = await store.read.listPics(row.id);
+  const created = { ...toReportHead(row), pics, sentTo: pics.length };
+  if (key) {
+    await storeResponse(
+      store.db,
+      { key, userId: viewer.userId, requestHash: fingerprint, response: JSON.stringify(created) },
+      now,
+    );
+  }
+
+  return c.json(created, 201);
+});
+
+reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
+  const viewer = viewerOf(c);
+  if (!viewer) return unauthorized(c);
+
+  const store = stack(c);
+  const row = await store.read.findById(c.req.param('id') ?? '');
+  if (!row) return notFound(c);
+  if (!canManageRecord(viewer, row.status)) {
+    return forbidden(c, 'An approved record can no longer be changed.');
+  }
+
+  const parsed = reportActivitySchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return invalid(c, parsed.error.issues);
+  const issues = validateActivity(parsed.data);
+  if (issues.length > 0) return invalid(c, issues);
+
+  const version = versionFrom(c);
+  if (version === null) return conflict(c, 'The record version is not valid.');
+
+  const before = await store.read.listPics(row.id);
+  const now = new Date().toISOString();
+  const origin = new URL(c.req.url).origin;
+  const byEmail = new Map(before.map((pic) => [pic.email, pic]));
+
+  const fresh = parsed.data.pics.filter((pic) => !byEmail.has(pic.email.toLowerCase()));
+  const assigned = fresh.length > 0 ? await ensurePicAccounts(c.env, fresh, origin) : [];
+
+  const updated = await store.write.updateRecord({
+    id: row.id,
+    form: parsed.data,
+    now,
+    ...(version === undefined ? {} : { version }),
+    from: ['DRAFT', 'SUBMITTED', 'RETURNED'],
+  });
+  if (!updated) return conflict(c, 'This record changed on the server. Reload it and try again.');
+
+  const keep = new Map(assigned.map((pic) => [pic.email, pic]));
+  await store.write.replaceLists(
+    row.id,
+    parsed.data.sdgIds,
+    parsed.data.pics.map((pic) => {
+      const email = pic.email.toLowerCase();
+      const previous = byEmail.get(email);
+      const created = keep.get(email);
+      return {
+        id: previous?.id,
+        userId: previous?.userId ?? created?.userId ?? null,
+        name: pic.name,
+        email,
+        phone: pic.phone ?? previous?.phone ?? null,
+        invitedAt: previous?.invitedAt ?? now,
+      };
+    }),
+  );
+
+  const nowEmails = new Set(parsed.data.pics.map((pic) => pic.email.toLowerCase()));
+  const removed = before.filter((pic) => !nowEmails.has(pic.email));
+  if (removed.length > 0) {
+    await mailRemovedPics(
+      c.env,
+      removed,
+      { referenceNo: row.referenceNo, title: row.title },
+      row.id,
+    );
+  }
+  if (assigned.length > 0) {
+    await mailAssignedPics(
+      c.env,
+      assigned,
+      {
+        referenceNo: row.referenceNo,
+        title: row.title,
+        activityDate: row.activityStartDate,
+        location: row.location,
+        origin,
+      },
+      row.id,
+    );
+  }
+
+  await recordAudit(c, {
+    actorUserId: viewer.userId,
+    actorRole: viewer.role,
+    action: 'RECORD_UPDATED',
+    entityType: 'report',
+    entityId: row.id,
+    fromStatus: row.status,
+    toStatus: updated.status,
+    comment: row.referenceNo,
+  });
+
+  return c.json(toReportHead(updated));
+});
+
+reportRoutes.delete('/:id', requireRole('ADMIN'), async (c) => {
+  const viewer = viewerOf(c);
+  if (!viewer) return unauthorized(c);
+
+  const store = stack(c);
+  const row = await store.read.findById(c.req.param('id') ?? '');
+  if (!row) return notFound(c);
+  if (!canDeleteRecord(viewer, row.status)) {
+    return forbidden(c, 'Only a record with no submitted narrative can be deleted.');
+  }
+
+  const attachments = await store.read.listAttachments(row.id);
+  for (const attachment of attachments) {
+    await c.env.BUCKET.delete(attachment.objectKey).catch(() => undefined);
+  }
+
+  const deleted = await store.write.deleteRecord(row.id);
+  if (!deleted) return conflict(c, 'This record changed on the server. Reload it and try again.');
+
+  await recordAudit(c, {
+    actorUserId: viewer.userId,
+    actorRole: viewer.role,
+    action: 'RECORD_DELETED',
+    entityType: 'report',
+    entityId: row.id,
+    fromStatus: row.status,
+    comment: row.referenceNo,
+  });
+
+  return c.body(null, 204);
 });
 
 reportRoutes.get('/:id', async (c) => {
   const viewer = viewerOf(c);
   if (!viewer) return unauthorized(c);
 
-  const stack = reportDependencies(c);
-  const row = await stack.read.findById(c.req.param('id') ?? '');
+  const store = stack(c);
+  const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
-  if (!canViewReport(viewer, row.ownerUserId)) return notFound(c);
+  const isPic = await store.read.isPic(row.id, viewer.userId);
+  if (!canViewReport(viewer, isPic)) return notFound(c);
 
-  const detail = await reportDetail(c, stack, row.id);
-
-  return detail ? c.json(detail) : notFound(c);
+  return c.json(await detailOf(c, row));
 });
 
-reportRoutes.get('/:id/events', async (c) => {
+/* ---------- Narrative ---------- */
+
+reportRoutes.put('/:id/narrative', async (c) => {
   const viewer = viewerOf(c);
   if (!viewer) return unauthorized(c);
 
-  const stack = reportDependencies(c);
-  const row = await stack.read.findById(c.req.param('id') ?? '');
-  if (!row || !canViewReport(viewer, row.ownerUserId)) return notFound(c);
-
-  const detail = await reportDetail(c, stack, row.id);
-
-  return c.json({ items: detail?.history ?? [] });
-});
-
-reportRoutes.patch('/:id', async (c) => {
-  const viewer = viewerOf(c);
-  if (!viewer) return unauthorized(c);
-
-  const stack = reportDependencies(c);
-  const row = await stack.read.findById(c.req.param('id') ?? '');
+  const store = stack(c);
+  const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
-  if (!editable(viewer, row)) {
-    return canViewReport(viewer, row.ownerUserId)
-      ? forbidden(c, 'Only the submitter can edit this report.')
-      : notFound(c);
+  const isPic = await store.read.isPic(row.id, viewer.userId);
+  if (!canWriteNarrative(viewer, isPic, row.status)) {
+    return forbidden(c, 'This record is not open for a narrative edit.');
   }
+
+  const parsed = reportNarrativeSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return invalid(c, parsed.error.issues);
 
   const version = versionFrom(c);
-  if (version === null) return invalid(c, [], 'The report version is not valid');
+  if (version === null) return conflict(c, 'The record version is not valid.');
 
-  const patch = partialForm(await c.req.json().catch(() => null));
-  if (!patch) return invalid(c, [], 'The report changes are not valid');
-
-  const [pics, sdgIds] = await Promise.all([
-    stack.read.listPics(row.id),
-    stack.read.listSdgIds(row.id),
-  ]);
-  const merged = {
-    ...(toDetailForm(row, pics, sdgIds) as ReportDraftForm),
-    ...patch,
-  };
-
-  const changed = await stack.write.updateDraft({
+  const updated = await store.write.setNarrative({
     id: row.id,
-    form: merged,
+    narrative: parsed.data.narrative,
     now: new Date().toISOString(),
     ...(version === undefined ? {} : { version }),
-    from: EDITABLE,
+    from: ['DRAFT', 'RETURNED'],
   });
-
-  if (!changed) return conflict(c, 'CONFLICT');
-
-  await stack.write.replaceLists(changed.id, merged.sdgIds ?? [], merged.pics ?? []);
-
-  return c.json(toReportHead(changed));
-});
-
-reportRoutes.delete('/:id', requireRole('SUBMITTER'), async (c) => {
-  const viewer = viewerOf(c);
-  if (!viewer) return unauthorized(c);
-
-  const stack = reportDependencies(c);
-  const row = await stack.read.findById(c.req.param('id') ?? '');
-  if (!row) return notFound(c);
-  if (row.ownerUserId !== viewer.userId) return notFound(c);
-  if (row.status !== 'DRAFT') {
-    return conflict(c, 'REPORT_NOT_DRAFT');
-  }
-
-  const attachments = await stack.read.listAttachments(row.id);
-  await Promise.all(
-    attachments.map((attachment) =>
-      c.env.BUCKET.delete(attachment.objectKey).catch(() => undefined),
-    ),
-  );
-
-  if (row.submitterSignatureKey) {
-    await c.env.BUCKET.delete(row.submitterSignatureKey).catch(() => undefined);
-  }
-
-  if (!(await stack.write.deleteDraft(row.id))) return conflict(c, 'REPORT_NOT_DRAFT');
+  if (!updated) return conflict(c, 'This record changed on the server. Reload it and try again.');
 
   await recordAudit(c, {
     actorUserId: viewer.userId,
     actorRole: viewer.role,
-    action: 'DRAFT_DELETED',
+    action: 'NARRATIVE_SAVED',
     entityType: 'report',
     entityId: row.id,
-    comment: 'Draft deleted with its attachments',
+    comment: row.referenceNo,
   });
 
-  return c.body(null, 204);
+  return c.json(toReportHead(updated));
 });
 
-reportRoutes.post('/:id/validate', async (c) => {
+reportRoutes.post('/:id/submit', async (c) => {
   const viewer = viewerOf(c);
   if (!viewer) return unauthorized(c);
 
-  const stack = reportDependencies(c);
-  const row = await stack.read.findById(c.req.param('id') ?? '');
+  const store = stack(c);
+  const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
-  if (!editable(viewer, row)) {
-    return canViewReport(viewer, row.ownerUserId)
-      ? forbidden(c, 'Only the submitter can validate this report.')
-      : notFound(c);
-  }
+  const isPic = await store.read.isPic(row.id, viewer.userId);
+  if (!isPic) return forbidden(c, 'Only the personnel in charge may submit this narrative.');
 
-  const issues = await validateStoredReport(await workflowFor(c, stack), row);
-  return c.json({ valid: issues.length === 0, issues });
-});
-
-async function submit(c: Context<AppEnv>, resubmit: boolean) {
-  const viewer = viewerOf(c);
-  if (!viewer) return unauthorized(c);
-
-  const stack = reportDependencies(c);
-  const row = await stack.read.findById(c.req.param('id') ?? '');
-  if (!row) return notFound(c);
-  if (row.ownerUserId !== viewer.userId) return notFound(c);
-
-  const action = resubmit ? 'resubmit' : 'submit';
-  const key = c.req.header('idempotency-key')?.trim();
-  const requestHash = `${action}:${row.id}`;
-  const idempotency = createIdempotencyQueries(stack.db);
-
-  // A retried submit must replay even though the first one already moved the
-  // report out of DRAFT; checking the key first is what makes the retry safe.
+  const key = idempotencyKey(c);
+  const fingerprint = key ? await requestFingerprint({ reportId: row.id }) : '';
   if (key) {
-    const replay = await idempotency.find(key, viewer.userId);
-    if (replay) {
-      if (replay.requestHash !== requestHash) return conflict(c, 'IDEMPOTENCY_KEY_REUSED');
-      return c.json(JSON.parse(replay.response) as SubmitReportResponse);
+    const stored = await findStoredResponse(store.db, key, viewer.userId);
+    if (stored) {
+      if (stored.requestHash !== fingerprint) return idempotencyConflict(c);
+      return c.json(JSON.parse(stored.response));
     }
   }
 
-  const expected: readonly ReportStatus[] = resubmit
-    ? ['RETURNED_BY_REVIEWER', 'RETURNED_BY_APPROVER']
-    : ['DRAFT'];
-  if (!expected.includes(row.status)) return conflict(c);
+  if (row.status !== 'DRAFT' && row.status !== 'RETURNED') {
+    return conflict(c, 'This narrative has already been submitted.');
+  }
+
+  const attachments = await store.read.listAttachments(row.id);
+  const pending = await store.read.pendingAttachmentReports([row.id]);
+  const issues = validateNarrative(row.narrative, {
+    attachments: pending.has(row.id)
+      ? [...attachments, { label: '', status: 'PENDING' as const }]
+      : attachments,
+  });
+  if (issues.length > 0) return invalid(c, issues);
 
   const version = versionFrom(c);
-  if (version === null) return invalid(c, [], 'The report version is not valid');
+  if (version === null) return conflict(c, 'The record version is not valid.');
 
-  const actor = await transitionActor(c, stack.users);
-  if (!actor) return unauthorized(c);
-
-  const workflow = await workflowFor(c, stack);
-  const outcome = await submitReportRow(workflow, row, {
-    resubmit,
-    actor,
-    ...(version === undefined ? {} : { version }),
+  const submitter = await store.users.findById(viewer.userId);
+  const now = new Date().toISOString();
+  const snapshot = await snapshotSubmittedSignature({
+    reportId: row.id,
+    reportSignatureKey: row.narrativeSignatureKey,
+    signatureCleared: row.narrativeSignatureCleared,
+    profileSignatureKey: submitter?.signatureObjectKey ?? null,
+    signedAt: now,
+    storage: r2SignatureStorage(c.env.BUCKET),
   });
 
-  if (outcome.kind === 'invalid') {
-    return invalid(c, outcome.issues, 'The report is not ready to submit');
-  }
-  if (outcome.kind === 'conflict') return conflict(c);
+  const updated = await store.write.changeStatus(row.id, {
+    to: 'SUBMITTED',
+    from: sourcesFor('SUBMITTED'),
+    ...(version === undefined ? {} : { version }),
+    now,
+    patch: {
+      narrative: row.narrative,
+      submittedAt: row.submittedAt ?? now,
+      submittedByUserId: viewer.userId,
+      ...(snapshot ?? {}),
+    },
+  });
+  if (!updated) return conflict(c, 'This record changed on the server. Reload it and try again.');
 
-  const response: SubmitReportResponse = {
-    id: outcome.row.id,
-    version: outcome.row.version,
-    status: outcome.row.status,
-    trackingNumber: outcome.row.trackingNumber ?? '',
-    ...(outcome.row.submittedAt ? { submittedAt: outcome.row.submittedAt } : {}),
-    updatedAt: outcome.row.updatedAt,
-  };
+  if (snapshot) {
+    await recordAudit(c, {
+      actorUserId: viewer.userId,
+      actorRole: viewer.role,
+      action: 'SIGNATURE_ATTACHED',
+      entityType: 'report',
+      entityId: row.id,
+      comment: row.referenceNo,
+    });
+  }
+  const admins = await store.users.listActiveByRole('ADMIN');
+  for (const admin of admins) {
+    await notify(c.env, {
+      userId: admin.id,
+      kind: 'SUBMITTED',
+      description: `${row.referenceNo} is ready for review`,
+      target: { kind: 'report', reportId: row.id },
+    });
+    await sendSubmittedEmail(
+      c.env,
+      admin.email,
+      {
+        referenceNo: row.referenceNo,
+        title: row.title,
+        submitterName: submitter?.fullName,
+        approvedAt: now,
+        origin: new URL(c.req.url).origin,
+      },
+      row.id,
+    );
+  }
 
   await recordAudit(c, {
-    actorUserId: actor.id,
+    actorUserId: viewer.userId,
     actorRole: viewer.role,
-    action: outcome.action,
+    action: 'NARRATIVE_SUBMITTED',
     entityType: 'report',
-    entityId: outcome.row.id,
-    fromStatus: outcome.from,
-    toStatus: outcome.to,
+    entityId: row.id,
+    fromStatus: row.status,
+    toStatus: 'SUBMITTED',
+    comment: row.referenceNo,
   });
 
+  const submitted = { ...toReportHead(updated), submittedAt: now };
   if (key) {
-    await idempotency.save({
-      key,
-      userId: viewer.userId,
-      requestHash,
-      response: JSON.stringify(response),
-      now: workflow.now,
+    await storeResponse(
+      store.db,
+      { key, userId: viewer.userId, requestHash: fingerprint, response: JSON.stringify(submitted) },
+      now,
+    );
+  }
+
+  return c.json(submitted);
+});
+
+/* ---------- Office decision ---------- */
+
+reportRoutes.post('/:id/decision', requireRole('ADMIN'), async (c) => {
+  const viewer = viewerOf(c);
+  if (!viewer) return unauthorized(c);
+
+  const store = stack(c);
+  const row = await store.read.findById(c.req.param('id') ?? '');
+  if (!row) return notFound(c);
+  if (!canDecide(viewer, row.status)) {
+    return conflict(c, 'Only a submitted narrative can be decided.');
+  }
+
+  const parsed = reportDecisionSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return invalid(c, parsed.error.issues);
+  if (parsed.data.decision === 'RETURN' && !parsed.data.comments?.trim()) {
+    return invalid(c, [{ field: 'comments', message: 'Write what the PIC should change.' }]);
+  }
+
+  const now = new Date().toISOString();
+  const approving = parsed.data.decision === 'APPROVE';
+  const approver = approving ? await store.users.findById(viewer.userId) : null;
+  const approvalSnapshot = approving
+    ? await snapshotApprovalSignature({
+        reportId: row.id,
+        profileSignatureKey: approver?.signatureObjectKey ?? null,
+        signedAt: now,
+        storage: r2SignatureStorage(c.env.BUCKET),
+      })
+    : null;
+
+  const updated = await store.write.changeStatus(row.id, {
+    to: approving ? 'APPROVED' : 'RETURNED',
+    from: sourcesFor(approving ? 'APPROVED' : 'RETURNED'),
+    now,
+    patch: approving
+      ? {
+          approvedAt: now,
+          approvedByUserId: viewer.userId,
+          ...(approvalSnapshot ?? {}),
+        }
+      : { approvedAt: null, approvedByUserId: null },
+  });
+  if (!updated) return conflict(c, 'This record changed on the server. Reload it and try again.');
+
+  if (!approving && parsed.data.comments) {
+    const round = (await store.write.countReturns(row.id)) + 1;
+    await store.write.insertComment({
+      id: crypto.randomUUID(),
+      reportId: row.id,
+      authorUserId: viewer.userId,
+      kind: 'RETURN',
+      round,
+      body: parsed.data.comments,
+      createdAt: now,
     });
   }
 
-  return c.json(response);
-}
+  const pics = await store.read.listPics(row.id);
+  const recipients = await picUsers(c, pics);
+  const origin = new URL(c.req.url).origin;
 
-reportRoutes.post('/:id/submit', requireRole('SUBMITTER'), (c) => submit(c, false));
-reportRoutes.post('/:id/resubmit', requireRole('SUBMITTER'), (c) => submit(c, true));
+  for (const [index, pic] of pics.entries()) {
+    if (!pic.userId) continue;
+    await notify(c.env, {
+      userId: pic.userId,
+      kind: approving ? 'APPROVED' : 'RETURNED',
+      description: approving
+        ? `${row.referenceNo} was approved`
+        : `${row.referenceNo} was returned for revision`,
+      ...(approving ? {} : { comment: parsed.data.comments ?? null }),
+      target: { kind: 'report', reportId: row.id },
+    });
+
+    const recipient = recipients[index];
+    if (!recipient) continue;
+    if (approving) continue;
+    await sendReturnedEmail(
+      c.env,
+      recipient.email,
+      {
+        referenceNo: row.referenceNo,
+        title: row.title,
+        comments: parsed.data.comments,
+        origin,
+      },
+      row.id,
+    );
+  }
+
+  if (approving) {
+    await issueReceipts(c.env, updated, pics, origin);
+  }
+
+  if (approvalSnapshot) {
+    await recordAudit(c, {
+      actorUserId: viewer.userId,
+      actorRole: viewer.role,
+      action: 'SIGNATURE_ATTACHED',
+      entityType: 'report',
+      entityId: row.id,
+      comment: row.referenceNo,
+    });
+  }
+
+  await recordAudit(c, {
+    actorUserId: viewer.userId,
+    actorRole: viewer.role,
+    action: approving ? 'NARRATIVE_APPROVED' : 'NARRATIVE_RETURNED',
+    entityType: 'report',
+    entityId: row.id,
+    fromStatus: 'SUBMITTED',
+    toStatus: updated.status,
+    ...(parsed.data.comments ? { comment: parsed.data.comments } : {}),
+  });
+
+  return c.json(toReportHead(updated));
+});
+
+reportRoutes.post('/:id/invitation', requireRole('ADMIN'), async (c) => {
+  const viewer = viewerOf(c);
+  if (!viewer) return unauthorized(c);
+
+  const store = stack(c);
+  const row = await store.read.findById(c.req.param('id') ?? '');
+  if (!row) return notFound(c);
+  if (row.status === 'APPROVED') return conflict(c, 'This record is already approved.');
+
+  const pics = await store.read.listPics(row.id);
+  const origin = new URL(c.req.url).origin;
+  for (const pic of pics) {
+    await mailAssignedPics(
+      c.env,
+      [
+        {
+          userId: pic.userId ?? '',
+          name: pic.name,
+          email: pic.email,
+          phone: pic.phone,
+          newAccount: false,
+        },
+      ],
+      {
+        referenceNo: row.referenceNo,
+        title: row.title,
+        activityDate: row.activityStartDate,
+        location: row.location,
+        origin,
+      },
+      row.id,
+    );
+  }
+
+  await recordAudit(c, {
+    actorUserId: viewer.userId,
+    actorRole: viewer.role,
+    action: 'INVITATION_RESENT',
+    entityType: 'report',
+    entityId: row.id,
+    comment: row.referenceNo,
+  });
+
+  return c.json({ sentTo: pics.length });
+});
+
+/* ---------- Receipts ---------- */
+
+reportRoutes.get('/:id/receipts', async (c) => {
+  const viewer = viewerOf(c);
+  if (!viewer) return unauthorized(c);
+
+  const store = stack(c);
+  const row = await store.read.findById(c.req.param('id') ?? '');
+  if (!row) return notFound(c);
+  const isPic = await store.read.isPic(row.id, viewer.userId);
+  if (!canViewReport(viewer, isPic)) return notFound(c);
+
+  const rows = await store.receipts.listForReport(row.id);
+  const mine = isAdmin(viewer)
+    ? rows
+    : rows.filter((receipt) => receipt.recipientUserId === viewer.userId);
+
+  return c.json({
+    items: mine.map((receipt) => ({
+      id: receipt.id,
+      recipientName: receipt.recipientName,
+      generatedAt: receipt.generatedAt,
+      ...(receipt.emailedAt ? { emailedAt: receipt.emailedAt } : {}),
+    })),
+  });
+});
+
+reportRoutes.get('/:id/receipts/:receiptId/file', async (c) => {
+  const viewer = viewerOf(c);
+  if (!viewer) return unauthorized(c);
+
+  const store = stack(c);
+  const row = await store.read.findById(c.req.param('id') ?? '');
+  if (!row) return notFound(c);
+  const isPic = await store.read.isPic(row.id, viewer.userId);
+  if (!canViewReport(viewer, isPic)) return notFound(c);
+
+  const receipt = await store.receipts.findById(c.req.param('receiptId') ?? '');
+  if (!receipt || receipt.reportId !== row.id) return notFound(c);
+  if (!isAdmin(viewer) && receipt.recipientUserId !== viewer.userId) return notFound(c);
+
+  const object = await c.env.BUCKET.get(receipt.objectKey);
+  let body: BodyInit | null = object ? (object.body as BodyInit) : null;
+
+  // A render that failed at approval is repaired here, without re-sending mail.
+  if (!body) {
+    const pic = (await store.read.listPics(row.id)).find(
+      (candidate) => candidate.id === receipt.recipientPicId,
+    );
+    if (!pic) return notFound(c);
+
+    try {
+      const bytes = await renderReceiptBytes(c.env, row, pic);
+      await c.env.BUCKET.put(receipt.objectKey, bytes, {
+        httpMetadata: { contentType: 'application/pdf' },
+      });
+      body = bytes as unknown as BodyInit;
+    } catch {
+      return notFound(c);
+    }
+  }
+
+  await recordAudit(c, {
+    actorUserId: viewer.userId,
+    actorRole: viewer.role,
+    action: 'RECEIPT_DOWNLOADED',
+    entityType: 'report',
+    entityId: row.id,
+    comment: receipt.recipientName,
+  });
+
+  return new Response(body, {
+    status: 200,
+    headers: {
+      'content-type': 'application/pdf',
+      'content-disposition': `attachment; filename="OVPCASSS-F-013-${receipt.recipientName.replaceAll(/[^0-9A-Za-z]+/g, '-')}.pdf"`,
+      'cache-control': 'private, no-store',
+    },
+  });
+});
+
+/* ---------- Attachments ---------- */
+
+reportRoutes.get('/:id/attachments/:attachmentId/url', async (c) => {
+  const viewer = viewerOf(c);
+  if (!viewer) return unauthorized(c);
+
+  const store = stack(c);
+  const row = await store.read.findById(c.req.param('id') ?? '');
+  if (!row) return notFound(c);
+  const isPic = await store.read.isPic(row.id, viewer.userId);
+  if (!canViewReport(viewer, isPic)) return notFound(c);
+
+  const attachment = await store.attachments.findById(row.id, c.req.param('attachmentId') ?? '');
+  if (!attachment || attachment.status !== 'CONFIRMED') return notFound(c);
+
+  const url = await signedDownloadUrl(
+    c,
+    attachment.objectKey,
+    `/api/v1/reports/${row.id}/attachments/${attachment.id}/file`,
+  );
+  return c.json({ url, expiresAt: new Date(Date.now() + 5 * 60_000).toISOString() });
+});
 
 registerReportPdfRoutes(reportRoutes);
 registerReportSignatureRoutes(reportRoutes);
+
+export { toAttachment };

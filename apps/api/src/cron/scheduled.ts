@@ -8,9 +8,9 @@ import {
 
 import type { Env } from '../env';
 import { sendFailureDigest } from '../features/emails/application/send-digest';
+import { sendReminders } from '../features/reminders/application/send-reminders';
 import { runBackup, type BackupResult } from './backup';
 import { runCleanup, type CleanupCounts } from './cleanup';
-import { runReminderSweep } from './reminders';
 
 /**
  * Cron entry point (spec §7.1). Two schedules share one Worker: the hourly
@@ -80,7 +80,7 @@ export async function runScheduledJob(
   );
 
   // Hourly cron, daily work: the gate lives inside the sweep (email spec §10.2).
-  await runReminderSweep(env, now).catch((error: unknown) => {
+  await sendReminders(env, now).catch((error: unknown) => {
     console.error(
       JSON.stringify({
         level: 'error',

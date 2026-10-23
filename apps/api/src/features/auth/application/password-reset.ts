@@ -102,7 +102,7 @@ export async function resetPassword(
     patch.emailVerifiedAt = now;
     if (user.status === 'PENDING_VERIFICATION') patch.status = 'ACTIVE';
   }
-  if (user.role === null) patch.role = 'SUBMITTER';
+  if (user.role === null) patch.role = 'PERSONNEL';
   await users.update(user.id, patch, now);
   await createSessionQueries(db).deleteForUser(user.id);
 

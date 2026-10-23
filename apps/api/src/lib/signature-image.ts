@@ -57,3 +57,8 @@ export function profileSignatureKey(userId: string): string {
 export function reportSignatureKey(reportId: string): string {
   return `reports/${reportId}/signature-${crypto.randomUUID()}`;
 }
+
+/** The approving officer's copy, taken when the record is approved. */
+export function reportApprovalSignatureKey(reportId: string): string {
+  return `reports/${reportId}/approval-signature-${crypto.randomUUID()}`;
+}

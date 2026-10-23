@@ -1,11 +1,9 @@
-import {
-  actsAs,
-  type InboxActivity,
-  type InboxAdmin,
-  type InboxItem,
-  type InboxResponse,
-  type InboxSection,
-  type Role,
+import type {
+  InboxActivity,
+  InboxAdmin,
+  InboxItem,
+  InboxResponse,
+  InboxSection,
 } from '@par/shared';
 import type {
   AuditQueries,
@@ -22,10 +20,9 @@ import { summarizeAuditEvent } from '../domain/audit-summary';
 import { isProfileComplete } from '../domain/onboarding';
 
 /**
- * Work-inbox assembly (UI spec §7.3, signature spec §6.1). Every section is a
- * real indexed read that reports its true total; the client renders at most
- * three rows and never derives a count from them. Roles are filtered here, but
- * the client still renders the union in its fixed order.
+ * Work-inbox assembly (spec §12). Every section is a real indexed read that
+ * reports its true total; the client renders at most three rows and never
+ * derives a count from them.
  */
 export interface InboxQueries {
   users: UserQueries;
@@ -35,58 +32,51 @@ export interface InboxQueries {
   notifications: NotificationQueries;
 }
 
-const ACTIVITY_KINDS = new Set<InboxActivity['kind']>([
-  'SUBMITTED',
-  'RESUBMITTED',
-  'RETURNED_BY_REVIEWER',
-  'RETURNED_BY_APPROVER',
-  'ENDORSED',
-  'APPROVED',
-]);
+const ACTIVITY_KINDS: Record<string, InboxActivity['kind']> = {
+  NARRATIVE_SUBMITTED: 'SUBMITTED',
+  NARRATIVE_RETURNED: 'RETURNED',
+  NARRATIVE_APPROVED: 'APPROVED',
+};
 
-export async function buildInbox(
-  queries: InboxQueries,
-  user: UserRow,
-  role: Role | undefined,
-): Promise<InboxResponse> {
-  const submitter = actsAs(role, 'SUBMITTER');
-  const reviewer = actsAs(role, 'REVIEWER');
-  const approver = actsAs(role, 'APPROVER');
+export async function buildInbox(queries: InboxQueries, user: UserRow): Promise<InboxResponse> {
+  const admin = user.role === 'ADMIN';
 
   const [
+    awaitingReview,
+    withPic,
     returned,
-    review,
-    approval,
-    drafts,
-    waiting,
+    approved,
+    myReports,
     activity,
     decided,
     unread,
     submitted,
     draftId,
   ] = await Promise.all([
-    submitter ? queries.inbox.returned(user.id) : emptyPage(),
-    reviewer ? queries.inbox.review() : emptyPage(),
-    approver ? queries.inbox.approval() : emptyPage(),
-    submitter ? queries.inbox.drafts(user.id) : emptyPage(),
-    submitter ? queries.inbox.waiting(user.id) : emptyPage(),
-    submitter ? queries.inbox.activity(user.id) : [],
-    queries.inbox.recentlyDecided(user.id),
+    admin ? queries.inbox.awaitingReview() : emptyPage(),
+    admin ? queries.inbox.withPic() : emptyPage(),
+    queries.inbox.returned(user.id, 3, admin),
+    queries.inbox.approved(user.id, 3, admin),
+    admin ? emptyPage() : queries.inbox.myReports(user.id),
+    queries.inbox.activity(user.id, 5, admin),
+    admin ? queries.inbox.recentlyDecided(user.id) : Promise.resolve([]),
     queries.notifications.countUnread(user.id),
     queries.inbox.hasSubmitted(user.id),
-    queries.inbox.firstDraftId(user.id),
+    admin ? Promise.resolve(null) : queries.inbox.firstDraftId(user.id),
   ]);
 
   return {
-    returned: sectionFor(returned, user.id, false),
-    review: sectionFor(review, user.id, false),
-    approval: sectionFor(approval, user.id, false),
-    drafts: sectionFor(drafts, user.id, true),
-    waiting: sectionFor(waiting, user.id, false),
-    activity: activity.map(activityItem).filter((item) => ACTIVITY_KINDS.has(item.kind)),
-    recentlyDecided: decided.map(activityItem).filter((item) => ACTIVITY_KINDS.has(item.kind)),
+    awaitingReview: sectionFor(awaitingReview),
+    withPic: sectionFor(withPic),
+    returned: sectionFor(returned),
+    approved: sectionFor(approved),
+    myReports: sectionFor(myReports),
+    activity: activity.map(activityItem).filter((item): item is InboxActivity => item !== null),
+    recentlyDecided: decided
+      .map(activityItem)
+      .filter((item): item is InboxActivity => item !== null),
     notificationsUnread: unread,
-    admin: role === 'ADMIN' ? await buildAdmin(queries) : null,
+    admin: admin ? await buildAdmin(queries) : null,
     onboarding: {
       profileComplete: isProfileComplete(user),
       hasSubmitted: submitted,
@@ -99,64 +89,39 @@ function emptyPage(): { total: number; rows: InboxReportRow[] } {
   return { total: 0, rows: [] };
 }
 
-/** `total` stays the server count; at most three rows travel with it. */
-function sectionFor(
-  page: { total: number; rows: InboxReportRow[] },
-  viewerId: string,
-  withCompleteness: boolean,
-): InboxSection {
-  return {
-    total: page.total,
-    items: page.rows.slice(0, 3).map((row) => inboxItem(row, viewerId, withCompleteness)),
-  };
+function sectionFor(page: { total: number; rows: InboxReportRow[] }): InboxSection {
+  return { total: page.total, items: page.rows.slice(0, 3).map(inboxItem) };
 }
 
-function inboxItem(row: InboxReportRow, viewerId: string, withCompleteness: boolean): InboxItem {
+function inboxItem(row: InboxReportRow): InboxItem {
   return {
     id: row.id,
-    trackingNumber: row.trackingNumber,
-    title: row.title.trim() || 'Untitled draft',
+    referenceNo: row.referenceNo,
+    title: row.title,
     type: row.type,
     status: row.status,
+    activityStartDate: row.activityStartDate,
+    activityEndDate: row.activityEndDate,
+    location: row.location,
     updatedAt: row.updatedAt,
-    submittedAt: row.submittedAt,
-    ...(withCompleteness ? { completeness: draftCompleteness(row) } : {}),
-    isOwn: row.ownerUserId === viewerId,
+    ...(row.submittedAt ? { submittedAt: row.submittedAt } : {}),
   };
 }
 
-/**
- * Draft progress as the inbox table shows it: the share of the report's own
- * fields that carry a value. The wizard's checklist is finer — it also counts
- * required attachments — so this number is a quick sense of completeness, not
- * a promise that the draft is ready to submit.
- */
-function draftCompleteness(row: InboxReportRow): number {
-  const values = [
-    row.title,
-    row.campusId,
-    row.unitId,
-    row.activityStartDate,
-    row.activityEndDate,
-    row.location,
-    row.narrative,
-  ];
+function activityItem(row: InboxEventRow): InboxActivity | null {
+  const kind = ACTIVITY_KINDS[row.action];
+  if (!kind) return null;
 
-  return Math.round((values.filter((value) => value.trim() !== '').length / values.length) * 100);
-}
-
-function activityItem(row: InboxEventRow): InboxActivity {
   return {
     id: row.id,
     reportId: row.reportId,
-    trackingNumber: row.trackingNumber,
+    referenceNo: row.referenceNo,
     title: row.title,
-    kind: row.action as InboxActivity['kind'],
+    kind,
     occurredAt: row.occurredAt,
   };
 }
 
-/** The admin block; an Admin also acts as a submitter, reviewer, and approver. */
 async function buildAdmin(queries: InboxQueries): Promise<InboxAdmin> {
   const [failedEmails, recent] = await Promise.all([
     queries.emailOutbox.countFailed(),

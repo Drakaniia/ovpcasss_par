@@ -3,8 +3,8 @@ import type { Hono, Context } from 'hono';
 import type { AppEnv } from '../../env';
 import { recordAudit } from '../../lib/audit';
 import { signedDownloadUrl } from '../../lib/download-url';
-import { canViewReport } from './domain/report-access';
-import { reportDependencies, viewerOf } from './application/workflow-context';
+import { canViewReport, isAdmin } from './domain/report-access';
+import { reportDependencies, viewerOf } from './application/report-context';
 import {
   FACSIMILE_TYPE,
   renderReportFacsimile,
@@ -15,9 +15,14 @@ async function findVisibleReport(c: Context<AppEnv>, reportId: string) {
   const viewer = viewerOf(c);
   if (!viewer) return null;
 
-  const row = await reportDependencies(c).read.findById(reportId);
-  if (!row || !canViewReport(viewer, row.ownerUserId)) return null;
-  return row;
+  const deps = reportDependencies(c);
+  const row = await deps.read.findById(reportId);
+  if (!row) return null;
+  // The facsimile is the office's copy of the record (spec §18 A12); the PIC's
+  // document is the acknowledgment receipt, not this internal PDF.
+  if (!isAdmin(viewer)) return null;
+  const isPic = await deps.read.isPic(row.id, viewer.userId);
+  return canViewReport(viewer, isPic) ? row : null;
 }
 
 /**
@@ -76,7 +81,7 @@ export function registerReportPdfRoutes(router: Hono<AppEnv>): void {
       status: 200,
       headers: {
         'content-type': FACSIMILE_TYPE,
-        'content-disposition': `inline; filename="${row.trackingNumber ?? 'PAR-draft'}.pdf"`,
+        'content-disposition': `inline; filename="${row.referenceNo.replaceAll(' ', '-')}.pdf"`,
         'cache-control': 'no-store',
       },
     });

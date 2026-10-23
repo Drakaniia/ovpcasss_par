@@ -1,62 +1,57 @@
 import { describe, expect, it } from 'vitest';
 
-import { canDecide, canEditReport, canViewReport, reportSearchScope } from './report-access';
+import {
+  canDecide,
+  canDeleteRecord,
+  canManageRecord,
+  canViewReport,
+  canWriteNarrative,
+  isAdmin,
+} from './report-access';
+
+const admin = { userId: 'admin-1', role: 'ADMIN' as const };
+const personnel = { userId: 'person-1', role: 'PERSONNEL' as const };
 
 describe('report access', () => {
-  it('limits a submitter to their own reports', () => {
-    const submitter = { userId: 'u1', role: 'SUBMITTER' as const };
-
-    expect(canViewReport(submitter, 'u1')).toBe(true);
-    expect(canViewReport(submitter, 'u2')).toBe(false);
+  it('shows a record to the office and to its listed personnel in charge', () => {
+    expect(canViewReport(admin, false)).toBe(true);
+    expect(canViewReport(personnel, true)).toBe(true);
+    expect(canViewReport(personnel, false)).toBe(false);
+    // Membership, not the role label, decides access for a listed person.
+    expect(canViewReport({ userId: 'x', role: undefined }, true)).toBe(true);
+    expect(canViewReport({ userId: 'x', role: undefined }, false)).toBe(false);
   });
 
-  it('lets reviewers, approvers, and admins read every report', () => {
-    for (const role of ['REVIEWER', 'APPROVER', 'ADMIN'] as const) {
-      expect(canViewReport({ userId: 'u1', role }, 'u2')).toBe(true);
-    }
+  it('lets only the office edit the activity, and never after approval', () => {
+    expect(canManageRecord(admin, 'DRAFT')).toBe(true);
+    expect(canManageRecord(admin, 'SUBMITTED')).toBe(true);
+    expect(canManageRecord(admin, 'APPROVED')).toBe(false);
+    expect(canManageRecord(personnel, 'DRAFT')).toBe(false);
   });
 
-  it('allows edits only to the owner in a draft or returned state', () => {
-    const submitter = { userId: 'u1', role: 'SUBMITTER' as const };
-
-    expect(canEditReport(submitter, 'u1', 'DRAFT')).toBe(true);
-    expect(canEditReport(submitter, 'u1', 'RETURNED_BY_REVIEWER')).toBe(true);
-    expect(canEditReport(submitter, 'u1', 'RETURNED_BY_APPROVER')).toBe(true);
-    expect(canEditReport(submitter, 'u1', 'SUBMITTED')).toBe(false);
-    expect(canEditReport({ userId: 'u2', role: 'REVIEWER' }, 'u1', 'DRAFT')).toBe(false);
+  it('lets a listed person write the narrative only while it is theirs to submit', () => {
+    expect(canWriteNarrative(personnel, true, 'DRAFT')).toBe(true);
+    expect(canWriteNarrative(personnel, true, 'RETURNED')).toBe(true);
+    expect(canWriteNarrative(personnel, true, 'SUBMITTED')).toBe(false);
+    expect(canWriteNarrative(personnel, true, 'APPROVED')).toBe(false);
+    expect(canWriteNarrative(personnel, false, 'DRAFT')).toBe(false);
+    expect(canWriteNarrative(admin, false, 'DRAFT')).toBe(false);
   });
 
-  it('scopes a report search to the owner for a submitter, and to everyone else unfiltered', () => {
-    expect(reportSearchScope({ userId: 'u1', role: 'SUBMITTER' })).toEqual({ ownerUserId: 'u1' });
-
-    for (const role of ['REVIEWER', 'APPROVER', 'ADMIN'] as const) {
-      expect(reportSearchScope({ userId: 'u1', role })).toEqual({});
-    }
+  it('decides one submitted narrative, office only', () => {
+    expect(canDecide(admin, 'SUBMITTED')).toBe(true);
+    expect(canDecide(admin, 'DRAFT')).toBe(false);
+    expect(canDecide(admin, 'APPROVED')).toBe(false);
+    expect(canDecide(personnel, 'SUBMITTED')).toBe(false);
   });
 
-  it('never lets a submitter decide on their own report', () => {
-    const reviewer = { userId: 'u1', role: 'REVIEWER' as const };
-
-    expect(canDecide(reviewer, 'u1')).toBe(false);
-    expect(canDecide(reviewer, 'u2')).toBe(true);
+  it('deletes only a draft, office only', () => {
+    expect(canDeleteRecord(admin, 'DRAFT')).toBe(true);
+    expect(canDeleteRecord(admin, 'RETURNED')).toBe(false);
+    expect(canDeleteRecord(personnel, 'DRAFT')).toBe(false);
   });
 
-  it('treats an admin as the owner of the report it filed, and nobody else', () => {
-    const admin = { userId: 'u1', role: 'ADMIN' as const };
-
-    expect(canEditReport(admin, 'u1', 'DRAFT')).toBe(true);
-    expect(canEditReport(admin, 'u1', 'SUBMITTED')).toBe(false);
-    expect(canEditReport(admin, 'u2', 'DRAFT')).toBe(false);
-  });
-
-  it('lets an admin decide any report, including one it submitted', () => {
-    const admin = { userId: 'u1', role: 'ADMIN' as const };
-    const approver = { userId: 'u1', role: 'APPROVER' as const };
-
-    // Admin stands in for every role (signature spec W3); everyone else keeps
-    // the separation-of-duties rule.
-    expect(canDecide(admin, 'u1')).toBe(true);
-    expect(canDecide(admin, 'u2')).toBe(true);
-    expect(canDecide(approver, 'u1')).toBe(false);
+  it('reads a missing role as no role at all', () => {
+    expect(isAdmin({ userId: 'x', role: undefined })).toBe(false);
   });
 });

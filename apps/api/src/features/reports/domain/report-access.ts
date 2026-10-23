@@ -1,48 +1,36 @@
-import { actsAs, type ReportStatus, type Role } from '@par/shared';
+import type { ReportStatus, Role } from '@par/shared';
 
-/**
- * Who may read or edit a report (spec §9): a Submitter only ever sees their own;
- * Reviewers, Approvers, and Admins read everything. Editing is the owner's, and
- * only while the report is a draft or was returned. Admin also acts as a
- * Submitter, so a report it filed is editable by it — and by nobody else.
- */
+/** The signed-in account and what the route knows about it. */
 export interface Viewer {
   userId: string;
   role: Role | undefined;
 }
 
-export function canViewReport(viewer: Viewer, ownerUserId: string): boolean {
-  if (viewer.role === 'SUBMITTER') return viewer.userId === ownerUserId;
-  return viewer.userId === ownerUserId || viewer.role !== undefined;
+export function isAdmin(viewer: Viewer): boolean {
+  return viewer.role === 'ADMIN';
 }
 
-export function canEditReport(viewer: Viewer, ownerUserId: string, status: ReportStatus): boolean {
-  if (!actsAs(viewer.role, 'SUBMITTER') || viewer.userId !== ownerUserId) return false;
-  return (
-    status === 'DRAFT' || status === 'RETURNED_BY_REVIEWER' || status === 'RETURNED_BY_APPROVER'
-  );
+/** A record is visible to the office and to its listed personnel in charge. */
+export function canViewReport(viewer: Viewer, isPic: boolean): boolean {
+  return isAdmin(viewer) || isPic;
 }
 
-/**
- * The owner filter a report search must apply. It is the same rule as
- * `canViewReport`, expressed as a query condition: a Submitter searches only
- * their own reports, everyone else searches every report (spec §9).
- */
-export function reportSearchScope(viewer: Viewer): { ownerUserId?: string } {
-  return viewer.role === 'SUBMITTER' ? { ownerUserId: viewer.userId } : {};
+/** The office owns the activity fields and the PIC list until approval. */
+export function canManageRecord(viewer: Viewer, status: ReportStatus): boolean {
+  return isAdmin(viewer) && status !== 'APPROVED';
 }
 
-/**
- * Separation of duties: nobody decides a report they submitted — except an
- * Admin, which stands in for every role and may walk its own report through the
- * whole flow (owner decision, signature spec W3). The audit trail names it as
- * the actor; there is no bypass marker and no test mode.
- */
-export function canDecide(viewer: Viewer, ownerUserId: string): boolean {
-  return viewer.userId !== ownerUserId || viewer.role === 'ADMIN';
+/** The narrative belongs to the PICs, and only while it is theirs to submit. */
+export function canWriteNarrative(viewer: Viewer, isPic: boolean, status: ReportStatus): boolean {
+  return isPic && (status === 'DRAFT' || status === 'RETURNED');
 }
 
-/** True for the role that owns the next transition. */
-export function hasRole(role: Role | undefined, expected: Role): boolean {
-  return role === expected;
+/** One office decision on a submitted narrative. */
+export function canDecide(viewer: Viewer, status: ReportStatus): boolean {
+  return isAdmin(viewer) && status === 'SUBMITTED';
+}
+
+/** Only an unsubmitted record can be removed, and only by the office. */
+export function canDeleteRecord(viewer: Viewer, status: ReportStatus): boolean {
+  return isAdmin(viewer) && status === 'DRAFT';
 }

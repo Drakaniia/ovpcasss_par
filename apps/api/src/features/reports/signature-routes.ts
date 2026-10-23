@@ -5,8 +5,13 @@ import type { AppEnv } from '../../env';
 import { parseSignatureImage, reportSignatureKey } from '../../lib/signature-image';
 import { rateLimit } from '../../middleware/rate-limit';
 import { buildReportDetail } from './application/report-detail';
-import { reportDependencies, viewerOf } from './application/workflow-context';
-import { canEditReport, canViewReport } from './domain/report-access';
+import { reportDependencies, viewerOf } from './application/report-context';
+import {
+  canManageRecord,
+  canViewReport,
+  canWriteNarrative,
+  isAdmin,
+} from './domain/report-access';
 
 /**
  * The submitter's signature on one report (signature spec §4.4). The report
@@ -22,7 +27,8 @@ export function registerReportSignatureRoutes(router: Hono<AppEnv>): void {
     const stack = reportDependencies(c);
     const row = await stack.read.findById(c.req.param('id') ?? '');
     if (!row) return notFound(c);
-    if (!canEditReport(viewer, row.ownerUserId, row.status)) {
+    const isPic = await stack.read.isPic(row.id, viewer.userId);
+    if (!canWriteNarrative(viewer, isPic, row.status)) {
       return forbidden(c);
     }
 
@@ -58,15 +64,17 @@ export function registerReportSignatureRoutes(router: Hono<AppEnv>): void {
     const stack = reportDependencies(c);
     const row = await stack.read.findById(c.req.param('id') ?? '');
     if (!row) return notFound(c);
-    if (!canEditReport(viewer, row.ownerUserId, row.status)) return forbidden(c);
+    const isPic = await stack.read.isPic(row.id, viewer.userId);
+    if (!canWriteNarrative(viewer, isPic, row.status)) return forbidden(c);
 
-    if (row.submitterSignatureKey) {
-      await c.env.BUCKET.delete(row.submitterSignatureKey).catch(() => undefined);
+    if (row.narrativeSignatureKey) {
+      await c.env.BUCKET.delete(row.narrativeSignatureKey).catch(() => undefined);
     }
 
     const cleared = await stack.write.setSignature(row.id, {
       key: null,
       signedAt: null,
+      cleared: true,
       now: new Date().toISOString(),
     });
     if (!cleared) return notFound(c);
@@ -78,21 +86,24 @@ export function registerReportSignatureRoutes(router: Hono<AppEnv>): void {
   router.get('/:id/signature/file', async (c) => {
     const row = await visibleReport(c);
     if (!row) return notFound(c);
-    if (!row.submitterSignatureKey) return notFound(c);
+    if (!row.narrativeSignatureKey) return notFound(c);
 
-    return imageResponse(c, row.submitterSignatureKey);
+    return imageResponse(c, row.narrativeSignatureKey);
   });
 
-  /** The approver's profile image, as the facsimile's second slot shows it. */
+  /**
+   * The approving officer's image, as the facsimile's second slot shows it. The
+   * record keeps its own copy from the moment of approval; a record approved
+   * before that copy existed still shows the profile image.
+   */
   router.get('/:id/approval-signature/file', async (c) => {
     const row = await visibleReport(c);
     if (!row) return notFound(c);
     if (!row.approvedByUserId) return notFound(c);
 
     const user = await reportDependencies(c).users.findById(row.approvedByUserId);
-    if (!user?.signatureObjectKey) return notFound(c);
 
-    return imageResponse(c, user.signatureObjectKey);
+    return imageResponse(c, row.approvalSignatureKey, user?.signatureObjectKey ?? null);
   });
 }
 
@@ -103,7 +114,7 @@ export function registerReportSignatureRoutes(router: Hono<AppEnv>): void {
  */
 async function storeSignature(
   c: Context<AppEnv>,
-  row: { id: string; submitterSignatureKey: string | null },
+  row: { id: string; narrativeSignatureKey: string | null },
   stack: ReturnType<typeof reportDependencies>,
   bytes: Uint8Array,
   mimeType: string,
@@ -112,11 +123,11 @@ async function storeSignature(
   await c.env.BUCKET.put(key, bytes, { httpMetadata: { contentType: mimeType } });
 
   const now = new Date().toISOString();
-  const updated = await stack.write.setSignature(row.id, { key, signedAt: now, now });
+  const updated = await stack.write.setSignature(row.id, { key, signedAt: now, cleared: false, now });
   if (!updated) return notFound(c);
 
-  if (row.submitterSignatureKey) {
-    await c.env.BUCKET.delete(row.submitterSignatureKey).catch(() => undefined);
+  if (row.narrativeSignatureKey) {
+    await c.env.BUCKET.delete(row.narrativeSignatureKey).catch(() => undefined);
   }
 
   return c.json(await detailFor(c, row.id));
@@ -124,41 +135,50 @@ async function storeSignature(
 
 async function detailFor(c: Context<AppEnv>, reportId: string): Promise<ReportDetail> {
   const stack = reportDependencies(c);
-  const detail = await buildReportDetail(
-    {
-      read: stack.read,
-      users: stack.users,
-      audit: stack.audit,
-      env: c.env,
-      origin: new URL(c.req.url).origin,
-    },
-    reportId,
-  );
+  const viewer = viewerOf(c);
+  const row = await stack.read.findById(reportId);
+  if (!row || !viewer) throw new Error('The report disappeared while its signature was saved');
 
-  if (!detail) throw new Error('The report disappeared while its signature was saved');
-  return detail;
+  const isPic = await stack.read.isPic(row.id, viewer.userId);
+  return buildReportDetail(c.env, row, {
+    canWriteNarrative: canWriteNarrative(viewer, isPic, row.status),
+    canManage: canManageRecord(viewer, row.status),
+    ...(isAdmin(viewer) ? {} : { receiptsForUserId: viewer.userId }),
+  });
 }
 
 async function visibleReport(c: Context<AppEnv>) {
   const viewer = viewerOf(c);
   if (!viewer) return null;
 
-  const row = await reportDependencies(c).read.findById(c.req.param('id') ?? '');
-  if (!row || !canViewReport(viewer, row.ownerUserId)) return null;
-  return row;
+  const deps = reportDependencies(c);
+  const row = await deps.read.findById(c.req.param('id') ?? '');
+  if (!row) return null;
+  const isPic = await deps.read.isPic(row.id, viewer.userId);
+  return canViewReport(viewer, isPic) ? row : null;
 }
 
-async function imageResponse(c: Context<AppEnv>, key: string): Promise<Response> {
-  const object = await c.env.BUCKET.get(key);
-  if (!object) return notFound(c);
+/** The first key that still holds an object; a broken one falls through. */
+async function imageResponse(
+  c: Context<AppEnv>,
+  ...keys: (string | null | undefined)[]
+): Promise<Response> {
+  for (const key of keys) {
+    if (!key) continue;
 
-  return new Response(object.body as BodyInit, {
-    status: 200,
-    headers: {
-      'content-type': object.httpMetadata?.contentType ?? 'image/png',
-      'cache-control': 'private, no-store',
-    },
-  });
+    const object = await c.env.BUCKET.get(key);
+    if (!object) continue;
+
+    return new Response(object.body as BodyInit, {
+      status: 200,
+      headers: {
+        'content-type': object.httpMetadata?.contentType ?? 'image/png',
+        'cache-control': 'private, no-store',
+      },
+    });
+  }
+
+  return notFound(c);
 }
 
 function unauthorized(c: Context<AppEnv>) {

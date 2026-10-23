@@ -55,8 +55,8 @@ describe('buildNotification', () => {
       {
         userId: 'u2',
         kind: 'SUBMITTED',
-        description: 'OFF-2026-0014 was submitted by J. Dela Cruz',
-        target: { kind: 'review', reportId: 'r1' },
+        description: 'AR No. 0014 was submitted by J. Dela Cruz',
+        target: { kind: 'report', reportId: 'r1' },
       },
       'n3',
       AT,

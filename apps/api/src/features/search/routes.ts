@@ -11,7 +11,7 @@ export const searchRoutes = new Hono<AppEnv>();
 
 searchRoutes.use('*', requireSession);
 
-const reader = requireRole('REVIEWER', 'APPROVER', 'ADMIN');
+const reader = requireRole('ADMIN', 'PERSONNEL');
 
 async function search(c: Context<AppEnv>) {
   const raw = c.req.query();
@@ -47,6 +47,7 @@ async function search(c: Context<AppEnv>) {
   const activityTo = parsed.data.activityTo ?? term?.endsOn;
   const page = await createReportSearchQueries(db).search({
     ...parsed.data,
+    viewer: { userId: c.get('userId') ?? '', isAdmin: c.get('role') === 'ADMIN' },
     ...(activityFrom ? { activityFrom } : {}),
     ...(activityTo ? { activityTo } : {}),
   });

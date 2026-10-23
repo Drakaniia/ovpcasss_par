@@ -2,21 +2,17 @@ import { Hono } from 'hono';
 
 import { devEmailRoutes } from './dev/email-preview';
 import type { AppEnv } from './env';
-import { acknowledgementRoutes } from './features/acknowledgement/routes';
-import { approvalRoutes } from './features/approval/routes';
 import { attachmentRoutes } from './features/attachments/routes';
 import { auditRoutes } from './features/audit/routes';
 import { authRoutes } from './features/auth/routes';
 import { emailLogRoutes } from './features/emails/routes';
 import { exportRoutes } from './features/exports/routes';
-import { importRoutes } from './features/imports/routes';
 import { inboxRoutes } from './features/inbox/routes';
+import { locationRoutes } from './features/locations/routes';
 import { notificationRoutes } from './features/notifications/routes';
 import { profileRoutes } from './features/profile/routes';
-import { approvalQueueRoutes, reviewQueueRoutes } from './features/queues/routes';
 import { referenceDataRoutes } from './features/reference-data/routes';
 import { reportRoutes } from './features/reports/routes';
-import { reviewRoutes } from './features/review/routes';
 import { searchRoutes } from './features/search/routes';
 import { userRoutes } from './features/users/routes';
 import { desktopCors } from './middleware/cors';
@@ -41,10 +37,8 @@ api.route('/auth', authRoutes);
 api.route('/users', userRoutes);
 api.route('/ref', referenceDataRoutes);
 api.route('/exports', exportRoutes);
-api.route('/imports', importRoutes);
 api.route('/search', searchRoutes);
-api.route('/review', reviewQueueRoutes);
-api.route('/approval', approvalQueueRoutes);
+api.route('/locations', locationRoutes);
 api.route('/audit', auditRoutes);
 api.route('/emails', emailLogRoutes);
 api.route('/dev', devEmailRoutes);
@@ -54,9 +48,6 @@ api.route('/me', notificationRoutes);
 
 // Report sub-resources share the /reports base (spec §7.3); Hono merges them.
 api.route('/reports', reportRoutes);
-api.route('/reports', reviewRoutes);
-api.route('/reports', approvalRoutes);
 api.route('/reports', attachmentRoutes);
-api.route('/reports', acknowledgementRoutes);
 
 app.route('/api/v1', api);

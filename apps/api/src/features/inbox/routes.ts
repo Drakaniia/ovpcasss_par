@@ -38,7 +38,7 @@ inboxRoutes.get('/inbox', async (c) => {
   const user = await queries.users.findById(userId);
   if (!user) return unauthorized(c);
 
-  return c.json(await buildInbox(queries, user, c.get('role')));
+  return c.json(await buildInbox(queries, user));
 });
 
 function unauthorized(c: Context<AppEnv>) {

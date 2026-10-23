@@ -2,95 +2,70 @@ import {
   createDb,
   createEmailOutboxQueries,
   createMonitoringQueries,
+  createReportReadQueries,
   createUserQueries,
-  type UserRow,
 } from '@par/db';
-import type { Role } from '@par/shared';
 
 import type { Env } from '../../../env';
 import { notify } from '../../notifications/application/notify';
-import { selectDueReminders, type DueReminder } from '../domain/select-due';
+import { REMINDER_AFTER_DAYS, shouldRemind, waitingDays } from '../domain/reminder-schedule';
 
-/** Load back far enough that any report past the threshold is included. */
-const LOOKBACK_DAYS = 45;
+export { REMINDER_AFTER_DAYS, MAX_REMINDERS } from '../domain/reminder-schedule';
 
 export interface ReminderSummary {
-  /** Reports that met the working-day rule. */
+  /** Draft records past the threshold. */
   due: number;
-  /** Notifications written, one per recipient. */
+  /** Notifications written, one per personnel in charge. */
   sent: number;
-  /** Recipients deliberately left out (the owner, or nobody holds the role). */
-  skipped: number;
-}
-
-function lookback(now: Date): string {
-  return new Date(now.getTime() - LOOKBACK_DAYS * 86_400_000).toISOString();
 }
 
 /**
- * The reminder sweep (email spec §10). It reuses `notify()`, so a reminder
- * appears in the in-app inbox as well as in mail and the recipient's mute is
- * honoured by the same rule as every other message.
+ * The reminder sweep (spec §14). It reuses `notify()`, so a reminder appears in
+ * the in-app inbox as well as in mail and the recipient's mute is honoured by
+ * the same rule as every other message. A record stops being reminded once its
+ * narrative is submitted, which is why only `DRAFT` rows are selected.
  */
 export async function sendReminders(
   env: Env,
   now = new Date(),
-  threshold?: number,
+  thresholdDays = REMINDER_AFTER_DAYS,
 ): Promise<ReminderSummary> {
   const db = createDb(env.DB);
-  const reports = createMonitoringQueries(db);
+  const records = createMonitoringQueries(db);
+  const reads = createReportReadQueries(db);
   const outbox = createEmailOutboxQueries(db);
   const users = createUserQueries(db);
 
-  const since = lookback(now);
-  const [review, approval] = await Promise.all([
-    reports.listWaitingSince(['SUBMITTED', 'RESUBMITTED'], since, 'submittedAt'),
-    reports.listWaitingSince(['ENDORSED'], since, 'endorsedAt'),
-  ]);
+  const cutoff = new Date(now.getTime() - thresholdDays * 86_400_000).toISOString();
+  const drafts = await records.listOverdueDrafts(cutoff);
+  const summary: ReminderSummary = { due: drafts.length, sent: 0 };
 
-  const rule = threshold === undefined ? {} : { threshold };
-  const candidates = selectDueReminders({ now, review, approval, lastSent: new Map(), ...rule });
-  const lastSent = new Map<string, string>();
+  for (const draft of drafts) {
+    const pics = await reads.listPics(draft.id);
+    const waited = waitingDays(draft.createdAt, now);
 
-  for (const candidate of candidates) {
-    const last = await outbox.lastSentFor('REMINDER', candidate.id);
-    if (last) lastSent.set(candidate.id, last);
-  }
+    for (const pic of pics) {
+      if (!pic.userId) continue;
+      const user = await users.findById(pic.userId);
+      if (!user || user.status !== 'ACTIVE' || !user.emailVerifiedAt) continue;
 
-  const due = selectDueReminders({ now, review, approval, lastSent, ...rule });
-  const byRole = new Map<Role, UserRow[]>();
-  const summary: ReminderSummary = { due: due.length, sent: 0, skipped: 0 };
+      const [sentCount, lastSentAt] = await Promise.all([
+        outbox.countForReport('REMINDER', draft.id, user.email),
+        outbox.lastSentFor('REMINDER', draft.id, user.email),
+      ]);
+      if (!shouldRemind({ createdAt: draft.createdAt, sentCount, lastSentAt, now })) continue;
 
-  for (const reminder of due) {
-    const role: Role = reminder.queue === 'approval' ? 'APPROVER' : 'REVIEWER';
-
-    if (!byRole.has(role)) byRole.set(role, await users.listActiveByRole(role));
-    const holders = (byRole.get(role) ?? []).filter((holder) => holder.id !== reminder.ownerUserId);
-
-    if (holders.length === 0) {
-      summary.skipped += 1;
-      continue;
-    }
-
-    for (const holder of holders) {
       await notify(env, {
-        userId: holder.id,
+        userId: user.id,
         kind: 'REMINDER',
-        description: `${reminder.trackingNumber} has been waiting ${reminder.workingDays} working days.`,
-        target: {
-          kind: reminder.queue === 'approval' ? 'approval' : 'review',
-          reportId: reminder.id,
-        },
+        description: `${draft.referenceNo} is still waiting for its narrative report.`,
+        target: { kind: 'report', reportId: draft.id },
         email: {
           kind: 'REMINDER',
-          to: holder.email,
-          recipientName: holder.fullName,
-          trackingNumber: reminder.trackingNumber ?? '',
-          title: reminder.title,
-          submitterName: reminder.submitterName,
-          waitingSince: reminder.since,
-          workingDays: reminder.workingDays,
-          queue: reminder.queue,
+          to: user.email,
+          referenceNo: draft.referenceNo,
+          title: draft.title,
+          waitingDays: waited,
           ...(env.APP_ORIGIN ? { origin: env.APP_ORIGIN } : {}),
         },
       });
@@ -100,5 +75,3 @@ export async function sendReminders(
 
   return summary;
 }
-
-export type { DueReminder };

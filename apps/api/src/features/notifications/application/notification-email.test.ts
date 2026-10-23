@@ -2,82 +2,68 @@ import { describe, expect, it } from 'vitest';
 
 import { emailForNotification, type NotificationEmailData } from './notification-email';
 
-const report: NotificationEmailData = {
-  recipientName: 'M. Santos',
-  trackingNumber: 'OFF-2026-0014',
+const record: NotificationEmailData = {
+  referenceNo: 'AR No. 0014',
   title: 'Coastal cleanup',
-  actorName: 'J. Dela Cruz',
   origin: 'https://par.example.edu',
 };
 
 describe('emailForNotification', () => {
-  it('tells reviewers a report is ready for review', () => {
-    const content = emailForNotification('SUBMITTED', report);
+  it('leads the assignment mail with the reference', () => {
+    const content = emailForNotification('ASSIGNED', { ...record, newAccount: true });
 
-    expect(content?.subject).toBe('[OVPCASSS PAR] OFF-2026-0014 is ready for review');
+    expect(content?.subject).toBe('[OVPCASSS PAR] AR No. 0014 — you are the personnel in charge');
+    expect(content?.text).toContain('Create your account');
+    expect(content?.text).toContain('https://par.example.edu/register');
+  });
+
+  it('tells the office a narrative is ready for review', () => {
+    const content = emailForNotification('SUBMITTED', {
+      ...record,
+      submitterName: 'J. Dela Cruz',
+    });
+
+    expect(content?.subject).toBe('[OVPCASSS PAR] AR No. 0014 — narrative report ready for review');
     expect(content?.text).toContain('J. Dela Cruz');
-    expect(content?.text).toContain('https://par.example.edu/review');
+    expect(content?.text).toContain('https://par.example.edu/reports?tab=submitted');
   });
 
-  it('uses the resubmission wording instead of the first-submission copy', () => {
-    const content = emailForNotification('RESUBMITTED', { ...report, revisionRound: 2 });
-
-    expect(content?.subject).toBe('[OVPCASSS PAR] OFF-2026-0014 was resubmitted');
-    expect(content?.text).toContain('resubmitted after revision');
-    expect(content?.text).toContain('revision round 2');
-  });
-
-  it('tells approvers a report is ready for approval', () => {
-    expect(emailForNotification('ENDORSED', report)?.subject).toBe(
-      '[OVPCASSS PAR] OFF-2026-0014 is ready for approval',
-    );
-  });
-
-  it('carries the return comments to the submitter', () => {
+  it('carries the return comments to the personnel in charge', () => {
     const content = emailForNotification('RETURNED', {
-      ...report,
+      ...record,
       comments: 'Add the attendance sheet and correct the participant count.',
     });
 
-    expect(content?.subject).toBe('[OVPCASSS PAR] OFF-2026-0014 was returned for revision');
+    expect(content?.subject).toBe(
+      '[OVPCASSS PAR] AR No. 0014 — narrative report returned for revision',
+    );
     expect(content?.text).toContain('> Add the attendance sheet');
   });
 
-  it('claims an acknowledgement only when the attachment is carried', () => {
-    expect(emailForNotification('APPROVED', report)?.text).not.toContain('attached');
-    expect(emailForNotification('APPROVED', { ...report, hasAttachment: true })?.text).toContain(
-      'The signed acknowledgement is attached.',
+  it('claims a receipt only when the attachment is carried', () => {
+    expect(emailForNotification('RECEIPT_ISSUED', record)?.text).toContain(
+      'Download the receipt from the app.',
     );
-  });
-
-  it('sends a receipt with the report it describes', () => {
-    const content = emailForNotification('RECEIPT', { ...report, hasAttachment: true });
-
-    expect(content?.subject).toBe('[OVPCASSS PAR] Submission received: OFF-2026-0014');
-    expect(content?.text).toContain('A copy of the report as filed is attached.');
-  });
-
-  it('names the queue a reminder is about', () => {
     expect(
-      emailForNotification('REMINDER', { ...report, queue: 'approval', workingDays: 4 })?.subject,
-    ).toBe('[OVPCASSS PAR] OFF-2026-0014 is still awaiting approval');
+      emailForNotification('RECEIPT_ISSUED', { ...record, hasAttachment: true })?.text,
+    ).toContain('Keep this message');
+  });
+
+  it('names how long a record has been waiting in a reminder', () => {
+    const content = emailForNotification('REMINDER', { ...record, waitingDays: 14 });
+
+    expect(content?.subject).toBe('[OVPCASSS PAR] AR No. 0014 — narrative report still pending');
+    expect(content?.text).toContain('14 days ago');
   });
 
   it('sends nothing when the facts a template needs are missing', () => {
-    expect(emailForNotification('SUBMITTED', { recipientName: 'M. Santos' })).toBeNull();
-    expect(
-      emailForNotification('SUBMITTED', {
-        recipientName: 'M. Santos',
-        trackingNumber: 'OFF-2026-0014',
-        title: 'Coastal cleanup',
-      }),
-    ).toBeNull();
-    expect(emailForNotification('REMINDER', report)).toBeNull();
+    expect(emailForNotification('ASSIGNED', {})).toBeNull();
+    expect(emailForNotification('SUBMITTED', { referenceNo: 'AR No. 0014' })).toBeNull();
   });
 
   it('leaves account and operational kinds to their own senders', () => {
-    expect(emailForNotification('VERIFY', report)).toBeNull();
-    expect(emailForNotification('WORKBOOK', report)).toBeNull();
-    expect(emailForNotification('FAILURE_DIGEST', report)).toBeNull();
+    expect(emailForNotification('VERIFY', record)).toBeNull();
+    expect(emailForNotification('WORKBOOK', record)).toBeNull();
+    expect(emailForNotification('FAILURE_DIGEST', record)).toBeNull();
   });
 });

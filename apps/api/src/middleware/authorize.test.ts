@@ -20,7 +20,7 @@ app.use('*', async (c, next) => {
 });
 
 app.get('/admin', requireRole('ADMIN'), (c) => c.json({ ok: true }));
-app.get('/review', requireRole('REVIEWER'), (c) => c.json({ ok: true }));
+app.get('/reports', requireRole('PERSONNEL'), (c) => c.json({ ok: true }));
 
 function request(headers: Record<string, string> = {}) {
   return app.request('/admin', { headers });
@@ -37,7 +37,7 @@ describe('requireRole', () => {
   });
 
   it('rejects a signed-in caller with the wrong role', async () => {
-    const response = await request({ 'x-test-user': 'u1', 'x-test-role': 'REVIEWER' });
+    const response = await request({ 'x-test-user': 'u1', 'x-test-role': 'PERSONNEL' });
 
     expect(response.status).toBe(403);
   });
@@ -55,7 +55,7 @@ describe('requireRole', () => {
   });
 
   it('admits an admin to a gate owned by another role', async () => {
-    const response = await app.request('/review', {
+    const response = await app.request('/reports', {
       headers: { 'x-test-user': 'u1', 'x-test-role': 'ADMIN' },
     });
 

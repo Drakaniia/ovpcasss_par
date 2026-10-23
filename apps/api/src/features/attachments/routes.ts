@@ -11,13 +11,13 @@ import { signedDownloadUrl } from '../../lib/download-url';
 import { toHex } from '../../lib/encoding';
 import { requireSession } from '../../middleware/auth';
 import { rateLimit } from '../../middleware/rate-limit';
-import { canEditReport, canViewReport } from '../reports/domain/report-access';
-import { toAttachment } from '../reports/application/report-shape';
+import { canViewReport, canWriteNarrative } from '../reports/domain/report-access';
+import { toAttachment } from '../reports/application/record-shape';
 import {
   attachmentObjectKey,
   reportDependencies,
   viewerOf,
-} from '../reports/application/workflow-context';
+} from '../reports/application/report-context';
 import {
   attachmentSizeProblem,
   isAllowedAttachment,
@@ -65,7 +65,8 @@ attachmentRoutes.post(
     const stack = reportDependencies(c);
     const report = await stack.read.findById(c.req.param('id') ?? '');
     if (!report) return notFound(c);
-    if (!canEditReport(viewer, report.ownerUserId, report.status)) {
+    const isPic = await stack.read.isPic(report.id, viewer.userId);
+    if (!canWriteNarrative(viewer, isPic, report.status)) {
       return c.json(
         { error: { code: 'FORBIDDEN', message: 'This report cannot accept new files.' } },
         403,
@@ -134,7 +135,8 @@ attachmentRoutes.put(
     const stack = reportDependencies(c);
     const report = await stack.read.findById(c.req.param('id') ?? '');
     if (!report) return notFound(c);
-    if (!canEditReport(viewer, report.ownerUserId, report.status)) {
+    const isPic = await stack.read.isPic(report.id, viewer.userId);
+    if (!canWriteNarrative(viewer, isPic, report.status)) {
       return c.json(
         { error: { code: 'FORBIDDEN', message: 'This report cannot accept new files.' } },
         403,
@@ -188,7 +190,8 @@ attachmentRoutes.post('/:id/attachments/:attachmentId/confirm', async (c) => {
   const stack = reportDependencies(c);
   const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report) return notFound(c);
-  if (!canEditReport(viewer, report.ownerUserId, report.status)) {
+  const isPic = await stack.read.isPic(report.id, viewer.userId);
+  if (!canWriteNarrative(viewer, isPic, report.status)) {
     return c.json(
       { error: { code: 'FORBIDDEN', message: 'This report is not open for edits.' } },
       403,
@@ -265,7 +268,8 @@ attachmentRoutes.get('/:id/attachments/:attachmentId/url', async (c) => {
 
   const stack = reportDependencies(c);
   const report = await stack.read.findById(c.req.param('id') ?? '');
-  if (!report || !canViewReport(viewer, report.ownerUserId)) return notFound(c);
+  if (!report) return notFound(c);
+  if (!canViewReport(viewer, await stack.read.isPic(report.id, viewer.userId))) return notFound(c);
 
   const attachment = await stack.attachments.findById(report.id, c.req.param('attachmentId') ?? '');
   if (!attachment || attachment.status !== 'CONFIRMED') return notFound(c);
@@ -288,7 +292,8 @@ attachmentRoutes.get('/:id/attachments/:attachmentId/file', async (c) => {
 
   const stack = reportDependencies(c);
   const report = await stack.read.findById(c.req.param('id') ?? '');
-  if (!report || !canViewReport(viewer, report.ownerUserId)) return notFound(c);
+  if (!report) return notFound(c);
+  if (!canViewReport(viewer, await stack.read.isPic(report.id, viewer.userId))) return notFound(c);
 
   const attachment = await stack.attachments.findById(report.id, c.req.param('attachmentId') ?? '');
   if (!attachment || attachment.status !== 'CONFIRMED') return notFound(c);
@@ -322,7 +327,8 @@ attachmentRoutes.delete('/:id/attachments/:attachmentId', async (c) => {
   const stack = reportDependencies(c);
   const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report) return notFound(c);
-  if (!canEditReport(viewer, report.ownerUserId, report.status)) {
+  const isPic = await stack.read.isPic(report.id, viewer.userId);
+  if (!canWriteNarrative(viewer, isPic, report.status)) {
     return c.json(
       { error: { code: 'FORBIDDEN', message: 'This report is not open for edits.' } },
       403,

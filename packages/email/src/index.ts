@@ -43,4 +43,4 @@ export {
 } from './shell';
 export * from './templates/account-events';
 export * from './templates/operations';
-export * from './templates/report-events';
+export * from './templates/narrative-events';

@@ -8,24 +8,20 @@ import { recordAudit } from '../../../lib/audit';
 import { createId } from '../../../lib/ids';
 import { hashPassword } from '../../../lib/password';
 import { createOpaqueToken, hashToken } from '../../../lib/tokens';
-import { isAllowedDomain } from '../domain/email-domain';
-import { parseAllowedDomains } from './config';
 
-export type RegisterOutcome = { ok: true } | { ok: false; code: 'DOMAIN_NOT_ALLOWED' };
+export type RegisterOutcome = { ok: true };
 
 const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Creates an account as a Submitter and mails its verification link (spec §7.4).
- * Confirming the address activates it; no administrator gate stands in between.
+ * Creates a PERSONNEL account and mails its verification link (spec §13).
+ * Registration is open; email verification still gates sign-in, and the
+ * account lands on the personnel dashboard.
  * An address that is already registered returns success without a write, so the
  * response never reveals whether an account exists (UI spec §7.1).
  */
 export async function register(c: Context<AppEnv>, input: RegisterInput): Promise<RegisterOutcome> {
   const email = input.email.trim().toLowerCase();
-  if (!isAllowedDomain(email, parseAllowedDomains(c.env.ALLOWED_EMAIL_DOMAINS))) {
-    return { ok: false, code: 'DOMAIN_NOT_ALLOWED' };
-  }
 
   const db = createDb(c.env.DB);
   const users = createUserQueries(db);
@@ -40,7 +36,7 @@ export async function register(c: Context<AppEnv>, input: RegisterInput): Promis
     passwordHash: hash,
     hashParams: params,
     fullName: input.fullName,
-    role: 'SUBMITTER',
+    role: 'PERSONNEL',
     status: 'PENDING_VERIFICATION',
     campusUnit: input.campusUnit ?? null,
     campusId: input.campusId ?? null,

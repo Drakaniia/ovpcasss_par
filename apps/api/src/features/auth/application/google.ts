@@ -8,7 +8,6 @@ import { recordAudit } from '../../../lib/audit';
 import { createId } from '../../../lib/ids';
 import { hashPassword } from '../../../lib/password';
 import { createOpaqueToken } from '../../../lib/tokens';
-import { isAllowedDomain } from '../domain/email-domain';
 import {
   buildGoogleAuthUrl,
   decodeStateCookie,
@@ -17,7 +16,7 @@ import {
   parseDesktopStart,
   type DesktopStart,
 } from '../domain/google';
-import { isBootstrapAdmin, parseAllowedDomains, parseBootstrapAdmins } from './config';
+import { isBootstrapAdmin, parseBootstrapAdmins } from './config';
 import { issueSession } from './session-issue';
 
 export const GOOGLE_STATE_COOKIE = 'par_google_state';
@@ -116,10 +115,6 @@ export async function completeGoogleSignIn(c: Context<AppEnv>): Promise<GoogleOu
   const profile = await exchangeCode(c, query.code, clientId, clientSecret);
   if (!profile) return failed('google_failed', desktop);
 
-  if (!isAllowedDomain(profile.email, parseAllowedDomains(c.env.ALLOWED_EMAIL_DOMAINS))) {
-    return failed('google_domain', desktop);
-  }
-
   const db = createDb(c.env.DB);
   const users = createUserQueries(db);
   const now = new Date().toISOString();
@@ -141,7 +136,7 @@ export async function completeGoogleSignIn(c: Context<AppEnv>): Promise<GoogleOu
       hashParams: params,
       hasPassword: false,
       fullName: profile.name || profile.email.split('@')[0]!,
-      role: bootstrap ? 'ADMIN' : 'SUBMITTER',
+      role: bootstrap ? 'ADMIN' : 'PERSONNEL',
       status: 'ACTIVE',
       emailVerifiedAt: now,
       createdAt: now,
@@ -172,7 +167,7 @@ export async function completeGoogleSignIn(c: Context<AppEnv>): Promise<GoogleOu
   // active from here on. A missing role is filled defensively; nothing else is
   // allowed to keep an account role-less.
   if (existing.status === 'PENDING_VERIFICATION') patch.status = 'ACTIVE';
-  if (existing.role === null) patch.role = 'SUBMITTER';
+  if (existing.role === null) patch.role = 'PERSONNEL';
   if (
     existing.role !== 'ADMIN' &&
     isBootstrapAdmin(existing.email, parseBootstrapAdmins(c.env.BOOTSTRAP_ADMIN_EMAILS))

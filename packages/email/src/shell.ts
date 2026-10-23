@@ -38,7 +38,7 @@ export interface ShellInput {
   facts?: readonly ShellFact[] | undefined;
   quote?: ShellQuote | undefined;
   action?: ShellAction | undefined;
-  /** Tracking number or term, printed in the footer. */
+  /** AR No. or term, printed in the footer. */
   reference?: string | undefined;
   /** Extra footer line, e.g. "The document is available in the app." */
   note?: string | undefined;

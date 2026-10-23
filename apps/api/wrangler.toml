@@ -40,10 +40,9 @@ dead_letter_queue = "par-email-dlq"
 crons = ["17 * * * *", "30 18 * * *"]
 
 [vars]
-ALLOWED_EMAIL_DOMAINS = "buksu.edu.ph,student.buksu.edu.ph"
 # Addresses that become an active Admin once their email is verified, instead of
-# the default Submitter role. Keep it short; remove an entry after the account is
-# set up.
+# the default personnel-in-charge role. Keep it short; remove an entry after the
+# account is set up.
 BOOTSTRAP_ADMIN_EMAILS = "ovpcasss@buksu.edu.ph,2401117078@student.buksu.edu.ph"
 R2_BUCKET_NAME = "par-attachments"
 # The office mailbox: default workbook recipient and failure-digest fallback.
@@ -56,8 +55,9 @@ OFFICE_EMAIL = "ovpcasss@buksu.edu.ph"
 # of the account subdomain changes every Worker URL. Change it when the app moves
 # to a custom domain. Locally, .dev.vars wins.
 APP_ORIGIN = "https://par.ovpcasss.workers.dev"
-REMINDER_AFTER_WORKING_DAYS = "3"
-REMINDER_LOCAL_HOUR = "9"
+# OVPCASSS-F-013 signatory block; defaults to the printed form.
+# RECEIPT_SIGNATORY_NAME = "DR. LINCOLN V. TAN"
+# RECEIPT_SIGNATORY_TITLE = "VPCASSS"
 EMAIL_MAX_ATTACHMENT_BYTES = "8388608"
 EMAIL_PROVIDER = "resend"
 # Sender for outbound mail: an address at the domain verified in Resend

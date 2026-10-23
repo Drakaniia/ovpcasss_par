@@ -5,7 +5,7 @@ import {
   createUserQueries,
   type ReportWithNames,
 } from '@par/db';
-import { renderFacsimilePdf, type FacsimilePdfData } from '@par/export';
+import { imageMediaType, renderFacsimilePdf, type FacsimilePdfData } from '@par/export';
 import type { ReportStatus } from '@par/shared';
 
 import type { Env } from '../../../env';
@@ -23,10 +23,7 @@ const LEVEL_LABELS = {
 const STATUS_LABELS: Record<ReportStatus, string> = {
   DRAFT: 'Draft',
   SUBMITTED: 'Submitted',
-  RETURNED_BY_REVIEWER: 'Returned by reviewer',
-  RESUBMITTED: 'Resubmitted',
-  ENDORSED: 'Endorsed',
-  RETURNED_BY_APPROVER: 'Returned by approver',
+  RETURNED: 'Returned',
   APPROVED: 'Approved',
 };
 
@@ -36,6 +33,49 @@ export const FACSIMILE_TYPE = 'application/pdf';
 export function watermarkFor(status: ReportStatus): FacsimilePdfData['watermark'] {
   if (status === 'APPROVED') return 'NONE';
   return status === 'DRAFT' ? 'DRAFT' : 'NOT_APPROVED';
+}
+
+/**
+ * Reads a stored image straight from R2; a missing object prints the rule and
+ * is logged with the report id (bug phase 05 §3.7).
+ */
+async function readImage(
+  env: Env,
+  key: string | null,
+  reportId: string,
+): Promise<Uint8Array | null> {
+  if (!key) return null;
+
+  let bytes: Uint8Array;
+  try {
+    const object = await env.BUCKET.get(key);
+    if (!object) {
+      logBrokenSignature(reportId, 'The signature object is missing');
+      return null;
+    }
+    bytes = new Uint8Array(await object.arrayBuffer());
+  } catch (error) {
+    logBrokenSignature(reportId, 'The signature object could not be read', error);
+    return null;
+  }
+
+  if (!imageMediaType(bytes)) {
+    logBrokenSignature(reportId, 'The signature object is not a PNG or JPEG');
+    return null;
+  }
+
+  return bytes;
+}
+
+function logBrokenSignature(reportId: string, message: string, error?: unknown): void {
+  console.error(
+    JSON.stringify({
+      level: 'error',
+      message,
+      reportId,
+      ...(error ? { reason: error instanceof Error ? error.message : 'unknown' } : {}),
+    }),
+  );
 }
 
 export interface RenderedFacsimile {
@@ -63,16 +103,21 @@ export async function renderReportFacsimile(
     read.listPics(row.id),
     read.listSdgIds(row.id),
     read.listAttachments(row.id),
-    users.findById(row.ownerUserId),
+    row.submittedByUserId ? users.findById(row.submittedByUserId) : Promise.resolve(null),
     createReferenceQueries(db).list('sdgs'),
     row.approvedByUserId ? users.findById(row.approvedByUserId) : Promise.resolve(null),
   ]);
 
+  const [submitterSignature, approverSignature] = await Promise.all([
+    readImage(env, row.narrativeSignatureKey, row.id),
+    readImage(env, row.approvalSignatureKey ?? approver?.signatureObjectKey ?? null, row.id),
+  ]);
+
   const bytes = await renderFacsimilePdf({
-    trackingNumber: row.trackingNumber,
+    referenceNo: row.referenceNo,
     title: row.title,
     statusLabel: STATUS_LABELS[row.status],
-    submitterName: submitter?.fullName ?? 'OVPCASSS',
+    personnelName: submitter?.fullName ?? pics[0]?.name ?? 'Personnel in charge',
     classification: CLASSIFICATION_LABELS[row.classification],
     campus: row.campusName ?? '',
     college: row.unitName ?? '',
@@ -82,6 +127,7 @@ export async function renderReportFacsimile(
     activityStartDate: row.activityStartDate,
     activityEndDate: row.activityEndDate,
     location: row.location,
+    activityCount: row.activityCount,
     totalStudents: row.totalStudents,
     totalPic: row.totalPic,
     pics: pics.map((pic) => ({ name: pic.name, email: pic.email, phone: pic.phone })),
@@ -97,6 +143,8 @@ export async function renderReportFacsimile(
     generatedAt: new Date().toISOString(),
     approvedByName: approver?.fullName ?? null,
     approvedAt: row.approvedAt,
+    ...(submitterSignature ? { submitterSignature } : {}),
+    ...(approverSignature ? { approverSignature } : {}),
   });
 
   return { row, bytes };
