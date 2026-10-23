@@ -12,7 +12,6 @@
     capabilitiesFor,
     inboxSectionsFor,
     inboxStatsFor,
-    myReportRows,
     recentlyDecidedRows,
     reportActivityRows,
     returnedRows,
@@ -56,7 +55,6 @@
   const withPic = $derived(withPicRows(inbox.withPic, now));
   const returned = $derived(returnedRows(inbox.returned, now));
   const approved = $derived(approvedRows(inbox.approved, now));
-  const myReports = $derived(myReportRows(inbox.myReports, now));
 
   async function resend(row: InboxRow): Promise<void> {
     try {
@@ -80,14 +78,7 @@
 {/if}
 
 {#if hasNothing}
-  {#if caps.personnel && inbox.myReports.total === 0}
-    <InboxNothing
-      title="No activities are assigned to you yet"
-      description="The OVPCASSS office adds the personnel in charge for each activity. Your records appear here once the office registers one."
-      href="/profile"
-      linkLabel="Complete your profile"
-    />
-  {:else if caps.admin}
+  {#if caps.admin}
     <InboxNothing
       title="Nothing needs your attention"
       description="Submitted narratives and records still with their personnel in charge appear here when the office needs to act."
@@ -97,9 +88,9 @@
   {:else}
     <InboxNothing
       title="Nothing needs your attention"
-      description="Your assignments and their updates appear here."
-      href="/reports"
-      linkLabel="View your records"
+      description="Records that name you appear on Home."
+      href="/"
+      linkLabel="Back to Home"
     />
   {/if}
 {:else}
@@ -132,7 +123,7 @@
           id="with-pic"
           title="With personnel in charge"
           count={inbox.withPic.total}
-          href="/reports?tab=withPic"
+          href="/reports?tab=pending"
           linkLabel="Open the register"
           rows={withPic}
           onresend={(row) => void resend(row)}
@@ -158,17 +149,6 @@
           href="/reports?tab=approved"
           linkLabel="Open the register"
           rows={approved}
-        />
-      {/if}
-
-      {#if sections.includes('myReports')}
-        <InboxActionCard
-          id="my-reports"
-          title="Your assignments"
-          count={inbox.myReports.total}
-          href="/reports"
-          linkLabel="Open my reports"
-          rows={myReports}
         />
       {/if}
 

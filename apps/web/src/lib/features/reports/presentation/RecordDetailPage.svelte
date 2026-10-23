@@ -1,6 +1,14 @@
 <script lang="ts">
   import type { ReportDetail, ReportReceipt } from '@par/shared';
-  import { ArrowLeft, Download, Pencil, Printer } from '@lucide/svelte';
+  import {
+    Archive,
+    ArchiveRestore,
+    ArrowLeft,
+    Download,
+    Eye,
+    Pencil,
+    Printer,
+  } from '@lucide/svelte';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
 
@@ -10,6 +18,7 @@
   import SkeletonDocument from '$lib/components/SkeletonDocument.svelte';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
   import ReceiptList from '$lib/features/receipts/presentation/ReceiptList.svelte';
+  import ReceiptPreview from '$lib/features/receipts/presentation/ReceiptPreview.svelte';
   import { formatDateRange, formatDateTime, formatLongDate } from '$lib/format/datetime';
   import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
   import { session } from '$lib/session/session.svelte';
@@ -34,9 +43,11 @@
     sdgs: [],
   });
   let printing = $state(false);
-  let downloading = $state(false);
+  /** The receipt the acknowledgment dialog is showing, if any. */
+  let receiptPreview = $state<ReportReceipt | null>(null);
   /** The sheet holds every signature image before the print dialog opens. */
   let printReady = $state(false);
+  let filing = $state(false);
 
   const role = $derived(session.user?.role ?? null);
   const admin = $derived(role === 'ADMIN');
@@ -82,29 +93,29 @@
     }
   }
 
-  async function downloadReceipt(receipt: ReportReceipt): Promise<void> {
-    if (downloading) return;
-    downloading = true;
-
-    try {
-      const blob = await apiDownload(`/reports/${id}/receipts/${receipt.id}/file`);
-      saveBlob(
-        blob,
-        `OVPCASSS-F-013-${receipt.recipientName.replaceAll(/[^0-9A-Za-z]+/g, '-')}.pdf`,
-      );
-    } catch {
-      toast.error('The receipt could not be downloaded. Try again.');
-    } finally {
-      downloading = false;
-    }
-  }
-
   async function downloadAttachment(attachmentId: string, fileName: string): Promise<void> {
     try {
       const blob = await apiDownload(`/reports/${id}/attachments/${attachmentId}/file`);
       saveBlob(blob, fileName);
     } catch {
       toast.error('The attachment could not be downloaded. Try again.');
+    }
+  }
+
+  async function toggleArchive(): Promise<void> {
+    if (!detail || filing) return;
+    const archived = !detail.archivedAt;
+    filing = true;
+
+    try {
+      if (archived) await api.reports.archive(id);
+      else await api.reports.unarchive(id);
+      toast.success(archived ? 'Record archived.' : 'Record returned to the register.');
+      await load();
+    } catch {
+      toast.error('That record was not filed. Try again.');
+    } finally {
+      filing = false;
     }
   }
 
@@ -199,6 +210,7 @@
       <div class="reference-row">
         <span class="reference">{detail.referenceNo}</span>
         <StatusBadge status={detail.status} />
+        {#if detail.archivedAt}<span class="archived-chip">Archived</span>{/if}
       </div>
       <h1>{detail.form.title}</h1>
       <p class="meta">
@@ -226,14 +238,27 @@
           <Pencil size={15} aria-hidden="true" /> Edit details
         </a>
       {/if}
+      {#if detail.canArchive}
+        <button
+          class="btn btn-outline btn-sm"
+          type="button"
+          disabled={filing}
+          onclick={() => void toggleArchive()}
+        >
+          {#if detail.archivedAt}
+            <ArchiveRestore size={15} aria-hidden="true" /> Unarchive
+          {:else}
+            <Archive size={15} aria-hidden="true" /> Archive
+          {/if}
+        </button>
+      {/if}
       {#if approvedReceipt}
         <button
           class="btn btn-primary btn-sm"
           type="button"
-          disabled={downloading}
-          onclick={() => approvedReceipt && void downloadReceipt(approvedReceipt)}
+          onclick={() => (receiptPreview = approvedReceipt)}
         >
-          <Download size={15} aria-hidden="true" /> Download receipt
+          <Eye size={15} aria-hidden="true" /> View receipt
         </button>
       {/if}
     </div>
@@ -298,24 +323,29 @@
         </ul>
       </section>
 
-      <section class="panel" aria-labelledby="narrative-heading">
-        {#if detail.canWriteNarrative}
+      {#if detail.canWriteNarrative}
+        <section class="panel">
           <NarrativeEditor {detail} onreload={load} />
-        {:else}
+        </section>
+      {:else if detail.status === 'PENDING'}
+        <section class="panel" aria-labelledby="narrative-heading">
           <h2 id="narrative-heading">Narrative report</h2>
-          {#if detail.form.narrative.trim()}
-            <p class="narrative">{detail.form.narrative}</p>
-          {:else}
-            <p class="empty">The narrative report has not been submitted yet.</p>
-          {/if}
+          <p class="narrative-placeholder">
+            The personnel in charge have not submitted the narrative yet.
+          </p>
+        </section>
+      {:else if detail.form.narrative.trim()}
+        <section class="panel" aria-labelledby="narrative-heading">
+          <h2 id="narrative-heading">Narrative report</h2>
+          <p class="narrative">{detail.form.narrative}</p>
           {#if detail.submittedAt}
             <p class="submitted-line">
               Submitted by {detail.submittedByName ?? 'the personnel in charge'} ·
               {formatDateTime(detail.submittedAt)}
             </p>
           {/if}
-        {/if}
-      </section>
+        </section>
+      {/if}
 
       {#if detail.attachments.length > 0}
         <section class="panel" aria-labelledby="attachments-title">
@@ -362,6 +392,13 @@
             <dt>Approved</dt>
             <dd>{formatLongDate(detail.approvedAt)}</dd>
           {/if}
+          {#if detail.archivedAt}
+            <dt>Archived</dt>
+            <dd>
+              {formatLongDate(detail.archivedAt)}{#if detail.archivedByName}
+                · {detail.archivedByName}{/if}
+            </dd>
+          {/if}
         </dl>
       </section>
 
@@ -370,6 +407,14 @@
       {/if}
     </aside>
   </div>
+
+  {#if receiptPreview}
+    <ReceiptPreview
+      reportId={detail.id}
+      receipt={receiptPreview}
+      onclose={() => (receiptPreview = null)}
+    />
+  {/if}
 {/if}
 
 <style>
@@ -434,6 +479,21 @@
     align-items: center;
     display: inline-flex;
     gap: 6px;
+  }
+
+  .archived-chip {
+    background: var(--surface-page);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+
+  .narrative-placeholder {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin: 0;
   }
 
   .return-callout {
@@ -536,12 +596,6 @@
     line-height: 1.6;
     margin: 0;
     white-space: pre-wrap;
-  }
-
-  .empty {
-    color: var(--text-secondary);
-    font-size: 13px;
-    margin: 0;
   }
 
   .submitted-line {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { STATUS_PRESENTATION, nextStepText } from './report-status';
+import { STATUS_PRESENTATION, legacyStatusLabel, nextStepText } from './report-status';
 
 describe('STATUS_PRESENTATION', () => {
   it('maps all four API statuses to a label and a tone', () => {
@@ -9,7 +9,7 @@ describe('STATUS_PRESENTATION', () => {
         Object.entries(STATUS_PRESENTATION).map(([status, meta]) => [status, meta.label]),
       ),
     ).toEqual({
-      DRAFT: 'Draft',
+      PENDING: 'Pending',
       SUBMITTED: 'Submitted',
       RETURNED: 'Returned',
       APPROVED: 'Approved',
@@ -19,7 +19,7 @@ describe('STATUS_PRESENTATION', () => {
 
 describe('nextStepText', () => {
   it('matches the spec copy for every non-terminal status', () => {
-    expect(nextStepText('DRAFT')).toBe('With personnel in charge · Next: narrative report');
+    expect(nextStepText('PENDING')).toBe('With personnel in charge · Next: narrative report');
     expect(nextStepText('SUBMITTED')).toBe('With the office · Next: review and decision');
     expect(nextStepText('RETURNED')).toBe('With personnel in charge · Next: revise and resubmit');
   });
@@ -28,6 +28,11 @@ describe('nextStepText', () => {
     expect(nextStepText('APPROVED', '2026-03-20T01:00:00Z')).toBe(
       'Completed 20 Mar 2026 · Acknowledgment receipt available',
     );
+  });
+
+  it('keeps a historical stored Draft readable as legacy', () => {
+    expect(legacyStatusLabel('DRAFT')).toBe('Draft (legacy)');
+    expect(legacyStatusLabel('PENDING')).toBeNull();
   });
 
   it('never invents an in-progress label', () => {

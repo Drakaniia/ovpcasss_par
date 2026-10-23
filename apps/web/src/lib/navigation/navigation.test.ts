@@ -13,8 +13,8 @@ const labels = (role: Parameters<typeof navItemsFor>[0]) =>
   navItemsFor(role).map((item) => item.label);
 
 describe('navItemsFor', () => {
-  it('gives personnel Home, Reports, and the Repository', () => {
-    expect(labels('PERSONNEL')).toEqual(['Home', 'Reports', 'Repository']);
+  it('gives personnel Home only: no register, no repository', () => {
+    expect(labels('PERSONNEL')).toEqual(['Home']);
   });
 
   it('gives admin every destination', () => {
@@ -50,15 +50,12 @@ describe('sectionTabsFor', () => {
       'Submitted',
       'Returned',
       'Approved',
+      'Archived',
     ]);
   });
 
-  it('shows personnel the three tabs for its own records', () => {
-    expect(sectionTabsFor('reports', 'PERSONNEL').map((tab) => tab.label)).toEqual([
-      'All',
-      'Returned',
-      'Approved',
-    ]);
+  it('gives personnel no section tabs, since it has no sections', () => {
+    expect(sectionTabsFor('reports', 'PERSONNEL')).toEqual([]);
   });
 
   it('shows repository and admin tabs', () => {
@@ -66,7 +63,7 @@ describe('sectionTabsFor', () => {
       'Search',
       'Exports',
     ]);
-    expect(sectionTabsFor('repository', 'PERSONNEL').map((tab) => tab.label)).toEqual(['Search']);
+    expect(sectionTabsFor('repository', 'PERSONNEL')).toEqual([]);
     expect(sectionTabsFor('admin', 'ADMIN').map((tab) => tab.label)).toEqual([
       'Users',
       'Reference data',

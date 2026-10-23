@@ -124,6 +124,23 @@
 {:else if !form.ready}
   <SkeletonDocument />
 {:else}
+  {#if mode === 'edit' && detail && (detail.status === 'SUBMITTED' || detail.status === 'RETURNED')}
+    <div class="reason-card">
+      <label class="reason-label" for="edit-reason">Reason for the correction</label>
+      <p class="reason-hint">
+        The narrative has been submitted, so every personnel in charge is told what changed and why.
+        The narrative, its attachments, and the signature are not editable here.
+      </p>
+      <textarea
+        id="edit-reason"
+        class="textarea"
+        rows="3"
+        maxlength="500"
+        bind:value={form.reason}
+        required></textarea>
+    </div>
+  {/if}
+
   <RecordFormWizard
     state={form}
     heading={form.heading}
@@ -193,6 +210,30 @@
   .created-actions .btn {
     display: inline-flex;
     gap: 6px;
+  }
+
+  .reason-card {
+    background: var(--surface-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+    max-width: 880px;
+    padding: 14px 16px;
+  }
+
+  .reason-label {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .reason-hint {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 0;
   }
 
   .save-error {

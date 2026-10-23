@@ -9,13 +9,9 @@ describe('workflow explainer', () => {
     expect(new Set(EXPLAINED_STATUSES).size).toBe(EXPLAINED_STATUSES.length);
   });
 
-  it('reads from the first draft to final approval', () => {
-    expect(WORKFLOW_STAGES.map((stage) => stage.key)).toEqual([
-      'prepare',
-      'narrative',
-      'decision',
-    ]);
-    expect(WORKFLOW_STAGES[0].statuses).toEqual(['DRAFT']);
+  it('reads from the first pending record to final approval', () => {
+    expect(WORKFLOW_STAGES.map((stage) => stage.key)).toEqual(['prepare', 'narrative', 'decision']);
+    expect(WORKFLOW_STAGES[0].statuses).toEqual(['PENDING']);
     expect(WORKFLOW_STAGES[WORKFLOW_STAGES.length - 1].statuses).toContain('APPROVED');
   });
 

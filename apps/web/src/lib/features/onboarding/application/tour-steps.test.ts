@@ -74,7 +74,8 @@ describe('resolveTourSteps', () => {
       (step) => step.id === 'primary-nav',
     );
 
-    expect(nav?.description).toContain('Reports');
+    expect(nav?.description).toContain('Home');
+    expect(nav?.description).not.toContain('Reports');
     expect(nav?.description).not.toContain('Admin');
     expect(nav?.description).not.toContain('Queues');
   });

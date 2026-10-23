@@ -3,6 +3,8 @@
   import { REPORT_PAGE_SIZES } from '@par/shared';
   import { ChevronLeft, ChevronRight } from '@lucide/svelte';
 
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
+
   let {
     total,
     page,
@@ -31,15 +33,14 @@
   <div class="controls">
     <label class="size">
       <span>Rows</span>
-      <select
-        class="select"
+      <EditableSelect
+        id="reports-page-size"
+        label="Rows"
         value={String(pageSize)}
-        onchange={(event) => onpagesize(Number(event.currentTarget.value) as ReportPageSize)}
-      >
-        {#each REPORT_PAGE_SIZES as size (size)}
-          <option value={String(size)}>{size}</option>
-        {/each}
-      </select>
+        searchable={false}
+        options={REPORT_PAGE_SIZES.map((size) => ({ value: String(size), label: String(size) }))}
+        onchange={(value) => onpagesize(Number(value) as ReportPageSize)}
+      />
     </label>
 
     <button

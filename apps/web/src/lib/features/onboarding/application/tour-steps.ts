@@ -47,7 +47,7 @@ export type ResolvedStep = {
 
 const NAV_COPY: Record<Role, string> = {
   PERSONNEL:
-    'Home shows the activities assigned to you. Reports lists every record you are the personnel in charge of, with its status.',
+    'Home lists the records that name you as personnel in charge, by AR No. and status. Open one to write and submit its narrative report.',
   ADMIN:
     'Home shows the work that needs your attention. Reports, Repository and Admin reach every part of the system.',
 };
