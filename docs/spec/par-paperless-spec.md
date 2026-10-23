@@ -142,8 +142,8 @@ Tooling: Node 22 LTS, pnpm, Turborepo tasks `dev`, `build`, `lint`, `typecheck`,
 | Screen                                                                  | Roles                     |
 | ----------------------------------------------------------------------- | ------------------------- |
 | Register / Verify email / Sign in / Forgot password                     | public                    |
-| Home: office queue, or the PIC's assignments                            | all, scoped by role       |
-| Record register (AR No., activity, PIC, status)                         | all, scoped by membership |
+| Home: office queue, or the open register and the PIC's receipts         | all, scoped by role       |
+| Record register (AR No., activity, PIC, status)                         | all                       |
 | New record / edit details (three steps, PIC assignment)                 | Admin                     |
 | Record detail, narrative editor, decision panel, receipts               | all with access           |
 | Search and repository                                                   | all, scoped by membership |
@@ -186,6 +186,8 @@ Tooling: Node 22 LTS, pnpm, Turborepo tasks `dev`, `build`, `lint`, `typecheck`,
 
 Separate D1/R2/Queue resources for **staging** and **production**. Preview deployments per PR bind to the staging resources (see section 12).
 
+**2026-10-23, implementation note.** The browser app is served by Cloudflare Pages at `ovpcasss-par.pages.dev`; a Pages Function forwards `/api/*` to the Worker, so the browser still sees a single origin and the cookie and CSRF rules in §7.4 and §10 are unchanged. The Worker keeps its Static Assets as the rollback copy of the app. The proxy adds one hop, and it must be trusted explicitly: it presents a shared `PROXY_TOKEN` and forwards the browser's address, because §7.4's per-IP limits would otherwise see one proxy address for every user.
+
 ### 7.2 API conventions
 
 - REST, JSON, versioned prefix `/api/v1`.
@@ -205,7 +207,7 @@ Separate D1/R2/Queue resources for **staging** and **production**. Preview deplo
 | Narrative      | `PUT /reports/:id/narrative` (PIC draft), `POST /reports/:id/submit` (PIC, idempotent)                                                                                                              |
 | Decision       | `POST /reports/:id/decision` (admin: `APPROVE` or `RETURN` with comments)                                                                                                                           |
 | Attachments    | `POST /reports/:id/attachments/presign`, `POST /reports/:id/attachments/:aid/confirm`, `GET /reports/:id/attachments/:aid/url`, `DELETE ...` (PIC while the narrative is open)                      |
-| Receipts       | `GET /reports/:id/receipts`, `GET /reports/:id/receipts/:receiptId/file` (F-013 PDF; admin or the named PIC)                                                                                        |
+| Receipts       | `GET /reports/:id/receipts`, `GET /reports/:id/receipts/:receiptId/file` (F-013 PDF; admin or the named PIC), `GET /receipts` (the caller's own history)                                            |
 | Search         | `GET /search/reports` with filters, scoped to the caller's records                                                                                                                                  |
 | Exports        | `POST /exports/monitoring` (type, term) returning an `.xlsx`                                                                                                                                        |
 | Audit          | `GET /audit` (admin), `GET /reports/:id/events` (timeline)                                                                                                                                          |
@@ -243,7 +245,7 @@ APPROVED → (terminal)
 Rules:
 
 - The admin registers the activity and may edit its details and PIC list until `APPROVED`; an activity edit never touches the narrative or its attachments.
-- Only a listed PIC writes the narrative, and only while the record is `DRAFT` or `RETURNED`. Everyone else reads it.
+- Any PIC writes the narrative of a `PENDING` or `RETURNED` record; every signed-in account reads the register. Submitting a record the account was not listed on appends it to that record's PIC list, so approval issues its OVPCASSS-F-013. The office stands in for every role (spec §9).
 - Deletion is allowed in `DRAFT` only, and retires the AR No. without renumbering the register.
 - A user cannot decide a narrative they submitted themselves. An ADMIN is the one exception: it stands in for the office and may decide its own record, which is recorded in the audit trail like any other decision.
 - The PIC may attach a signature to a `DRAFT` or `RETURNED` record. It is optional, snapshotted at submission, and printed in the facsimile's "Submitted by" slot; later changes to the profile signature never alter a submitted record.
@@ -293,11 +295,12 @@ Rules:
 - A render or mail failure never rolls back the approval: the record stays `APPROVED`, the failure is visible in the admin email log, and a later download re-renders the stored file.
 - The PIC's signature is uploaded or drawn in the profile, validated (PNG/JPEG, size limit), stored privately in R2, and snapshotted onto the record at submission. The receipt itself is signed only by the fixed VPCASSS block.
 - Approved records plus attachments remain in the repository; retention period is an open question.
+- `GET /receipts` lists the caller's own issued receipts with their AR No. and activity title, so a PIC finds every form issued to them without opening each record. The list is scoped by the session, never by a client-supplied id.
 
 ### 7.11 Search and retrieval (step 20)
 
 - Filters: AR No., title, type, classification, campus, college, department, office, level, SDG, status, date received, activity date, PIC name.
-- Implementation: indexed columns plus SQLite FTS5 on title, narrative, PIC name, location. Role-scoped: a PERSONNEL account only retrieves records it is listed on; an ADMIN sees the whole register.
+- Implementation: indexed columns plus SQLite FTS5 on title, narrative, PIC name, location. Every signed-in account retrieves the whole register (spec §5); a receipt is still disclosed only to its recipient.
 
 ### 7.12 Audit trail (step 21)
 

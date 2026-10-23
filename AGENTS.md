@@ -114,6 +114,10 @@ desktop → nothing from apps
 
 - `apps/api/wrangler.toml` points `[assets]` at `../web/build`: build `@par/web`
   before any Worker build or deploy.
+- The browser app is deployed to Cloudflare Pages (`ovpcasss-par.pages.dev`);
+  `apps/web/functions/api/[[path]].ts` proxies `/api/*` to the Worker so the
+  browser keeps one origin. `PROXY_TOKEN` must match on the Worker and the Pages
+  project, and `APP_ORIGIN` names the Pages host, not the Worker.
 - Secrets come from `apps/api/.dev.vars` (copy `.dev.vars.example`). Set
   `EMAIL_PROVIDER=console` locally to print mail, including verification links.
   Google sign-in only appears when both OAuth values are set.

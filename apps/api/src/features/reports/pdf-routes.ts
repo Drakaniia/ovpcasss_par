@@ -3,7 +3,7 @@ import type { Hono, Context } from 'hono';
 import type { AppEnv } from '../../env';
 import { recordAudit } from '../../lib/audit';
 import { signedDownloadUrl } from '../../lib/download-url';
-import { canViewReport, isAdmin } from './domain/report-access';
+import { isAdmin } from './domain/report-access';
 import { reportDependencies, viewerOf } from './application/report-context';
 import {
   FACSIMILE_TYPE,
@@ -21,8 +21,7 @@ async function findVisibleReport(c: Context<AppEnv>, reportId: string) {
   // The facsimile is the office's copy of the record (spec §18 A12); the PIC's
   // document is the acknowledgment receipt, not this internal PDF.
   if (!isAdmin(viewer)) return null;
-  const isPic = await deps.read.isPic(row.id, viewer.userId);
-  return canViewReport(viewer, isPic) ? row : null;
+  return row;
 }
 
 /**

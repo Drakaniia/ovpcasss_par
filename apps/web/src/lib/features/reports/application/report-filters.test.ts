@@ -66,7 +66,9 @@ describe('filtersFromParams', () => {
 describe('filtersToParams', () => {
   it('round-trips a shared view', () => {
     const filters = filtersFromParams(
-      new URLSearchParams('tab=withPic&campus=c1&q=cleanup&sort=status&dir=desc&page=3&size=100'),
+      new URLSearchParams(
+        'tab=pending&archived=all&campus=c1&q=cleanup&picName=Santos&submittedBy=Cruz&sort=status&dir=desc&page=3&size=100',
+      ),
     );
 
     expect(filtersFromParams(new URLSearchParams(filtersToParams(filters)))).toEqual(filters);
@@ -85,12 +87,15 @@ describe('filtersToQuery', () => {
   it('drops empty filters but keeps sort and paging', () => {
     expect(filtersToQuery(DEFAULT_REPORT_FILTERS)).toEqual({
       tab: 'all',
+      archived: 'active',
       type: undefined,
       campus: undefined,
       term: undefined,
       from: undefined,
       to: undefined,
       q: undefined,
+      picName: undefined,
+      submittedBy: undefined,
       sort: 'updated',
       dir: 'desc',
       page: 1,
@@ -137,7 +142,7 @@ describe('clearedFilters', () => {
   it('clears the filters but keeps the tab, sort, and row count', () => {
     const cleared = clearedFilters({
       ...DEFAULT_REPORT_FILTERS,
-      tab: 'withPic',
+      tab: 'pending',
       type: 'IN_CAMPUS',
       q: 'cleanup',
       sort: 'status',
@@ -147,7 +152,7 @@ describe('clearedFilters', () => {
     });
 
     expect(cleared).toMatchObject({
-      tab: 'withPic',
+      tab: 'pending',
       sort: 'status',
       dir: 'desc',
       pageSize: 100,

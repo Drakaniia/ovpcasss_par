@@ -6,6 +6,7 @@
   import { api } from '$lib/api/client';
   import { ApiError } from '$lib/api/http';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
 
   import {
     USER_ROLE_LABELS,
@@ -159,23 +160,27 @@
     <div class="action-control">
       <div class="field">
         <label class="field-label" for="{idPrefix}-role">Role</label>
-        <select
+        <EditableSelect
           id="{idPrefix}-role"
-          class="select"
-          bind:value={selectedRole}
-          disabled={!actions['assign-role'].enabled || busy !== null}
-          aria-invalid={roleError ? 'true' : undefined}
-          aria-describedby={roleError
+          label="Role"
+          value={selectedRole}
+          placeholder="Select a role"
+          searchable={false}
+          invalid={Boolean(roleError)}
+          describedBy={roleError
             ? `${idPrefix}-role-error`
             : actions['assign-role'].reason
               ? `${idPrefix}-role-reason`
               : undefined}
-        >
-          <option value="">Select a role</option>
-          {#each USER_ROLES_ALL as role (role)}
-            <option value={role}>{USER_ROLE_LABELS[role]}</option>
-          {/each}
-        </select>
+          disabled={!actions['assign-role'].enabled || busy !== null}
+          options={[
+            { value: '', label: 'Select a role' },
+            ...USER_ROLES_ALL.map((role) => ({ value: role, label: USER_ROLE_LABELS[role] })),
+          ]}
+          onchange={(value) => {
+            selectedRole = value as Role | '';
+          }}
+        />
       </div>
 
       <button

@@ -17,14 +17,14 @@ export type StatusPresentation = {
 };
 
 export const STATUS_PRESENTATION: Record<ReportStatus, StatusPresentation> = {
-  DRAFT: { label: 'Draft', tone: 'neutral', icon: 'pencil' },
+  PENDING: { label: 'Pending', tone: 'neutral', icon: 'pencil' },
   SUBMITTED: { label: 'Submitted', tone: 'info', icon: 'inbox' },
   RETURNED: { label: 'Returned', tone: 'danger', icon: 'undo' },
   APPROVED: { label: 'Approved', tone: 'success', icon: 'check' },
 };
 
 const NEXT_STEP: Record<Exclude<ReportStatus, 'APPROVED'>, string> = {
-  DRAFT: 'With personnel in charge · Next: narrative report',
+  PENDING: 'With personnel in charge · Next: narrative report',
   SUBMITTED: 'With the office · Next: review and decision',
   RETURNED: 'With personnel in charge · Next: revise and resubmit',
 };
@@ -36,4 +36,12 @@ export function nextStepText(status: ReportStatus, completedAt?: string): string
       : 'Completed · Acknowledgment receipt available';
   }
   return NEXT_STEP[status];
+}
+
+/**
+ * Historical audit rows keep the status they recorded. Only this renderer may
+ * still say Draft, and it always says so as legacy (spec §15.2).
+ */
+export function legacyStatusLabel(status: string): string | null {
+  return status === 'DRAFT' ? 'Draft (legacy)' : null;
 }

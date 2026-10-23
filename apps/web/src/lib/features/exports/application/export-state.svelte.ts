@@ -5,6 +5,7 @@ import type {
   Term,
 } from '@par/shared';
 import { REPORT_TYPES } from '@par/shared';
+import { SvelteDate } from 'svelte/reactivity';
 
 import { api } from '$lib/api/client';
 import { ApiError, saveBlob } from '$lib/api/http';
@@ -60,12 +61,14 @@ export class ExportState {
   schoolYear = $state('');
   semester = $state<1 | 2>(1);
   includeInProgress = $state(false);
+  includeArchived = $state(false);
   preview = $state<MonitoringPreviewResponse | null>(null);
   previewLoading = $state(true);
   previewError = $state<string | null>(null);
   downloading = $state(false);
   downloadError = $state<DownloadError | null>(null);
   templateError = $state<string | null>(null);
+  downloadingRegister = $state(false);
   /** The review modal that stands between the form and the download. */
   previewOpen = $state(false);
   /** The send dialog (email spec §11.4, phase 17 §6). */
@@ -115,6 +118,7 @@ export class ExportState {
       schoolYear: this.schoolYear,
       semester: this.semester,
       includeInProgress: this.includeInProgress,
+      includeArchived: this.includeArchived,
     };
   }
 
@@ -152,8 +156,14 @@ export class ExportState {
         this.usableTerms.find(
           (term) => term.schoolYear === requestedYear && term.semester === requestedSemester,
         );
+      // Today's term first: the `current` flag is set by hand and can lag behind
+      // the calendar, which would open the page on a term no activity can match.
+      const today = new SvelteDate().toISOString().slice(0, 10);
       const current =
-        requested ?? this.usableTerms.find((term) => term.isCurrent) ?? this.usableTerms[0];
+        requested ??
+        this.usableTerms.find((term) => term.startsOn <= today && today <= term.endsOn) ??
+        this.usableTerms.find((term) => term.isCurrent) ??
+        this.usableTerms[0];
 
       if (current) {
         this.schoolYear = current.schoolYear;
@@ -246,6 +256,31 @@ export class ExportState {
           : 'The workbook was not queued. Check your connection and try again.';
     } finally {
       this.sending = false;
+    }
+  }
+
+  /** The filtered register table, unfiltered here: the register owns its filters. */
+  async downloadRegister(): Promise<void> {
+    if (this.downloadingRegister) return;
+    this.downloadingRegister = true;
+
+    try {
+      const blob = await api.exports.register({
+        tab: 'all',
+        archived: 'active',
+        sort: 'updated',
+        dir: 'desc',
+        page: 1,
+        size: 25,
+      });
+      saveBlob(blob, `OVPCASSS-PAR-register-${new SvelteDate().toISOString().slice(0, 10)}.pdf`);
+      toast.success('Register PDF downloaded', await revealAction());
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : 'The register PDF did not download. Try again.',
+      );
+    } finally {
+      this.downloadingRegister = false;
     }
   }
 

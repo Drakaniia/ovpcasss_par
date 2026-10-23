@@ -154,3 +154,52 @@ the personnel_in_charge, they have their own dashbaord or page that they only se
 in their end they cant create new report or edit the report
 
 did the ACKNOWLEDGMENT RECEIPT output when after submitted a narrative reprort matches the @OVPCASSS-F-013.ACKNOWLEDGMENT RECEIPT.docx exactly?
+
+table and cards view
+
+add history of submitted report of the PIC, (dirreferent my report of each not shared )
+
+remove narrative report input in the admin report page, PIC should be the one create narrative report
+
+is there a automated report (pdf) generate in the personnel in charge for acknowlegement receipt "OVPCASSS-F-013.ACKNOWLEDGMENT RECEIPT" that they can see if its done , preview pdf feature and export (or download reciept preview first):
+
+ACKNOWLEDGMENT RECEIPT
+
+Dear [Name of Personnel In charge],
+
+This is to acknowledge the successful completion and compliance with all requirements related to the off-campus activity conducted on [Date] at [Location].
+
+We appreciate your diligent efforts in ensuring the smooth implementation of the said activity [Title of the activity]. Your dedication and cooperation contributed significantly to its success.
+
+Please be informed that this acknowledgment receipt is issued in accordance with the provisions of CHED Memorandum No.63, s. 2017.
+
+Thank you once again for your invaluable contribution.
+
+Done this _____ day of ________, _______ at Malaybalay City, Bukidnon.
+
+Sincerely,
+
+DR. LINCOLN V. TAN
+VPCASSS
+"
+
+it should match this document all fonts, spacing, the input is auto filled.. the paper size , the images, the lines. everything exactly
+
+fix all dropdown, make it real apple design not the default dropdown in all page.. also the date picker in the pic page,
+
+in all table report or record
+
+website version, deployed on cloudflare pages
+
+why when i log in as PIC in another account, there is "no record in you yet", i thought no assigned feature.. it should see all the activity table records of all the users and all the user can create a narattive report and jsut choose the activity
+
+
+
+all the filter in pic page, did not work
+
+"Reports could not be searched." when i click ctrl + k in PIC and admin
+
+integrate like geo search in the location input in admin steps, so its not so hard to manually real type the location address.. like i start typing, the addres result show
+
+add delete feature in the archiveed report. to fully delete report (show confirmation modal)
+

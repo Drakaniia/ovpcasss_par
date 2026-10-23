@@ -5,14 +5,14 @@ git-ignored). Never inline one in the Tauri bundle, a build arg, or a migration.
 
 ## Inventory
 
-| Name                                                    | Used by                            | Rotating it does…                                              |
-| ------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------- |
-| `EMAIL_API_KEY`                                         | Resend or Cloudflare Email adapter | Nothing until the next send; no downtime                       |
-| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`             | S3-compatible presigning (SigV4)   | Invalidates every outstanding presigned URL                    |
-| `R2_ACCOUNT_ID`                                         | Presign host                       | Only changes with the account                                  |
-| `SESSION_SECRET`                                        | Declared in `env.ts`, **not read** | Nothing today                                                  |
-| `EMAIL_PROVIDER`, `EMAIL_FROM`                           | `wrangler.toml` vars               | Changes behaviour on the next request                          |
-| `BOOTSTRAP_ADMIN_EMAILS`                                | `wrangler.toml` vars               | That address becomes an active Admin the next time it verifies |
+| Name                                        | Used by                            | Rotating it does…                                              |
+| ------------------------------------------- | ---------------------------------- | -------------------------------------------------------------- |
+| `EMAIL_API_KEY`                             | Resend or Cloudflare Email adapter | Nothing until the next send; no downtime                       |
+| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | S3-compatible presigning (SigV4)   | Invalidates every outstanding presigned URL                    |
+| `R2_ACCOUNT_ID`                             | Presign host                       | Only changes with the account                                  |
+| `SESSION_SECRET`                            | Declared in `env.ts`, **not read** | Nothing today                                                  |
+| `EMAIL_PROVIDER`, `EMAIL_FROM`              | `wrangler.toml` vars               | Changes behaviour on the next request                          |
+| `BOOTSTRAP_ADMIN_EMAILS`                    | `wrangler.toml` vars               | That address becomes an active Admin the next time it verifies |
 
 **Session revocation is not a secret rotation.** Sessions are opaque 32-byte
 tokens stored as SHA-256 hashes; there is no signing key to rotate. To sign

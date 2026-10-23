@@ -83,6 +83,14 @@ W1 is foundational (enums, schema, numbering); W2 and W3 can ship together; W4 a
 
 ## 3. Target flow
 
+> **Revision 2026-10-23 — the office owns the narrative.** The office asked that no work be
+> assigned to a personnel account. A record still names its personnel in charge and still
+> mints its AR No., but nothing arrives as a task: a personnel account opens Home, reads the
+> records that name it (AR No., activity facts, status), and edits nothing. The office writes
+> the narrative, uploads attachments, signs and submits. Where a later section still describes
+> a PIC-authored narrative, a PIC queue, a PIC reminder, or a personnel register and
+> repository, this revision and §4 and §12.2 supersede it.
+
 ```
 ADMIN                                    PERSONNEL IN CHARGE                 SYSTEM
 ─────                                    ────────────────────                ──────
@@ -109,7 +117,25 @@ Admin opens "Awaiting your decision"
                                                                           PIC downloads receipt
 ```
 
-The admin never writes a narrative. The PIC never creates, edits, or deletes a record, never sees another PIC’s records, and never makes a decision.
+The flow below is the revised one (2026-10-23):
+
+```
+ADMIN                                                     PERSONNEL IN CHARGE
+─────                                                     ────────────────────
+Create record (steps 1–3)
+  └─ save ─────────────────────────────────────────────────► AR No. 0001 minted at first save
+     │                                                       account created/linked, no task sent
+     ├─ write narrative + attachments + optional signature
+     ├─ submit ─────────────────────────────────────────────► status SUBMITTED
+     ├─ return with comments (or approve)
+     │     └─ approve ──────────────────────────────────────► status APPROVED, receipt per PIC
+     └─ mail: record notice and receipts
+
+PERSONNEL: signs in ─► Home lists the records that name them, read-only.
+                      Opens one by AR No. to read it. Writes, submits and decides nothing.
+```
+
+The office writes the narrative. A personnel account never creates, edits, or deletes a record, never writes or submits a narrative, never sees a record that does not name it, and never makes a decision.
 
 ---
 
@@ -124,21 +150,22 @@ The admin never writes a narrative. The PIC never creates, edits, or deletes a r
 | Edit activity details (until APPROVED)                       |   ✓   |                        |                        |
 | Assign / remove PICs (until APPROVED)                        |   ✓   |                        |                        |
 | Delete a DRAFT record                                        |   ✓   |                        |                        |
-| View a record                                                |   ✓   |       own only ✓       |                        |
-| Write narrative, upload attachments, sign, submit / resubmit |       |           ✓            |                        |
+| View a record                                                |   ✓   |           ✓            |           ✓            |
+| Write narrative, upload attachments, sign, submit / resubmit |   ✓   |           ✓            |           ✓            |
 | Approve or return a submitted narrative                      |   ✓   |                        |                        |
-| Download own receipt                                         |   ✓   |           ✓            |                        |
+| Download own receipt                                         |   ✓   |       own only ✓       |       own only ✓       |
 | Resend invitation / reminder                                 |   ✓   |                        |                        |
 | Manage users, reference data, audit, email log               |   ✓   |                        |                        |
 | Export monitoring workbooks                                  |   ✓   |                        |                        |
 
-Rules:
+Rules (revised 2026-10-23 — open register with claiming):
 
-- Access to a record for PERSONNEL is membership in `report_pics.user_id`, never “a role can see everything”.
-- An ADMIN may also be a PIC of a record. The record then appears both in the admin register and on that account’s PIC dashboard; the account still decides as admin (§7).
-- An ADMIN alone may decide; the PIC must never see a decision affordance.
-- Separation of duties: nobody can decide a narrative they submitted themselves except an ADMIN (carried over from spec §9 and the 2026-10-22 admin exception).
-- A PERSONNEL account with no assignment gets an empty dashboard, never an error.
+- Every signed-in account reads every record; the register is no longer scoped to `report_pics.user_id`.
+- Any PERSONNEL account writes, signs and submits the narrative of a `PENDING` or `RETURNED` record. Submitting a record the account was not listed on appends it to `report_pics`, so approval issues its receipt and the office sees who reported.
+- An ADMIN may also be a PIC of a record. That changes nothing about rights: the account acts as the office, writes the narrative, submits, and may decide.
+- A PERSONNEL account has no inbox, no queue and no notification of assignment; Home lists the register and its own receipts, and that is the whole workspace.
+- A PERSONNEL account with no records yet gets an empty register, never an error.
+- Navigation: ADMIN has Home, Reports, Repository and Admin; PERSONNEL has Home only. A typed or bookmarked `/reports` or `/search` returns a personnel account to Home.
 
 ---
 
@@ -336,11 +363,12 @@ Spelling is the document’s own: **ACKNOWLEDGMENT RECEIPT** (one “e”), “C
 
 ### 10.2 Layout and assets
 
-- A4 portrait, single page, serif type matching the docx (Times family; `Times-Roman`/`Times-Bold` in pdf-lib), body 11 pt, letterhead as in the source.
-- Letterhead images are **extracted from the docx** (`word/media/image1.jpeg`, `word/media/image2.jpeg`) and shipped as base64 constants in `packages/export/src/receipt/assets.ts`, so no bundler rule, network call, or filesystem read is needed inside the Worker.
-- Footer line sits at the bottom margin with the document code, revision, issue date, and page count, exactly as printed.
-- The document must remain legible in greyscale; no brand colours beyond the letterhead image.
-- `AR No. 0001` sits at the upper right where the paper form has it.
+- A4 portrait, **one copy per page**, measured from the office form as Word renders it (`docs/OVPCASSS-F-013.ACKNOWLEDGMENT RECEIPT.docx`): 54 pt side margins, the letterhead at 7.7 pt, body 10 pt on 12.48 pt leading, justified, an empty line between paragraphs, heading 10 pt bold, signatory name 9 pt bold over a 9 pt title, footer 8 pt, all black type. The copy keeps the top copy's own baselines, so the footer sits at 385.85 pt rather than at the page foot.
+  - _Note, 2026-10-23._ An earlier revision of this line said "Times family, body 11 pt". That contradicted the form; the values above are the measured ones. Book Antiqua, the face the docx is set in, is a commercial Monotype font, so the generator embeds **TeX Gyre Pagella** (GUST Font License, Palatino metrics) subset to the glyphs the form uses, shipped as base64 in `packages/export/src/receipt/fonts.ts`.
+- Letterhead artwork is **extracted from the form** and shipped as base64 constants, so no bundler rule, network call, or filesystem read is needed inside the Worker: the BSU seal is `word/media/image2.jpeg` from the docx (`packages/export/src/receipt/assets.ts`), and the rounded "Educate / Innovate / Lead" emblem — which the docx draws with Calibri text in a stroked box — is carried as a 600 dpi crop of the rendered form (`emblem.ts`), because the app has no Calibri face to draw it with.
+- Footer line carries the document code, revision, issue date, and page count at the form's own field positions (`39.36`, `236.57`, `358.39`, `510.10`).
+- The document must remain legible in greyscale; no brand colours beyond the letterhead's address link blue (`#0563C1`).
+- `AR No. 0001` sits at the left margin under the signatory, where the paper form prints it.
 
 ### 10.3 Generation, storage, and delivery
 
@@ -392,14 +420,15 @@ Copy rules: formal institutional voice, no exclamation marks, no invented state 
 
 ### 12.2 Personnel in charge
 
-- **Dashboard `/`** — only their assigned records. Columns: AR No., activity title, date(s), location, status. Primary action per row: **Write narrative** (`DRAFT`), **Revise and resubmit** (`RETURNED`), **View** (`SUBMITTED` / `APPROVED`). Approved rows offer **Download receipt**. Empty state: “No activities are assigned to you yet. The OVPCASSS office adds the personnel in charge for each activity.” No “New report” affordance anywhere.
-- **Record `/reports/[id]`** — header repeats the AR No. and activity facts (read-only), then:
-  - the office’s return comments in the maroon callout when `RETURNED`;
-  - narrative editor (typing area, attachments, optional signature) while `DRAFT`/`RETURNED`;
-  - Save draft (secondary) and Submit narrative (the single primary) actions;
-  - after submission: read-only narrative, attachments, submission time and the submitting PIC’s name;
-  - when `APPROVED`: receipt download with its issuance date.
-- **Search** — the palette and `/search` are scoped; a PIC can only ever retrieve their own records. Copy refers to “AR No.”, not “tracking number”.
+**Revised 2026-10-23 — open register with claiming.** Everything in this section about
+“assigned work”, a scoped repository and a read-only PIC workspace is replaced by the following.
+
+- **Home `/`** — the register of every activity the office has registered. Columns: AR No., activity title, date(s), location, status, and a **Receipt** action on an approved row where this account holds one. The whole row opens the record: the title link stretches over the row and the row's own controls sit above it. The section heading is **Records**. Empty state: “No activities are registered yet.” Pages at 25 rows.
+- **Acknowledgment receipts** — a section below the register lists every OVPCASSS-F-013 issued to this account, with AR No., activity title, issued date, Preview and Download. Empty copy: a receipt appears when the office approves an activity you reported on.
+- **Record `/reports/[id]`** — the activity facts and the PIC list; on `PENDING` or `RETURNED` any personnel account gets the narrative editor, attachment upload, signature and Submit. `SUBMITTED` is read-only while the office decides; `APPROVED` shows its receipts.
+- **Claiming** — submitting a record this account was not listed on appends it to `report_pics` (name and email from the account), so approval issues its receipt and the office sees who reported. A draft saved by one PIC is visible to the next PIC who opens the same open record; the submitter's signature is the one snapshotted.
+- **Navigation** — Home only. Reports, Repository and Admin are absent for a personnel account, and `/reports` and `/search` return it to Home.
+- **Notifications** — assignment mail and the record notice remain; there is still no assignment queue, no unread work count and no separate task list.
 - **No admin surfaces** — users, reference data, audit, email log, exports, import are neither shown nor reachable, and the API refuses them regardless.
 
 ### 12.3 Shared

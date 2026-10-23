@@ -10,7 +10,6 @@ import {
   hasInboxContent,
   inboxSectionsFor,
   inboxStatsFor,
-  myReportRows,
   recentlyDecidedRows,
   reportActivityRows,
   returnedRows,
@@ -46,10 +45,8 @@ const inbox = (overrides: Partial<InboxResponse> = {}): InboxResponse => ({
   withPic: emptySection(),
   returned: emptySection(),
   approved: emptySection(),
-  myReports: emptySection(),
   activity: [],
   admin: null,
-  onboarding: { profileComplete: false, hasSubmitted: false, draftId: null },
   ...overrides,
 });
 
@@ -59,7 +56,6 @@ const allSections = () =>
     withPic: section(),
     returned: section(),
     approved: section(),
-    myReports: section(),
   });
 
 describe('capabilitiesFor', () => {
@@ -80,13 +76,9 @@ describe('inboxSectionsFor', () => {
     ]);
   });
 
-  it('gives personnel only their own assignments', () => {
+  it('never gives personnel the office queues', () => {
     const roles: Role[] = ['PERSONNEL'];
-    expect(inboxSectionsFor(roles, allSections())).toEqual([
-      'returned',
-      'approved',
-      'myReports',
-    ]);
+    expect(inboxSectionsFor(roles, allSections())).toEqual(['returned', 'approved']);
   });
 
   it('omits every empty section instead of rendering a zero', () => {
@@ -120,7 +112,7 @@ describe('inboxStatsFor', () => {
         id: 'withPic',
         label: 'With personnel in charge',
         count: 2,
-        href: '/reports?tab=withPic',
+        href: '/reports?tab=pending',
       },
     ]);
   });
@@ -165,15 +157,15 @@ describe('section rows', () => {
 
   it('flags a record with its personnel in charge once seven days pass', () => {
     const [row] = withPicRows(
-      section({ items: [item({ status: 'DRAFT', submittedAt: null })] }),
+      section({ items: [item({ status: 'PENDING', submittedAt: null })] }),
       NOW,
     );
-    expect(row.meta).toBe('Draft · 2 days');
+    expect(row.meta).toBe('Pending · 2 days');
     expect(row.overdue).toBe(false);
 
     const [stale] = withPicRows(
       section({
-        items: [item({ status: 'DRAFT', updatedAt: '2026-03-01T10:00:00Z' })],
+        items: [item({ status: 'PENDING', updatedAt: '2026-03-01T10:00:00Z' })],
       }),
       NOW,
     );
@@ -195,33 +187,6 @@ describe('section rows', () => {
       NOW,
     );
     expect(row.meta).toBe('Approved · yesterday');
-  });
-
-  it('names the next action on a personnel record, three rows at most', () => {
-    const rows = myReportRows(
-      section({
-        total: 4,
-        items: [
-          item({ status: 'DRAFT', submittedAt: null }),
-          item({ id: 'r2', status: 'RETURNED' }),
-          item({ id: 'r3', status: 'APPROVED' }),
-          item({ id: 'r4', status: 'SUBMITTED' }),
-        ],
-      }),
-      NOW,
-    );
-
-    expect(rows).toHaveLength(3);
-    expect(rows.map((row) => row.meta.split(' · ')[0])).toEqual([
-      'Write narrative',
-      'Revise and resubmit',
-      'Download receipt',
-    ]);
-  });
-
-  it('reads a submitted narrative as a view', () => {
-    const [row] = myReportRows(section({ items: [item({ status: 'SUBMITTED' })] }), NOW);
-    expect(row.meta).toBe('View · 2 days ago');
   });
 });
 

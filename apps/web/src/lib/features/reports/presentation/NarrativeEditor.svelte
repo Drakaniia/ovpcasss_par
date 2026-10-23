@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ReportDetail } from '@par/shared';
   import { Send } from '@lucide/svelte';
+  import { onMount } from 'svelte';
 
   import { api } from '$lib/api/client';
   import { ApiError } from '$lib/api/http';
@@ -15,9 +16,11 @@
   import SignatureCard from './SignatureCard.svelte';
 
   /**
-   * The personnel in charge write the narrative here (spec §12.2). Save draft is
+   * The personnel in charge write the narrative here (spec §8.3). Save draft is
    * secondary; Submit narrative is the single filled action on the screen and is
-   * available only while the record is DRAFT or RETURNED.
+   * available only while the record is PENDING or RETURNED. A local mirror keeps
+   * the text through a dropped connection; the server draft always wins until
+   * the writer chooses the device copy.
    */
   let {
     detail,
@@ -36,10 +39,72 @@
   let error = $state<string | null>(null);
   let savedAt = $state<string | null>(null);
   let signatureSigned = $state(Boolean(detail.narrativeSignature));
+  /** A local copy that disagrees with a later server draft is never auto-applied. */
+  let mirrorConflict = $state<string | null>(null);
   const idempotencyKey = crypto.randomUUID();
+  const mirrorKey = `par-narrative:${detail.id}`;
 
-  const editable = $derived(detail.status === 'DRAFT' || detail.status === 'RETURNED');
+  const editable = $derived(detail.status === 'PENDING' || detail.status === 'RETURNED');
   const dirty = $derived(narrative !== detail.form.narrative);
+
+  type Mirror = { narrative: string; updatedAt: string };
+
+  function readMirror(): Mirror | null {
+    try {
+      const raw = localStorage.getItem(mirrorKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as Partial<Mirror>;
+      return typeof parsed.narrative === 'string' && typeof parsed.updatedAt === 'string'
+        ? { narrative: parsed.narrative, updatedAt: parsed.updatedAt }
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeMirror(value: string): void {
+    try {
+      localStorage.setItem(
+        mirrorKey,
+        JSON.stringify({ narrative: value, updatedAt: detail.updatedAt }),
+      );
+    } catch {
+      // A full or unavailable store only costs the offline copy.
+    }
+  }
+
+  onMount(() => {
+    if (!editable) return;
+    const mirror = readMirror();
+    if (!mirror || mirror.narrative === narrative) return;
+
+    if (!detail.form.narrative.trim()) {
+      narrative = mirror.narrative;
+      return;
+    }
+
+    if (mirror.updatedAt !== detail.updatedAt) mirrorConflict = mirror.narrative;
+  });
+
+  function useMirror(): void {
+    if (mirrorConflict === null) return;
+    narrative = mirrorConflict;
+    mirrorConflict = null;
+  }
+
+  function discardMirror(): void {
+    mirrorConflict = null;
+    try {
+      localStorage.removeItem(mirrorKey);
+    } catch {
+      // Nothing to clear.
+    }
+  }
+
+  function updateNarrative(value: string): void {
+    narrative = value;
+    writeMirror(value);
+  }
 
   async function saveDraft(): Promise<boolean> {
     if (saving || submitting) return false;
@@ -67,6 +132,11 @@
     try {
       if (dirty) await api.reports.saveNarrative(detail.id, { narrative });
       await api.reports.submit(detail.id, idempotencyKey);
+      try {
+        localStorage.removeItem(mirrorKey);
+      } catch {
+        // Nothing to clear.
+      }
       invalidateInboxAttention();
       toast.success('Narrative submitted. The office will review it.');
       await onreload();
@@ -104,7 +174,24 @@
       aria-describedby={error ? 'narrative-error' : undefined}
       aria-invalid={error ? 'true' : undefined}
       value={narrative}
-      oninput={(event) => (narrative = event.currentTarget.value)}></textarea>
+      oninput={(event) => updateNarrative(event.currentTarget.value)}></textarea>
+
+    {#if mirrorConflict !== null}
+      <div class="mirror-notice" role="status">
+        <p>
+          This device holds a copy of the narrative that differs from the draft saved on the record.
+          Choose which text to keep.
+        </p>
+        <div class="mirror-actions">
+          <button class="btn btn-outline btn-sm" type="button" onclick={useMirror}>
+            Use this device's copy
+          </button>
+          <button class="btn btn-ghost btn-sm" type="button" onclick={discardMirror}>
+            Keep the record's draft
+          </button>
+        </div>
+      </div>
+    {/if}
 
     {#if error}
       <p class="field-error" id="narrative-error" role="alert">{error}</p>
@@ -191,6 +278,28 @@
     line-height: 1.55;
     min-height: 220px;
     resize: vertical;
+  }
+
+  .mirror-notice {
+    background: var(--status-warning-bg);
+    border-radius: var(--radius-card);
+    color: var(--status-warning-fg);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .mirror-notice p {
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .mirror-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   .field-error {

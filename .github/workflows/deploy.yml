@@ -53,6 +53,15 @@ jobs:
           pnpm --filter @par/api exec wrangler versions upload
           --preview-alias pr-${{ github.event.number }}
 
+      # The Pages site is what the browser opens; its `/api/*` Function proxies to
+      # the Worker. A branch deployment is its preview URL, and the R2 bucket's
+      # CORS policy already allows every pages.dev origin.
+      - name: Deploy Pages preview
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: >-
+          pnpm --filter @par/api exec wrangler pages deploy ../web/build
+          --project-name ovpcasss-par --branch pr-${{ github.event.number }}
+
       - name: Preview not configured
         if: env.CLOUDFLARE_API_TOKEN == ''
         run: echo "::notice::Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to publish preview URLs."
@@ -91,3 +100,10 @@ jobs:
 
       - name: Deploy Worker
         run: pnpm --filter @par/api exec wrangler deploy
+
+      # The Worker is the API and the rollback copy of the app; Pages is the
+      # address in mail and the origin the browser uses (`APP_ORIGIN`).
+      - name: Deploy Pages site
+        run: >-
+          pnpm --filter @par/api exec wrangler pages deploy ../web/build
+          --project-name ovpcasss-par --branch main

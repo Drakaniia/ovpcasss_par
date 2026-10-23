@@ -1,14 +1,15 @@
 <script lang="ts">
-  import type { LocationSuggestion } from '@par/shared';
+  import type { LocationSuggestion, LocationSuggestionsResponse } from '@par/shared';
   import { SvelteMap } from 'svelte/reactivity';
 
   import { api } from '$lib/api/client';
-  import { rankLocations } from '../application/location-suggestions';
+  import { mergeSuggestions, rankLocations } from '../application/location-suggestions';
 
   /**
-   * Location field (bug phase 04 §3.1): a combobox, not a picker. Free text is
-   * still the value that is saved; the list only offers venues the office has
-   * already used, scoped to what this account may read.
+   * Location field (bug phase 04 §3.1-§3.2): a combobox, not a picker. Free text
+   * is still the value that is saved. The list leads with venues the office has
+   * already used and, once the query is worth a lookup, adds addresses from the
+   * Worker's provider proxy. The provider is never called from here.
    */
   let {
     id,
@@ -28,6 +29,12 @@
     onchange: (value: string) => void;
   } = $props();
 
+  /** Shorter queries would geocode half the province. */
+  const ADDRESS_MIN_QUERY = 4;
+
+  /** The address half is a convenience: its failure leaves the office list. */
+  const emptyResponse: LocationSuggestionsResponse = { items: [] };
+
   const listId = $derived(`${id}-suggestions`);
   const cache = new SvelteMap<string, LocationSuggestion[]>();
 
@@ -44,7 +51,7 @@
 
   function load(query: string): void {
     clearTimeout(timer);
-    timer = setTimeout(() => void fetchSuggestions(query), 150);
+    timer = setTimeout(() => void fetchSuggestions(query), 250);
   }
 
   async function fetchSuggestions(query: string): Promise<void> {
@@ -59,17 +66,38 @@
     }
 
     controller?.abort();
-    controller = new AbortController();
+    const current = new AbortController();
+    controller = current;
+
+    const officeRequest = api.locations
+      .suggest({ q: key || undefined, limit: 8 })
+      .catch(() => emptyResponse);
+    const addressRequest =
+      key.length >= ADDRESS_MIN_QUERY
+        ? api.locations.addresses({ q: key, limit: 8 }).catch(() => emptyResponse)
+        : Promise.resolve(emptyResponse);
 
     try {
-      const response = await api.locations.suggest({ q: key || undefined, limit: 8 });
-      if (controller.signal.aborted) return;
+      // The office's own history is local and instant; the provider can take a
+      // second, so its rows merge into a list that is already on screen rather
+      // than holding the whole list back.
+      const office = await officeRequest;
+      if (current.signal.aborted) return;
 
-      const ranked = rankLocations(response.items, key);
-      cache.set(key, ranked);
+      const ranked = rankLocations(office.items, key);
       items = ranked;
       active = -1;
       announcement = countText(ranked.length);
+
+      const address = await addressRequest;
+      if (current.signal.aborted) return;
+
+      // Office history leads; an address never displaces a venue already used.
+      const merged = mergeSuggestions(ranked, address.items);
+      cache.set(key, merged);
+      items = merged;
+      active = -1;
+      announcement = countText(merged.length);
     } catch {
       // The list never blocks the field: a failure leaves plain free text.
       items = [];
@@ -177,7 +205,7 @@
   />
 
   {#if visible}
-    <ul class="suggestions" {id} role="listbox" aria-label="Previously used locations">
+    <ul class="suggestions" {id} role="listbox" aria-label="Location suggestions">
       {#each items as suggestion, index (suggestion.location)}
         <li
           id="{id}-option-{index}"
@@ -188,7 +216,10 @@
           onmousedown={(event) => event.preventDefault()}
           onclick={() => choose(suggestion)}
         >
-          {suggestion.location}
+          <span class="label">{suggestion.location}</span>
+          {#if suggestion.source === 'address'}
+            <span class="source">Address</span>
+          {/if}
         </li>
       {/each}
     </ul>
@@ -220,14 +251,29 @@
   }
 
   .option {
+    align-items: baseline;
     border-radius: 6px;
     color: var(--text-primary);
     cursor: default;
+    display: flex;
     font-size: 13px;
-    overflow: hidden;
+    gap: 8px;
     padding: 7px 8px;
+  }
+
+  .label {
+    min-width: 0;
+    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  /* Which half of the list a row came from; the value itself is unchanged. */
+  .source {
+    color: var(--text-secondary);
+    flex: none;
+    font-size: 11px;
+    margin-left: auto;
   }
 
   .option:hover,

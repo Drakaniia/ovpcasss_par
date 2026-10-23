@@ -34,71 +34,20 @@ const inbox = (overrides: Partial<InboxResponse> = {}): InboxResponse => ({
   withPic: empty(),
   returned: empty(),
   approved: empty(),
-  myReports: empty(),
   activity: [],
   admin: null,
-  onboarding: { profileComplete: false, hasSubmitted: false, draftId: null },
   ...overrides,
 });
 
 const renderInbox = (data: InboxResponse, roles: Role[]) =>
   render(WorkInbox, { props: { inbox: data, roles, now: NOW } }).body;
 
-const personnelInbox = () =>
-  inbox({
-    returned: section({
-      total: 2,
-      items: [
-        item({ status: 'RETURNED' }),
-        item({ id: 'report-2', referenceNo: 'AR No. 0009', title: 'Outreach program' }),
-      ],
-    }),
-    myReports: section({
-      total: 3,
-      items: [item({ id: 'report-3', status: 'DRAFT', submittedAt: null })],
-    }),
-    activity: [
-      {
-        id: 'event-1',
-        reportId: 'report-1',
-        referenceNo: 'AR No. 0014',
-        title: 'Coastal cleanup',
-        kind: 'SUBMITTED',
-        occurredAt: '2026-03-20T08:00:00Z',
-      },
-    ],
-  });
-
 describe('WorkInbox', () => {
-  it('renders a personnel account sections in the fixed order with the true count', () => {
-    const html = renderInbox(personnelInbox(), ['PERSONNEL']);
-
-    expect(html).toContain('AR No. 0014');
-    expect(html).toContain('Returned for revision');
-    expect(html).toContain('(2)');
-    expect(html).toContain('Your assignments');
-    expect(html).toContain('(3)');
-    expect(html).toContain('Recent activity');
-
-    expect(html.indexOf('Returned for revision')).toBeLessThan(
-      html.indexOf('Your assignments'),
-    );
-    expect(html.indexOf('Your assignments')).toBeLessThan(html.indexOf('Recent activity'));
-  });
-
-  it('keeps decisions off the inbox and links rows to the record', () => {
-    const html = renderInbox(personnelInbox(), ['PERSONNEL']);
-
-    expect(html).toContain('href="/reports/report-1"');
-    expect(html).not.toMatch(/>\s*(Endorse|Approve|Return)\s*</);
-  });
-
   it('shows the office only the records it must act on', () => {
     const html = renderInbox(
       inbox({
         awaitingReview: section({ total: 4 }),
         withPic: section({ total: 2 }),
-        myReports: section({ total: 9 }),
       }),
       ['ADMIN'],
     );
@@ -116,7 +65,7 @@ describe('WorkInbox', () => {
       inbox({
         withPic: section({
           total: 1,
-          items: [item({ status: 'DRAFT', updatedAt: '2026-03-01T10:00:00Z' })],
+          items: [item({ status: 'PENDING', updatedAt: '2026-03-01T10:00:00Z' })],
         }),
       }),
       ['ADMIN'],
@@ -165,19 +114,10 @@ describe('WorkInbox', () => {
   });
 
   it('renders no digest line at zero unread', () => {
-    const html = renderInbox(personnelInbox(), ['PERSONNEL']);
+    const html = renderInbox(inbox(), ['ADMIN']);
 
     expect(html).not.toContain('unread notification');
     expect(html).not.toContain('href="/notifications"');
-  });
-
-  it('sends a personnel account with no assignments to the empty state', () => {
-    const html = renderInbox(inbox(), ['PERSONNEL']);
-
-    expect(html).toContain('No activities are assigned to you yet');
-    expect(html).toContain('Complete your profile');
-    expect(html).not.toContain('Awaiting your decision');
-    expect(html).not.toContain('href="/reports/new"');
   });
 
   it('sends an empty office inbox to the shared records message', () => {
@@ -186,15 +126,6 @@ describe('WorkInbox', () => {
     expect(html).toContain('Nothing needs your attention');
     expect(html).toContain('href="/reports/new"');
     expect(html).not.toContain('btn-primary');
-  });
-
-  it('tells a new personnel account no activity has been assigned yet', () => {
-    const html = renderInbox(
-      inbox({ onboarding: { profileComplete: false, hasSubmitted: true, draftId: null } }),
-      ['PERSONNEL'],
-    );
-
-    expect(html).toContain('No activities are assigned to you yet');
   });
 });
 

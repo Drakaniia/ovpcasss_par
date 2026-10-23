@@ -4,6 +4,7 @@ import type { Context } from 'hono';
 
 import { sendVerificationEmail } from '../../../email/auth-mail';
 import type { AppEnv } from '../../../env';
+import { appOrigin } from '../../../lib/app-origin';
 import { recordAudit } from '../../../lib/audit';
 import { createId } from '../../../lib/ids';
 import { hashPassword } from '../../../lib/password';
@@ -64,7 +65,7 @@ export async function register(c: Context<AppEnv>, input: RegisterInput): Promis
     to: email,
     fullName: input.fullName,
     token,
-    origin: new URL(c.req.url).origin,
+    origin: appOrigin(c),
   });
 
   await recordAudit(c, {

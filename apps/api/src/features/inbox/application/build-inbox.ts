@@ -17,7 +17,6 @@ import type {
 } from '@par/db';
 
 import { summarizeAuditEvent } from '../domain/audit-summary';
-import { isProfileComplete } from '../domain/onboarding';
 
 /**
  * Work-inbox assembly (spec §12). Every section is a real indexed read that
@@ -41,47 +40,28 @@ const ACTIVITY_KINDS: Record<string, InboxActivity['kind']> = {
 export async function buildInbox(queries: InboxQueries, user: UserRow): Promise<InboxResponse> {
   const admin = user.role === 'ADMIN';
 
-  const [
-    awaitingReview,
-    withPic,
-    returned,
-    approved,
-    myReports,
-    activity,
-    decided,
-    unread,
-    submitted,
-    draftId,
-  ] = await Promise.all([
-    admin ? queries.inbox.awaitingReview() : emptyPage(),
-    admin ? queries.inbox.withPic() : emptyPage(),
-    queries.inbox.returned(user.id, 3, admin),
-    queries.inbox.approved(user.id, 3, admin),
-    admin ? emptyPage() : queries.inbox.myReports(user.id),
-    queries.inbox.activity(user.id, 5, admin),
-    admin ? queries.inbox.recentlyDecided(user.id) : Promise.resolve([]),
-    queries.notifications.countUnread(user.id),
-    queries.inbox.hasSubmitted(user.id),
-    admin ? Promise.resolve(null) : queries.inbox.firstDraftId(user.id),
-  ]);
+  const [awaitingReview, withPic, returned, approved, activity, decided, unread] =
+    await Promise.all([
+      admin ? queries.inbox.awaitingReview() : emptyPage(),
+      admin ? queries.inbox.withPic() : emptyPage(),
+      queries.inbox.returned(user.id, 3, admin),
+      queries.inbox.approved(user.id, 3, admin),
+      queries.inbox.activity(user.id, 5, admin),
+      admin ? queries.inbox.recentlyDecided(user.id) : Promise.resolve([]),
+      queries.notifications.countUnread(user.id),
+    ]);
 
   return {
     awaitingReview: sectionFor(awaitingReview),
     withPic: sectionFor(withPic),
     returned: sectionFor(returned),
     approved: sectionFor(approved),
-    myReports: sectionFor(myReports),
     activity: activity.map(activityItem).filter((item): item is InboxActivity => item !== null),
     recentlyDecided: decided
       .map(activityItem)
       .filter((item): item is InboxActivity => item !== null),
     notificationsUnread: unread,
     admin: admin ? await buildAdmin(queries) : null,
-    onboarding: {
-      profileComplete: isProfileComplete(user),
-      hasSubmitted: submitted,
-      draftId,
-    },
   };
 }
 

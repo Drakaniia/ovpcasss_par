@@ -2,6 +2,9 @@
   import type { ReportListFacets } from '@par/shared';
   import { Search, X } from '@lucide/svelte';
 
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
+  import DatePicker from '$lib/components/DatePicker.svelte';
+
   import { REPORT_TYPE_OPTIONS } from '../application/record-form';
   import type { ReportFilters } from '../application/report-filters';
 
@@ -20,7 +23,14 @@
 
   const hasFilters = $derived(
     Boolean(
-      filters.type || filters.campusId || filters.termId || filters.from || filters.to || filters.q,
+      filters.type ||
+      filters.campusId ||
+      filters.termId ||
+      filters.from ||
+      filters.to ||
+      filters.q ||
+      filters.picName ||
+      filters.submittedBy,
     ),
   );
 </script>
@@ -39,64 +49,114 @@
   </label>
 
   <label class="filter">
+    <span class="filter-label">Personnel in charge</span>
+    <input
+      class="input name"
+      type="text"
+      placeholder="Name"
+      value={filters.picName}
+      oninput={(event) => onchange({ picName: event.currentTarget.value })}
+    />
+  </label>
+
+  <label class="filter">
+    <span class="filter-label">Submitted by</span>
+    <input
+      class="input name"
+      type="text"
+      placeholder="Name"
+      value={filters.submittedBy}
+      oninput={(event) => onchange({ submittedBy: event.currentTarget.value })}
+    />
+  </label>
+
+  <label class="filter">
     <span class="filter-label">Type</span>
-    <select
-      class="select"
+    <EditableSelect
+      id="report-filter-type"
+      label="Type"
       value={filters.type}
-      onchange={(event) => onchange({ type: event.currentTarget.value as ReportFilters['type'] })}
-    >
-      <option value="">All types</option>
-      {#each REPORT_TYPE_OPTIONS as option (option.value)}
-        <option value={option.value}>{option.label}</option>
-      {/each}
-    </select>
+      placeholder="All types"
+      searchable={false}
+      options={[
+        { value: '', label: 'All types' },
+        ...REPORT_TYPE_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+      ]}
+      onchange={(value) => onchange({ type: value as ReportFilters['type'] })}
+    />
   </label>
 
   <label class="filter">
     <span class="filter-label">Campus</span>
-    <select
-      class="select"
+    <EditableSelect
+      id="report-filter-campus"
+      label="Campus"
       value={filters.campusId}
-      onchange={(event) => onchange({ campusId: event.currentTarget.value })}
-    >
-      <option value="">All campuses</option>
-      {#each facets?.campuses ?? [] as campus (campus.id)}
-        <option value={campus.id}>{campus.label}{campus.isActive ? '' : ' (inactive)'}</option>
-      {/each}
-    </select>
+      placeholder="All campuses"
+      searchable={false}
+      options={[
+        { value: '', label: 'All campuses' },
+        ...(facets?.campuses ?? []).map((campus) => ({
+          value: campus.id,
+          label: `${campus.label}${campus.isActive ? '' : ' (inactive)'}`,
+        })),
+      ]}
+      onchange={(value) => onchange({ campusId: value })}
+    />
   </label>
 
   <label class="filter">
     <span class="filter-label">Term</span>
-    <select
-      class="select"
+    <EditableSelect
+      id="report-filter-term"
+      label="Term"
       value={filters.termId}
-      onchange={(event) => onchange({ termId: event.currentTarget.value })}
-    >
-      <option value="">All terms</option>
-      {#each facets?.terms ?? [] as term (term.id)}
-        <option value={term.id}>{term.label}{term.isActive ? '' : ' (inactive)'}</option>
-      {/each}
-    </select>
+      placeholder="All terms"
+      searchable={false}
+      options={[
+        { value: '', label: 'All terms' },
+        ...(facets?.terms ?? []).map((term) => ({
+          value: term.id,
+          label: `${term.label}${term.isActive ? '' : ' (inactive)'}`,
+        })),
+      ]}
+      onchange={(value) => onchange({ termId: value })}
+    />
+  </label>
+
+  <label class="filter">
+    <span class="filter-label">Archived</span>
+    <EditableSelect
+      id="report-filter-archived"
+      label="Archived"
+      value={filters.archived}
+      searchable={false}
+      options={[
+        { value: 'active', label: 'Active only' },
+        { value: 'archived', label: 'Archived only' },
+        { value: 'all', label: 'Active and archived' },
+      ]}
+      onchange={(value) => onchange({ archived: value as ReportFilters['archived'] })}
+    />
   </label>
 
   <div class="dates">
     <label class="filter">
       <span class="filter-label">From</span>
-      <input
-        class="input date"
-        type="date"
+      <DatePicker
+        id="report-filter-from"
         value={filters.from}
-        onchange={(event) => onchange({ from: event.currentTarget.value })}
+        dense
+        onchange={(iso) => onchange({ from: iso })}
       />
     </label>
     <label class="filter">
       <span class="filter-label">To</span>
-      <input
-        class="input date"
-        type="date"
+      <DatePicker
+        id="report-filter-to"
         value={filters.to}
-        onchange={(event) => onchange({ to: event.currentTarget.value })}
+        dense
+        onchange={(iso) => onchange({ to: iso })}
       />
     </label>
   </div>
@@ -153,11 +213,16 @@
   }
 
   .select,
-  .date {
+  .date,
+  .name {
     font-size: 13px;
     min-height: 34px;
     min-width: 132px;
     padding: 0 8px;
+  }
+
+  .name {
+    min-width: 150px;
   }
 
   .dates {

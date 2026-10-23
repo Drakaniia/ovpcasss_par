@@ -79,6 +79,15 @@ function projection(form: ReportActivityInput): ActivityProjection {
   };
 }
 
+/**
+ * One deploy window may still hold rows written as `DRAFT`. Reads normalise them
+ * to `PENDING`, so writes must accept both spellings or a save would 409 against
+ * a record the reader was just shown (spec §15.2).
+ */
+function statusWhere(from: readonly ReportStatus[]): ReportStatus[] {
+  return from.includes('PENDING') ? [...from, 'DRAFT' as unknown as ReportStatus] : [...from];
+}
+
 export function createReportWriteQueries(db: Database) {
   return {
     /** Global AR counter (spec §5). Gaps are allowed and never repaired. */
@@ -110,7 +119,7 @@ export function createReportWriteQueries(db: Database) {
           id: input.id,
           referenceNo: input.referenceNo,
           sequence: input.sequence,
-          status: 'DRAFT',
+          status: 'PENDING',
           version: 0,
           createdByUserId: input.createdByUserId,
           narrative: '',
@@ -142,7 +151,7 @@ export function createReportWriteQueries(db: Database) {
         .where(
           and(
             eq(reports.id, input.id),
-            inArray(reports.status, input.from),
+            inArray(reports.status, statusWhere(input.from)),
             input.version === undefined ? undefined : eq(reports.version, input.version),
           ),
         )
@@ -166,7 +175,7 @@ export function createReportWriteQueries(db: Database) {
         .where(
           and(
             eq(reports.id, id),
-            inArray(reports.status, change.from),
+            inArray(reports.status, statusWhere(change.from)),
             change.version === undefined ? undefined : eq(reports.version, change.version),
           ),
         )
@@ -192,7 +201,7 @@ export function createReportWriteQueries(db: Database) {
         .where(
           and(
             eq(reports.id, input.id),
-            inArray(reports.status, input.from),
+            inArray(reports.status, statusWhere(input.from)),
             input.version === undefined ? undefined : eq(reports.version, input.version),
           ),
         )
@@ -230,6 +239,38 @@ export function createReportWriteQueries(db: Database) {
     },
 
     /**
+     * A PIC who claims an activity by submitting its narrative (spec §5). The
+     * account is appended once; a second submission by the same address keeps
+     * the existing row, so the receipt goes out exactly once.
+     */
+    async addPic(input: {
+      reportId: string;
+      userId: string;
+      name: string;
+      email: string;
+      now: string;
+    }): Promise<void> {
+      const existing = await db
+        .select({ sortOrder: reportPics.sortOrder })
+        .from(reportPics)
+        .where(eq(reportPics.reportId, input.reportId));
+      const next = existing.reduce((highest, row) => Math.max(highest, row.sortOrder + 1), 0);
+
+      await db
+        .insert(reportPics)
+        .values({
+          id: crypto.randomUUID(),
+          reportId: input.reportId,
+          userId: input.userId,
+          name: input.name,
+          email: input.email.toLowerCase(),
+          sortOrder: next,
+          invitedAt: input.now,
+        })
+        .onConflictDoNothing({ target: [reportPics.reportId, reportPics.email] });
+    },
+
+    /**
      * The PIC's snapshotted signature. The report version is untouched: signing
      * is not a content edit, so it must not invalidate a client's `If-Match`.
      * `cleared` records the deliberate "no signature" state, so the submit
@@ -257,6 +298,20 @@ export function createReportWriteQueries(db: Database) {
       await db.insert(reportComments).values(input);
     },
 
+    /** A filing flag on an approved record; the status never moves. */
+    async setArchived(
+      id: string,
+      input: { archivedAt: string | null; archivedByUserId: string | null },
+    ): Promise<ReportRow | null> {
+      const rows = await db
+        .update(reports)
+        .set({ archivedAt: input.archivedAt, archivedByUserId: input.archivedByUserId })
+        .where(and(eq(reports.id, id), eq(reports.status, 'APPROVED')))
+        .returning();
+
+      return rows[0] ?? null;
+    },
+
     async countReturns(reportId: string): Promise<number> {
       const rows = await db
         .select({ value: sql<number>`count(*)` })
@@ -266,12 +321,12 @@ export function createReportWriteQueries(db: Database) {
       return Number(rows[0]?.value ?? 0);
     },
 
-    /** Only an unsubmitted draft is deletable; its AR No. is retired. */
+    /** Only an unsubmitted record is deletable; its AR No. is retired. */
     async deleteRecord(id: string): Promise<string | null> {
       const rows = await db
         .select({ id: reports.id })
         .from(reports)
-        .where(and(eq(reports.id, id), eq(reports.status, 'DRAFT')))
+        .where(and(eq(reports.id, id), inArray(reports.status, statusWhere(['PENDING']))))
         .limit(1);
 
       if (!rows[0]) return null;

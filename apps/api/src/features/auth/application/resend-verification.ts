@@ -3,6 +3,7 @@ import type { Context } from 'hono';
 
 import { sendVerificationEmail } from '../../../email/auth-mail';
 import type { AppEnv } from '../../../env';
+import { appOrigin } from '../../../lib/app-origin';
 import { createId } from '../../../lib/ids';
 import { consumeRateLimit } from '../../../lib/rate-limit';
 import { createOpaqueToken, hashToken } from '../../../lib/tokens';
@@ -51,7 +52,7 @@ export async function resendVerification(
       to: email,
       fullName: user.fullName,
       token,
-      origin: new URL(c.req.url).origin,
+      origin: appOrigin(c),
     });
   }
 

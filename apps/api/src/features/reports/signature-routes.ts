@@ -6,12 +6,7 @@ import { parseSignatureImage, reportSignatureKey } from '../../lib/signature-ima
 import { rateLimit } from '../../middleware/rate-limit';
 import { buildReportDetail } from './application/report-detail';
 import { reportDependencies, viewerOf } from './application/report-context';
-import {
-  canManageRecord,
-  canViewReport,
-  canWriteNarrative,
-  isAdmin,
-} from './domain/report-access';
+import { canArchive, canManageRecord, canWriteNarrative, isAdmin } from './domain/report-access';
 
 /**
  * The submitter's signature on one report (signature spec §4.4). The report
@@ -27,8 +22,7 @@ export function registerReportSignatureRoutes(router: Hono<AppEnv>): void {
     const stack = reportDependencies(c);
     const row = await stack.read.findById(c.req.param('id') ?? '');
     if (!row) return notFound(c);
-    const isPic = await stack.read.isPic(row.id, viewer.userId);
-    if (!canWriteNarrative(viewer, isPic, row.status)) {
+    if (!canWriteNarrative(viewer, row.status)) {
       return forbidden(c);
     }
 
@@ -64,8 +58,7 @@ export function registerReportSignatureRoutes(router: Hono<AppEnv>): void {
     const stack = reportDependencies(c);
     const row = await stack.read.findById(c.req.param('id') ?? '');
     if (!row) return notFound(c);
-    const isPic = await stack.read.isPic(row.id, viewer.userId);
-    if (!canWriteNarrative(viewer, isPic, row.status)) return forbidden(c);
+    if (!canWriteNarrative(viewer, row.status)) return forbidden(c);
 
     if (row.narrativeSignatureKey) {
       await c.env.BUCKET.delete(row.narrativeSignatureKey).catch(() => undefined);
@@ -123,7 +116,12 @@ async function storeSignature(
   await c.env.BUCKET.put(key, bytes, { httpMetadata: { contentType: mimeType } });
 
   const now = new Date().toISOString();
-  const updated = await stack.write.setSignature(row.id, { key, signedAt: now, cleared: false, now });
+  const updated = await stack.write.setSignature(row.id, {
+    key,
+    signedAt: now,
+    cleared: false,
+    now,
+  });
   if (!updated) return notFound(c);
 
   if (row.narrativeSignatureKey) {
@@ -141,8 +139,10 @@ async function detailFor(c: Context<AppEnv>, reportId: string): Promise<ReportDe
 
   const isPic = await stack.read.isPic(row.id, viewer.userId);
   return buildReportDetail(c.env, row, {
-    canWriteNarrative: canWriteNarrative(viewer, isPic, row.status),
+    canWriteNarrative: canWriteNarrative(viewer, row.status),
     canManage: canManageRecord(viewer, row.status),
+    canArchive: canArchive(viewer, row.status),
+    concealUnsubmitted: isAdmin(viewer) && !isPic && row.status === 'PENDING',
     ...(isAdmin(viewer) ? {} : { receiptsForUserId: viewer.userId }),
   });
 }
@@ -152,10 +152,7 @@ async function visibleReport(c: Context<AppEnv>) {
   if (!viewer) return null;
 
   const deps = reportDependencies(c);
-  const row = await deps.read.findById(c.req.param('id') ?? '');
-  if (!row) return null;
-  const isPic = await deps.read.isPic(row.id, viewer.userId);
-  return canViewReport(viewer, isPic) ? row : null;
+  return deps.read.findById(c.req.param('id') ?? '');
 }
 
 /** The first key that still holds an object; a broken one falls through. */

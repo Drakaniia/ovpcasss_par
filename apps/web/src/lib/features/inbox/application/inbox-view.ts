@@ -31,7 +31,7 @@ export function capabilitiesFor(roles: readonly Role[]): InboxCapabilities {
   };
 }
 
-export type InboxSectionId = 'awaitingReview' | 'withPic' | 'returned' | 'approved' | 'myReports';
+export type InboxSectionId = 'awaitingReview' | 'withPic' | 'returned' | 'approved';
 
 export function inboxSectionsFor(roles: readonly Role[], inbox: InboxResponse): InboxSectionId[] {
   const caps = capabilitiesFor(roles);
@@ -41,7 +41,6 @@ export function inboxSectionsFor(roles: readonly Role[], inbox: InboxResponse): 
   if (caps.admin && inbox.withPic.total > 0) sections.push('withPic');
   if (inbox.returned.total > 0) sections.push('returned');
   if (inbox.approved.total > 0) sections.push('approved');
-  if (caps.personnel && inbox.myReports.total > 0) sections.push('myReports');
 
   return sections;
 }
@@ -75,7 +74,7 @@ export function inboxStatsFor(roles: readonly Role[], inbox: InboxResponse): Inb
       id: 'withPic',
       label: 'With personnel in charge',
       count: inbox.withPic.total,
-      href: '/reports?tab=withPic',
+      href: '/reports?tab=pending',
     });
   }
   if (inbox.returned.total > 0) {
@@ -163,21 +162,6 @@ export function approvedRows(section: InboxSection, now: Date): InboxRow[] {
     now,
     (item) => `Approved · ${formatRelativeTime(item.submittedAt ?? item.updatedAt, now)}`,
   );
-}
-
-/** A personnel account's whole list of assignments. */
-export function myReportRows(section: InboxSection, now: Date): InboxRow[] {
-  return rowsFor(section, now, (item) => {
-    const action =
-      item.status === 'DRAFT'
-        ? 'Write narrative'
-        : item.status === 'RETURNED'
-          ? 'Revise and resubmit'
-          : item.status === 'APPROVED'
-            ? 'Download receipt'
-            : 'View';
-    return `${action} · ${formatRelativeTime(item.updatedAt, now)}`;
-  });
 }
 
 export type AdminAction = {
@@ -270,4 +254,3 @@ export function auditActivityRows(
     exact: formatDateTime(event.occurredAt),
   }));
 }
-

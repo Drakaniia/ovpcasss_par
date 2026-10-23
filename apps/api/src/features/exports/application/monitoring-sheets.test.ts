@@ -37,6 +37,7 @@ const REQUEST = {
   schoolYear: '2025-2026',
   semester: 2 as const,
   includeInProgress: false,
+  includeArchived: false,
 };
 
 describe('monitoring sheet', () => {

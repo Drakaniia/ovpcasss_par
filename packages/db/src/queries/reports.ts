@@ -1,5 +1,5 @@
 import type { ReportStatus, ReportType, Semester } from '@par/shared';
-import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, lte } from 'drizzle-orm';
 
 import type { Database } from '../client';
 import { refCampuses, refSdgs, refTerms, refUnits } from '../schema/reference-data';
@@ -36,6 +36,8 @@ export interface MonitoringReportFilter {
   from: string;
   to: string;
   statuses: readonly ReportStatus[];
+  /** Filing flag: archived records stay out of the sheet unless asked for. */
+  includeArchived?: boolean;
 }
 
 export interface OverdueDraft {
@@ -125,6 +127,7 @@ export function createMonitoringQueries(db: Database) {
         gte(reports.activityStartDate, filter.from),
         lte(reports.activityStartDate, filter.to),
         inArray(reports.status, filter.statuses),
+        ...(filter.includeArchived ? [] : [isNull(reports.archivedAt)]),
       ];
       if (filter.type) conditions.push(eq(reports.type, filter.type));
 
@@ -167,10 +170,10 @@ export function createMonitoringQueries(db: Database) {
     },
 
     /**
-     * Draft records older than the reminder threshold. The sweep sends at most
-     * three reminders per record, tracked by the outbox (spec §11).
+     * Unsubmitted records older than the reminder threshold. The sweep sends at
+     * most three reminders per record, tracked by the outbox (spec §11).
      */
-    async listOverdueDrafts(createdBeforeIso: string): Promise<OverdueDraft[]> {
+    async listOverduePending(createdBeforeIso: string): Promise<OverdueDraft[]> {
       return db
         .select({
           id: reports.id,
@@ -179,7 +182,7 @@ export function createMonitoringQueries(db: Database) {
           createdAt: reports.createdAt,
         })
         .from(reports)
-        .where(and(eq(reports.status, 'DRAFT'), lte(reports.createdAt, createdBeforeIso)))
+        .where(and(eq(reports.status, 'PENDING'), lte(reports.createdAt, createdBeforeIso)))
         .orderBy(asc(reports.createdAt));
     },
   };

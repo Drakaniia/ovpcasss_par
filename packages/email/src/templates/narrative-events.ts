@@ -13,6 +13,9 @@ export interface NarrativeEventData {
   comments?: string | undefined;
   approvedAt?: string | undefined;
   waitingDays?: number | undefined;
+  /** Labels of the activity fields the office corrected (spec §9). */
+  changedFields?: readonly string[] | undefined;
+  reason?: string | undefined;
   origin?: string | undefined;
   /** True only when the receipt PDF is in this message. */
   hasAttachment?: boolean | undefined;
@@ -144,6 +147,27 @@ export function reminderTemplate(data: NarrativeEventData): EmailContent {
       fact('Date', data.activityDate ? manilaDate(data.activityDate) : undefined),
       fact('Location', data.location),
     ),
+    ...(link ? { action: link } : {}),
+    reference: data.referenceNo,
+  });
+}
+
+export function recordEditedTemplate(data: NarrativeEventData): EmailContent {
+  const link = action(data, 'Open the record', '/');
+
+  return renderShell({
+    subject: `${data.referenceNo} — activity details corrected`,
+    heading: 'The activity details were corrected',
+    intro: [
+      `The office corrected the activity details for ${data.referenceNo} after the narrative report was submitted.`,
+      'The narrative, its attachments, and your signature were not changed. Open the record to work from the current version.',
+    ],
+    facts: facts(
+      fact('Reference', data.referenceNo),
+      fact('Activity', data.title),
+      fact('Corrected fields', data.changedFields?.join(', ')),
+    ),
+    quote: data.reason ? { label: 'Reason for the correction', body: data.reason } : undefined,
     ...(link ? { action: link } : {}),
     reference: data.referenceNo,
   });

@@ -8,6 +8,7 @@ import {
   sendAccountDisabledEmail,
   sendRoleAssignedEmail,
 } from '../../../email/auth-mail';
+import { appOrigin } from '../../../lib/app-origin';
 import { recordAudit } from '../../../lib/audit';
 import { toAdminUser } from '../../../lib/user-view';
 import { notify } from '../../notifications/application/notify';
@@ -66,7 +67,7 @@ export async function assignRole(
   await sendRoleAssignedEmail(c.env, {
     to: updated.email,
     fullName: updated.fullName,
-    origin: new URL(c.req.url).origin,
+    origin: appOrigin(c),
     roleLabel: roleLabel(role),
     roleDescription: ROLE_DESCRIPTIONS[role],
   });
@@ -113,7 +114,7 @@ export async function approveUser(
   await sendAccountActivatedEmail(c.env, {
     to: updated.email,
     fullName: updated.fullName,
-    origin: new URL(c.req.url).origin,
+    origin: appOrigin(c),
   });
 
   return { status: 'ok', user: toAdminUser(updated) };

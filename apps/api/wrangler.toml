@@ -47,17 +47,21 @@ BOOTSTRAP_ADMIN_EMAILS = "ovpcasss@buksu.edu.ph,2401117078@student.buksu.edu.ph"
 R2_BUCKET_NAME = "par-attachments"
 # The office mailbox: default workbook recipient and failure-digest fallback.
 OFFICE_EMAIL = "ovpcasss@buksu.edu.ph"
-# The deployed app's origin. Cron-composed mail (the reminder sweep, the failure
-# digest) is written outside a request and needs it to link back; request-driven
-# mail uses the request's own origin and does not need it. The Worker serves the
-# SPA on the same origin (see [assets]), so this is the worker's public URL.
-# The host is the account's workers.dev subdomain, not the script name: a rename
-# of the account subdomain changes every Worker URL. Change it when the app moves
-# to a custom domain. Locally, .dev.vars wins.
-APP_ORIGIN = "https://par.ovpcasss.workers.dev"
+# The address the browser uses: the Pages site, whose `/api/*` Function proxies
+# to this Worker (apps/web/functions). Mailed links, receipts, and the Google
+# redirect URI are built from it, so a custom domain edits this line, the Pages
+# project domain, and the Google client together. Locally, .dev.vars wins. The
+# Worker still serves the app on its own origin as the rollback path.
+APP_ORIGIN = "https://ovpcasss-par.pages.dev"
 # OVPCASSS-F-013 signatory block; defaults to the printed form.
 # RECEIPT_SIGNATORY_NAME = "DR. LINCOLN V. TAN"
 # RECEIPT_SIGNATORY_TITLE = "VPCASSS"
+# Address suggestions for the location field (bug phase 04 §3.2). Photon is
+# keyless and runs on OpenStreetMap data; `{q}` is the encoded query, and the
+# lat/lon pair biases results toward Malaybalay City. Swap the template for a
+# keyed provider (with `{key}`) or remove the line to offer only the office's own
+# history. Only the typed text leaves the Worker.
+LOCATION_SUGGEST_URL = "https://photon.komoot.io/api/?q={q}&limit=6&lang=en&lat=8.1575&lon=125.1286"
 EMAIL_MAX_ATTACHMENT_BYTES = "8388608"
 EMAIL_PROVIDER = "resend"
 # Sender for outbound mail: an address at the domain verified in Resend

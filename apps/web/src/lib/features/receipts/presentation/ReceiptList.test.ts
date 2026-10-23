@@ -27,6 +27,7 @@ describe('ReceiptList', () => {
     expect(html).toContain('Maria Santos');
     expect(html).toContain('Juan Dela Cruz');
     expect((html.match(/Download PDF/g) ?? []).length).toBe(2);
+    expect((html.match(/Preview/g) ?? []).length).toBe(2);
     expect(html).toContain('Issued');
     expect(html).toContain('mailed');
   });
@@ -38,5 +39,6 @@ describe('ReceiptList', () => {
 
     expect(html).toContain('Acknowledgment receipts');
     expect(html).not.toContain('Download PDF');
+    expect(html).not.toContain('Preview');
   });
 });

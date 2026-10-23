@@ -21,7 +21,7 @@ const LEVEL_LABELS = {
 } as const;
 
 const STATUS_LABELS: Record<ReportStatus, string> = {
-  DRAFT: 'Draft',
+  PENDING: 'Pending',
   SUBMITTED: 'Submitted',
   RETURNED: 'Returned',
   APPROVED: 'Approved',
@@ -29,10 +29,10 @@ const STATUS_LABELS: Record<ReportStatus, string> = {
 
 export const FACSIMILE_TYPE = 'application/pdf';
 
-/** A draft is marked as such; everything short of approval is not yet valid. */
+/** An unsubmitted record is marked; everything short of approval is not valid yet. */
 export function watermarkFor(status: ReportStatus): FacsimilePdfData['watermark'] {
   if (status === 'APPROVED') return 'NONE';
-  return status === 'DRAFT' ? 'DRAFT' : 'NOT_APPROVED';
+  return status === 'PENDING' ? 'NOT_SUBMITTED' : 'NOT_APPROVED';
 }
 
 /**
@@ -141,6 +141,7 @@ export async function renderReportFacsimile(
       .map((attachment) => ({ label: attachment.label, originalName: attachment.originalName })),
     watermark: watermarkFor(row.status),
     generatedAt: new Date().toISOString(),
+    archivedAt: row.archivedAt,
     approvedByName: approver?.fullName ?? null,
     approvedAt: row.approvedAt,
     ...(submitterSignature ? { submitterSignature } : {}),

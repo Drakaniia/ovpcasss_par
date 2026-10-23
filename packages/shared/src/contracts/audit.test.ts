@@ -44,7 +44,7 @@ describe('audit contracts', () => {
       entityType: 'report',
       entityId: 'rep_1',
       entityLabel: 'AR No. 0001',
-      fromStatus: 'DRAFT',
+      fromStatus: 'PENDING',
       toStatus: 'SUBMITTED',
       createdAt: '2026-10-17T06:02:00.000Z',
     });

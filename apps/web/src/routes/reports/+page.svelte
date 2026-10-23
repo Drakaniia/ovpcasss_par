@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ReportListResponse, ReportSortField } from '@par/shared';
+  import { Download } from '@lucide/svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { onMount, untrack } from 'svelte';
@@ -46,13 +47,20 @@
   let pendingDelete = $state<RegisterRow | null>(null);
   let confirmOpen = $state(false);
   let deleting = $state(false);
+  let exporting = $state(false);
   let requestId = 0;
   let hasLoaded = false;
+  /** The filter string this page wrote last, so its own URL never echoes back. */
+  let writtenParams = untrack(() => filtersToParams(filters));
 
   const role = $derived(session.user?.role ?? null);
   const rows = $derived(list ? list.items.map((item) => registerRow(item, { role })) : []);
   const empty = $derived(
-    emptyStateFor(filters.tab, { role, hasFilters: hasActiveFilters(filters) }),
+    emptyStateFor(filters.tab, {
+      role,
+      hasFilters: hasActiveFilters(filters),
+      archived: filters.archived === 'archived',
+    }),
   );
 
   async function loadAccount(): Promise<void> {
@@ -65,6 +73,12 @@
       if (account.status !== 'ACTIVE') {
         clearSession();
         await goto('/login', { replaceState: true });
+        return;
+      }
+      // The register is the office's (2026-10-23); a personnel account reads its
+      // own records from Home and has no register to open.
+      if (account.role !== 'ADMIN') {
+        await goto('/', { replaceState: true });
         return;
       }
       auth = 'ready';
@@ -84,7 +98,7 @@
 
       const pages = Math.max(1, Math.ceil(result.total / result.size));
       if (query.page > pages) {
-        await applyFilters({ page: pages });
+        applyFilters({ page: pages });
         return;
       }
 
@@ -106,12 +120,19 @@
     }
   }
 
-  async function applyFilters(patch: Partial<ReportFilters>): Promise<void> {
+  /**
+   * The list follows the filters: the URL is written for sharing and Back, but
+   * navigating must never take the caret out of the field being typed in, so
+   * the write keeps focus and does not scroll.
+   */
+  function applyFilters(patch: Partial<ReportFilters>): void {
     const next = updateFilters(filters, patch);
     if (filtersEqual(next, filters)) return;
 
     filters = next;
-    await goto(`/reports?${filtersToParams(next)}`, { replaceState: true });
+    const params = filtersToParams(next);
+    writtenParams = params;
+    void goto(`/reports?${params}`, { replace: true, reset: false }).catch(() => {});
   }
 
   function sortBy(field: ReportSortField): void {
@@ -122,6 +143,31 @@
           : 'asc'
         : defaultDirectionFor(field);
     void applyFilters({ sort: field, dir });
+  }
+
+  async function downloadRegister(): Promise<void> {
+    if (exporting) return;
+    exporting = true;
+    try {
+      await api.exports.register(filtersToQuery(filters));
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : 'The register PDF was not prepared. Try again.',
+      );
+    } finally {
+      exporting = false;
+    }
+  }
+
+  async function setArchived(row: RegisterRow, archived: boolean): Promise<void> {
+    try {
+      if (archived) await api.reports.archive(row.id);
+      else await api.reports.unarchive(row.id);
+      toast.success(archived ? 'Record archived.' : 'Record returned to the register.');
+      await loadReports(filters);
+    } catch {
+      toast.error('That record was not filed. Try again.');
+    }
   }
 
   async function resend(row: RegisterRow): Promise<void> {
@@ -147,7 +193,7 @@
     deleting = true;
     try {
       await api.reports.remove(row.id);
-      toast.success('Draft deleted.');
+      toast.success('Record deleted.');
       await loadReports(filters);
     } catch {
       toast.error('The record was not deleted. Try again.');
@@ -163,6 +209,12 @@
 
   $effect(() => {
     const fromUrl = filtersFromParams(new URLSearchParams(page.url.search));
+    const incoming = filtersToParams(fromUrl);
+    // Skip the URL this page just wrote; only Back, a link, or a pasted URL is
+    // an outside change that should replace the filters.
+    if (incoming === writtenParams) return;
+
+    writtenParams = incoming;
     if (
       !filtersEqual(
         fromUrl,
@@ -190,6 +242,20 @@
   />
 {:else}
   <ReportsPageHeader {role} />
+
+  {#if auth === 'ready'}
+    <div class="register-tools">
+      <button
+        class="btn btn-outline btn-sm"
+        type="button"
+        disabled={exporting}
+        onclick={() => void downloadRegister()}
+      >
+        <Download size={15} aria-hidden="true" />
+        {exporting ? 'Preparing…' : 'Download register PDF'}
+      </button>
+    </div>
+  {/if}
 
   <ReportFilterBar
     {filters}
@@ -234,6 +300,8 @@
       onedit={(row) => void goto(`/reports/${row.id}/edit`)}
       ondelete={askDelete}
       onresend={(row) => void resend(row)}
+      onarchive={(row) => void setArchived(row, true)}
+      onunarchive={(row) => void setArchived(row, false)}
     />
 
     <ReportsPagination
@@ -250,10 +318,24 @@
   <ConfirmDialog
     bind:open={confirmOpen}
     title="Delete {pendingDelete.referenceNo}?"
-    description="This draft has no submitted narrative. The AR No. is retired and never reused, and the deletion is recorded in the audit log."
-    confirmLabel={deleting ? 'Deleting…' : 'Delete draft'}
+    description="No narrative has been submitted, so the record can be deleted. A saved narrative draft is deleted with it. The AR No. is retired and never reused, and the deletion is recorded in the audit log."
+    confirmLabel={deleting ? 'Deleting…' : 'Delete record'}
     tone="destructive"
     onconfirm={() => void confirmDelete()}
     oncancel={() => (pendingDelete = null)}
   />
 {/if}
+
+<style>
+  .register-tools {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+  }
+
+  .register-tools .btn {
+    align-items: center;
+    display: inline-flex;
+    gap: 6px;
+  }
+</style>

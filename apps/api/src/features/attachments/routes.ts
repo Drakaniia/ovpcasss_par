@@ -6,6 +6,7 @@ import {
 import { Hono, type Context } from 'hono';
 
 import type { AppEnv } from '../../env';
+import { appOrigin } from '../../lib/app-origin';
 import { recordAudit } from '../../lib/audit';
 import { signedDownloadUrl } from '../../lib/download-url';
 import { toHex } from '../../lib/encoding';
@@ -65,8 +66,7 @@ attachmentRoutes.post(
     const stack = reportDependencies(c);
     const report = await stack.read.findById(c.req.param('id') ?? '');
     if (!report) return notFound(c);
-    const isPic = await stack.read.isPic(report.id, viewer.userId);
-    if (!canWriteNarrative(viewer, isPic, report.status)) {
+    if (!canWriteNarrative(viewer, report.status)) {
       return c.json(
         { error: { code: 'FORBIDDEN', message: 'This report cannot accept new files.' } },
         403,
@@ -135,8 +135,7 @@ attachmentRoutes.put(
     const stack = reportDependencies(c);
     const report = await stack.read.findById(c.req.param('id') ?? '');
     if (!report) return notFound(c);
-    const isPic = await stack.read.isPic(report.id, viewer.userId);
-    if (!canWriteNarrative(viewer, isPic, report.status)) {
+    if (!canWriteNarrative(viewer, report.status)) {
       return c.json(
         { error: { code: 'FORBIDDEN', message: 'This report cannot accept new files.' } },
         403,
@@ -179,7 +178,7 @@ attachmentRoutes.put(
 function uploadContentUrl(c: Context<AppEnv>, reportId: string, attachmentId: string): string {
   return new URL(
     `/api/v1/reports/${reportId}/attachments/${attachmentId}/content`,
-    c.req.url,
+    appOrigin(c),
   ).toString();
 }
 
@@ -190,8 +189,7 @@ attachmentRoutes.post('/:id/attachments/:attachmentId/confirm', async (c) => {
   const stack = reportDependencies(c);
   const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report) return notFound(c);
-  const isPic = await stack.read.isPic(report.id, viewer.userId);
-  if (!canWriteNarrative(viewer, isPic, report.status)) {
+  if (!canWriteNarrative(viewer, report.status)) {
     return c.json(
       { error: { code: 'FORBIDDEN', message: 'This report is not open for edits.' } },
       403,
@@ -269,7 +267,7 @@ attachmentRoutes.get('/:id/attachments/:attachmentId/url', async (c) => {
   const stack = reportDependencies(c);
   const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report) return notFound(c);
-  if (!canViewReport(viewer, await stack.read.isPic(report.id, viewer.userId))) return notFound(c);
+  if (!canViewReport(viewer)) return notFound(c);
 
   const attachment = await stack.attachments.findById(report.id, c.req.param('attachmentId') ?? '');
   if (!attachment || attachment.status !== 'CONFIRMED') return notFound(c);
@@ -293,7 +291,7 @@ attachmentRoutes.get('/:id/attachments/:attachmentId/file', async (c) => {
   const stack = reportDependencies(c);
   const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report) return notFound(c);
-  if (!canViewReport(viewer, await stack.read.isPic(report.id, viewer.userId))) return notFound(c);
+  if (!canViewReport(viewer)) return notFound(c);
 
   const attachment = await stack.attachments.findById(report.id, c.req.param('attachmentId') ?? '');
   if (!attachment || attachment.status !== 'CONFIRMED') return notFound(c);
@@ -327,8 +325,7 @@ attachmentRoutes.delete('/:id/attachments/:attachmentId', async (c) => {
   const stack = reportDependencies(c);
   const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report) return notFound(c);
-  const isPic = await stack.read.isPic(report.id, viewer.userId);
-  if (!canWriteNarrative(viewer, isPic, report.status)) {
+  if (!canWriteNarrative(viewer, report.status)) {
     return c.json(
       { error: { code: 'FORBIDDEN', message: 'This report is not open for edits.' } },
       403,

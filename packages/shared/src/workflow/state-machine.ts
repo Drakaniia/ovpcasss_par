@@ -2,7 +2,7 @@ import type { ReportStatus } from '../domain/enums';
 
 /** Allowed status changes (spec §6). The API is the only caller that persists them. */
 export const ALLOWED_TRANSITIONS: Record<ReportStatus, readonly ReportStatus[]> = {
-  DRAFT: ['SUBMITTED'],
+  PENDING: ['SUBMITTED'],
   SUBMITTED: ['RETURNED', 'APPROVED'],
   RETURNED: ['SUBMITTED'],
   APPROVED: [],

@@ -1,6 +1,7 @@
 <script lang="ts">
-  import type { Classification, Level, ReportType } from '@par/shared';
+  import type { Campus, Classification, Level, ReportType, Unit } from '@par/shared';
 
+  import { api } from '$lib/api/client';
   import EditableSelect from '$lib/components/EditableSelect.svelte';
   import { session } from '$lib/session/session.svelte';
 
@@ -11,6 +12,8 @@
     unitLabel,
   } from '../application/record-form';
   import type { RecordFormState } from '../application/record-state.svelte';
+  import { toast } from '$lib/toast/toast.svelte';
+
   import WizardDirectorySelect from './WizardDirectorySelect.svelte';
   import WizardField from './WizardField.svelte';
 
@@ -23,11 +26,142 @@
     state.references.campuses.map((campus) => ({
       value: campus.id,
       label: campus.isActive ? campus.name : `${campus.name} (inactive)`,
+      name: campus.name,
     })),
   );
 
   const unitOptions = $derived(
-    state.units.map((unit) => ({ value: unit.id, label: unitLabel(unit) })),
+    state.units.map((unit) => ({
+      value: unit.id,
+      label: unitLabel(unit),
+      name: unit.name,
+    })),
+  );
+
+  /* ---------- The official campus and unit lists, editable in place ---------- */
+
+  function nextOrder(entries: readonly { sortOrder: number }[]): number {
+    return entries.reduce((highest, entry) => Math.max(highest, entry.sortOrder), 0) + 1;
+  }
+
+  /** Reference codes are required; a new entry derives one from its name. */
+  function codeFor(name: string): string {
+    const code = name
+      .trim()
+      .toUpperCase()
+      .replaceAll(/[^A-Z0-9]+/g, '-')
+      .replaceAll(/^-+|-+$/g, '')
+      .slice(0, 24);
+    return code || 'NEW';
+  }
+
+  function replaceCampus(entry: Campus): void {
+    state.references.campuses = state.references.campuses.map((campus) =>
+      campus.id === entry.id ? entry : campus,
+    );
+  }
+
+  function replaceUnit(entry: Unit): void {
+    state.references.units = state.references.units.map((unit) =>
+      unit.id === entry.id ? entry : unit,
+    );
+  }
+
+  async function createCampus(name: string): Promise<void> {
+    const created = await api.admin.referenceData.create('campuses', {
+      code: codeFor(name),
+      name: name.trim(),
+      sortOrder: nextOrder(state.references.campuses),
+      isActive: true,
+    });
+    state.references.campuses = [...state.references.campuses, created];
+    state.patchForm({ campusId: created.id });
+  }
+
+  async function renameCampus(id: string, name: string): Promise<void> {
+    const campus = state.references.campuses.find((entry) => entry.id === id);
+    if (!campus) throw new Error('That campus is no longer in the list.');
+    replaceCampus(
+      await api.admin.referenceData.update('campuses', id, {
+        code: campus.code,
+        name: name.trim(),
+        sortOrder: campus.sortOrder,
+        isActive: campus.isActive,
+      }),
+    );
+  }
+
+  async function removeCampus(id: string): Promise<void> {
+    const campus = state.references.campuses.find((entry) => entry.id === id);
+    if (!campus) throw new Error('That campus is no longer in the list.');
+    replaceCampus(await api.admin.referenceData.deactivate('campuses', id));
+    toast.success(`${campus.name} removed`, {
+      action: {
+        label: 'Undo',
+        run: () =>
+          void api.admin.referenceData
+            .activate('campuses', id)
+            .then(replaceCampus)
+            .then(() => toast.success(`${campus.name} restored`))
+            .catch(() => toast.error('The campus was not restored.')),
+      },
+    });
+  }
+
+  async function createUnit(name: string): Promise<void> {
+    if (!state.form.campusId) throw new Error('Choose a campus before adding a unit.');
+    const created = await api.admin.referenceData.create('units', {
+      code: codeFor(name),
+      name: name.trim(),
+      kind: 'OTHER_UNIT',
+      campusId: state.form.campusId,
+      sortOrder: nextOrder(state.references.units),
+      isActive: true,
+    });
+    state.references.units = [...state.references.units, created];
+    state.patchForm({ unitId: created.id });
+  }
+
+  async function renameUnit(id: string, name: string): Promise<void> {
+    const unit = state.references.units.find((entry) => entry.id === id);
+    if (!unit) throw new Error('That unit is no longer in the list.');
+    replaceUnit(
+      await api.admin.referenceData.update('units', id, {
+        code: unit.code,
+        name: name.trim(),
+        kind: unit.kind,
+        campusId: unit.campusId,
+        sortOrder: unit.sortOrder,
+        isActive: unit.isActive,
+      }),
+    );
+  }
+
+  async function removeUnit(id: string): Promise<void> {
+    const unit = state.references.units.find((entry) => entry.id === id);
+    if (!unit) throw new Error('That unit is no longer in the list.');
+    replaceUnit(await api.admin.referenceData.deactivate('units', id));
+    toast.success(`${unit.name} removed`, {
+      action: {
+        label: 'Undo',
+        run: () =>
+          void api.admin.referenceData
+            .activate('units', id)
+            .then(replaceUnit)
+            .then(() => toast.success(`${unit.name} restored`))
+            .catch(() => toast.error('The unit was not restored.')),
+      },
+    });
+  }
+
+  const campusManage = $derived(
+    canManage
+      ? { onCreate: createCampus, onRename: renameCampus, onRemove: removeCampus }
+      : undefined,
+  );
+
+  const unitManage = $derived(
+    canManage ? { onCreate: createUnit, onRename: renameUnit, onRemove: removeUnit } : undefined,
   );
 </script>
 
@@ -80,9 +214,10 @@
           value={state.form.campusId}
           options={campusOptions}
           placeholder="Select the campus"
-          emptyMessage="No campuses are configured."
+          emptyMessage="No campuses are configured. Type a name to add one."
           {invalid}
           {describedBy}
+          manage={campusManage}
           onchange={(value) => state.patchForm({ campusId: value })}
         />
       {/snippet}
@@ -98,10 +233,11 @@
           placeholder={state.form.campusId
             ? 'Select the college or unit'
             : 'Select the campus first'}
-          emptyMessage="No units are configured for this campus."
+          emptyMessage="No units are configured for this campus. Type a name to add one."
           disabled={!state.form.campusId}
           {invalid}
           {describedBy}
+          manage={unitManage}
           onchange={(value) => state.patchForm({ unitId: value })}
         />
       {/snippet}

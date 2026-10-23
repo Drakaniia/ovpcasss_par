@@ -309,6 +309,9 @@ importers:
       '@par/shared':
         specifier: workspace:*
         version: link:../shared
+      '@pdf-lib/fontkit':
+        specifier: 1.1.1
+        version: 1.1.1
       fflate:
         specifier: 0.8.3
         version: 0.8.3
@@ -1529,6 +1532,12 @@ packages:
     resolution:
       {
         integrity: sha512-KYOUGQFlLWR+s4QMV2Q9ko38TZm7EdO87Qm7rvZLqk/webse/cDjtyxKhg/47l0byCbs/k46LT8qc4PKjAikzA==,
+      }
+
+  '@pdf-lib/fontkit@1.1.1':
+    resolution:
+      {
+        integrity: sha512-KjMd7grNapIWS/Dm0gvfHEilSyAmeLvrEGVcqLGi0VYebuqqzTbgF29efCx7tvx+IEbG3zQciRSWl3GkUSvjZg==,
       }
 
   '@pdf-lib/standard-fonts@1.0.0':
@@ -4315,6 +4324,10 @@ snapshots:
       svelte: 5.57.2(@typescript-eslint/types@8.71.2)
 
   '@oxc-project/types@0.154.0': {}
+
+  '@pdf-lib/fontkit@1.1.1':
+    dependencies:
+      pako: 1.0.11
 
   '@pdf-lib/standard-fonts@1.0.0':
     dependencies:

@@ -2,6 +2,7 @@
   import { AlertCircle } from '@lucide/svelte';
 
   import DatePicker from '$lib/components/DatePicker.svelte';
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
 
   import type {
     ReferenceField,
@@ -60,21 +61,21 @@
     <label class="field-label" for={id}>{field.label}</label>
 
     {#if field.kind === 'select'}
-      <select
+      <EditableSelect
         {id}
-        class="select"
+        label={field.label}
         value={String(value ?? '')}
+        placeholder="Select…"
+        searchable={options.length > 8}
         {disabled}
-        aria-invalid={error ? 'true' : undefined}
-        aria-describedby={describedBy}
-        onchange={(event) => onchange(event.currentTarget.value)}
-        {onblur}
-      >
-        <option value="">Select…</option>
-        {#each options as option (String(option.value))}
-          <option value={String(option.value)}>{option.label}</option>
-        {/each}
-      </select>
+        invalid={Boolean(error)}
+        {describedBy}
+        options={[
+          { value: '', label: 'Select…' },
+          ...options.map((option) => ({ value: String(option.value), label: option.label })),
+        ]}
+        onchange={(next) => onchange(next)}
+      />
     {:else if field.kind === 'date'}
       <DatePicker
         {id}

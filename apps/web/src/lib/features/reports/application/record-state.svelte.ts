@@ -78,6 +78,8 @@ export class RecordFormState {
   errors = $state<FieldErrors>({});
   attempted = $state<ReadonlySet<WizardStep>>(new SvelteSet());
   saving = $state(false);
+  /** Required once a narrative has been submitted (spec §9.2). */
+  reason = $state('');
   saveError = $state<{ message: string; requestId?: string } | null>(null);
   created = $state<{ id: string; referenceNo: string; sentTo: number } | null>(null);
 
@@ -393,12 +395,26 @@ export class RecordFormState {
       return false;
     }
 
+    const submitted =
+      this.edit && (this.detail?.status === 'SUBMITTED' || this.detail?.status === 'RETURNED');
+    if (submitted && !this.reason.trim()) {
+      this.saveError = {
+        message:
+          'Write why the activity details were corrected. Every personnel in charge is told.',
+      };
+      return false;
+    }
+
     this.saving = true;
     this.saveError = null;
 
     try {
       if (this.edit) {
-        await api.reports.update(this.id ?? '', input, this.detail?.version);
+        await api.reports.update(
+          this.id ?? '',
+          { ...input, ...(this.reason.trim() ? { reason: this.reason.trim() } : {}) },
+          this.detail?.version,
+        );
         return true;
       }
 

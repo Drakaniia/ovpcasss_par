@@ -35,9 +35,9 @@ describe('repository search contract', () => {
     });
   });
 
-  it('never accepts a draft', () => {
-    expect(repositoryQuerySchema.safeParse({ status: 'DRAFT' }).success).toBe(false);
-    expect(repositoryItemSchema.safeParse({ ...item, status: 'DRAFT' }).success).toBe(false);
+  it('never accepts a pending record', () => {
+    expect(repositoryQuerySchema.safeParse({ status: 'PENDING' }).success).toBe(false);
+    expect(repositoryItemSchema.safeParse({ ...item, status: 'PENDING' }).success).toBe(false);
   });
 
   it('accepts the reference filter and the full filter panel', () => {

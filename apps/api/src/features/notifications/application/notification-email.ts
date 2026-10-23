@@ -2,6 +2,7 @@ import {
   assignedTemplate,
   picRemovedTemplate,
   receiptIssuedTemplate,
+  recordEditedTemplate,
   reminderTemplate,
   returnedTemplate,
   submittedTemplate,
@@ -25,6 +26,8 @@ export interface NotificationEmailData {
   comments?: string | undefined;
   approvedAt?: string | undefined;
   waitingDays?: number | undefined;
+  changedFields?: readonly string[] | undefined;
+  reason?: string | undefined;
   /** Absolute app origin, so links work from mail and the desktop shell. */
   origin?: string | undefined;
   /** True only when an attachment survived the size budget. */
@@ -47,6 +50,8 @@ function narrativeOf(data: NotificationEmailData): NarrativeEventData | null {
     ...(data.comments === undefined ? {} : { comments: data.comments }),
     ...(data.approvedAt === undefined ? {} : { approvedAt: data.approvedAt }),
     ...(data.waitingDays === undefined ? {} : { waitingDays: data.waitingDays }),
+    ...(data.changedFields === undefined ? {} : { changedFields: data.changedFields }),
+    ...(data.reason === undefined ? {} : { reason: data.reason }),
     ...(data.origin === undefined ? {} : { origin: data.origin }),
     hasAttachment: data.hasAttachment ?? false,
     attachmentOmitted: data.attachmentOmitted ?? false,
@@ -73,6 +78,8 @@ export function emailForNotification(
       return narrative ? returnedTemplate(narrative) : null;
     case 'RECEIPT_ISSUED':
       return narrative ? receiptIssuedTemplate(narrative) : null;
+    case 'RECORD_EDITED':
+      return narrative ? recordEditedTemplate(narrative) : null;
     case 'REMINDER':
       return narrative ? reminderTemplate(narrative) : null;
     case 'PIC_REMOVED':

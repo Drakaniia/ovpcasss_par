@@ -532,7 +532,7 @@ Specs:
 
 - [ ] `pnpm verify` passes (lint, typecheck, every package's tests).
 - [ ] Remote D1 counts: 2 / 27 / 44 / 17 / 9 / 18, and a second `db:seed
-  --remote` changes nothing.
+--remote` changes nothing.
 - [ ] `/admin/reference-data` shows all six lists; a new report's campus,
       college, program, department, and office selectors have real values on
       a second device.

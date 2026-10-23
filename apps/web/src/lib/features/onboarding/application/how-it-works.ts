@@ -38,18 +38,18 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
       'Saving issues the AR No. — a global sequence starting at 0001 that never resets or repeats.',
       'Each person in charge is emailed the reference, and an account is created or linked for them.',
     ],
-    statuses: ['DRAFT'],
+    statuses: ['PENDING'],
     mail: 'A message to each person in charge, led by the AR No., naming the activity.',
-    note: 'The record exists from the moment it is saved; the narrative is still unwritten.',
+    note: 'The record exists from the moment it is saved; its status is Pending until a narrative is submitted.',
   },
   {
     key: 'narrative',
     title: 'Personnel in charge write the narrative',
     owner: 'Personnel in charge',
     summary:
-      'Each assigned person sees only their own records by AR No., writes the narrative, and submits it.',
+      'Each named person opens the record by AR No. from Home, writes the narrative, and submits it.',
     points: [
-      'The dashboard lists the records assigned to the account, by AR No. and activity facts; the account cannot create, edit, or delete a record.',
+      'Home lists the records that name the account, by AR No. and activity facts; the account cannot create, edit, or delete a record.',
       'The narrative is typed against the record, with the attachments the office requires and an optional signature.',
       'A draft stays with the account until it is submitted. Submitting notifies the office that the narrative is ready.',
     ],

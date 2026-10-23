@@ -9,7 +9,8 @@ import { isoDateTimeSchema } from './common';
  */
 export const locationSuggestionSchema = z.object({
   location: z.string().min(1),
-  lastUsedAt: isoDateTimeSchema,
+  /** Absent for a provider address, which the register has never used. */
+  lastUsedAt: isoDateTimeSchema.optional(),
   /** `office` is the register's own history; `address` is the optional proxy. */
   source: z.enum(['office', 'address']).default('office'),
 });

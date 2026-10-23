@@ -11,18 +11,24 @@ export type RegisterRow = {
   title: string;
   meta: string;
   picNames: string;
+  /** The PIC whose submission moved the record; an em dash until then. */
+  submittedByName: string;
   status: ReportListItem['status'];
   updatedAt: string;
+  /** Filed away after approval: still readable, never a work item. */
+  archived: boolean;
   /** The row's own primary action: write the narrative, or open the record. */
   action: { label: string; href: string };
   canEdit: boolean;
   canDelete: boolean;
   canResend: boolean;
+  canArchive: boolean;
 };
 
 export function registerRow(item: ReportListItem, options: { role: Role | null }): RegisterRow {
   const admin = options.role === 'ADMIN';
-  const writable = item.status === 'DRAFT' || item.status === 'RETURNED';
+  const writable = item.status === 'PENDING' || item.status === 'RETURNED';
+  const archived = Boolean(item.archivedAt);
 
   return {
     id: item.id,
@@ -34,8 +40,10 @@ export function registerRow(item: ReportListItem, options: { role: Role | null }
       item.activityEndDate,
     )}${item.location ? ` · ${item.location}` : ''}`,
     picNames: item.picNames || '—',
+    submittedByName: item.submittedByName || '—',
     status: item.status,
     updatedAt: item.updatedAt,
+    archived,
     action: admin
       ? { label: 'View', href: `/reports/${item.id}` }
       : writable
@@ -45,8 +53,9 @@ export function registerRow(item: ReportListItem, options: { role: Role | null }
           }
         : { label: 'View', href: `/reports/${item.id}` },
     canEdit: admin && item.status !== 'APPROVED',
-    canDelete: admin && item.status === 'DRAFT',
-    canResend: admin && (item.status === 'DRAFT' || item.status === 'RETURNED'),
+    canDelete: admin && item.status === 'PENDING',
+    canResend: admin && (item.status === 'PENDING' || item.status === 'RETURNED'),
+    canArchive: admin && item.status === 'APPROVED',
   };
 }
 
@@ -62,9 +71,17 @@ export type RegisterEmptyState = {
 
 export function emptyStateFor(
   tab: ReportListTab,
-  options: { role: Role | null; hasFilters: boolean },
+  options: { role: Role | null; hasFilters: boolean; archived?: boolean },
 ): RegisterEmptyState {
   const admin = options.role === 'ADMIN';
+
+  if (options.archived) {
+    return {
+      title: 'No records are archived',
+      description:
+        'Archiving files an approved record away from the working register. Archived records keep their receipts.',
+    };
+  }
 
   if (options.hasFilters) {
     return {
@@ -74,7 +91,7 @@ export function emptyStateFor(
   }
 
   switch (tab) {
-    case 'withPic':
+    case 'pending':
       return {
         title: 'No records are with personnel in charge',
         description:

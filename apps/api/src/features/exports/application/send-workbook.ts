@@ -41,6 +41,7 @@ export async function sendMonitoringWorkbook(
     schoolYear: input.schoolYear,
     semester: input.semester,
     includeInProgress: input.includeInProgress,
+    includeArchived: input.includeArchived,
   });
 
   if (!assembled.ok) {

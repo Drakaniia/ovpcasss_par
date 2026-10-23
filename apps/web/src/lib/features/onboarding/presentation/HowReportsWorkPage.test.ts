@@ -41,7 +41,7 @@ describe('HowReportsWorkPage', () => {
     expect(html).toContain('role="tabpanel"');
     expect(html).toContain('aria-labelledby="stage-tab-prepare"');
     expect(html).toContain('Report status at this stage');
-    expect(html).toContain('>Draft<');
+    expect(html).toContain('>Pending<');
   });
 
   it('gives the administrator the record-creation action', () => {

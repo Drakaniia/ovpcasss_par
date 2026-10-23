@@ -84,12 +84,21 @@
     return new URLSearchParams(page.url.search).get('report');
   }
 
-  async function applyFilters(patch: Partial<RepositoryFilters>) {
+  /** The href this page wrote last, so its own URL never echoes back. */
+  let writtenHref = untrack(() => repositoryHref(filters));
+
+  /**
+   * The URL records the filters; it is not a page move. `reset: false` keeps the
+   * scroll position and the caret in the field being typed in.
+   */
+  function applyFilters(patch: Partial<RepositoryFilters>) {
     const next = updateFilters(filters, patch);
     if (filtersEqual(next, filters)) return;
 
     filters = next;
-    await goto(repositoryHref(next), { replaceState: true });
+    const href = repositoryHref(next);
+    writtenHref = href;
+    void goto(href, { replace: true, reset: false }).catch(() => {});
   }
 
   function sortBy(field: RepositorySortField) {
@@ -154,6 +163,12 @@
   // Back/forward or a shared link replaces the local filter state.
   $effect(() => {
     const fromUrl = filtersFromParams(new URLSearchParams(page.url.search));
+    const incoming = repositoryHref(fromUrl);
+    // Skip the URL this page just wrote; only Back, a link, or a pasted URL is
+    // an outside change that should replace the filters.
+    if (incoming === writtenHref) return;
+
+    writtenHref = incoming;
     if (
       !filtersEqual(
         fromUrl,
@@ -178,12 +193,11 @@
       repository.clearSelection();
 
       if (closedId && fromHistory) {
-        void tick().then(
-          () =>
-            (
-              document.getElementById(`report-row-${closedId}`) ??
-              document.getElementById('results-heading')
-            )?.focus(),
+        void tick().then(() =>
+          (
+            document.getElementById(`report-row-${closedId}`) ??
+            document.getElementById('results-heading')
+          )?.focus(),
         );
       }
     } else if (repository.items.some((item) => item.id === id)) void repository.select(id);
@@ -204,7 +218,11 @@
       // A report named in the URL but outside these results keeps the pane open
       // with the shared not-found state; a linked report is never an error page.
       const id = reportParam();
-      if (id && repository.selectedId === null && !repository.items.some((item) => item.id === id)) {
+      if (
+        id &&
+        repository.selectedId === null &&
+        !repository.items.some((item) => item.id === id)
+      ) {
         repository.markNotFound(id);
       }
     });

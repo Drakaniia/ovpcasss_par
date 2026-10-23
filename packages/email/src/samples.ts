@@ -12,6 +12,7 @@ import {
   assignedTemplate,
   picRemovedTemplate,
   receiptIssuedTemplate,
+  recordEditedTemplate,
   reminderTemplate,
   returnedTemplate,
   submittedTemplate,
@@ -63,6 +64,15 @@ export function emailSamples(): EmailSample[] {
       kind: 'RECEIPT_ISSUED',
       audience: 'Each personnel in charge, with their own receipt attached',
       content: receiptIssuedTemplate(RECORD),
+    },
+    {
+      kind: 'RECORD_EDITED',
+      audience: 'Every personnel in charge named on the record',
+      content: recordEditedTemplate({
+        ...RECORD,
+        changedFields: ['Activity title', 'Location'],
+        reason: 'The location was entered as the venue office instead of the activity site.',
+      }),
     },
     {
       kind: 'REMINDER',

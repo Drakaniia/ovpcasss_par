@@ -79,9 +79,13 @@ These need a browser at a vendor; the script prints them at the end.
    JavaScript origin and redirect URI for each environment; both values are
    secrets, and the sign-in button stays hidden until they are set.
 4. **Production origins in `apps/api/r2-cors.json`.** The policy ships with
-   localhost, the Tauri origin, `*.workers.dev`, and `*.buksu.edu.ph`. Narrow it
-   to the real origin once the custom domain is fixed, then rerun
-   `pnpm provision --apply`.
+   localhost, the Tauri origin, `*.workers.dev`, `*.pages.dev`, and
+   `*.buksu.edu.ph`. `*.pages.dev` covers the browser site and its per-PR
+   previews, which upload straight from the Pages origin. Narrow the list once
+   the custom domain is fixed, then apply it:
+   `wrangler r2 bucket cors set par-attachments --file apps/api/r2-cors.json`.
+   Without the matching origin the browser's PUT fails CORS and no row is
+   created, even though presign succeeded.
 5. **Deploy.** Secrets and CORS are not code: nothing reaches production until
    `pnpm --filter @par/web build && pnpm --filter @par/api exec wrangler deploy`.
 

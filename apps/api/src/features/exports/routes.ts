@@ -2,21 +2,25 @@ import {
   createDb,
   createMonitoringQueries,
   createRateLimitQueries,
+  createReportReadQueries,
   createUserQueries,
 } from '@par/db';
-import { buildMonitoringTemplate, buildMonitoringWorkbook } from '@par/export';
+import { buildMonitoringTemplate, buildMonitoringWorkbook, renderRegisterPdf } from '@par/export';
 import {
   monitoringExportRequestSchema,
+  reportListQuerySchema,
   sendWorkbookSchema,
   type MonitoringExportRequest,
 } from '@par/shared';
 import { Hono, type Context } from 'hono';
 
 import type { AppEnv } from '../../env';
+import { appOrigin } from '../../lib/app-origin';
 import { recordAudit } from '../../lib/audit';
 import { requireSession } from '../../middleware/auth';
 import { requireRole } from '../../middleware/authorize';
 import { assembleMonitoring } from './application/assemble-monitoring';
+import { assembleRegister, REGISTER_EXPORT_CAP } from './application/assemble-register';
 import { sendMonitoringWorkbook } from './application/send-workbook';
 
 const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -51,7 +55,7 @@ function invalid(c: Context<AppEnv>) {
       error: {
         code: 'VALIDATION_ERROR',
         message:
-          'Choose a sheet type, a school year, a semester, and whether to include in-progress reports.',
+          'Choose a sheet type, a school year, a semester, and whether to include in-progress or archived reports.',
       },
     },
     400,
@@ -114,12 +118,7 @@ exportRoutes.post('/monitoring/send', canExport, async (c) => {
     return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sign in to send a workbook' } }, 401);
   }
 
-  const result = await sendMonitoringWorkbook(
-    c.env,
-    parsed.data,
-    sender,
-    new URL(c.req.url).origin,
-  );
+  const result = await sendMonitoringWorkbook(c.env, parsed.data, sender, appOrigin(c));
 
   if (!result.ok) {
     return result.code === 'TERM_NOT_CONFIGURED'
@@ -146,6 +145,7 @@ exportRoutes.get('/monitoring/preview', canExport, async (c) => {
     schoolYear: c.req.query('schoolYear'),
     semester: semester === undefined ? undefined : Number(semester),
     includeInProgress: c.req.query('includeInProgress') === 'true',
+    includeArchived: c.req.query('includeArchived') === 'true',
   });
   if (!parsed.success) return invalid(c);
 
@@ -161,6 +161,61 @@ exportRoutes.get('/monitoring/preview', canExport, async (c) => {
     sheet: {
       ...assembled.sheet.sheet,
       rows: assembled.sheet.sheet.rows.slice(0, PREVIEW_ROW_CAP),
+    },
+  });
+});
+
+exportRoutes.get('/register', canExport, async (c) => {
+  const parsed = reportListQuerySchema.safeParse(c.req.query());
+  if (!parsed.success) {
+    return c.json(
+      {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'That register filter is not supported.',
+          details: parsed.error.issues,
+        },
+      },
+      400,
+    );
+  }
+
+  const read = createReportReadQueries(createDb(c.env.DB));
+  const assembled = await assembleRegister(read, parsed.data);
+  if (!assembled.ok) {
+    return c.json(
+      {
+        error: {
+          code: 'EXPORT_TOO_LARGE',
+          message: `This filter matches ${assembled.total} records. Narrow it to ${REGISTER_EXPORT_CAP} or fewer and export again.`,
+        },
+      },
+      422,
+    );
+  }
+
+  const generatedAt = new Date().toISOString();
+  const bytes = await renderRegisterPdf({
+    rows: assembled.export.rows,
+    filterSummary: assembled.export.filterSummary,
+    generatedAt,
+  });
+
+  await recordAudit(c, {
+    actorUserId: c.get('userId'),
+    actorRole: c.get('role'),
+    action: 'REGISTER_EXPORTED',
+    entityType: 'export',
+    comment: `${assembled.export.total} record(s) — ${assembled.export.filterSummary}`,
+  });
+
+  const stamp = generatedAt.slice(0, 16).replaceAll(/[-:T]/g, '');
+  return new Response(bytes as BodyInit, {
+    status: 200,
+    headers: {
+      'content-type': 'application/pdf',
+      'content-disposition': `attachment; filename="OVPCASSS-PAR-register-${stamp}.pdf"`,
+      'cache-control': 'no-store',
     },
   });
 });

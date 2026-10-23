@@ -43,6 +43,15 @@ export const reportNarrativeSchema = z.object({
 });
 export type ReportNarrativeInput = z.infer<typeof reportNarrativeSchema>;
 
+/**
+ * Activity corrections after submission (spec §9). The narrative, attachments
+ * and signature are never part of this shape; a submitted record needs a reason.
+ */
+export const reportUpdateSchema = reportActivitySchema.extend({
+  reason: z.string().trim().max(500).optional(),
+});
+export type ReportUpdateInput = z.infer<typeof reportUpdateSchema>;
+
 /** The whole record as the facsimile and the detail page read it. */
 export const reportFormSchema = reportActivitySchema.extend({
   narrative: z.string(),
@@ -52,8 +61,8 @@ export type ReportDraftForm = Partial<ReportFormInput>;
 
 /* ---------- Register ---------- */
 
-/** `withPic` is the office's list of records whose narrative is still missing. */
-export const REPORT_LIST_TABS = ['all', 'withPic', 'submitted', 'returned', 'approved'] as const;
+/** `pending` is the office's list of records whose narrative is still missing. */
+export const REPORT_LIST_TABS = ['all', 'pending', 'submitted', 'returned', 'approved'] as const;
 export type ReportListTab = (typeof REPORT_LIST_TABS)[number];
 
 export const REPORT_SORT_FIELDS = ['updated', 'referenceNo', 'activityDate', 'status'] as const;
@@ -76,8 +85,13 @@ const pageSizeQuerySchema = z.preprocess(
   pageSizeSchema,
 );
 
+/** A filing flag: archived rows leave the register unless asked for. */
+export const REPORT_ARCHIVE_FILTERS = ['active', 'archived', 'all'] as const;
+export type ReportArchiveFilter = (typeof REPORT_ARCHIVE_FILTERS)[number];
+
 export const reportListQuerySchema = z.object({
   tab: z.enum(REPORT_LIST_TABS).default('all'),
+  archived: z.enum(REPORT_ARCHIVE_FILTERS).default('active'),
   type: z.enum(REPORT_TYPES).optional(),
   campus: idSchema.optional(),
   term: idSchema.optional(),
@@ -90,6 +104,10 @@ export const reportListQuerySchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
   q: z.string().trim().max(120).optional(),
+  /** Matches a personnel in charge by name only, never the title. */
+  picName: z.string().trim().max(120).optional(),
+  /** Matches the names of the accounts that submitted the narrative. */
+  submittedBy: z.string().trim().max(120).optional(),
   sort: z.enum(REPORT_SORT_FIELDS).default('updated'),
   dir: z.enum(SORT_DIRECTIONS).default('desc'),
   page: z.coerce.number().int().min(1).default(1),
@@ -108,8 +126,12 @@ export const reportListItemSchema = z.object({
   location: z.string(),
   /** Joined PIC names, so the register answers "who is accountable" at a glance. */
   picNames: z.string(),
+  /** The PIC who pressed submit; null until the first submission. */
+  submittedByName: z.string().nullable().optional(),
   updatedAt: isoDateTimeSchema,
   submittedAt: isoDateTimeSchema.nullable().optional(),
+  /** Set once the office files an approved record away. */
+  archivedAt: isoDateTimeSchema.nullable().optional(),
 });
 export type ReportListItem = z.infer<typeof reportListItemSchema>;
 
@@ -191,7 +213,7 @@ export type ReportDecision = (typeof REPORT_DECISIONS)[number];
 
 export const reportDecisionSchema = z.object({
   decision: z.enum(REPORT_DECISIONS),
-  /** Required on a return, ignored on an approval. */
+  /** Required on a return; kept as an office note on an approval. */
   comments: z.string().trim().max(4000).optional(),
 });
 export type ReportDecisionInput = z.infer<typeof reportDecisionSchema>;
@@ -255,6 +277,14 @@ export const reportReceiptSchema = z.object({
 });
 export type ReportReceipt = z.infer<typeof reportReceiptSchema>;
 
+/** One issued receipt in the recipient's own history (spec §10). */
+export const myReceiptSchema = reportReceiptSchema.extend({
+  reportId: idSchema,
+  referenceNo: z.string().min(1),
+  title: z.string().min(1),
+});
+export type MyReceipt = z.infer<typeof myReceiptSchema>;
+
 export const reportDetailSchema = z.object({
   id: idSchema,
   referenceNo: z.string().min(1),
@@ -278,10 +308,14 @@ export const reportDetailSchema = z.object({
   canWriteNarrative: z.boolean().optional(),
   /** The caller may edit activity details, assign PICs, or delete a draft. */
   canManage: z.boolean().optional(),
+  /** The caller (the office) may archive or unarchive this approved record. */
+  canArchive: z.boolean().optional(),
+  archivedAt: isoDateTimeSchema.optional(),
+  archivedByName: z.string().optional(),
 });
 export type ReportDetail = z.infer<typeof reportDetailSchema>;
 
-export const REPORT_PDF_WATERMARKS = ['NONE', 'DRAFT', 'NOT_APPROVED'] as const;
+export const REPORT_PDF_WATERMARKS = ['NONE', 'NOT_SUBMITTED', 'NOT_APPROVED'] as const;
 export type ReportPdfWatermark = (typeof REPORT_PDF_WATERMARKS)[number];
 
 export const reportPdfResponseSchema = z.object({
