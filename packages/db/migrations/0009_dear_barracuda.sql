@@ -24,6 +24,15 @@ DROP INDEX `attachments_report_idx`;--> statement-breakpoint
 CREATE INDEX `attachments_status_idx` ON `attachments` (`status`);--> statement-breakpoint
 CREATE INDEX `attachments_report_idx` ON `attachments` (`report_id`);--> statement-breakpoint
 PRAGMA foreign_keys=OFF;--> statement-breakpoint
+DELETE FROM `report_sdgs`;--> statement-breakpoint
+DELETE FROM `report_pics`;--> statement-breakpoint
+DELETE FROM `report_comments`;--> statement-breakpoint
+DELETE FROM `attachments`;--> statement-breakpoint
+DELETE FROM `acknowledgements`;--> statement-breakpoint
+DELETE FROM `reports`;--> statement-breakpoint
+DELETE FROM `tracking_counters`;--> statement-breakpoint
+DELETE FROM `idempotency_keys`;--> statement-breakpoint
+PRAGMA foreign_keys=OFF;--> statement-breakpoint
 CREATE TABLE `__new_reports` (
 	`id` text PRIMARY KEY NOT NULL,
 	`reference_no` text NOT NULL,
