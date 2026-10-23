@@ -24,6 +24,7 @@ import type {
   LoginResult,
   MonitoringExportRequest,
   MonitoringPreviewResponse,
+  MyReceipt,
   NotificationListQuery,
   NotificationListResponse,
   NotificationReadAllResponse,
@@ -37,6 +38,7 @@ import type {
   RegisterInput,
   ReportDecisionInput,
   ReportActivityInput,
+  ReportUpdateInput,
   ReportDetail,
   ReportHead,
   ReportListQuery,
@@ -125,8 +127,15 @@ export const api = {
     markAllRead: () =>
       apiFetch<NotificationReadAllResponse>('/me/notifications/read-all', { method: 'POST' }),
   },
+  /**
+   * The caller's own acknowledgment receipts (spec §10); the server reads the
+   * recipient from the session, so there is no id in the path.
+   */
+  receipts: {
+    mine: () => apiFetch<{ items: MyReceipt[] }>('/receipts'),
+  },
   reports: {
-    /** The register; the server scopes PERSONNEL to their own records (§9). */
+    /** The register; every signed-in account reads the same list (§5). */
     list: (query: ReportListQuery) => {
       const search = queryString(query);
       return apiFetch<ReportListResponse>(`/reports${search ? `?${search}` : ''}`);
@@ -144,16 +153,22 @@ export const api = {
         headers: idempotencyKey ? { 'idempotency-key': idempotencyKey } : undefined,
         body: JSON.stringify(input),
       }),
-    /** Admin: activity fields and the PIC list, until approval. */
-    update: (id: string, input: ReportActivityInput, version?: number) =>
-      apiFetch<ReportHead>(`/reports/${id}`, {
+    /**
+     * Admin: activity fields and the PIC list, until approval. A correction
+     * after submission carries a reason (spec §9.2).
+     */
+    update: (id: string, input: ReportUpdateInput, version?: number) =>
+      apiFetch<ReportHead & { changedFields: string[] }>(`/reports/${id}`, {
         method: 'PATCH',
         headers: version === undefined ? undefined : { 'if-match': String(version) },
         body: JSON.stringify(input),
       }),
-    /** Admin: a DRAFT record only. The AR No. is never reused. */
+    /** Admin: a PENDING record only. The AR No. is never reused. */
     remove: (id: string) => apiFetch<void>(`/reports/${id}`, { method: 'DELETE' }),
-    /** PIC: saves the narrative draft, allowed in DRAFT and RETURNED. */
+    /** Admin: files an approved record away; idempotent (spec §7). */
+    archive: (id: string) => apiFetch<ReportHead>(`/reports/${id}/archive`, { method: 'POST' }),
+    unarchive: (id: string) => apiFetch<ReportHead>(`/reports/${id}/archive`, { method: 'DELETE' }),
+    /** PIC: saves the narrative draft, allowed in PENDING and RETURNED. */
     saveNarrative: (id: string, input: ReportNarrativeInput) =>
       apiFetch<ReportHead>(`/reports/${id}/narrative`, {
         method: 'PUT',
@@ -241,6 +256,17 @@ export const api = {
       const search = queryString(query);
       return apiFetch<LocationSuggestionsResponse>(`/locations${search ? `?${search}` : ''}`);
     },
+    /**
+     * Address suggestions (bug phase 04 §3.2). The provider is reached by the
+     * Worker, so no key or external host is ever exposed to the browser or the
+     * desktop webview. Empty once the query is four characters.
+     */
+    addresses: (query: LocationQuery) => {
+      const search = queryString(query);
+      return apiFetch<LocationSuggestionsResponse>(
+        `/locations/suggest${search ? `?${search}` : ''}`,
+      );
+    },
   },
   /** Repository search; the server scopes it to what the caller may open. */
   search: {
@@ -307,8 +333,14 @@ export const api = {
         schoolYear: query.schoolYear,
         semester: String(query.semester),
         includeInProgress: String(query.includeInProgress),
+        includeArchived: String(query.includeArchived),
       });
       return apiFetch<MonitoringPreviewResponse>(`/exports/monitoring/preview?${params}`);
+    },
+    /** The filtered register table as an A4 landscape PDF (spec §11.1). */
+    register: (query: ReportListQuery) => {
+      const search = queryString(query);
+      return apiDownload(`/exports/register${search ? `?${search}` : ''}`);
     },
     monitoring: (input: MonitoringExportRequest) =>
       apiDownload('/exports/monitoring', {
