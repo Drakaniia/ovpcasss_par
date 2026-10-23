@@ -4,7 +4,6 @@
  */
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
-import { actsAs } from '@par/shared';
 
 import {
   resetOnboarding,
@@ -46,9 +45,9 @@ function editCommand(id: EditCommandId) {
 export function registerBuiltinCommands(): () => void {
   const disposers = [
     registerCommand({
-      id: 'file.new-report',
-      enabled: () => actsAs(session.user?.role, 'SUBMITTER'),
-      disabledReason: () => 'Requires Submitter access.',
+      id: 'file.new-record',
+      enabled: () => session.user?.role === 'ADMIN',
+      disabledReason: () => 'Requires administrator access.',
       run: async () => {
         if (page.url.pathname === '/reports/new') {
           focusWizardField();

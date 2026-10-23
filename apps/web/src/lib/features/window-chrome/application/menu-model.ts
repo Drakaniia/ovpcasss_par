@@ -5,8 +5,6 @@
  */
 import { actsAs, type Role } from '@par/shared';
 
-import { canSearchRepository } from '$lib/navigation/navigation';
-
 import { MAX_ZOOM, MIN_ZOOM, zoomLabel } from './zoom-limits';
 
 export type MenuId = 'file' | 'edit' | 'view' | 'window' | 'help';
@@ -41,7 +39,7 @@ export const MENUS: readonly MenuDefinition[] = [
     label: 'File',
     mnemonic: 'F',
     items: [
-      { id: 'file.new-report', label: 'New report', accelerator: 'Ctrl+N' },
+      { id: 'file.new-record', label: 'New record', accelerator: 'Ctrl+N' },
       { id: 'file.save-draft', label: 'Save draft', accelerator: 'Ctrl+S' },
       { id: 'file.print', label: 'Print', accelerator: 'Ctrl+P' },
       { id: 'file.export', label: 'Export', separatorBefore: true },
@@ -150,14 +148,15 @@ type Availability = { enabled: boolean; reason?: string };
 
 function ruleAvailability(id: string, inputs: MenuInputs): Availability | null {
   switch (id) {
-    case 'file.new-report':
-      return actsAs(inputs.role, 'SUBMITTER')
+    case 'file.new-record':
+      if (!inputs.role) return { enabled: false, reason: 'Sign in to create a record.' };
+      return actsAs(inputs.role, 'ADMIN')
         ? { enabled: true }
-        : { enabled: false, reason: 'Requires Submitter access.' };
+        : { enabled: false, reason: 'Only an administrator can create a record.' };
     case 'file.export':
-      return canSearchRepository(inputs.role)
+      return actsAs(inputs.role, 'ADMIN')
         ? { enabled: true }
-        : { enabled: false, reason: 'Requires repository access.' };
+        : { enabled: false, reason: 'Monitoring exports are available to administrators.' };
     case 'file.sign-out':
       if (!inputs.signedIn) return { enabled: false, reason: 'You are not signed in.' };
       if (inputs.dirtyEditor) {

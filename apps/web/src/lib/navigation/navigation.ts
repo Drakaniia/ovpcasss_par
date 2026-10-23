@@ -1,10 +1,12 @@
 import { actsAs, type Role } from '@par/shared';
 
+import { referenceDataHref } from '$lib/features/admin/application/reference-data';
+
 /**
- * Role-filtered top navigation and section tabs (UI spec §5.1–§5.2).
- * Admin stands in for every role, so it reaches every destination.
+ * Role-filtered top navigation and section tabs (UI spec §5.1–§5.2). Two roles:
+ * the office owns the register, the personnel in charge own their narrative.
  */
-export type NavId = 'home' | 'reports' | 'queues' | 'repository' | 'admin';
+export type NavId = 'home' | 'reports' | 'repository' | 'admin';
 
 export type NavItem = {
   id: NavId;
@@ -14,23 +16,20 @@ export type NavItem = {
 };
 
 export const ROLE_LABELS: Record<Role, string> = {
-  SUBMITTER: 'Submitter',
-  REVIEWER: 'Reviewer',
-  APPROVER: 'Approver',
   ADMIN: 'Administrator',
+  PERSONNEL: 'Personnel in charge',
 };
 
-const EVERY_ROLE: readonly Role[] = ['SUBMITTER', 'REVIEWER', 'APPROVER', 'ADMIN'];
+const EVERY_ROLE: readonly Role[] = ['ADMIN', 'PERSONNEL'];
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { id: 'home', label: 'Home', href: '/', roles: EVERY_ROLE },
   { id: 'reports', label: 'Reports', href: '/reports', roles: EVERY_ROLE },
-  { id: 'queues', label: 'Queues', href: '/review', roles: ['REVIEWER', 'APPROVER'] },
   {
     id: 'repository',
     label: 'Repository',
     href: '/search',
-    roles: ['REVIEWER', 'APPROVER', 'ADMIN'],
+    roles: EVERY_ROLE,
   },
   { id: 'admin', label: 'Admin', href: '/admin/users', roles: ['ADMIN'] },
 ];
@@ -40,24 +39,56 @@ export function navItemsFor(role: Role | null | undefined): NavItem[] {
   return NAV_ITEMS.filter((item) => item.roles.some((expected) => actsAs(role, expected)));
 }
 
+/** Everyone may search; the server scopes the results to the caller's records. */
 export function canSearchRepository(role: Role | null | undefined): boolean {
-  return actsAs(role, 'REVIEWER') || actsAs(role, 'APPROVER');
+  return role === 'ADMIN' || role === 'PERSONNEL';
 }
 
 export function activeNavId(pathname: string): NavId | null {
   if (pathname === '/') return 'home';
   if (pathname === '/reports' || pathname.startsWith('/reports/')) return 'reports';
-  if (pathname === '/review' || pathname.startsWith('/review/')) return 'queues';
-  if (pathname === '/approval' || pathname.startsWith('/approval/')) return 'queues';
   if (pathname === '/search' || pathname === '/exports') return 'repository';
   if (pathname === '/admin' || pathname.startsWith('/admin/')) return 'admin';
   return null;
 }
 
+export type TabAttention = 'review' | 'returned' | 'emailFailures';
+
 export type SectionTab = {
   label: string;
   href: string;
+  /** Which count marks this tab; absent means the tab never earns a dot. */
+  attention?: TabAttention;
 };
+
+export type AttentionCounts = {
+  awaitingReview: number;
+  returned: number;
+  failedEmails: number;
+};
+
+/** The dots to render, keyed by tab href; zero counts are omitted (phase 08 §3.2). */
+export function tabAttention(
+  tabs: readonly SectionTab[],
+  counts: AttentionCounts,
+): Record<string, number> {
+  const dots: Record<string, number> = {};
+
+  for (const tab of tabs) {
+    if (!tab.attention) continue;
+
+    const count =
+      tab.attention === 'review'
+        ? counts.awaitingReview
+        : tab.attention === 'returned'
+          ? counts.returned
+          : counts.failedEmails;
+
+    if (count > 0) dots[tab.href] = count;
+  }
+
+  return dots;
+}
 
 /**
  * Tabs render only inside a section and only when there is more than one
@@ -68,30 +99,30 @@ export function sectionTabsFor(section: NavId | null, role: Role | null | undefi
 
   switch (section) {
     case 'reports':
-      return [
-        { label: 'All', href: '/reports' },
-        { label: 'Drafts', href: '/reports?tab=drafts' },
-        { label: 'Returned', href: '/reports?tab=returned' },
-        { label: 'Approved', href: '/reports?tab=approved' },
-      ];
-    case 'queues': {
-      const tabs: SectionTab[] = [];
-      if (actsAs(role, 'REVIEWER')) tabs.push({ label: 'Review', href: '/review' });
-      if (actsAs(role, 'APPROVER')) tabs.push({ label: 'Approval', href: '/approval' });
-      return tabs;
-    }
+      return actsAs(role, 'ADMIN')
+        ? [
+            { label: 'All', href: '/reports' },
+            { label: 'With personnel', href: '/reports?tab=withPic' },
+            { label: 'Submitted', href: '/reports?tab=submitted', attention: 'review' },
+            { label: 'Returned', href: '/reports?tab=returned', attention: 'returned' },
+            { label: 'Approved', href: '/reports?tab=approved' },
+          ]
+        : [
+            { label: 'All', href: '/reports' },
+            { label: 'Returned', href: '/reports?tab=returned', attention: 'returned' },
+            { label: 'Approved', href: '/reports?tab=approved' },
+          ];
     case 'repository':
       return [
         { label: 'Search', href: '/search' },
-        { label: 'Exports', href: '/exports' },
+        ...(actsAs(role, 'ADMIN') ? [{ label: 'Exports', href: '/exports' }] : []),
       ];
     case 'admin':
       return [
         { label: 'Users', href: '/admin/users' },
-        { label: 'Reference data', href: '/admin/reference-data' },
-        { label: 'Import workbook', href: '/admin/import' },
+        { label: 'Reference data', href: referenceDataHref('campuses') },
         { label: 'Audit', href: '/admin/audit' },
-        { label: 'Email log', href: '/admin/emails' },
+        { label: 'Email log', href: '/admin/emails', attention: 'emailFailures' },
       ];
     default:
       return [];

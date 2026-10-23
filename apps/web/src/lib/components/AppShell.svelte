@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import { onMount } from 'svelte';
 
   import CommandPalette from '$lib/components/CommandPalette.svelte';
@@ -14,6 +15,7 @@
   import TitleBar from '$lib/features/window-chrome/presentation/TitleBar.svelte';
   import ZoomIndicator from '$lib/features/window-chrome/presentation/ZoomIndicator.svelte';
   import { canSearchRepository } from '$lib/navigation/navigation';
+  import { refreshInboxAttention } from '$lib/session/inbox-attention.svelte';
   import { session } from '$lib/session/session.svelte';
   import { focusSearchField, installGlobalShortcuts } from '$lib/shortcuts/keyboard';
 
@@ -29,10 +31,21 @@
     const disposeCommands = registerBuiltinCommands();
     const stopAccelerators = installAccelerators({ controllable: () => chromeState.controllable });
 
+    // Tab dots reconcile when the window regains focus (bug phase 08 §3.7).
+    const onFocus = () => void refreshInboxAttention();
+    window.addEventListener('focus', onFocus);
+
     return () => {
+      window.removeEventListener('focus', onFocus);
       stopAccelerators();
       disposeCommands();
     };
+  });
+
+  // Every navigation reads the counts again, throttled to one request a minute.
+  $effect(() => {
+    void page.url.pathname;
+    void refreshInboxAttention();
   });
 
   $effect(() =>

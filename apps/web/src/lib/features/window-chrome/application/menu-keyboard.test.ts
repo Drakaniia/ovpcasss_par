@@ -6,7 +6,7 @@ const MENUS: MenuShape[] = [
   {
     label: 'File',
     items: [
-      { label: 'New report', enabled: true },
+      { label: 'New record', enabled: true },
       { label: 'Save draft', enabled: true },
       { label: 'Print', enabled: false },
     ],

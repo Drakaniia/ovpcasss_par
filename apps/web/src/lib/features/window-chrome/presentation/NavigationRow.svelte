@@ -7,8 +7,14 @@
     isTabActive,
     navItemsFor,
     sectionTabsFor,
+    tabAttention,
     tabHref,
   } from '$lib/navigation/navigation';
+  import {
+    clearInboxAttention,
+    inboxAttention,
+    refreshInboxAttention,
+  } from '$lib/session/inbox-attention.svelte';
   import { session } from '$lib/session/session.svelte';
 
   /**
@@ -21,7 +27,8 @@
   const section = $derived(activeNavId(page.url.pathname));
   const navItems = $derived(navItemsFor(role));
   const tabs = $derived(sectionTabsFor(section, role));
-  /** The new-report wizard keeps primary nav and drops only the section tabs (D25). */
+  const dots = $derived(tabAttention(tabs, inboxAttention));
+  /** The new-record form keeps primary nav and drops only the section tabs (D25). */
   const isWizard = $derived(page.url.pathname === '/reports/new');
   const showTabs = $derived(!isWizard && tabs.length > 1);
 
@@ -30,6 +37,11 @@
   );
 
   let sectionRow: HTMLElement | undefined = $state();
+
+  $effect(() => {
+    if (role) void refreshInboxAttention();
+    else clearInboxAttention();
+  });
 </script>
 
 {#if navItems.length > 0}
@@ -51,13 +63,27 @@
         <nav class="sections" aria-label="Section" bind:this={sectionRow}>
           {#each tabs as tab (tab.href)}
             {@const active = isTabActive(tab.href, page.url.pathname, page.url.search)}
+            {@const count = dots[tab.href] ?? 0}
             <a
               class="tab"
               data-tab-key={tab.href}
               class:is-active={active}
               href={tabHref(tab.href, page.url.search)}
-              aria-current={active ? 'page' : undefined}>{tab.label}</a
+              aria-current={active ? 'page' : undefined}
+              aria-label={count > 0
+                ? `${tab.label}, ${count} ${count === 1 ? 'item needs' : 'items need'} attention`
+                : undefined}
             >
+              <span>{tab.label}</span>
+              {#if tab.attention}
+                <span class="dot-slot" aria-hidden="true">
+                  {#if count > 0}
+                    <span class="tab-dot" class:is-warning={tab.attention === 'emailFailures'}
+                    ></span>
+                  {/if}
+                </span>
+              {/if}
+            </a>
           {/each}
           <TabIndicator row={sectionRow} active={activeTabHref} />
         </nav>
@@ -152,5 +178,39 @@
   .tab.is-active {
     color: var(--brand-navy-800);
     font-weight: 500;
+  }
+
+  /* Reserved even without a dot, so the indicator never shifts (phase 08 §3.6). */
+  .dot-slot {
+    align-items: center;
+    display: inline-flex;
+    height: 6px;
+    justify-content: center;
+    margin-left: 6px;
+    width: 6px;
+  }
+
+  .tab-dot {
+    animation: dot-in var(--duration-fast) var(--ease-standard);
+    background: var(--status-danger-fg);
+    border-radius: 50%;
+    height: 6px;
+    width: 6px;
+  }
+
+  .tab-dot.is-warning {
+    background: var(--status-warning-fg);
+  }
+
+  @keyframes dot-in {
+    from {
+      transform: scale(0.6);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tab-dot {
+      animation: none;
+    }
   }
 </style>

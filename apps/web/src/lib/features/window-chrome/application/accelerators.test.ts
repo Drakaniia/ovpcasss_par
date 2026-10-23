@@ -76,7 +76,7 @@ describe('acceleratorOf', () => {
 
 describe('runAccelerator', () => {
   it('runs the command and prevents the platform default', () => {
-    const calls = command('file.new-report');
+    const calls = command('file.new-record');
     const event = key({ ctrlKey: true });
 
     expect(runAccelerator(event, desktop)).toBe(true);
@@ -103,7 +103,7 @@ describe('runAccelerator', () => {
   });
 
   it('ignores composed, already handled and unbound keys', () => {
-    command('file.new-report');
+    command('file.new-record');
 
     expect(runAccelerator(key({ isComposing: true }), desktop)).toBe(false);
     expect(runAccelerator(key({ defaultPrevented: true }), desktop)).toBe(false);

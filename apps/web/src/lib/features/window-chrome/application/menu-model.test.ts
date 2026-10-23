@@ -12,7 +12,7 @@ function inputs(overrides: Partial<MenuInputs> = {}): MenuInputs {
   return {
     controllable: true,
     devtools: false,
-    role: 'SUBMITTER',
+    role: 'PERSONNEL',
     signedIn: true,
     dirtyEditor: false,
     fullscreen: false,
@@ -48,23 +48,31 @@ describe('buildMenus', () => {
     expect(item(menus, 'view', 'view.fullscreen')).toBeDefined();
   });
 
-  it('gates New report on Submitter access, with Admin standing in', () => {
-    const reviewer = buildMenus(inputs({ role: 'REVIEWER' }));
-    expect(item(reviewer, 'file', 'file.new-report')).toMatchObject({
+  it('gates New record on being an administrator', () => {
+    const signedOut = buildMenus(inputs({ role: null }));
+    expect(item(signedOut, 'file', 'file.new-record')).toMatchObject({
       enabled: false,
-      reason: 'Requires Submitter access.',
+      reason: 'Sign in to create a record.',
+    });
+
+    const personnel = buildMenus(inputs({ role: 'PERSONNEL' }));
+    expect(item(personnel, 'file', 'file.new-record')).toMatchObject({
+      enabled: false,
+      reason: 'Only an administrator can create a record.',
     });
 
     const admin = buildMenus(inputs({ role: 'ADMIN' }));
-    expect(item(admin, 'file', 'file.new-report')).toMatchObject({ enabled: true });
+    expect(item(admin, 'file', 'file.new-record')).toMatchObject({ enabled: true });
   });
 
-  it('gates Export on repository access', () => {
-    expect(item(buildMenus(inputs()), 'file', 'file.export')).toMatchObject({
+  it('gates Export on administrator access', () => {
+    expect(item(buildMenus(inputs({ role: null })), 'file', 'file.export')).toMatchObject({
       enabled: false,
-      reason: 'Requires repository access.',
     });
-    expect(item(buildMenus(inputs({ role: 'APPROVER' })), 'file', 'file.export')).toMatchObject({
+    expect(item(buildMenus(inputs({ role: 'PERSONNEL' })), 'file', 'file.export')).toMatchObject({
+      enabled: false,
+    });
+    expect(item(buildMenus(inputs({ role: 'ADMIN' })), 'file', 'file.export')).toMatchObject({
       enabled: true,
     });
   });
@@ -152,7 +160,7 @@ describe('buildMenus', () => {
 
 describe('accelerators', () => {
   it('maps every displayed accelerator to its command', () => {
-    expect(commandForAccelerator('Ctrl+N')).toBe('file.new-report');
+    expect(commandForAccelerator('Ctrl+N')).toBe('file.new-record');
     expect(commandForAccelerator('Ctrl+S')).toBe('file.save-draft');
     expect(commandForAccelerator('Ctrl+P')).toBe('file.print');
     expect(commandForAccelerator('Ctrl+Shift+I')).toBe('view.devtools');
