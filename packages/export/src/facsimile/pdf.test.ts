@@ -1,16 +1,15 @@
 import { OFFICE_NAME } from '@par/shared';
 import { unzlibSync } from 'fflate';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDict, PDFDocument, PDFName } from 'pdf-lib';
 import { describe, expect, it } from 'vitest';
 
-import { formatAcknowledgementDate, renderAcknowledgement } from '../acknowledgement/pdf';
 import { renderFacsimilePdf, type FacsimilePdfData } from './pdf';
 
 const facsimile: FacsimilePdfData = {
-  trackingNumber: 'OFF-2026-0014',
+  referenceNo: 'AR No. 0001',
   title: 'Coastal cleanup',
   statusLabel: 'Approved',
-  submitterName: 'J. Dela Cruz',
+  personnelName: 'J. Dela Cruz',
   classification: 'Curricular',
   campus: 'Main',
   college: 'Arts and Sciences',
@@ -20,6 +19,7 @@ const facsimile: FacsimilePdfData = {
   activityStartDate: '2026-03-12',
   activityEndDate: '2026-03-13',
   location: 'Brgy. Poblacion',
+  activityCount: 2,
   totalStudents: 42,
   totalPic: 3,
   pics: [{ name: 'J. Dela Cruz', email: 'j@example.edu', phone: null }],
@@ -34,6 +34,30 @@ const facsimile: FacsimilePdfData = {
 
 async function pageCount(bytes: Uint8Array): Promise<number> {
   return (await PDFDocument.load(bytes)).getPageCount();
+}
+
+/** A 1x1 PNG: the smallest image a signature can be. */
+const PNG = new Uint8Array([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4,
+  0x89, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x44, 0x41, 0x54, 0x78, 0xda, 0x63, 0xfc, 0xcf, 0xc0, 0x50,
+  0x0f, 0x00, 0x04, 0x85, 0x01, 0x80, 0x84, 0xa9, 0x8c, 0x21, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45,
+  0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+]);
+
+/** Counts the images the pages draw; an alpha channel adds a mask, not a picture. */
+async function drawnImages(bytes: Uint8Array): Promise<number> {
+  const doc = await PDFDocument.load(bytes);
+  let count = 0;
+
+  for (const page of doc.getPages()) {
+    const xobjects = page.node.Resources()?.lookupMaybe(PDFName.of('XObject'), PDFDict);
+    if (!xobjects) continue;
+
+    count += xobjects.keys().length;
+  }
+
+  return count;
 }
 
 /**
@@ -101,32 +125,30 @@ describe('renderFacsimilePdf', () => {
     const bytes = await renderFacsimilePdf({ ...facsimile, narrative: '', attachments: [] });
     expect(await pageCount(bytes)).toBe(1);
   });
-});
 
-describe('renderAcknowledgement', () => {
-  it('renders the approval facts and a blank signature line', async () => {
-    const bytes = await renderAcknowledgement({
-      trackingNumber: 'OFF-2026-0014',
-      title: 'Coastal cleanup',
-      approverName: 'M. Santos',
-      approvedAt: '2026-03-17T02:02:00.000Z',
-      signatureImage: null,
+  it('embeds one image per signature slot', async () => {
+    const plain = await renderFacsimilePdf(facsimile);
+    const signed = await renderFacsimilePdf({
+      ...facsimile,
+      submitterSignature: PNG,
+      approverSignature: PNG,
+    });
+
+    expect(await drawnImages(signed)).toBe(2);
+    expect(signed.byteLength).toBeGreaterThan(plain.byteLength);
+  });
+
+  it('embeds no image when no signature is on file', async () => {
+    expect(await drawnImages(await renderFacsimilePdf(facsimile))).toBe(0);
+  });
+
+  it('still renders when the stored image is corrupt', async () => {
+    const bytes = await renderFacsimilePdf({
+      ...facsimile,
+      submitterSignature: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0x00, 0x00, 0x00]),
     });
 
     expect(await pageCount(bytes)).toBe(1);
-    expect(formatAcknowledgementDate('2026-03-17T02:02:00.000Z')).toBe('17 March 2026');
-  });
-
-  it('prints the same office line as the facsimile', async () => {
-    const bytes = await renderAcknowledgement({
-      trackingNumber: 'OFF-2026-0014',
-      title: 'Coastal cleanup',
-      approverName: 'M. Santos',
-      approvedAt: '2026-03-17T02:02:00.000Z',
-      signatureImage: null,
-    });
-
-    expect(drawnText(bytes)).toContain(OFFICE_NAME);
-    expect(drawnText(bytes)).not.toContain('Campus Affairs');
+    expect(await drawnImages(bytes)).toBe(0);
   });
 });

@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont } from 'pdf-lib';
+import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFImage } from 'pdf-lib';
 
 import {
   MARGIN,
@@ -15,10 +15,11 @@ import {
 } from './layout';
 
 export interface FacsimilePdfData {
-  trackingNumber: string | null;
+  referenceNo: string;
   title: string;
   statusLabel: string;
-  submitterName: string;
+  /** The personnel in charge who submitted the narrative. */
+  personnelName: string;
   classification: string;
   campus: string;
   college: string;
@@ -28,6 +29,7 @@ export interface FacsimilePdfData {
   activityStartDate: string;
   activityEndDate: string;
   location: string;
+  activityCount: number;
   totalStudents: number;
   totalPic: number;
   pics: { name: string; email?: string | null; phone?: string | null }[];
@@ -38,6 +40,9 @@ export interface FacsimilePdfData {
   generatedAt: string;
   approvedByName?: string | null;
   approvedAt?: string | null;
+  /** Snapshotted images, read server-side from storage (bug phase 05 §3.3). */
+  submitterSignature?: Uint8Array;
+  approverSignature?: Uint8Array;
 }
 
 const WATERMARK_LABELS: Record<FacsimilePdfData['watermark'], string> = {
@@ -68,7 +73,7 @@ function drawFooters(doc: PDFDocument, font: PDFFont, data: FacsimilePdfData): v
   const generated = formatLongDate(data.generatedAt);
 
   pages.forEach((page, index) => {
-    const reference = data.trackingNumber ? ` - ${data.trackingNumber}` : '';
+    const reference = data.referenceNo ? ` - ${data.referenceNo}` : '';
     const footer = `Generated ${generated}${reference} - Page ${index + 1} of ${pages.length}`;
     page.drawText(clean(footer), {
       x: MARGIN,
@@ -78,6 +83,39 @@ function drawFooters(doc: PDFDocument, font: PDFFont, data: FacsimilePdfData): v
       color: MUTED,
     });
   });
+}
+
+/**
+ * PNG or JPEG by its own magic bytes; anything else is not an image. The API
+ * reads the same check to log a broken signature with its report id.
+ */
+export function imageMediaType(bytes: Uint8Array): 'image/png' | 'image/jpeg' | null {
+  if (bytes.length < 3) return null;
+
+  const png = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+  const jpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+
+  if (png) return 'image/png';
+  if (jpeg) return 'image/jpeg';
+  return null;
+}
+
+/** PNG or JPEG by its own magic bytes; anything else draws the rule instead. */
+async function embedImage(
+  doc: PDFDocument,
+  bytes: Uint8Array | undefined,
+): Promise<PDFImage | null> {
+  if (!bytes || bytes.length === 0) return null;
+
+  try {
+    const kind = imageMediaType(bytes);
+    if (kind === 'image/png') return await doc.embedPng(bytes);
+    if (kind === 'image/jpeg') return await doc.embedJpg(bytes);
+  } catch {
+    // A broken image must never fail the document (bug phase 05 §3.7).
+  }
+
+  return null;
 }
 
 /**
@@ -91,12 +129,17 @@ export async function renderFacsimilePdf(data: FacsimilePdfData): Promise<Uint8A
   const bold = await doc.embedFont(StandardFonts.TimesRomanBold);
   const writer = new Writer(doc, body, bold);
 
+  const [submitter, approver] = await Promise.all([
+    embedImage(doc, data.submitterSignature),
+    embedImage(doc, data.approverSignature),
+  ]);
+
   drawLetterhead(writer, data);
   drawActivity(writer, data);
   drawParticipants(writer, data);
   drawNarrative(writer, data);
   drawAttachments(writer, data);
-  drawSignatures(writer, data);
+  drawSignatures(writer, data, { submitter, approver });
 
   drawWatermark(doc, WATERMARK_LABELS[data.watermark], bold);
   drawFooters(doc, body, data);

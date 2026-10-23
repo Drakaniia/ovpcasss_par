@@ -4,16 +4,15 @@ import type { MonitoringSheetRow, ReportType } from '@par/shared';
 import { strFromU8, unzipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 
-import { MONITORING_SHEET_NAMES } from './columns';
+import { MONITORING_COLUMNS, MONITORING_SHEET_NAMES } from './columns';
 import { SHEET_GEOMETRY } from './ooxml/sample/geometry';
 import { SHEET_LAYOUTS } from './ooxml/sample/layouts';
-import { parseMonitoringWorkbook } from './reader';
 import { buildMonitoringTemplate, buildMonitoringWorkbook } from './workbook';
 
 const SAMPLE: MonitoringSheetRow = {
   index: 1,
   dateReceived: '2026-03-14',
-  trackingNumber: 'OFF-2026-0042',
+  referenceNo: 'AR No. 0042',
   classification: 'Curricular',
   campus: 'MAIN',
   college: 'COLLEGE OF EDUCATION',
@@ -29,6 +28,7 @@ const SAMPLE: MonitoringSheetRow = {
   picName: 'Maria Santos',
   picContact: 'maria.santos@example.edu',
   dateCompleted: '2026-03-20',
+  dateRequested: '2026-03-10',
 };
 
 /**
@@ -61,17 +61,26 @@ function normalize(xml: string): string {
   return xml.replace(/\r\n/g, '\n').replace(/ r:id="rId\d+"/g, '');
 }
 
+/** Our deliberate nineteenth column, removed so the source A..R can be compared. */
+function withoutRequestedColumn(xml: string): string {
+  return xml
+    .replace(/<col min="19" max="19"[^>]*\/>/, '')
+    .replaceAll('min="20"', 'min="19"')
+    .replaceAll('spans="1:19"', 'spans="1:18"')
+    .replace(/A1:S(\d+)/g, 'A1:R$1')
+    .replace('A3:S3', 'A3:R3')
+    .replace(/<c r="S2"[^>]*><v>100<\/v><\/c>/g, '')
+    .replace(/<c r="S\d+"[^>]*\/>/g, '');
+}
+
 describe('monitoring workbook', () => {
   it('writes the office three sheets in source order, only the selected one filled', () => {
     const files = unzipSync(sampleWorkbook());
-    const sheets = parseMonitoringWorkbook(sampleWorkbook());
+    const workbook = text(files, 'xl/workbook.xml');
 
-    expect(sheets.map((sheet) => sheet.sheetName)).toEqual([
-      MONITORING_SHEET_NAMES.OFF_CAMPUS,
-      MONITORING_SHEET_NAMES.EDUCATIONAL_TOUR,
-      MONITORING_SHEET_NAMES.IN_CAMPUS,
-    ]);
-    expect(sheets.map((sheet) => sheet.rows.length)).toEqual([1, 0, 0]);
+    for (const name of Object.values(MONITORING_SHEET_NAMES)) {
+      expect(workbook).toContain(`name="${name}"`);
+    }
     expect(text(files, 'xl/sharedStrings.xml')).toContain(
       'LOCAL OFF-CAMPUS  ACTIVITIES MONITORING\n2nd SEMESTER, SY 2025-2026',
     );
@@ -84,33 +93,65 @@ describe('monitoring workbook', () => {
     const files = unzipSync(sampleWorkbook());
 
     // Blank and bordered: the source's own reserved depth, not an empty grid.
-    expect(text(files, 'xl/worksheets/sheet2.xml')).toContain('<dimension ref="A1:R5"/>');
-    expect(text(files, 'xl/worksheets/sheet2.xml')).toContain('<mergeCell ref="A3:R3"/>');
-    expect(text(files, 'xl/worksheets/sheet3.xml')).toContain('<dimension ref="A1:R5"/>');
+    expect(text(files, 'xl/worksheets/sheet2.xml')).toContain('<dimension ref="A1:S5"/>');
+    expect(text(files, 'xl/worksheets/sheet2.xml')).toContain('<mergeCell ref="A3:S3"/>');
+    expect(text(files, 'xl/worksheets/sheet3.xml')).toContain('<dimension ref="A1:S5"/>');
   });
 
-  it('round-trips every value, including real date cells and counts', () => {
-    const offCampus = parseMonitoringWorkbook(sampleWorkbook())[0]!;
+  it('writes every value into the workbook strings', () => {
+    const strings = text(unzipSync(sampleWorkbook()), 'xl/sharedStrings.xml');
 
-    expect(offCampus.rows[0]).toMatchObject({
-      trackingNumber: 'OFF-2026-0042',
-      dateReceived: '2026-03-14',
-      classification: 'Curricular',
-      campus: 'MAIN',
-      college: 'COLLEGE OF EDUCATION',
-      department: 'Elementary Education',
-      office: 'OVPCASSS',
-      level: 'Undergraduate',
-      title: 'Community Literacy Outreach',
-      sdg: '4, 10',
-      activityDate: '2026-03-12',
-      location: 'Barangay Poblacion',
-      totalStudents: 120,
-      totalPic: 4,
-      picName: 'Maria Santos',
-      picContact: 'maria.santos@example.edu',
-      dateCompleted: '2026-03-20',
-    });
+    for (const value of [
+      'AR No. 0042',
+      'Curricular',
+      'MAIN',
+      'COLLEGE OF EDUCATION',
+      'Elementary Education',
+      'OVPCASSS',
+      'Undergraduate',
+      'Community Literacy Outreach',
+      '4, 10',
+      'Barangay Poblacion',
+      'Maria Santos',
+      'maria.santos@example.edu',
+    ]) {
+      expect(strings).toContain(value);
+    }
+  });
+
+  it('writes the nineteen headings and nineteen body cells', () => {
+    const files = unzipSync(sampleWorkbook());
+    const strings = text(files, 'xl/sharedStrings.xml');
+    const sheet = text(files, 'xl/worksheets/sheet1.xml');
+    const header = /<row r="2"[\s\S]*?<\/row>/.exec(sheet)?.[0] ?? '';
+    const body = /<row r="3"[\s\S]*?<\/row>/.exec(sheet)?.[0] ?? '';
+
+    expect(MONITORING_COLUMNS).toHaveLength(19);
+    expect(strings).toContain('Receipt No. / AR No.');
+    expect(strings).toContain('Date Requested');
+    expect(header).toContain('spans="1:19"');
+    expect(header).toContain('<c r="S2" s="2" t="s"><v>100</v></c>');
+    expect(header.match(/<c r="[A-S]2"/g)).toHaveLength(19);
+    expect(body.match(/<c r="[A-S]3"/g)).toHaveLength(19);
+    expect(sheet).toContain('<mergeCell ref="A1:S1"/>');
+    expect(sheet).toContain('<dimension ref="A1:S22"/>');
+  });
+
+  it('references only shared strings that the workbook declares', () => {
+    const files = unzipSync(sampleWorkbook());
+    const strings = text(files, 'xl/sharedStrings.xml');
+    const count = Number(/uniqueCount="(\d+)"/.exec(strings)?.[1]);
+
+    for (const path of [
+      'xl/worksheets/sheet1.xml',
+      'xl/worksheets/sheet2.xml',
+      'xl/worksheets/sheet3.xml',
+    ]) {
+      const sheet = text(files, path);
+      for (const match of sheet.matchAll(/t="s"[^>]*><v>(\d+)<\/v>/g)) {
+        expect(Number(match[1])).toBeLessThan(count);
+      }
+    }
   });
 
   it('writes dates as date cells, in the workbook date format', () => {
@@ -121,23 +162,25 @@ describe('monitoring workbook', () => {
     expect(sheet).toContain('<c r="B3" s="34"><v>46095</v></c>');
     expect(sheet).toContain('<c r="L3" s="18"><v>46093</v></c>');
     expect(sheet).toContain('<c r="R3" s="18"><v>46101</v></c>');
+    expect(sheet).toContain('<c r="S3" s="34"><v>46091</v></c>');
   });
 
   it('blanks Date Completed for an in-progress report instead of writing text', () => {
-    const workbook = sampleWorkbook('OFF_CAMPUS', [{ ...SAMPLE, dateCompleted: '', sdg: '' }]);
+    const files = unzipSync(
+      sampleWorkbook('OFF_CAMPUS', [{ ...SAMPLE, dateCompleted: '', sdg: '' }]),
+    );
+    const sheet = text(files, 'xl/worksheets/sheet1.xml');
 
-    const offCampus = parseMonitoringWorkbook(workbook)[0]!;
-    expect(offCampus.rows[0]!.dateCompleted).toBe('');
-    expect(offCampus.rows[0]!.sdg).toBe('');
+    expect(sheet).not.toContain('46101');
   });
 
   it('keeps the source sheet depth below the data', () => {
     const offCampus = text(unzipSync(sampleWorkbook()), 'xl/worksheets/sheet1.xml');
     const inCampus = text(unzipSync(sampleWorkbook('IN_CAMPUS')), 'xl/worksheets/sheet3.xml');
 
-    expect(offCampus).toContain('<dimension ref="A1:R22"/>');
+    expect(offCampus).toContain('<dimension ref="A1:S22"/>');
     expect(offCampus).toContain('<row r="22"');
-    expect(inCampus).toContain('<dimension ref="A1:R5"/>');
+    expect(inCampus).toContain('<dimension ref="A1:S5"/>');
   });
 
   it('moves the signature block below the last data row', () => {
@@ -152,9 +195,9 @@ describe('monitoring workbook', () => {
       Number(match[1]),
     );
 
-    // 26 data rows end on row 28; the source leaves two blank rows, then A4:R29.
+    // 26 data rows end on row 28; the source leaves two blank rows, then A4:S29.
     expect(anchors).toEqual([30, 35]);
-    expect(text(files, 'xl/worksheets/sheet1.xml')).toContain('<dimension ref="A1:R28"/>');
+    expect(text(files, 'xl/worksheets/sheet1.xml')).toContain('<dimension ref="A1:S28"/>');
   });
 
   it('embeds the source letterhead images, header text, and signature drawing', () => {
@@ -180,17 +223,12 @@ describe('monitoring workbook', () => {
 
   it('builds a blank template with all three sheets and underscore titles', () => {
     const template = buildMonitoringTemplate();
-    const sheets = parseMonitoringWorkbook(template);
+    const files = unzipSync(template);
 
-    expect(sheets.map((sheet) => sheet.sheetName)).toEqual([
-      MONITORING_SHEET_NAMES.OFF_CAMPUS,
-      MONITORING_SHEET_NAMES.EDUCATIONAL_TOUR,
-      MONITORING_SHEET_NAMES.IN_CAMPUS,
-    ]);
-    expect(text(unzipSync(template), 'xl/sharedStrings.xml')).toContain(
-      '______ SEMESTER, SY ________',
-    );
-    expect(sheets.every((sheet) => sheet.rows.length === 0)).toBe(true);
+    for (const name of Object.values(MONITORING_SHEET_NAMES)) {
+      expect(text(files, 'xl/workbook.xml')).toContain(`name="${name}"`);
+    }
+    expect(text(files, 'xl/sharedStrings.xml')).toContain('______ SEMESTER, SY ________');
   });
 
   it('names its sheets exactly as the source workbook does', () => {
@@ -235,7 +273,7 @@ describe('preview geometry is the source grid', () => {
     const xml = strFromU8(source[sourcePath]!);
     const defaultHeight = Number(/defaultRowHeight="([\d.]+)"/.exec(xml)![1]);
 
-    expect(SHEET_GEOMETRY[type].columnWidths).toEqual(widths(xml));
+    expect(SHEET_GEOMETRY[type].columnWidths).toEqual([...widths(xml), 14]);
     expect(SHEET_GEOMETRY[type].rowHeights).toEqual({
       title: rowHeight(xml, 1),
       header: rowHeight(xml, 2),
@@ -263,7 +301,7 @@ describe('monitoring template matches the office workbook', () => {
   it.each(sheets)('matches the %s worksheet', (type, sourcePath) => {
     const index = Object.keys(SHEET_LAYOUTS).indexOf(type);
 
-    expect(normalize(text(template, `xl/worksheets/sheet${index + 1}.xml`))).toBe(
+    expect(normalize(withoutRequestedColumn(text(template, `xl/worksheets/sheet${index + 1}.xml`)))).toBe(
       normalize(text(source, sourcePath)),
     );
   });

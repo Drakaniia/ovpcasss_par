@@ -28,7 +28,7 @@ function bodyCells(row: MonitoringSheetRow): SheetCell[] {
   return [
     row.index,
     dateCell(row.dateReceived),
-    row.trackingNumber,
+    row.referenceNo,
     row.classification,
     row.campus,
     row.college,
@@ -44,13 +44,14 @@ function bodyCells(row: MonitoringSheetRow): SheetCell[] {
     row.picName,
     row.picContact,
     dateCell(row.dateCompleted),
+    dateCell(row.dateRequested),
   ];
 }
 
 /**
  * The office's whole workbook for one term, laid out as the source file lays it
  * out: title line, letterhead, merged A1:R1, column widths, print setup,
- * signature block, and 18 columns on every sheet. All three sheets ship in
+ * signature block, and 19 columns on every sheet. All three sheets ship in
  * source order; the requested one carries the rows and the other two are the
  * source's blank sheets, so the file the office opens is the file it files.
  */

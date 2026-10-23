@@ -14,7 +14,7 @@ export interface MonitoringColumn {
 export const MONITORING_COLUMNS = [
   { key: 'index', label: 'No.' },
   { key: 'dateReceived', label: 'Date Received' },
-  { key: 'trackingNumber', label: 'Tracking Number' },
+  { key: 'referenceNo', label: 'Receipt No. / AR No.' },
   { key: 'classification', label: 'Classification of Off / In Campus Activity' },
   { key: 'campus', label: 'Campus' },
   { key: 'college', label: 'College' },
@@ -30,6 +30,7 @@ export const MONITORING_COLUMNS = [
   { key: 'picName', label: 'Name of Personnel In-charge' },
   { key: 'picContact', label: 'PIC Email / Contact Number' },
   { key: 'dateCompleted', label: 'Date Completed' },
+  { key: 'dateRequested', label: 'Date Requested' },
 ] as const satisfies readonly MonitoringColumn[];
 
 export const MONITORING_SHEET_TITLES = {

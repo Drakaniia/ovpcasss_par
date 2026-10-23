@@ -7,7 +7,7 @@
  */
 export const FIXED_SHARED_STRINGS: readonly string[] = [
   `Date Received`,
-  `Tracking Number`,
+  `Receipt No. / AR No.`,
   `Classification of Off Campus Activity`,
   `Campus`,
   `College`,
@@ -106,4 +106,5 @@ export const FIXED_SHARED_STRINGS: readonly string[] = [
   `Graduate`,
   `LOCAL OFF-CAMPUS  ACTIVITIES MONITORING\n______ SEMESTER, SY ________`,
   `IN-CAMPUS MONITORING\n______ SEMESTER, SY _________`,
+  `Date Requested`,
 ];

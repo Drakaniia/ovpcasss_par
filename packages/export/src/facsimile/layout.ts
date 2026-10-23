@@ -1,5 +1,5 @@
 import { OFFICE_NAME } from '@par/shared';
-import { rgb, type PDFDocument, type PDFFont, type PDFPage } from 'pdf-lib';
+import { rgb, type PDFDocument, type PDFFont, type PDFImage, type PDFPage } from 'pdf-lib';
 
 import type { FacsimilePdfData } from './pdf';
 
@@ -232,7 +232,7 @@ export function drawLetterhead(writer: Writer, data: FacsimilePdfData): void {
     color: MUTED,
   });
 
-  const reference = data.trackingNumber ?? 'DRAFT';
+  const reference = data.referenceNo;
   page.drawText(reference, {
     x: A4_WIDTH - MARGIN - textWidth(bold, reference, 10),
     y: top - 6,
@@ -296,6 +296,7 @@ export function drawActivity(writer: Writer, data: FacsimilePdfData): void {
       : `${formatDate(data.activityStartDate)} to ${formatDate(data.activityEndDate)}`,
   );
   writer.field('Location', data.location);
+  writer.field('Number of activities', String(data.activityCount));
   writer.field(
     'SDGs',
     data.sdgNumbers.length > 0 ? data.sdgNumbers.map((number) => `SDG ${number}`).join(', ') : '-',
@@ -334,12 +335,47 @@ export function drawAttachments(writer: Writer, data: FacsimilePdfData): void {
   }
 }
 
-export function drawSignatures(writer: Writer, data: FacsimilePdfData): void {
+/** Scaled to fit the slot while keeping its aspect ratio, bottom-aligned. */
+function drawSignatureImage(
+  page: PDFPage,
+  image: PDFImage,
+  x: number,
+  baseline: number,
+  maxWidth: number,
+  maxHeight: number,
+): void {
+  const scale = Math.min(maxWidth / image.width, maxHeight / image.height, 1);
+  const width = image.width * scale;
+  const height = image.height * scale;
+
+  page.drawImage(image, {
+    x,
+    y: baseline + 4,
+    width,
+    height,
+  });
+}
+
+export function drawSignatures(
+  writer: Writer,
+  data: FacsimilePdfData,
+  images: { submitter: PDFImage | null; approver: PDFImage | null } = {
+    submitter: null,
+    approver: null,
+  },
+): void {
   writer.heading('IV. SIGNATURES');
   writer.ensure(110);
 
   const column = CONTENT_WIDTH / 2;
   const baseline = writer.y - 46;
+
+  if (images.submitter) {
+    drawSignatureImage(writer.page, images.submitter, MARGIN, baseline, column - 30, 44);
+  }
+  if (images.approver) {
+    drawSignatureImage(writer.page, images.approver, MARGIN + column, baseline, column - 30, 44);
+  }
 
   writer.page.drawLine({
     start: { x: MARGIN, y: baseline },
@@ -354,7 +390,7 @@ export function drawSignatures(writer: Writer, data: FacsimilePdfData): void {
     color: INK,
   });
 
-  writer.page.drawText(clean(`Submitted by ${data.submitterName}`), {
+  writer.page.drawText(clean(`Submitted by ${data.personnelName}`), {
     x: MARGIN,
     y: baseline - 14,
     size: 9,

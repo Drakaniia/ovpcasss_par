@@ -16,11 +16,11 @@ export interface SheetSpec {
   rows: readonly (readonly SheetCell[])[];
 }
 
-const COLUMN_COUNT = 18;
+const COLUMN_COUNT = 19;
 const REL_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 
 /**
- * Body cell styles A..R, taken from the source workbook. OFF-CAMPUS carries the
+ * Body cell styles A..S, taken from the source workbook. OFF-CAMPUS carries the
  * office's own body row (centred number, dates as date cells, left-aligned
  * text); the educational-tour sheet has no body row to copy, so it uses the
  * same office formatting; IN-CAMPUS keeps its own centred variant.
@@ -30,9 +30,9 @@ const REL_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationsh
  * own date format (style 18), exactly as Date Completed already has.
  */
 const BODY_STYLES = {
-  OFF_CAMPUS: [25, 34, 24, 16, 16, 16, 16, 16, 16, 16, 14, 18, 16, 14, 14, 10, 14, 18],
-  EDUCATIONAL_TOUR: [25, 34, 24, 16, 16, 16, 16, 16, 16, 16, 14, 18, 16, 14, 14, 10, 14, 18],
-  IN_CAMPUS: [14, 18, 14, 14, 14, 14, 14, 14, 14, 14, 14, 18, 14, 14, 14, 14, 14, 18],
+  OFF_CAMPUS: [25, 34, 24, 16, 16, 16, 16, 16, 16, 16, 14, 18, 16, 14, 14, 10, 14, 18, 34],
+  EDUCATIONAL_TOUR: [25, 34, 24, 16, 16, 16, 16, 16, 16, 16, 14, 18, 16, 14, 14, 10, 14, 18, 34],
+  IN_CAMPUS: [14, 18, 14, 14, 14, 14, 14, 14, 14, 14, 14, 18, 14, 14, 14, 14, 14, 18, 18],
 } as const satisfies Record<ReportType, readonly number[]>;
 
 function escapeXml(value: string): string {
@@ -202,14 +202,14 @@ function sheetXml(sheet: SheetSpec, shared: SharedStrings): string {
         );
 
   // The educational-tour sheet's band row is only kept when the sheet is empty.
-  const merges = sheet.rows.length === 0 ? layout.merges : ['A1:R1'];
+  const merges = sheet.rows.length === 0 ? layout.merges : ['A1:S1'];
   const mergeXml = `<mergeCells count="${merges.length}">${merges
     .map((ref) => `<mergeCell ref="${ref}"/>`)
     .join('')}</mergeCells>`;
 
   const titleRow = layout.titleRow.replace('__TITLE__', String(shared.reference(sheet.title)));
 
-  return `${layout.head.replace('__DIM__', `A1:R${2 + bodyRows}`)}${titleRow}${layout.headerRow}${[
+  return `${layout.head.replace('__DIM__', `A1:S${2 + bodyRows}`)}${titleRow}${layout.headerRow}${[
     ...dataRows,
     ...filler,
   ].join('')}${layout.tail.replace('__MERGES__', mergeXml)}`;
