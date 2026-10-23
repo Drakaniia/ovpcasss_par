@@ -59,7 +59,7 @@ jobs:
       - name: Deploy Pages preview
         if: env.CLOUDFLARE_API_TOKEN != ''
         run: >-
-          pnpm --filter @par/web exec wrangler pages deploy build
+          pnpm --filter @par/api exec wrangler pages deploy ../web/build
           --project-name ovpcasss-par --branch pr-${{ github.event.number }}
 
       - name: Preview not configured
@@ -105,5 +105,5 @@ jobs:
       # address in mail and the origin the browser uses (`APP_ORIGIN`).
       - name: Deploy Pages site
         run: >-
-          pnpm --filter @par/web exec wrangler pages deploy build
+          pnpm --filter @par/api exec wrangler pages deploy ../web/build
           --project-name ovpcasss-par --branch main

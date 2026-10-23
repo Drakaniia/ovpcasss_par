@@ -7,7 +7,6 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy:pages": "wrangler pages deploy build --project-name ovpcasss-par --branch main",
     "lint": "eslint .",
     "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run"
@@ -30,7 +29,6 @@
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
     "vite": "8.3.4",
-    "vitest": "5.0.5",
-    "wrangler": "4.151.1"
+    "vitest": "5.0.5"
   }
 }
