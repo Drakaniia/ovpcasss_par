@@ -83,6 +83,7 @@
       bind:schoolYear={state.schoolYear}
       bind:semester={state.semester}
       bind:includeInProgress={state.includeInProgress}
+      bind:includeArchived={state.includeArchived}
       schoolYears={state.schoolYears}
       semesters={state.semesterOptions}
       previewLoading={state.previewLoading}
@@ -142,11 +143,23 @@
       <SkeletonTable rows={8} widths={[8, 14, 18, 24, 12, 16]} />
     {/if}
 
-    {#if state.userRole === 'ADMIN'}
-      <p class="admin-link">
-        Have an existing workbook? <a href="/admin/import">Import a monitoring workbook</a>.
-      </p>
-    {/if}
+    <div class="card register-card">
+      <div>
+        <h2>Register PDF</h2>
+        <p>
+          The register table as a printable A4 landscape sheet, for signature and filing. To print a
+          filtered view, download it from the register itself.
+        </p>
+      </div>
+      <button
+        class="btn btn-outline"
+        type="button"
+        disabled={state.downloadingRegister}
+        onclick={() => void state.downloadRegister()}
+      >
+        {state.downloadingRegister ? 'Preparing…' : 'Download register PDF'}
+      </button>
+    </div>
   {/if}
 {/if}
 
@@ -225,12 +238,30 @@
   }
 
   .preview-error,
-  .admin-link {
+  .register-card {
     margin-top: 16px;
   }
 
-  .admin-link {
+  .register-card {
+    align-items: center;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    padding: 14px 16px;
+  }
+
+  .register-card h2 {
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    margin: 0 0 4px;
+    text-transform: uppercase;
+  }
+
+  .register-card p {
     color: var(--text-secondary);
     font-size: 12px;
+    line-height: 1.5;
+    margin: 0;
+    max-width: 72ch;
   }
 </style>

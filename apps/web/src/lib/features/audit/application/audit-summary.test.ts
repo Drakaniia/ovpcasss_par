@@ -29,7 +29,7 @@ describe('audit-summary', () => {
   });
 
   it('formats status transition with text arrow', () => {
-    expect(formatAuditStatusTransition('DRAFT', 'SUBMITTED')).toBe('Draft → Submitted');
+    expect(formatAuditStatusTransition('DRAFT', 'SUBMITTED')).toBe('Draft (legacy) → Submitted');
     expect(formatAuditStatusTransition('SUBMITTED', 'APPROVED')).toBe('Submitted → Approved');
     expect(formatAuditStatusTransition(null, null)).toBeNull();
   });

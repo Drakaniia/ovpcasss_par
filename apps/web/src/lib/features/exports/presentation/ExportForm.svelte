@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { ReportType } from '@par/shared';
 
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
+
   let {
     schoolYears,
     semesters,
@@ -8,6 +10,7 @@
     schoolYear = $bindable(),
     semester = $bindable(),
     includeInProgress = $bindable(),
+    includeArchived = $bindable(),
     previewLoading = false,
     canDownload = false,
     downloading = false,
@@ -21,6 +24,7 @@
     schoolYear: string;
     semester: 1 | 2;
     includeInProgress: boolean;
+    includeArchived: boolean;
     previewLoading?: boolean;
     canDownload?: boolean;
     downloading?: boolean;
@@ -56,31 +60,33 @@
 
   <div class="field">
     <label class="field-label" for="export-year">School year</label>
-    <select
+    <EditableSelect
       id="export-year"
-      class="select"
-      bind:value={schoolYear}
-      onchange={onYearChange}
+      label="School year"
+      value={schoolYear}
+      searchable={false}
       disabled={schoolYears.length === 0}
-    >
-      {#each schoolYears as year (year)}
-        <option value={year}>{year}</option>
-      {/each}
-    </select>
+      options={schoolYears.map((year) => ({ value: year, label: year }))}
+      onchange={(value) => {
+        schoolYear = value;
+        onYearChange();
+      }}
+    />
   </div>
 
   <div class="field">
     <label class="field-label" for="export-semester">Semester</label>
-    <select
+    <EditableSelect
       id="export-semester"
-      class="select"
-      bind:value={semester}
+      label="Semester"
+      value={String(semester)}
+      searchable={false}
       disabled={semesters.length === 0}
-    >
-      {#each semesters as option (option.value)}
-        <option value={option.value}>{option.label}</option>
-      {/each}
-    </select>
+      options={semesters.map((option) => ({ value: String(option.value), label: option.label }))}
+      onchange={(value) => {
+        semester = Number(value) as 1 | 2;
+      }}
+    />
   </div>
 
   <div class="field checkbox-field">
@@ -88,7 +94,17 @@
       <input id="export-in-progress" type="checkbox" bind:checked={includeInProgress} />
       Include in-progress reports
     </label>
-    <p class="field-hint">Adds submitted and returned records with Date Completed blank.</p>
+    <p class="field-hint">
+      Adds pending, submitted, and returned records with Date Completed blank.
+    </p>
+  </div>
+
+  <div class="field checkbox-field">
+    <label class="checkbox-label" for="export-archived">
+      <input id="export-archived" type="checkbox" bind:checked={includeArchived} />
+      Include archived reports
+    </label>
+    <p class="field-hint">Archived records are approved records the office has filed away.</p>
   </div>
 
   <div class="actions">

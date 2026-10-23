@@ -202,13 +202,13 @@
     }
   }
 
-  function startRename(option: { value: string }): void {
+  function startRename(option: { value: string; name?: string }): void {
     if (!manage || busy) return;
 
     const index = rows.findIndex((row) => row.kind === 'option' && row.value === option.value);
     if (index >= 0) active = index;
     renaming = option.value;
-    renameText = option.value;
+    renameText = option.name ?? option.value;
     failure = null;
     void tick().then(() => {
       renameInput?.focus();
@@ -397,7 +397,7 @@
                     type="text"
                     maxlength="120"
                     autocomplete="off"
-                    aria-label="New name for {row.value}"
+                    aria-label="New name for {row.name ?? row.value}"
                     disabled={busy}
                     onclick={(event) => event.stopPropagation()}
                   />

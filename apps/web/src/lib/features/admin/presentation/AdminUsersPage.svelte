@@ -49,6 +49,8 @@
 
   let requestId = 0;
   let hasLoaded = false;
+  /** The filter string this page wrote last, so its own URL never echoes back. */
+  let writtenParams = untrack(() => filtersToParams(filters));
 
   const clearHref = $derived(`/admin/users?${filtersToParams(clearedFilters(filters))}`);
 
@@ -106,12 +108,18 @@
     }
   }
 
-  async function applyFilters(patch: Partial<UserFilters>) {
+  /**
+   * The URL records the filters; it is not a page move. `reset: false` keeps the
+   * scroll position and the caret in the field being typed in.
+   */
+  function applyFilters(patch: Partial<UserFilters>) {
     const next = updateFilters(filters, patch);
     if (filtersEqual(next, filters)) return;
 
     filters = next;
-    await goto(`/admin/users?${filtersToParams(next)}`, { replaceState: true });
+    const params = filtersToParams(next);
+    writtenParams = params;
+    void goto(`/admin/users?${params}`, { replace: true, reset: false }).catch(() => {});
   }
 
   function sortBy(field: AdminUserSort) {
@@ -188,6 +196,12 @@
   // Back/forward or a shared link replaces the local filter state.
   $effect(() => {
     const fromUrl = filtersFromParams(new URLSearchParams(page.url.search));
+    const incoming = filtersToParams(fromUrl);
+    // Skip the URL this page just wrote; only Back, a link, or a pasted URL is
+    // an outside change that should replace the filters.
+    if (incoming === writtenParams) return;
+
+    writtenParams = incoming;
     if (
       !filtersEqual(
         fromUrl,

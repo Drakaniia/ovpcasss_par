@@ -20,6 +20,7 @@
   } from '../application/attachment-rules';
   import type { AttachmentItem } from '../application/attachment-items';
   import AttachmentStatusChip from './AttachmentStatusChip.svelte';
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
 
   /**
    * Attachment rows (UI spec §8.5): file icon, name, size, label select, status
@@ -91,18 +92,19 @@
 
       <div class="label-cell">
         {#if labelOptions.length > 0}
-          <select
-            class="select label-select"
-            aria-label="Label for {item.fileName}"
+          <EditableSelect
+            id={`attachment-label-${item.key}`}
+            label={`Label for ${item.fileName}`}
             value={item.label}
+            placeholder="Unlabelled"
+            searchable={false}
             disabled={disabled || item.status === 'UPLOADING'}
-            onchange={(event) => onlabel(item.key, event.currentTarget.value)}
-          >
-            <option value="">Unlabelled</option>
-            {#each labelOptions as label (label)}
-              <option value={label}>{label}</option>
-            {/each}
-          </select>
+            options={[
+              { value: '', label: 'Unlabelled' },
+              ...labelOptions.map((label) => ({ value: label, label })),
+            ]}
+            onchange={(value) => onlabel(item.key, value)}
+          />
         {:else}
           <span class="muted">Unlabelled</span>
         {/if}

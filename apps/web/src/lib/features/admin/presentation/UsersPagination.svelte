@@ -1,6 +1,8 @@
 <script lang="ts">
   import { ChevronLeft, ChevronRight } from '@lucide/svelte';
 
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
+
   import {
     PAGE_SIZES,
     pageCountFor,
@@ -36,15 +38,14 @@
   <div class="controls">
     <label class="size">
       <span>Rows per page</span>
-      <select
-        class="select size-select"
-        value={pageSize}
-        onchange={(event) => onpagesize(Number(event.currentTarget.value) as PageSize)}
-      >
-        {#each PAGE_SIZES as size (size)}
-          <option value={size}>{size}</option>
-        {/each}
-      </select>
+      <EditableSelect
+        id="users-page-size"
+        label="Rows per page"
+        value={String(pageSize)}
+        searchable={false}
+        options={PAGE_SIZES.map((size) => ({ value: String(size), label: String(size) }))}
+        onchange={(value) => onpagesize(Number(value) as PageSize)}
+      />
     </label>
 
     <div class="pages">

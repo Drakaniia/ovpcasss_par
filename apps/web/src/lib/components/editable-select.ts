@@ -4,10 +4,14 @@
  * DOM: the component only renders what this returns.
  */
 
-export type EditableSelectOption = { value: string; label: string };
+/**
+ * `name` is the editable name when the option's `value` is an identifier, so a
+ * rename starts from "Main Campus" and not from its id.
+ */
+export type EditableSelectOption = { value: string; label: string; name?: string };
 
 export type EditableSelectRow =
-  | { kind: 'option'; value: string; label: string; selected: boolean }
+  | { kind: 'option'; value: string; label: string; name?: string; selected: boolean }
   | { kind: 'create'; name: string; label: string }
   | { kind: 'custom'; name: string; label: string };
 
@@ -40,6 +44,7 @@ export function rowsFor(
     kind: 'option',
     value: option.value,
     label: option.label,
+    ...(option.name ? { name: option.name } : {}),
     selected: option.value === value,
   }));
 

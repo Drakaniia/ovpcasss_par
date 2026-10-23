@@ -1,7 +1,7 @@
 import type { AuditEventItem, Role } from '@par/shared';
 
 import { ROLE_LABELS } from '$lib/navigation/navigation';
-import { STATUS_PRESENTATION } from '$lib/status/report-status';
+import { legacyStatusLabel, STATUS_PRESENTATION } from '$lib/status/report-status';
 
 const TIME_ZONE = 'Asia/Manila';
 
@@ -56,6 +56,8 @@ export function formatAuditActorLabel(
 }
 
 function resolveStatusLabel(status: string): string {
+  const legacy = legacyStatusLabel(status);
+  if (legacy) return legacy;
   if (status in STATUS_PRESENTATION) {
     return STATUS_PRESENTATION[status as keyof typeof STATUS_PRESENTATION].label;
   }
