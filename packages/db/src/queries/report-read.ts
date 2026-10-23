@@ -1,27 +1,10 @@
 import type {
-  QueueFacets,
-  QueueKind,
-  QueueListQuery,
-  QueueSort,
   ReportFilterOption,
   ReportListFacets,
-  ReportListQuery,
-  ReportStatus,
+  ReportSortField,
+  SortDirection,
 } from '@par/shared';
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  gte,
-  inArray,
-  isNull,
-  like,
-  lte,
-  or,
-  sql,
-  type SQL,
-} from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, like, lte, or, sql, type SQL } from 'drizzle-orm';
 
 import type { Database } from '../client';
 import { users } from '../schema/identity';
@@ -32,30 +15,33 @@ import {
   reportPics,
   reports,
   reportSdgs,
+  type ReportCommentRow,
+  type ReportPicRow,
   type ReportRow,
 } from '../schema/reports';
 
-export interface ReportWithNames extends ReportRow {
-  campusName: string | null;
-  unitName: string | null;
+export function likePattern(term: string): string {
+  return `%${term.trim()}%`;
 }
 
-export interface ReportListFilter extends ReportListQuery {
-  /** The caller's own reports; My reports is own-only for every role. */
-  ownerUserId?: string | undefined;
+export interface ReportWithNames extends ReportRow {
+  campusName: string;
+  unitName: string;
+  createdByName: string;
+}
+
+export interface ReportListFilter {
+  viewer: { userId: string; isAdmin: boolean };
+  tab: 'all' | 'withPic' | 'submitted' | 'returned' | 'approved';
+  type?: string | undefined;
+  campus?: string | undefined;
   from?: string | undefined;
   to?: string | undefined;
-}
-
-export interface CommentWithAuthor {
-  id: string;
-  kind: 'RETURN' | 'REVIEW_NOTE' | 'APPROVER_NOTE';
-  round: number;
-  body: string;
-  createdAt: string;
-  authorUserId: string;
-  authorName: string;
-  authorRole: 'SUBMITTER' | 'REVIEWER' | 'APPROVER' | 'ADMIN' | null;
+  q?: string | undefined;
+  sort: ReportSortField;
+  dir: SortDirection;
+  page: number;
+  size: number;
 }
 
 export interface ReportListPage {
@@ -63,114 +49,80 @@ export interface ReportListPage {
   total: number;
 }
 
-/** What a palette search needs: the row, who filed it, and a matching PIC name. */
-export interface ReportSearchRow {
-  report: ReportRow;
-  ownerName: string;
-  unitName: string | null;
-  /** The first PIC whose name matched, so the preview can say why. */
-  picName: string | null;
-}
-
 export interface ReportSearchOptions {
-  /** Absent means "most recently updated", the palette's recent group. */
-  term?: string | undefined;
-  /** A Submitter's own reports only; empty for the roles that read everything. */
-  scope: { ownerUserId?: string | undefined };
+  viewer: { userId: string; isAdmin: boolean };
+  q?: string | undefined;
   limit: number;
 }
 
-export interface QueuePage {
-  rows: (ReportRow & {
-    submitterName: string;
-    unitName: string | null;
-    pendingAttachments: boolean;
-  })[];
-  total: number;
-  oldestWaitingAt: string | null;
-  facets: QueueFacets;
+export interface ReportSearchRow extends ReportRow {
+  unitName: string | null;
+  picNames: string;
 }
 
-const SEMESTER_LABELS: Record<string, string> = {
-  '1': '1st Semester',
-  '2': '2nd Semester',
-  SUMMER: 'Summer',
-};
-
-const TAB_STATUSES: Record<Exclude<ReportListQuery['tab'], 'all'>, readonly ReportStatus[]> = {
-  drafts: ['DRAFT'],
-  returned: ['RETURNED_BY_REVIEWER', 'RETURNED_BY_APPROVER'],
-  approved: ['APPROVED'],
-};
-
-const QUEUE_STATUSES: Record<QueueKind, readonly ReportStatus[]> = {
-  review: ['SUBMITTED', 'RESUBMITTED'],
-  approval: ['ENDORSED'],
-};
-
-function option(id: string, label: string, isActive: boolean): ReportFilterOption {
-  return { id, label, isActive };
+export interface CommentWithAuthor extends ReportCommentRow {
+  authorName: string;
 }
 
-function reportSort(query: ReportListQuery) {
-  const direction = query.dir === 'asc' ? asc : desc;
+const TAB_STATUSES: Record<ReportListFilter['tab'], SQL | undefined> = {
+  all: undefined,
+  withPic: eq(reports.status, 'DRAFT'),
+  submitted: eq(reports.status, 'SUBMITTED'),
+  returned: eq(reports.status, 'RETURNED'),
+  approved: eq(reports.status, 'APPROVED'),
+};
 
-  switch (query.sort) {
-    case 'trackingNumber':
-      return direction(reports.trackingNumber);
-    case 'activityDate':
-      return direction(reports.activityStartDate);
-    case 'status':
-      return direction(reports.status);
-    case 'updated':
-      return direction(reports.updatedAt);
+/** SQLite takes at most 999 bound values; ids are batched well below that. */
+const ID_BATCH = 80;
+
+function chunks<T>(values: readonly T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    result.push(values.slice(index, index + size));
   }
-}
-
-function queueSort(sort: QueueSort, kind: QueueKind) {
-  const column = kind === 'review' ? reports.submittedAt : reports.endorsedAt;
-  return sort === 'newest' ? desc(column) : asc(column);
-}
-
-/** Like patterns are escaped so a user's `%` stays a literal character. */
-function escapeLike(term: string): string {
-  return term.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
-}
-
-export function likePattern(term: string): string {
-  return `%${escapeLike(term)}%`;
-}
-
-/** Prefix form, used to rank a tracking number or title that starts with the term. */
-export function likePrefix(term: string): string {
-  return `${escapeLike(term)}%`;
+  return result;
 }
 
 export function createReportReadQueries(db: Database) {
-  async function campusOptions(): Promise<ReportFilterOption[]> {
-    const rows = await db
-      .select()
-      .from(refCampuses)
-      .where(isNull(refCampuses.deletedAt))
-      .orderBy(asc(refCampuses.sortOrder), asc(refCampuses.name));
+  function picIdsFor(userId: string) {
+    return db
+      .select({ id: reportPics.reportId })
+      .from(reportPics)
+      .where(eq(reportPics.userId, userId));
+  }
 
-    return rows.map((row) => option(row.id, row.name, row.isActive));
+  function scope(viewer: ReportListFilter['viewer']): SQL | undefined {
+    return viewer.isAdmin ? undefined : inArray(reports.id, picIdsFor(viewer.userId));
+  }
+
+  async function campusOptions(): Promise<ReportFilterOption[]> {
+    const rows = await db.select().from(refCampuses).orderBy(asc(refCampuses.sortOrder));
+    return rows.map((row) => ({ id: row.id, label: row.name, isActive: row.isActive }));
   }
 
   async function termOptions(): Promise<ReportFilterOption[]> {
     const rows = await db
       .select()
       .from(refTerms)
-      .where(isNull(refTerms.deletedAt))
       .orderBy(desc(refTerms.schoolYear), desc(refTerms.semester));
+    return rows.map((row) => ({
+      id: row.id,
+      label: `${row.semester === 'SUMMER' ? 'Summer' : `${row.semester}${row.semester === '1' ? 'st' : 'nd'} Semester`} · SY ${row.schoolYear}`,
+      isActive: row.isActive,
+    }));
+  }
 
-    return rows.map((row) =>
-      option(
-        row.id,
-        `${SEMESTER_LABELS[row.semester] ?? row.semester} \u00b7 SY ${row.schoolYear}`,
-        row.isActive,
-      ),
-    );
+  async function picsByReport(ids: readonly string[]): Promise<Map<string, ReportPicRow[]>> {
+    const map = new Map<string, ReportPicRow[]>();
+    for (const batch of chunks(ids, ID_BATCH)) {
+      const rows = await db
+        .select()
+        .from(reportPics)
+        .where(inArray(reportPics.reportId, batch))
+        .orderBy(asc(reportPics.sortOrder));
+      for (const row of rows) map.set(row.reportId, [...(map.get(row.reportId) ?? []), row]);
+    }
+    return map;
   }
 
   return {
@@ -185,15 +137,23 @@ export function createReportReadQueries(db: Database) {
           report: reports,
           campusName: refCampuses.name,
           unitName: refUnits.name,
+          createdByName: users.fullName,
         })
         .from(reports)
         .leftJoin(refCampuses, eq(reports.campusId, refCampuses.id))
         .leftJoin(refUnits, eq(reports.unitId, refUnits.id))
+        .leftJoin(users, eq(reports.createdByUserId, users.id))
         .where(eq(reports.id, id))
         .limit(1);
 
       const row = rows[0];
-      return row ? { ...row.report, campusName: row.campusName, unitName: row.unitName } : null;
+      if (!row) return null;
+      return {
+        ...row.report,
+        campusName: row.campusName ?? '',
+        unitName: row.unitName ?? '',
+        createdByName: row.createdByName ?? '',
+      };
     },
 
     async findTerm(id: string) {
@@ -201,27 +161,75 @@ export function createReportReadQueries(db: Database) {
       return rows[0] ?? null;
     },
 
-    async list(filter: ReportListFilter): Promise<ReportListPage> {
-      const conditions: SQL[] = [];
+    async isPic(reportId: string, userId: string): Promise<boolean> {
+      const rows = await db
+        .select({ id: reportPics.id })
+        .from(reportPics)
+        .where(and(eq(reportPics.reportId, reportId), eq(reportPics.userId, userId)))
+        .limit(1);
+      return Boolean(rows[0]);
+    },
 
-      if (filter.ownerUserId) conditions.push(eq(reports.ownerUserId, filter.ownerUserId));
-      if (filter.tab !== 'all') conditions.push(inArray(reports.status, TAB_STATUSES[filter.tab]));
-      if (filter.type) conditions.push(eq(reports.type, filter.type));
-      if (filter.campus) conditions.push(eq(reports.campusId, filter.campus));
-      if (filter.from) conditions.push(gte(reports.activityStartDate, filter.from));
-      if (filter.to) conditions.push(lte(reports.activityStartDate, filter.to));
+    async listPics(reportId: string): Promise<ReportPicRow[]> {
+      return db
+        .select()
+        .from(reportPics)
+        .where(eq(reportPics.reportId, reportId))
+        .orderBy(asc(reportPics.sortOrder));
+    },
+
+    async list(filter: ReportListFilter): Promise<ReportListPage> {
+      const conditions: (SQL | undefined)[] = [
+        scope(filter.viewer),
+        TAB_STATUSES[filter.tab],
+        filter.type ? eq(reports.type, filter.type as ReportRow['type']) : undefined,
+        filter.campus ? eq(reports.campusId, filter.campus) : undefined,
+        filter.from ? gte(reports.activityStartDate, filter.from) : undefined,
+        filter.to ? lte(reports.activityStartDate, filter.to) : undefined,
+      ];
+
       if (filter.q) {
         const term = likePattern(filter.q);
-        conditions.push(or(like(reports.title, term), like(reports.trackingNumber, term))!);
+        conditions.push(
+          or(
+            like(reports.referenceNo, term),
+            like(reports.title, term),
+            like(reports.location, term),
+            inArray(
+              reports.id,
+              db
+                .select({ id: reportPics.reportId })
+                .from(reportPics)
+                .where(or(like(reportPics.name, term), like(reportPics.email, term))),
+            ),
+          ),
+        );
       }
 
-      const where = conditions.length > 0 ? and(...conditions) : undefined;
+      const where = and(...conditions.filter((entry): entry is SQL => entry !== undefined));
+      const order =
+        filter.sort === 'referenceNo'
+          ? filter.dir === 'asc'
+            ? asc(reports.sequence)
+            : desc(reports.sequence)
+          : filter.sort === 'activityDate'
+            ? filter.dir === 'asc'
+              ? asc(reports.activityStartDate)
+              : desc(reports.activityStartDate)
+            : filter.sort === 'status'
+              ? filter.dir === 'asc'
+                ? asc(reports.status)
+                : desc(reports.status)
+              : filter.dir === 'asc'
+                ? asc(reports.updatedAt)
+                : desc(reports.updatedAt);
+
       const [rows, total] = await Promise.all([
         db
           .select()
           .from(reports)
           .where(where)
-          .orderBy(reportSort(filter))
+          .orderBy(order)
           .limit(filter.size)
           .offset((filter.page - 1) * filter.size),
         db
@@ -234,64 +242,77 @@ export function createReportReadQueries(db: Database) {
       return { rows, total };
     },
 
-    /**
-     * Palette search: tracking number, title, narrative, location, submitter and
-     * PIC name, ranked so the number a user typed outranks a passing narrative
-     * mention. Without a term the same query answers "what did I touch last".
-     */
     async search(options: ReportSearchOptions): Promise<ReportSearchRow[]> {
-      const term = options.term?.trim() ?? '';
-      const conditions: SQL[] = [];
-      if (options.scope.ownerUserId) {
-        conditions.push(eq(reports.ownerUserId, options.scope.ownerUserId));
-      }
+      const conditions: (SQL | undefined)[] = [scope(options.viewer)];
 
-      const pattern = term ? likePattern(term) : '';
-      const prefix = term ? likePrefix(term) : '';
-      const picName = term
-        ? sql<
-            string | null
-          >`(select ${reportPics.name} from ${reportPics} where ${reportPics.reportId} = ${reports.id} and ${reportPics.name} like ${pattern} order by ${reportPics.sortOrder} limit 1)`
-        : sql<string | null>`null`;
-
-      if (term) {
+      if (options.q) {
+        const term = likePattern(options.q);
         conditions.push(
           or(
-            like(reports.trackingNumber, pattern),
-            like(reports.title, pattern),
-            like(reports.narrative, pattern),
-            like(reports.location, pattern),
-            like(users.fullName, pattern),
-            sql`exists (select 1 from ${reportPics} where ${reportPics.reportId} = ${reports.id} and ${reportPics.name} like ${pattern})`,
-          )!,
+            like(reports.referenceNo, term),
+            like(reports.title, term),
+            like(reports.narrative, term),
+            like(reports.location, term),
+            inArray(
+              reports.id,
+              db
+                .select({ id: reportPics.reportId })
+                .from(reportPics)
+                .where(or(like(reportPics.name, term), like(reportPics.email, term))),
+            ),
+          ),
         );
       }
 
-      const rank = sql<number>`case
-        when lower(coalesce(${reports.trackingNumber}, '')) = lower(${term}) then 0
-        when ${reports.trackingNumber} like ${prefix} then 1
-        when ${reports.title} like ${prefix} then 2
-        when ${reports.title} like ${pattern} then 3
-        when ${reports.narrative} like ${pattern} then 4
-        when ${reports.location} like ${pattern} then 5
-        when ${users.fullName} like ${pattern} then 6
-        else 7 end`;
-
-      const where = conditions.length > 0 ? and(...conditions) : undefined;
-
-      return db
-        .select({
-          report: reports,
-          ownerName: users.fullName,
-          unitName: refUnits.name,
-          picName,
-        })
+      const rows = await db
+        .select({ report: reports, unitName: refUnits.name })
         .from(reports)
-        .innerJoin(users, eq(reports.ownerUserId, users.id))
         .leftJoin(refUnits, eq(reports.unitId, refUnits.id))
-        .where(where)
-        .orderBy(...(term ? [rank, desc(reports.updatedAt)] : [desc(reports.updatedAt)]))
+        .where(and(...conditions.filter((entry): entry is SQL => entry !== undefined)))
+        .orderBy(desc(reports.updatedAt))
         .limit(options.limit);
+
+      const pics = await picsByReport(rows.map((row) => row.report.id));
+
+      return rows.map((row) => ({
+        ...row.report,
+        unitName: row.unitName ?? null,
+        picNames: (pics.get(row.report.id) ?? []).map((pic) => pic.name).join(', '),
+      }));
+    },
+
+    /**
+     * Locations this viewer may read, newest first and case-insensitively
+     * deduplicated (bug phase 04 §3.1). Free text stays the stored value.
+     */
+    async locations(
+      viewer: ReportListFilter['viewer'],
+      query: string,
+      limit: number,
+    ): Promise<{ location: string; lastUsedAt: string }[]> {
+      const rows = await db
+        .select({ location: reports.location, updatedAt: reports.updatedAt })
+        .from(reports)
+        .where(scope(viewer))
+        .orderBy(desc(reports.updatedAt))
+        .limit(500);
+
+      const needle = query.trim().toLowerCase();
+      const seen = new Map<string, { location: string; lastUsedAt: string }>();
+
+      for (const row of rows) {
+        const location = row.location.trim();
+        if (!location) continue;
+
+        const key = location.toLowerCase();
+        if (seen.has(key)) continue;
+        if (needle && !key.includes(needle)) continue;
+
+        seen.set(key, { location, lastUsedAt: row.updatedAt });
+        if (seen.size === limit) break;
+      }
+
+      return [...seen.values()];
     },
 
     async listFacets(): Promise<ReportListFacets> {
@@ -299,88 +320,12 @@ export function createReportReadQueries(db: Database) {
       return { campuses, terms };
     },
 
-    async queue(kind: QueueKind, query: QueueListQuery): Promise<QueuePage> {
-      const conditions: SQL[] = [inArray(reports.status, QUEUE_STATUSES[kind])];
-      if (query.type) conditions.push(eq(reports.type, query.type));
-      if (query.campus) conditions.push(eq(reports.campusId, query.campus));
-      if (query.college) conditions.push(eq(reports.unitId, query.college));
-
-      const where = and(...conditions);
-      const [rows, total, oldest, campuses, colleges] = await Promise.all([
-        db
-          .select({
-            report: reports,
-            submitterName: users.fullName,
-            unitName: refUnits.name,
-          })
-          .from(reports)
-          .leftJoin(users, eq(reports.ownerUserId, users.id))
-          .leftJoin(refUnits, eq(reports.unitId, refUnits.id))
-          .where(where)
-          .orderBy(queueSort(query.sort, kind))
-          .limit(query.size)
-          .offset((query.page - 1) * query.size),
-        db
-          .select({ value: sql<number>`count(*)` })
-          .from(reports)
-          .where(where)
-          .then((result) => Number(result[0]?.value ?? 0)),
-        kind === 'review'
-          ? db
-              .select({ value: reports.submittedAt })
-              .from(reports)
-              .where(where)
-              .orderBy(asc(reports.submittedAt))
-              .limit(1)
-          : db
-              .select({ value: reports.endorsedAt })
-              .from(reports)
-              .where(where)
-              .orderBy(asc(reports.endorsedAt))
-              .limit(1),
-        campusOptions(),
-        db
-          .select()
-          .from(refUnits)
-          .where(isNull(refUnits.deletedAt))
-          .orderBy(asc(refUnits.sortOrder), asc(refUnits.name))
-          .then((units) => units.map((unit) => option(unit.id, unit.name, unit.isActive))),
-      ]);
-
-      const pending = await pendingAttachmentReports(rows.map((row) => row.report.id));
-
-      return {
-        rows: rows.map((row) => ({
-          ...row.report,
-          submitterName: row.submitterName ?? '',
-          unitName: row.unitName,
-          pendingAttachments: pending.has(row.report.id),
-        })),
-        total,
-        oldestWaitingAt: oldest[0]?.value ?? null,
-        facets: { campuses, colleges },
-      };
-    },
-
     async listAttachments(reportId: string) {
       return db
         .select()
         .from(attachments)
-        .where(
-          and(
-            eq(attachments.reportId, reportId),
-            inArray(attachments.status, ['PENDING', 'CONFIRMED']),
-          ),
-        )
+        .where(and(eq(attachments.reportId, reportId), eq(attachments.status, 'CONFIRMED')))
         .orderBy(asc(attachments.createdAt));
-    },
-
-    async listPics(reportId: string) {
-      return db
-        .select()
-        .from(reportPics)
-        .where(eq(reportPics.reportId, reportId))
-        .orderBy(asc(reportPics.sortOrder));
     },
 
     async listSdgIds(reportId: string): Promise<string[]> {
@@ -393,40 +338,24 @@ export function createReportReadQueries(db: Database) {
 
     async listComments(reportId: string): Promise<CommentWithAuthor[]> {
       const rows = await db
-        .select({
-          comment: reportComments,
-          authorName: users.fullName,
-          authorRole: users.role,
-        })
+        .select({ comment: reportComments, authorName: users.fullName })
         .from(reportComments)
         .leftJoin(users, eq(reportComments.authorUserId, users.id))
         .where(eq(reportComments.reportId, reportId))
         .orderBy(asc(reportComments.createdAt));
 
-      return rows.map((row) => ({
-        id: row.comment.id,
-        kind: row.comment.kind,
-        round: row.comment.round,
-        body: row.comment.body,
-        createdAt: row.comment.createdAt,
-        authorUserId: row.comment.authorUserId,
-        authorName: row.authorName ?? 'OVPCASSS',
-        authorRole: row.authorRole,
-      }));
+      return rows.map((row) => ({ ...row.comment, authorName: row.authorName ?? '' }));
+    },
+
+    async pendingAttachmentReports(ids: readonly string[]): Promise<Set<string>> {
+      if (ids.length === 0) return new Set();
+      const rows = await db
+        .select({ reportId: attachments.reportId })
+        .from(attachments)
+        .where(and(inArray(attachments.reportId, [...ids]), eq(attachments.status, 'PENDING')));
+      return new Set(rows.map((row) => row.reportId));
     },
   };
-
-  /** One query for the page's rows, so the queue never runs N attachment reads. */
-  async function pendingAttachmentReports(ids: readonly string[]): Promise<Set<string>> {
-    if (ids.length === 0) return new Set();
-
-    const rows = await db
-      .select({ reportId: attachments.reportId })
-      .from(attachments)
-      .where(and(inArray(attachments.reportId, ids), eq(attachments.status, 'PENDING')));
-
-    return new Set(rows.map((row) => row.reportId));
-  }
 }
 
 export type ReportReadQueries = ReturnType<typeof createReportReadQueries>;

@@ -1,89 +1,33 @@
-import type { Classification, Level, ReportDraftForm, ReportStatus, ReportType } from '@par/shared';
+import type { ReportActivityInput, ReportStatus } from '@par/shared';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from '../client';
 import {
   attachments,
+  receipts,
+  referenceCounters,
   reportComments,
   reportPics,
   reports,
   reportSdgs,
-  trackingCounters,
   type NewReportRow,
-  type ReportCommentKind,
   type ReportRow,
 } from '../schema/reports';
 
-/**
- * Draft persistence and workflow writes (spec §7.5-§7.7). A server draft is a
- * real report row: its columns are the projection the tables read, while the
- * exact partial input stays in `draft_form` so no empty field is invented.
- */
-export interface DraftPicture {
+/** A PIC as the admin supplied it, after account provisioning. */
+export interface PicAssignment {
+  id?: string | undefined;
+  userId?: string | null | undefined;
   name: string;
-  email?: string | null | undefined;
+  email: string;
   phone?: string | null | undefined;
-}
-
-/**
- * A value a draft has not supplied yet. The column is NOT NULL because a
- * submitted report always has it; a draft simply reads the placeholder back.
- */
-const DRAFT_DEFAULTS = {
-  type: 'IN_CAMPUS',
-  classification: 'NON_CURRICULAR',
-  level: 'UNDERGRADUATE',
-} as const;
-
-export interface ReportProjection {
-  type: ReportType;
-  classification: Classification;
-  campusId: string;
-  unitId: string;
-  department: string | null;
-  office: string | null;
-  level: Level;
-  title: string;
-  activityStartDate: string;
-  activityEndDate: string;
-  location: string;
-  totalStudents: number;
-  totalPic: number;
-  narrative: string;
-  draftForm: string;
-  updatedAt: string;
-}
-
-export function projectReportForm(form: ReportDraftForm, now: string): ReportProjection {
-  return {
-    type: form.type ?? DRAFT_DEFAULTS.type,
-    classification: form.classification ?? DRAFT_DEFAULTS.classification,
-    campusId: form.campusId ?? '',
-    unitId: form.unitId ?? '',
-    department: form.department ?? null,
-    office: form.office ?? null,
-    level: form.level ?? DRAFT_DEFAULTS.level,
-    title: form.title ?? '',
-    activityStartDate: form.activityStartDate ?? '',
-    activityEndDate: form.activityEndDate ?? '',
-    location: form.location ?? '',
-    totalStudents: form.totalStudents ?? 0,
-    totalPic: form.totalPic ?? 0,
-    narrative: form.narrative ?? '',
-    draftForm: JSON.stringify(form),
-    updatedAt: now,
-  };
-}
-
-function draftValues(form: ReportDraftForm, now: string): ReportProjection {
-  return projectReportForm(form, now);
+  invitedAt?: string | null | undefined;
 }
 
 export interface StatusChange {
   to: ReportStatus;
   /** States the transition may start from; anything else affects no row. */
   from: readonly ReportStatus[];
-  /** Optimistic concurrency, from `If-Match`. */
   version?: number;
   patch?: Partial<NewReportRow>;
 }
@@ -92,61 +36,114 @@ export interface ReportCommentInput {
   id: string;
   reportId: string;
   authorUserId: string;
-  kind: ReportCommentKind;
+  kind: 'RETURN' | 'OFFICE_NOTE';
   round: number;
   body: string;
   createdAt: string;
 }
 
+type ActivityProjection = Pick<
+  NewReportRow,
+  | 'type'
+  | 'classification'
+  | 'campusId'
+  | 'unitId'
+  | 'department'
+  | 'office'
+  | 'level'
+  | 'title'
+  | 'activityStartDate'
+  | 'activityEndDate'
+  | 'location'
+  | 'activityCount'
+  | 'totalStudents'
+  | 'totalPic'
+>;
+
+function projection(form: ReportActivityInput): ActivityProjection {
+  return {
+    type: form.type,
+    classification: form.classification,
+    campusId: form.campusId,
+    unitId: form.unitId,
+    department: form.department ?? null,
+    office: form.office ?? null,
+    level: form.level,
+    title: form.title,
+    activityStartDate: form.activityStartDate,
+    activityEndDate: form.activityEndDate,
+    location: form.location,
+    activityCount: form.activityCount,
+    totalStudents: form.totalStudents,
+    totalPic: form.totalPic,
+  };
+}
+
 export function createReportWriteQueries(db: Database) {
   return {
-    async insertDraft(input: {
+    /** Global AR counter (spec §5). Gaps are allowed and never repaired. */
+    async nextReferenceSequence(): Promise<number> {
+      const rows = await db
+        .insert(referenceCounters)
+        .values({ name: 'AR', lastSeq: 1 })
+        .onConflictDoUpdate({
+          target: referenceCounters.name,
+          set: { lastSeq: sql`${referenceCounters.lastSeq} + 1` },
+        })
+        .returning({ lastSeq: referenceCounters.lastSeq });
+
+      return rows[0]?.lastSeq ?? 1;
+    },
+
+    async insertRecord(input: {
       id: string;
-      ownerUserId: string;
-      form: ReportDraftForm;
+      referenceNo: string;
+      sequence: number;
+      createdByUserId: string;
+      form: ReportActivityInput;
       now: string;
     }): Promise<ReportRow> {
       const rows = await db
         .insert(reports)
         .values({
-          ...draftValues(input.form, input.now),
+          ...projection(input.form),
           id: input.id,
+          referenceNo: input.referenceNo,
+          sequence: input.sequence,
           status: 'DRAFT',
           version: 0,
-          ownerUserId: input.ownerUserId,
-          submittedAt: null,
-          endorsedAt: null,
-          approvedAt: null,
-          approvedByUserId: null,
+          createdByUserId: input.createdByUserId,
+          narrative: '',
           createdAt: input.now,
           updatedAt: input.now,
         })
         .returning();
 
       const row = rows[0];
-      if (!row) throw new Error('The draft was not created');
+      if (!row) throw new Error('The record was not created');
       return row;
     },
 
-    /** Edits stay on the same row; a stale version touches no row. */
-    async updateDraft(input: {
+    /** Activity edits stay on the same row and never touch the narrative. */
+    async updateRecord(input: {
       id: string;
-      form: ReportDraftForm;
+      form: ReportActivityInput;
       now: string;
       version?: number;
-      from?: readonly ReportStatus[];
+      from: readonly ReportStatus[];
     }): Promise<ReportRow | null> {
       const rows = await db
         .update(reports)
         .set({
-          ...draftValues(input.form, input.now),
+          ...projection(input.form),
           version: sql`${reports.version} + 1`,
+          updatedAt: input.now,
         })
         .where(
           and(
             eq(reports.id, input.id),
+            inArray(reports.status, input.from),
             input.version === undefined ? undefined : eq(reports.version, input.version),
-            input.from === undefined ? undefined : inArray(reports.status, input.from),
           ),
         )
         .returning();
@@ -154,7 +151,6 @@ export function createReportWriteQueries(db: Database) {
       return rows[0] ?? null;
     },
 
-    /** One guarded status change; the state machine is enforced by the caller. */
     async changeStatus(
       id: string,
       change: StatusChange & { now: string },
@@ -179,25 +175,37 @@ export function createReportWriteQueries(db: Database) {
       return rows[0] ?? null;
     },
 
-    /** Atomic per-prefix/year sequence (spec §7.7); returns the issued number. */
-    async nextTrackingSequence(prefix: string, year: number): Promise<number> {
+    async setNarrative(input: {
+      id: string;
+      narrative: string;
+      now: string;
+      version?: number;
+      from: readonly ReportStatus[];
+    }): Promise<ReportRow | null> {
       const rows = await db
-        .insert(trackingCounters)
-        .values({ prefix, year, lastSeq: 1 })
-        .onConflictDoUpdate({
-          target: [trackingCounters.prefix, trackingCounters.year],
-          set: { lastSeq: sql`${trackingCounters.lastSeq} + 1` },
+        .update(reports)
+        .set({
+          narrative: input.narrative,
+          version: sql`${reports.version} + 1`,
+          updatedAt: input.now,
         })
-        .returning({ lastSeq: trackingCounters.lastSeq });
+        .where(
+          and(
+            eq(reports.id, input.id),
+            inArray(reports.status, input.from),
+            input.version === undefined ? undefined : eq(reports.version, input.version),
+          ),
+        )
+        .returning();
 
-      return rows[0]?.lastSeq ?? 1;
+      return rows[0] ?? null;
     },
 
-    /** SDGs and PICs are replaced as a set, matching the form's multi-selects. */
+    /** SDGs and PICs are replaced as a set, matching the form's lists. */
     async replaceLists(
       reportId: string,
       sdgIds: readonly string[],
-      pics: readonly DraftPicture[],
+      pics: readonly PicAssignment[],
     ): Promise<void> {
       await db.delete(reportSdgs).where(eq(reportSdgs.reportId, reportId));
       if (sdgIds.length > 0) {
@@ -208,31 +216,35 @@ export function createReportWriteQueries(db: Database) {
       if (pics.length > 0) {
         await db.insert(reportPics).values(
           pics.map((pic, index) => ({
-            id: crypto.randomUUID(),
+            id: pic.id ?? crypto.randomUUID(),
             reportId,
+            userId: pic.userId ?? null,
             name: pic.name,
-            email: pic.email ?? null,
+            email: pic.email.toLowerCase(),
             phone: pic.phone ?? null,
             sortOrder: index,
+            invitedAt: pic.invitedAt ?? null,
           })),
         );
       }
     },
 
     /**
-     * Attaches or clears the report's snapshotted signature (signature spec W2).
-     * The report version is untouched on purpose: signing is not a content edit,
-     * so it must not invalidate a client's `If-Match` copy of the form.
+     * The PIC's snapshotted signature. The report version is untouched: signing
+     * is not a content edit, so it must not invalidate a client's `If-Match`.
+     * `cleared` records the deliberate "no signature" state, so the submit
+     * snapshot does not sign the record again (bug phase 05 §7).
      */
     async setSignature(
       id: string,
-      input: { key: string | null; signedAt: string | null; now: string },
+      input: { key: string | null; signedAt: string | null; cleared: boolean; now: string },
     ): Promise<ReportRow | null> {
       const rows = await db
         .update(reports)
         .set({
-          submitterSignatureKey: input.key,
-          submitterSignedAt: input.signedAt,
+          narrativeSignatureKey: input.key,
+          narrativeSignedAt: input.signedAt,
+          narrativeSignatureCleared: input.cleared,
           updatedAt: input.now,
         })
         .where(eq(reports.id, id))
@@ -254,8 +266,8 @@ export function createReportWriteQueries(db: Database) {
       return Number(rows[0]?.value ?? 0);
     },
 
-    /** Only a draft is deletable; a submitted report is never removed. */
-    async deleteDraft(id: string): Promise<string | null> {
+    /** Only an unsubmitted draft is deletable; its AR No. is retired. */
+    async deleteRecord(id: string): Promise<string | null> {
       const rows = await db
         .select({ id: reports.id })
         .from(reports)
@@ -268,6 +280,7 @@ export function createReportWriteQueries(db: Database) {
       await db.delete(reportPics).where(eq(reportPics.reportId, id));
       await db.delete(reportComments).where(eq(reportComments.reportId, id));
       await db.delete(attachments).where(eq(attachments.reportId, id));
+      await db.delete(receipts).where(eq(receipts.reportId, id));
       await db.delete(reports).where(eq(reports.id, id));
 
       return id;

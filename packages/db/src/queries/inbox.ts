@@ -3,32 +3,21 @@ import { and, asc, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
 
 import type { Database } from '../client';
 import { auditEvents } from '../schema/operations';
-import { reports } from '../schema/reports';
+import { reportPics, reports } from '../schema/reports';
 
-/**
- * Work-inbox assembly reads (signature spec §6.1). Every section is one indexed
- * read that returns both its true total and at most `limit` rows, so the client
- * never counts what it received. Filters are the caller's own reports or the
- * queue statuses; the route decides which sections a role may see.
- */
+/** Home section reads (spec §12). Each returns its true total plus at most `limit` rows. */
 
 export interface InboxReportRow {
   id: string;
-  ownerUserId: string;
-  trackingNumber: string | null;
+  referenceNo: string;
   title: string;
   type: ReportType;
   status: ReportStatus;
   updatedAt: string;
   submittedAt: string | null;
-  endorsedAt: string | null;
-  /** Enough of the draft projection to estimate its completeness. */
-  campusId: string;
-  unitId: string;
   activityStartDate: string;
   activityEndDate: string;
   location: string;
-  narrative: string;
 }
 
 export interface InboxSectionPage {
@@ -39,58 +28,44 @@ export interface InboxSectionPage {
 export interface InboxEventRow {
   id: string;
   reportId: string;
-  trackingNumber: string | null;
+  referenceNo: string;
   title: string;
   action: string;
   occurredAt: string;
 }
 
-export const RETURNED_STATUSES: readonly ReportStatus[] = [
-  'RETURNED_BY_REVIEWER',
-  'RETURNED_BY_APPROVER',
-];
-export const REVIEW_STATUSES: readonly ReportStatus[] = ['SUBMITTED', 'RESUBMITTED'];
-export const APPROVAL_STATUSES: readonly ReportStatus[] = ['ENDORSED'];
-export const WAITING_STATUSES: readonly ReportStatus[] = ['SUBMITTED', 'RESUBMITTED', 'ENDORSED'];
-
-/** Report events that reach the inbox's recent activity and decided lists. */
+/** Report events that reach the home activity rail. */
 export const INBOX_ACTIONS = [
-  'SUBMITTED',
-  'RESUBMITTED',
-  'RETURNED_BY_REVIEWER',
-  'RETURNED_BY_APPROVER',
-  'ENDORSED',
-  'APPROVED',
+  'NARRATIVE_SUBMITTED',
+  'NARRATIVE_RETURNED',
+  'NARRATIVE_APPROVED',
 ] as const;
 
-const DECISION_ACTIONS = [
-  'ENDORSED',
-  'APPROVED',
-  'RETURNED_BY_REVIEWER',
-  'RETURNED_BY_APPROVER',
-] as const;
+const DECISION_ACTIONS = ['NARRATIVE_APPROVED', 'NARRATIVE_RETURNED'] as const;
 
 function reportColumns() {
   return {
     id: reports.id,
-    ownerUserId: reports.ownerUserId,
-    trackingNumber: reports.trackingNumber,
+    referenceNo: reports.referenceNo,
     title: reports.title,
     type: reports.type,
     status: reports.status,
     updatedAt: reports.updatedAt,
     submittedAt: reports.submittedAt,
-    endorsedAt: reports.endorsedAt,
-    campusId: reports.campusId,
-    unitId: reports.unitId,
     activityStartDate: reports.activityStartDate,
     activityEndDate: reports.activityEndDate,
     location: reports.location,
-    narrative: reports.narrative,
   };
 }
 
 export function createInboxQueries(db: Database) {
+  function memberOf(userId: string) {
+    return inArray(
+      reports.id,
+      db.select({ id: reportPics.reportId }).from(reportPics).where(eq(reportPics.userId, userId)),
+    );
+  }
+
   async function section(
     where: SQL | undefined,
     order: SQL,
@@ -113,7 +88,7 @@ export function createInboxQueries(db: Database) {
       .select({
         id: auditEvents.id,
         reportId: reports.id,
-        trackingNumber: reports.trackingNumber,
+        referenceNo: reports.referenceNo,
         title: reports.title,
         action: auditEvents.action,
         occurredAt: auditEvents.createdAt,
@@ -126,45 +101,43 @@ export function createInboxQueries(db: Database) {
   }
 
   return {
-    /** Returned to the caller: edit them, newest change first. */
-    returned(userId: string, limit = 3) {
+    /** Narratives waiting on the office, oldest submission first. */
+    awaitingReview(limit = 3) {
+      return section(eq(reports.status, 'SUBMITTED'), asc(reports.submittedAt), limit);
+    },
+
+    /** Records created but not yet submitted by their PICs. */
+    withPic(limit = 3) {
+      return section(eq(reports.status, 'DRAFT'), desc(reports.updatedAt), limit);
+    },
+
+    /** Returned to the reader's own records. */
+    returned(userId: string, limit = 3, isAdmin = false) {
       return section(
-        and(eq(reports.ownerUserId, userId), inArray(reports.status, RETURNED_STATUSES)),
+        and(eq(reports.status, 'RETURNED'), isAdmin ? undefined : memberOf(userId)),
         desc(reports.updatedAt),
         limit,
       );
     },
 
-    /** Oldest submission first, as the reviewer works through the backlog. */
-    review(limit = 3) {
-      return section(inArray(reports.status, REVIEW_STATUSES), asc(reports.submittedAt), limit);
-    },
-
-    approval(limit = 3) {
-      return section(inArray(reports.status, APPROVAL_STATUSES), asc(reports.endorsedAt), limit);
-    },
-
-    drafts(userId: string, limit = 3) {
+    approved(userId: string, limit = 3, isAdmin = false) {
       return section(
-        and(eq(reports.ownerUserId, userId), eq(reports.status, 'DRAFT')),
-        desc(reports.updatedAt),
+        and(eq(reports.status, 'APPROVED'), isAdmin ? undefined : memberOf(userId)),
+        desc(reports.approvedAt),
         limit,
       );
     },
 
-    waiting(userId: string, limit = 3) {
-      return section(
-        and(eq(reports.ownerUserId, userId), inArray(reports.status, WAITING_STATUSES)),
-        desc(reports.updatedAt),
-        limit,
-      );
+    /** Every record assigned to the reader, newest first. */
+    myReports(userId: string, limit = 3) {
+      return section(memberOf(userId), desc(reports.updatedAt), limit);
     },
 
     async hasSubmitted(userId: string): Promise<boolean> {
       const rows = await db
         .select({ id: reports.id })
         .from(reports)
-        .where(and(eq(reports.ownerUserId, userId), sql`${reports.submittedAt} is not null`))
+        .where(and(eq(reports.submittedByUserId, userId), sql`${reports.submittedAt} is not null`))
         .limit(1);
 
       return rows.length > 0;
@@ -174,26 +147,26 @@ export function createInboxQueries(db: Database) {
       const rows = await db
         .select({ id: reports.id })
         .from(reports)
-        .where(and(eq(reports.ownerUserId, userId), eq(reports.status, 'DRAFT')))
+        .where(and(eq(reports.status, 'DRAFT'), memberOf(userId)))
         .orderBy(desc(reports.updatedAt))
         .limit(1);
 
       return rows[0]?.id ?? null;
     },
 
-    /** Events on the caller's own reports, newest first. */
-    activity(userId: string, limit = 5) {
+    /** Events on the reader's records (or the whole office for an admin). */
+    activity(userId: string, limit = 5, isAdmin = false) {
       return events(
         and(
           eq(auditEvents.entityType, 'report'),
           inArray(auditEvents.action, [...INBOX_ACTIONS]),
-          eq(reports.ownerUserId, userId),
+          isAdmin ? undefined : memberOf(userId),
         ),
         limit,
       );
     },
 
-    /** Decisions the caller recorded, newest first (spec §6.1 `recentlyDecided`). */
+    /** Decisions the caller recorded, newest first. */
     recentlyDecided(userId: string, limit = 3) {
       return events(
         and(

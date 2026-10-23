@@ -6,7 +6,7 @@
  *                      ref_offices, ref_sdgs, ref_terms,
  *                      ref_attachment_requirements
  *   reports.ts         reports, report_sdgs, report_pics, report_comments,
- *                      attachments, tracking_counters, acknowledgements
+ *                      attachments, reference_counters, receipts
  *   operations.ts      audit_events, email_outbox, idempotency_keys
  *
  * Every table carries id, created_at, updated_at; reference data and users

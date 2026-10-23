@@ -4,6 +4,7 @@ import type {
   RepositoryQuery,
   RepositoryStatus,
 } from '@par/shared';
+import { referenceSearchTerms } from '@par/shared';
 import {
   and,
   asc,
@@ -35,6 +36,11 @@ export interface RepositoryPage {
   facets: RepositoryFacets;
 }
 
+export interface RepositoryViewer {
+  userId: string;
+  isAdmin: boolean;
+}
+
 const SEMESTER_LABELS: Record<string, string> = {
   '1': '1st Semester',
   '2': '2nd Semester',
@@ -42,19 +48,31 @@ const SEMESTER_LABELS: Record<string, string> = {
 };
 
 /**
- * Repository retrieval (spec §7.11). Drafts are not repository records, so the
- * query only ever sees submitted states; free text covers title, narrative,
- * location, and PIC name.
+ * Repository retrieval (spec §17). Drafts are not repository records, so the
+ * query only ever sees submitted states; free text covers the reference,
+ * title, narrative, location, and PIC name.
  */
 export function createReportSearchQueries(db: Database) {
   return {
     async search(
       query: RepositoryQuery & {
+        viewer: RepositoryViewer;
         activityFrom?: string | undefined;
         activityTo?: string | undefined;
       },
     ): Promise<RepositoryPage> {
-      const conditions: SQL[] = [eq(reports.status, query.status as RepositoryStatus)];
+      const conditions: (SQL | undefined)[] = [
+        eq(reports.status, query.status as RepositoryStatus),
+        query.viewer.isAdmin
+          ? undefined
+          : inArray(
+              reports.id,
+              db
+                .select({ id: reportPics.reportId })
+                .from(reportPics)
+                .where(eq(reportPics.userId, query.viewer.userId)),
+            ),
+      ];
 
       if (query.type) conditions.push(eq(reports.type, query.type));
       if (query.classification) conditions.push(eq(reports.classification, query.classification));
@@ -65,8 +83,15 @@ export function createReportSearchQueries(db: Database) {
         conditions.push(like(reports.department, likePattern(query.department)));
       if (query.office) conditions.push(like(reports.office, likePattern(query.office)));
       if (query.title) conditions.push(like(reports.title, likePattern(query.title)));
-      if (query.tracking)
-        conditions.push(like(reports.trackingNumber, likePattern(query.tracking)));
+      if (query.reference) {
+        conditions.push(
+          or(
+            ...referenceSearchTerms(query.reference).map((term) =>
+              like(reports.referenceNo, likePattern(term)),
+            ),
+          ),
+        );
+      }
       if (query.receivedFrom) conditions.push(gte(reports.submittedAt, query.receivedFrom));
       if (query.receivedTo)
         conditions.push(lte(reports.submittedAt, `${query.receivedTo}T23:59:59.999Z`));
@@ -101,6 +126,9 @@ export function createReportSearchQueries(db: Database) {
         const term = likePattern(query.q);
         conditions.push(
           or(
+            ...referenceSearchTerms(query.q).map((spelling) =>
+              like(reports.referenceNo, likePattern(spelling)),
+            ),
             like(reports.title, term),
             like(reports.narrative, term),
             like(reports.location, term),
@@ -109,13 +137,13 @@ export function createReportSearchQueries(db: Database) {
               db
                 .select({ id: reportPics.reportId })
                 .from(reportPics)
-                .where(like(reportPics.name, term)),
+                .where(or(like(reportPics.name, term), like(reportPics.email, term))),
             ),
-          )!,
+          ),
         );
       }
 
-      const where = and(...conditions);
+      const where = and(...conditions.filter((entry): entry is SQL => entry !== undefined));
       const order =
         query.sort === 'title'
           ? query.dir === 'asc'
@@ -127,10 +155,7 @@ export function createReportSearchQueries(db: Database) {
 
       const [rows, total] = await Promise.all([
         db
-          .select({
-            report: reports,
-            college: refUnits.name,
-          })
+          .select({ report: reports, college: refUnits.name })
           .from(reports)
           .leftJoin(refUnits, eq(reports.unitId, refUnits.id))
           .where(where)
@@ -144,11 +169,31 @@ export function createReportSearchQueries(db: Database) {
           .then((result) => Number(result[0]?.value ?? 0)),
       ]);
 
+      const picNames = new Map<string, string>();
+      if (rows.length > 0) {
+        const picRows = await db
+          .select({ reportId: reportPics.reportId, name: reportPics.name })
+          .from(reportPics)
+          .where(
+            inArray(
+              reportPics.reportId,
+              rows.map((row) => row.report.id),
+            ),
+          )
+          .orderBy(asc(reportPics.sortOrder));
+
+        for (const row of picRows) {
+          picNames.set(
+            row.reportId,
+            [picNames.get(row.reportId), row.name].filter(Boolean).join(', '),
+          );
+        }
+      }
+
       return {
         rows: rows.map((row) => ({
           id: row.report.id,
-          ownerUserId: row.report.ownerUserId,
-          trackingNumber: row.report.trackingNumber,
+          referenceNo: row.report.referenceNo,
           title: row.report.title,
           type: row.report.type,
           classification: row.report.classification,
@@ -157,6 +202,7 @@ export function createReportSearchQueries(db: Database) {
           campusId: row.report.campusId,
           collegeId: row.report.unitId,
           college: row.college ?? '',
+          picNames: picNames.get(row.report.id) ?? '',
           receivedAt: row.report.submittedAt ?? row.report.updatedAt,
           activityStartDate: row.report.activityStartDate,
           activityEndDate: row.report.activityEndDate,
@@ -193,12 +239,12 @@ export function createReportSearchQueries(db: Database) {
       colleges: colleges.map((row) => ({ id: row.id, label: row.name, isActive: row.isActive })),
       terms: terms.map((row) => ({
         id: row.id,
-        label: `${SEMESTER_LABELS[row.semester] ?? row.semester} \u00b7 SY ${row.schoolYear}`,
+        label: `${SEMESTER_LABELS[row.semester] ?? row.semester} · SY ${row.schoolYear}`,
         isActive: row.isActive,
       })),
       sdgs: sdgs.map((row) => ({
         id: row.id,
-        label: `SDG ${row.number} \u00b7 ${row.title}`,
+        label: `SDG ${row.number} · ${row.title}`,
         isActive: row.isActive,
       })),
     };

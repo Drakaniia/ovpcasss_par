@@ -110,7 +110,28 @@ export function createEmailOutboxQueries(db: Database) {
      * the last reminder for this report is the newest sent row whose payload
      * names it. Report ids are UUIDs, so the quote-delimited match is exact.
      */
-    async lastSentFor(kind: string, reportId: string): Promise<string | null> {
+    /**
+     * How many messages of one kind already went out for this report, optionally
+     * narrowed to one recipient so a multi-PIC record counts each allowance
+     * separately.
+     */
+    async countForReport(kind: string, reportId: string, to?: string): Promise<number> {
+      const rows = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(emailOutbox)
+        .where(
+          and(
+            eq(emailOutbox.kind, kind),
+            eq(emailOutbox.status, 'SENT'),
+            like(emailOutbox.payload, `%"reportId":"${reportId}"%`),
+            ...(to ? [eq(emailOutbox.to, to)] : []),
+          ),
+        );
+
+      return Number(rows[0]?.value ?? 0);
+    },
+
+    async lastSentFor(kind: string, reportId: string, to?: string): Promise<string | null> {
       const rows = await db
         .select({ createdAt: emailOutbox.createdAt })
         .from(emailOutbox)
@@ -119,6 +140,7 @@ export function createEmailOutboxQueries(db: Database) {
             eq(emailOutbox.kind, kind),
             eq(emailOutbox.status, 'SENT'),
             like(emailOutbox.payload, `%"reportId":"${reportId}"%`),
+            ...(to ? [eq(emailOutbox.to, to)] : []),
           ),
         )
         .orderBy(desc(emailOutbox.createdAt))

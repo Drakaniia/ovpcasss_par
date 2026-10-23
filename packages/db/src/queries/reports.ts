@@ -1,24 +1,15 @@
 import type { ReportStatus, ReportType, Semester } from '@par/shared';
-import { and, asc, eq, gte, inArray, isNotNull, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm';
 
 import type { Database } from '../client';
-import { users } from '../schema/identity';
 import { refCampuses, refSdgs, refTerms, refUnits } from '../schema/reference-data';
-import {
-  reportPics,
-  reports,
-  reportSdgs,
-  trackingCounters,
-  type NewReportRow,
-  type ReportPicRow,
-  type ReportRow,
-} from '../schema/reports';
+import { reportPics, reports, reportSdgs, type ReportRow } from '../schema/reports';
 
 /** A report as the monitoring sheet needs it: names resolved, lists gathered. */
 export interface MonitoringReportRecord {
   id: string;
   type: ReportType;
-  trackingNumber: string | null;
+  referenceNo: string;
   status: ReportStatus;
   classification: ReportRow['classification'];
   campusName: string;
@@ -32,31 +23,26 @@ export interface MonitoringReportRecord {
   location: string;
   totalStudents: number;
   totalPic: number;
+  createdAt: string;
   submittedAt: string | null;
   approvedAt: string | null;
   narrative: string;
   sdgNumbers: number[];
-  pics: { name: string; email: string | null; phone: string | null }[];
+  pics: { name: string; email: string; phone: string | null }[];
 }
 
 export interface MonitoringReportFilter {
-  /** Omit to read all three sheets in one pass, as the workbook does. */
   type?: ReportType;
-  /** Inclusive activity-date window of the selected term. */
   from: string;
   to: string;
   statuses: readonly ReportStatus[];
 }
 
-/** One report waiting in a queue, with the clock the reminder sweep measures. */
-export interface WaitingReportRecord {
+export interface OverdueDraft {
   id: string;
-  trackingNumber: string | null;
+  referenceNo: string;
   title: string;
-  ownerUserId: string;
-  submitterName: string;
-  /** `submitted_at` for the review queue, `endorsed_at` for approval. */
-  since: string;
+  createdAt: string;
 }
 
 /** SQLite takes at most 999 bound values; ids are batched well below that. */
@@ -70,10 +56,7 @@ function chunks<T>(values: readonly T[], size: number): T[][] {
   return result;
 }
 
-/**
- * Report reads and writes used by the monitoring workbook. Kept beside the
- * other query modules so routes never build SQL (spec §7).
- */
+/** Report reads used by the monitoring workbook and the office reminders. */
 export function createMonitoringQueries(db: Database) {
   async function withLists(
     rows: (Omit<MonitoringReportRecord, 'sdgNumbers' | 'pics'> & { id: string })[],
@@ -149,7 +132,7 @@ export function createMonitoringQueries(db: Database) {
         .select({
           id: reports.id,
           type: reports.type,
-          trackingNumber: reports.trackingNumber,
+          referenceNo: reports.referenceNo,
           status: reports.status,
           classification: reports.classification,
           campusName: refCampuses.name,
@@ -163,6 +146,7 @@ export function createMonitoringQueries(db: Database) {
           location: reports.location,
           totalStudents: reports.totalStudents,
           totalPic: reports.totalPic,
+          createdAt: reports.createdAt,
           submittedAt: reports.submittedAt,
           approvedAt: reports.approvedAt,
           narrative: reports.narrative,
@@ -171,7 +155,7 @@ export function createMonitoringQueries(db: Database) {
         .leftJoin(refCampuses, eq(reports.campusId, refCampuses.id))
         .leftJoin(refUnits, eq(reports.unitId, refUnits.id))
         .where(and(...conditions))
-        .orderBy(asc(reports.type), asc(reports.submittedAt), asc(reports.trackingNumber));
+        .orderBy(asc(reports.type), asc(reports.submittedAt), asc(reports.sequence));
 
       return withLists(
         rows.map((row) => ({
@@ -183,108 +167,20 @@ export function createMonitoringQueries(db: Database) {
     },
 
     /**
-     * Reports waiting in one queue since at least `sinceIso` (email spec §10.1).
-     * The clock is the same column the queue screen sorts by, so a reminder can
-     * never disagree with the age the reviewer sees.
+     * Draft records older than the reminder threshold. The sweep sends at most
+     * three reminders per record, tracked by the outbox (spec §11).
      */
-    async listWaitingSince(
-      statuses: readonly ReportStatus[],
-      sinceIso: string,
-      clock: 'submittedAt' | 'endorsedAt',
-    ): Promise<WaitingReportRecord[]> {
-      const column = clock === 'endorsedAt' ? reports.endorsedAt : reports.submittedAt;
-
-      const rows = await db
+    async listOverdueDrafts(createdBeforeIso: string): Promise<OverdueDraft[]> {
+      return db
         .select({
           id: reports.id,
-          trackingNumber: reports.trackingNumber,
+          referenceNo: reports.referenceNo,
           title: reports.title,
-          ownerUserId: reports.ownerUserId,
-          submitterName: users.fullName,
-          since: column,
+          createdAt: reports.createdAt,
         })
         .from(reports)
-        .leftJoin(users, eq(reports.ownerUserId, users.id))
-        .where(and(inArray(reports.status, statuses), isNotNull(column), lte(column, sinceIso)))
-        .orderBy(asc(column));
-
-      return rows.map((row) => ({
-        id: row.id,
-        trackingNumber: row.trackingNumber,
-        title: row.title,
-        ownerUserId: row.ownerUserId,
-        submitterName: row.submitterName ?? '',
-        since: row.since ?? '',
-      }));
-    },
-
-    async findByTrackingNumbers(numbers: readonly string[]): Promise<Map<string, ReportRow>> {
-      const found = new Map<string, ReportRow>();
-
-      for (const batch of chunks(numbers, ID_BATCH)) {
-        const rows = await db.select().from(reports).where(inArray(reports.trackingNumber, batch));
-
-        for (const row of rows) {
-          if (row.trackingNumber) found.set(row.trackingNumber, row);
-        }
-      }
-
-      return found;
-    },
-
-    async insertImportedReport(
-      values: NewReportRow,
-      sdgIds: readonly string[],
-      pics: readonly Omit<ReportPicRow, 'reportId'>[],
-    ): Promise<void> {
-      await db.insert(reports).values(values);
-
-      if (sdgIds.length > 0) {
-        await db.insert(reportSdgs).values(sdgIds.map((sdgId) => ({ reportId: values.id, sdgId })));
-      }
-
-      if (pics.length > 0) {
-        await db.insert(reportPics).values(pics.map((pic) => ({ ...pic, reportId: values.id })));
-      }
-    },
-
-    /**
-     * Updates the monitoring fields of an existing report. Imported edits do not
-     * touch the narrative, owner, or version: those belong to the submitter.
-     */
-    async updateImportedReport(
-      id: string,
-      values: Partial<NewReportRow>,
-      sdgIds: readonly string[],
-      pics: readonly Omit<ReportPicRow, 'reportId'>[],
-    ): Promise<void> {
-      await db.update(reports).set(values).where(eq(reports.id, id));
-
-      await db.delete(reportSdgs).where(eq(reportSdgs.reportId, id));
-      if (sdgIds.length > 0) {
-        await db.insert(reportSdgs).values(sdgIds.map((sdgId) => ({ reportId: id, sdgId })));
-      }
-
-      await db.delete(reportPics).where(eq(reportPics.reportId, id));
-      if (pics.length > 0) {
-        await db.insert(reportPics).values(pics.map((pic) => ({ ...pic, reportId: id })));
-      }
-    },
-
-    /**
-     * Keeps the sequence ahead of numbers imported from a workbook, so the next
-     * submit cannot mint a number the sheet already uses (spec §7.7).
-     */
-    async raiseTrackingCounter(prefix: string, year: number, seq: number): Promise<void> {
-      await db
-        .insert(trackingCounters)
-        .values({ prefix, year, lastSeq: seq })
-        .onConflictDoUpdate({
-          target: [trackingCounters.prefix, trackingCounters.year],
-          set: {
-            lastSeq: sql`max(${trackingCounters.lastSeq}, excluded.last_seq)`,
-          },
-        });
+        .where(and(eq(reports.status, 'DRAFT'), lte(reports.createdAt, createdBeforeIso)))
+        .orderBy(asc(reports.createdAt));
     },
   };
 }
