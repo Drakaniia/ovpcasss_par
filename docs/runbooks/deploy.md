@@ -18,10 +18,10 @@ serves, and the Windows desktop installer.
   breaks two things outside Cloudflare: every Worker is a new script and starts
   with no secrets (above), and any OAuth client that names the old host rejects
   the callback with `redirect_uri_mismatch`. Update `APP_ORIGIN` in
-  `wrangler.toml`, then add the new origin and
-  `<origin>/api/v1/auth/google/callback` to the Google client before testing
-  Google sign-in. The API derives the redirect URI from the request origin, so
-  no code changes with the move.
+  `wrangler.toml`, then add both the Pages origin and the Worker origin (and
+  `<origin>/api/v1/auth/google/callback` for each) to the Google client before
+  testing Google sign-in. Pages traffic uses `APP_ORIGIN`; the desktop shell
+  hits the Worker directly, so its redirect URI is the Worker host.
 - Cloudflare resources exist for the target environment: D1 `par-db`, R2
   `par-attachments` with its CORS policy, Queue `par-email` and `par-email-dlq`.
   `pnpm provision --apply` creates the missing ones and applies CORS; the

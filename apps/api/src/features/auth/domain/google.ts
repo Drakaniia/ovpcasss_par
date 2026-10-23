@@ -1,4 +1,20 @@
 const AUTHORIZE_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
+const CALLBACK_PATH = '/api/v1/auth/google/callback';
+
+/**
+ * Google must round-trip to the same host that set the state cookie.
+ * Pages traffic arrives via the Worker proxy, so the browser's host is APP_ORIGIN;
+ * the desktop shell and the Worker rollback path hit the API directly.
+ */
+export function googleCallbackUrl(input: {
+  appOrigin: string;
+  requestOrigin: string;
+  viaTrustedProxy: boolean;
+}): string {
+  const origin = input.viaTrustedProxy ? input.appOrigin : input.requestOrigin;
+  return new URL(CALLBACK_PATH, origin).toString();
+}
+
 
 export interface GoogleAuthUrlInput {
   clientId: string;

@@ -8,12 +8,14 @@ import { appOrigin } from '../../../lib/app-origin';
 import { recordAudit } from '../../../lib/audit';
 import { createId } from '../../../lib/ids';
 import { hashPassword } from '../../../lib/password';
+import { isTrustedProxy } from '../../../lib/request-context';
 import { createOpaqueToken } from '../../../lib/tokens';
 import {
   buildGoogleAuthUrl,
   decodeStateCookie,
   desktopRedirect,
   encodeStateCookie,
+  googleCallbackUrl,
   parseDesktopStart,
   type DesktopStart,
 } from '../domain/google';
@@ -44,7 +46,11 @@ export type GoogleOutcome =
   { ok: true; path: string } | { ok: false; code: GoogleFailure; path: string };
 
 function callbackUrl(c: Context<AppEnv>): string {
-  return new URL('/api/v1/auth/google/callback', appOrigin(c)).toString();
+  return googleCallbackUrl({
+    appOrigin: appOrigin(c),
+    requestOrigin: new URL(c.req.url).origin,
+    viaTrustedProxy: isTrustedProxy(c),
+  });
 }
 
 function failed(code: GoogleFailure, desktop: DesktopStart | null): GoogleOutcome {

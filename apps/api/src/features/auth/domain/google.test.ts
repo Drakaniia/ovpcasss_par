@@ -5,6 +5,7 @@ import {
   decodeStateCookie,
   desktopRedirect,
   encodeStateCookie,
+  googleCallbackUrl,
   parseDesktopStart,
 } from './google';
 
@@ -26,6 +27,41 @@ describe('buildGoogleAuthUrl', () => {
     expect(url.searchParams.get('response_type')).toBe('code');
     expect(url.searchParams.get('scope')).toBe('openid email profile');
     expect(url.searchParams.get('state')).toBe('state-token');
+  });
+});
+
+describe('googleCallbackUrl', () => {
+  const pages = 'https://ovpcasss-par.pages.dev';
+  const worker = 'https://par.ovpcasss.workers.dev';
+
+  it('names Pages when the request arrived through the trusted proxy', () => {
+    expect(
+      googleCallbackUrl({
+        appOrigin: pages,
+        requestOrigin: worker,
+        viaTrustedProxy: true,
+      }),
+    ).toBe(`${pages}/api/v1/auth/google/callback`);
+  });
+
+  it('names the Worker when the desktop shell hits the API directly', () => {
+    expect(
+      googleCallbackUrl({
+        appOrigin: pages,
+        requestOrigin: worker,
+        viaTrustedProxy: false,
+      }),
+    ).toBe(`${worker}/api/v1/auth/google/callback`);
+  });
+
+  it('names the Vite origin for local sign-in', () => {
+    expect(
+      googleCallbackUrl({
+        appOrigin: 'http://localhost:5173',
+        requestOrigin: 'http://localhost:5173',
+        viaTrustedProxy: false,
+      }),
+    ).toBe('http://localhost:5173/api/v1/auth/google/callback');
   });
 });
 
