@@ -26,3 +26,13 @@ APP_ORIGIN=http://localhost:5173
 # redirect URI http://localhost:5173/api/v1/auth/google/callback.
 GOOGLE_CLIENT_ID=replace-me
 GOOGLE_CLIENT_SECRET=replace-me
+# Address suggestions in the location field are on by default through
+# LOCATION_SUGGEST_URL in wrangler.toml [vars] (Photon, no account needed). Set
+# the template here to override it locally, and LOCATION_SUGGEST_KEY only for a
+# keyed provider: `{q}` is the query and `{key}` the secret.
+# LOCATION_SUGGEST_URL=https://photon.komoot.io/api/?q={q}&limit=6&lang=en
+# LOCATION_SUGGEST_KEY=replace-me
+# The Pages proxy (apps/web/functions) is the only caller that may claim a
+# browser address or a same-origin write. Leave PROXY_TOKEN unset locally: the
+# API then treats requests as direct and builds links from APP_ORIGIN above.
+# PROXY_TOKEN=replace-me

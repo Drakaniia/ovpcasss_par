@@ -9,6 +9,7 @@
           "http://tauri.localhost",
           "https://tauri.localhost",
           "https://*.workers.dev",
+          "https://*.pages.dev",
           "https://*.buksu.edu.ph"
         ],
         "methods": ["PUT", "GET", "HEAD"],

@@ -24,11 +24,27 @@ export interface Env {
   /** The office mailbox: workbook default recipient and the digest fallback. */
   OFFICE_EMAIL?: string;
   /**
-   * The deployed app's origin, used by mail composed outside a request (the
-   * reminder sweep and the failure digest). Request-driven mail uses the
-   * request's own origin, so this is only needed for cron.
+   * The address the browser uses for the app, which is the Pages site; the API
+   * is reached through its `/api/*` proxy, so a request's own URL names the
+   * Worker instead. Links in mail, receipts, and the Google redirect URI use
+   * this value, and the cron mail has no request to read. Unset locally, where
+   * the request origin is the web build on :5173.
    */
   APP_ORIGIN?: string;
+  /**
+   * Shared secret with the Pages Function that fronts this API. A request that
+   * presents it is treated as same-origin and may name the browser's address;
+   * absent, both behaviours stay off (spec §7.1, §10).
+   */
+  PROXY_TOKEN?: string;
+  /**
+   * Optional address lookup for the location field (bug phase 04 §3.2). The
+   * template takes `{q}` for the encoded query and `{key}` for the secret; with
+   * it unset the field offers only locations the office already used.
+   */
+  LOCATION_SUGGEST_URL?: string;
+  /** Provider key, sent in the template or as a bearer header; never a client value. */
+  LOCATION_SUGGEST_KEY?: string;
   /** Fixed signatory block on the OVPCASSS-F-013 receipt (spec §10.1). */
   RECEIPT_SIGNATORY_NAME?: string;
   RECEIPT_SIGNATORY_TITLE?: string;

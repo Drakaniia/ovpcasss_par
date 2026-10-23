@@ -2,6 +2,7 @@ import { createMiddleware } from 'hono/factory';
 import { getCookie } from 'hono/cookie';
 
 import type { AppEnv } from '../env';
+import { isTrustedProxy } from '../lib/request-context';
 import { SESSION_COOKIE } from '../lib/session-cookie';
 
 /**
@@ -9,10 +10,16 @@ import { SESSION_COOKIE } from '../lib/session-cookie';
  * blocks cross-site form posts; this origin check closes the rest. A request
  * that carries the session cookie must present a matching `Origin`; the desktop
  * bearer flow sends no cookie and is untouched.
+ *
+ * The Pages site is same-origin from the browser's point of view but its request
+ * reaches the Worker from a proxy, with the proxy's host and possibly no `Origin`
+ * at all, so the shared `PROXY_TOKEN` stands in for that match. A cross-site post
+ * still carries no cookie (SameSite=Lax), which is what this guard protects.
  */
 export const requireSameOrigin = createMiddleware<AppEnv>(async (c, next) => {
   if (isReadOnly(c.req.method)) return next();
   if (getCookie(c, SESSION_COOKIE) === undefined) return next();
+  if (isTrustedProxy(c)) return next();
 
   const origin = c.req.header('origin');
   const host = c.req.header('host');

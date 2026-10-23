@@ -30,6 +30,8 @@ serves, and the Windows desktop installer.
   no `[env.staging]` / `[env.production]` split, so there is no staging deploy
   target yet (spec §12, open questions §14 Q13-Q14). Until that lands, only a
   production deploy and a per-PR preview exist.
+- The Pages project `ovpcasss-par` exists (see **Pages site** below), and
+  `CLOUDFLARE_API_TOKEN` carries Pages:Edit as well as Workers and D1.
 
 ## Order of operations
 
@@ -83,6 +85,8 @@ Migrations run **before** the Worker that needs them. Never the other way round.
    ```bash
    pnpm --filter @par/api exec wrangler deploy
    ```
+   Then deploy the Pages site, which is the address the browser uses (see
+   **Pages site** below). Worker first: the new Function proxies to it.
 8. **Smoke test** the deployed origin:
    ```bash
    curl -fsS https://<origin>/api/health          # {"status":"ok"}
@@ -103,6 +107,75 @@ pnpm --filter @par/api exec wrangler versions upload --preview-alias pr-<number>
 The preview binds the same resources as production today, so **do not merge data
 changes** through a preview. `wrangler versions upload` also needs the Worker to
 exist already (one successful `wrangler deploy` first).
+
+## Pages site
+
+The browser opens `https://ovpcasss-par.pages.dev`. The Worker at
+`https://par.ovpcasss.workers.dev` is the API and keeps its own copy of the app
+as the rollback path. Pages serves the SPA and its
+`apps/web/functions/api/[[path]].ts` forwards `/api/*` to the Worker, so the
+browser still sees one origin — which is what the `SameSite=Lax` cookie and the
+CSRF guard require (spec §7.1, §7.4, §10).
+
+One-time setup, with the same random value for both secrets:
+
+```bash
+pnpm --filter @par/web exec wrangler pages project create ovpcasss-par --production-branch main
+pnpm --filter @par/api exec wrangler secret put PROXY_TOKEN
+pnpm --filter @par/web exec wrangler pages secret put PROXY_TOKEN --project-name ovpcasss-par
+```
+
+The API accepts the proxy's `x-par-proxy-token` only when it matches, and reads
+the browser's address from the same request. A mismatch fails closed: every
+signed-in write from Pages answers 403.
+
+Deploy after the Worker:
+
+```bash
+pnpm --filter @par/web build
+pnpm --filter @par/web exec wrangler pages deploy build --project-name ovpcasss-par --branch main
+```
+
+A pull request deploys `--branch pr-<number>` to
+`pr-<number>.ovpcasss-par.pages.dev`; the R2 CORS policy allows every
+`*.pages.dev` origin, so previews can upload too.
+
+Rollback: Workers & Pages → `ovpcasss-par` → Deployments → roll back to the last
+known-good deployment, or redeploy the previous tag. `APP_ORIGIN` in
+`apps/api/wrangler.toml` names this host, so renaming the project or moving to a
+custom domain means editing that line, the Pages domain, and the Google redirect
+URI together, then redeploying the Worker.
+
+### Local Pages run
+
+```bash
+pnpm --filter @par/api dev
+pnpm --filter @par/web build
+pnpm --filter @par/web exec wrangler pages dev build --binding API_ORIGIN=http://localhost:8787
+```
+
+`wrangler pages dev` serves the build and its Function. Leave `PROXY_TOKEN`
+unset locally: the API then treats the request as a direct one and keeps its
+loopback behaviour.
+
+### Address suggestions (location field)
+
+`LOCATION_SUGGEST_URL` in `apps/api/wrangler.toml [vars]` points at Photon
+(keyless, OpenStreetMap); `{q}` holds the encoded query and the lat/lon pair
+biases results toward Malaybalay City. Only the text typed into the location
+field leaves the Worker — the browser calls `/api/v1/locations/suggest`, never
+the provider — so the bundle, the CSP, and the desktop build are unchanged.
+
+- **Keyed provider:** put `{key}` in the template and set
+  `wrangler secret put LOCATION_SUGGEST_KEY --name par`. Without `{key}` in the
+  template the key travels as a bearer header instead.
+- **Swap or stop:** edit or delete the line and redeploy the Worker. With it
+  unset the field offers only locations the office already used, and no request
+  leaves Cloudflare.
+- **Quota:** the public Photon endpoint is meant for moderate use. If the office
+  outgrows it, move to a keyed provider rather than adding a retry; the route
+  already answers an empty list when the provider is slow, refuses, or is
+  unreachable.
 
 ## Desktop installer
 
@@ -127,4 +200,5 @@ installer; there is no in-app upgrade path.
   `level: "error"` lines.
 - Confirm the cron schedules are live: `wrangler deployments status` (or the
   dashboard) should show `17 * * * *` and `30 18 * * *`.
-- Record the deployed version id; `rollback.md` needs it.
+- Record the deployed version id and the Pages deployment; `rollback.md` needs
+  the Worker one.
