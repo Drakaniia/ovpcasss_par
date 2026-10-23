@@ -7,7 +7,7 @@
     REFERENCE_ENTITY_CONFIGS,
     REFERENCE_ENTITY_ORDER,
   } from '../application/reference-entities';
-  import { paramsForView } from '../application/reference-data';
+  import { referenceDataHref } from '../application/reference-data';
 
   let {
     entity,
@@ -19,10 +19,7 @@
 
   let entityRow: HTMLElement | undefined = $state();
 
-  const hrefFor = (key: ReferenceEntityKey): string => {
-    const params = paramsForView(key, showInactive);
-    return `/admin/reference-data${params ? `?${params}` : ''}`;
-  };
+  const hrefFor = (key: ReferenceEntityKey): string => referenceDataHref(key, showInactive);
 </script>
 
 <nav class="entity-tabs" aria-label="Reference data entities" bind:this={entityRow}>

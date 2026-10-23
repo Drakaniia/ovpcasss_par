@@ -6,6 +6,7 @@
   import EmptyState from '$lib/components/EmptyState.svelte';
   import ErrorState from '$lib/components/ErrorState.svelte';
   import SkeletonTable from '$lib/components/SkeletonTable.svelte';
+  import { referenceDataHref } from '$lib/features/admin/application/reference-data';
 
   import { ExportState } from '../application/export-state.svelte';
   import ExportForm from './ExportForm.svelte';
@@ -37,7 +38,7 @@
     <ErrorState
       variant="permission"
       title="You do not have access to monitoring exports"
-      description="Monitoring exports are available to reviewers, approvers, and administrators. Contact the OVPCASSS administrator if you believe this is a mistake."
+      description="Monitoring exports are available to administrators. Contact the OVPCASSS administrator if you believe this is a mistake."
       backHref="/"
       backLabel="Back to inbox"
     />
@@ -71,7 +72,7 @@
           ? 'Add a school year and semester in Reference data before exporting a monitoring sheet.'
           : 'Ask an administrator to add a school year and semester in Reference data before exporting a monitoring sheet.'}
         action={state.userRole === 'ADMIN'
-          ? { label: 'Open reference data', href: '/admin/reference-data' }
+          ? { label: 'Open reference data', href: referenceDataHref('terms') }
           : undefined}
         actionVariant="outline"
       />

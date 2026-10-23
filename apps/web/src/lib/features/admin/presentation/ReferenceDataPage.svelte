@@ -20,7 +20,7 @@
     draftForCreate,
     draftFromRow,
     entityFromParams,
-    paramsForView,
+    referenceDataHref,
     rowsFromEntries,
     showInactiveFromParams,
     visibleRows,
@@ -139,8 +139,7 @@
   }
 
   function updateView(nextEntity: ReferenceEntityKey, nextInactive: boolean) {
-    const params = paramsForView(nextEntity, nextInactive);
-    void goto(`/admin/reference-data${params ? `?${params}` : ''}`, { replaceState: true });
+    void goto(referenceDataHref(nextEntity, nextInactive), { replaceState: true });
   }
 
   function setInactive(next: boolean) {

@@ -10,6 +10,7 @@ import {
   entityFromParams,
   findDuplicate,
   paramsForView,
+  referenceDataHref,
   rowsFromEntries,
   savedMessage,
   showInactiveFromParams,
@@ -134,6 +135,12 @@ describe('URL state', () => {
     expect(entityFromParams(params)).toBe('attachment-requirements');
     expect(showInactiveFromParams(params)).toBe(true);
     expect(paramsForView('campuses', false)).toBe('');
+  });
+
+  it('builds a specific tab link without changing the default destination', () => {
+    expect(referenceDataHref('terms')).toBe('/admin/reference-data?entity=terms');
+    expect(referenceDataHref('campuses')).toBe('/admin/reference-data');
+    expect(referenceDataHref('units', true)).toBe('/admin/reference-data?entity=units&inactive=1');
   });
 });
 

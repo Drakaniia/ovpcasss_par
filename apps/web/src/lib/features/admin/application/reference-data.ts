@@ -39,6 +39,12 @@ export function paramsForView(entity: ReferenceEntityKey, showInactive: boolean)
   return params.toString();
 }
 
+/** The one builder for a reference-data destination (bug phase 07 §3.2). */
+export function referenceDataHref(entity: ReferenceEntityKey, showInactive = false): string {
+  const params = paramsForView(entity, showInactive);
+  return `/admin/reference-data${params ? `?${params}` : ''}`;
+}
+
 export function configFor(entity: ReferenceEntityKey): ReferenceEntityConfig {
   return REFERENCE_ENTITY_CONFIGS[entity];
 }
