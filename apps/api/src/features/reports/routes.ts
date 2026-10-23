@@ -15,6 +15,8 @@ import {
   reportDecisionSchema,
   reportListQuerySchema,
   reportNarrativeSchema,
+  reportSearchQuerySchema,
+  reportUpdateSchema,
   sourcesFor,
   validateActivity,
   validateNarrative,
@@ -24,6 +26,7 @@ import { Hono, type Context } from 'hono';
 
 import type { AppEnv } from '../../env';
 import { sendReturnedEmail, sendSubmittedEmail } from '../../email/report-mail';
+import { appOrigin } from '../../lib/app-origin';
 import { recordAudit } from '../../lib/audit';
 import { signedDownloadUrl } from '../../lib/download-url';
 import {
@@ -37,14 +40,16 @@ import { requireRole } from '../../middleware/authorize';
 import { notify } from '../notifications/application/notify';
 import { issueReceipts, renderReceiptBytes } from '../receipts/application/issue-receipts';
 import {
+  canArchive,
   canDecide,
   canDeleteRecord,
   canManageRecord,
-  canViewReport,
   canWriteNarrative,
   isAdmin,
   type Viewer,
 } from './domain/report-access';
+import { changedActivityFields } from './application/change-summary';
+import { toReportSearchItem } from './application/report-search';
 import { ensurePicAccounts, mailAssignedPics, mailRemovedPics } from './application/pic-accounts';
 import { buildReportDetail } from './application/report-detail';
 import { toAttachment, toReportHead, toReportListItem } from './application/record-shape';
@@ -127,8 +132,10 @@ async function detailOf(
   const read = stack(c).read;
   const isPic = await read.isPic(row.id, viewer.userId);
   return buildReportDetail(c.env, row, {
-    canWriteNarrative: canWriteNarrative(viewer, isPic, row.status),
+    canWriteNarrative: canWriteNarrative(viewer, row.status),
     canManage: canManageRecord(viewer, row.status),
+    canArchive: canArchive(viewer, row.status),
+    concealUnsubmitted: isAdmin(viewer) && !isPic && row.status === 'PENDING',
     ...(isAdmin(viewer) ? {} : { receiptsForUserId: viewer.userId }),
   });
 }
@@ -137,6 +144,31 @@ async function picUsers(c: Context<AppEnv>, pics: readonly ReportPicRow[]) {
   const users = stack(c).users;
   return Promise.all(pics.map((pic) => (pic.userId ? users.findById(pic.userId) : null)));
 }
+
+/* ---------- Palette search ---------- */
+
+/**
+ * Palette documents (phase 12 §4). Registered before `/:id`, which would
+ * otherwise read `search` as a report id. An empty query is the recent group,
+ * ordered by last edit; the register is open to every signed-in account
+ * (spec §5), so the palette never offers more than the rest of the app.
+ */
+reportRoutes.get('/search', async (c) => {
+  const viewer = viewerOf(c);
+  if (!viewer) return unauthorized(c);
+
+  const parsed = reportSearchQuerySchema.safeParse(c.req.query());
+  if (!parsed.success) return invalid(c, parsed.error.issues, 'That search is not valid');
+
+  const term = parsed.data.q ?? '';
+  const rows = await stack(c).read.search({
+    viewer: { userId: viewer.userId, isAdmin: isAdmin(viewer) },
+    ...(term ? { q: term } : {}),
+    limit: parsed.data.limit,
+  });
+
+  return c.json({ items: rows.map((row) => toReportSearchItem(row, term)) });
+});
 
 /* ---------- Register ---------- */
 
@@ -151,20 +183,26 @@ reportRoutes.get('/', async (c) => {
   const page = await store.read.list({
     viewer: { userId: viewer.userId, isAdmin: isAdmin(viewer) },
     tab: parsed.data.tab,
+    archived: parsed.data.archived,
     type: parsed.data.type,
     campus: parsed.data.campus,
     from: parsed.data.from,
     to: parsed.data.to,
     q: parsed.data.q,
+    picName: parsed.data.picName,
+    submittedBy: parsed.data.submittedBy,
     sort: parsed.data.sort,
     dir: parsed.data.dir,
     page: parsed.data.page,
     size: parsed.data.size,
   });
 
+  const submitters = await store.read.submitterNames(page.rows.map((row) => row.id));
   const items: ReportListItem[] = [];
   for (const row of page.rows) {
-    items.push(toReportListItem(row, await store.read.listPics(row.id)));
+    items.push(
+      toReportListItem(row, await store.read.listPics(row.id), submitters.get(row.id) ?? null),
+    );
   }
 
   return c.json({
@@ -197,7 +235,7 @@ reportRoutes.post('/', requireRole('ADMIN'), async (c) => {
     }
   }
 
-  const origin = new URL(c.req.url).origin;
+  const origin = appOrigin(c);
   const now = new Date().toISOString();
   const sequence = await store.write.nextReferenceSequence();
   const referenceNo = formatReferenceNo(sequence);
@@ -238,6 +276,7 @@ reportRoutes.post('/', requireRole('ADMIN'), async (c) => {
   );
 
   for (const pic of assigned) {
+    if (!pic.userId) continue;
     await notify(c.env, {
       userId: pic.userId,
       kind: 'ASSIGNED',
@@ -252,7 +291,7 @@ reportRoutes.post('/', requireRole('ADMIN'), async (c) => {
     action: 'RECORD_CREATED',
     entityType: 'report',
     entityId: row.id,
-    toStatus: 'DRAFT',
+    toStatus: 'PENDING',
     comment: referenceNo,
   });
 
@@ -280,36 +319,54 @@ reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
     return forbidden(c, 'An approved record can no longer be changed.');
   }
 
-  const parsed = reportActivitySchema.safeParse(await c.req.json().catch(() => null));
+  const parsed = reportUpdateSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return invalid(c, parsed.error.issues);
-  const issues = validateActivity(parsed.data);
+  const { reason, ...form } = parsed.data;
+  const issues = validateActivity(form);
   if (issues.length > 0) return invalid(c, issues);
 
   const version = versionFrom(c);
   if (version === null) return conflict(c, 'The record version is not valid.');
 
-  const before = await store.read.listPics(row.id);
+  const [before, beforeSdgIds] = await Promise.all([
+    store.read.listPics(row.id),
+    store.read.listSdgIds(row.id),
+  ]);
+  const changedFields = changedActivityFields({ row, beforePics: before, beforeSdgIds, form });
+  if (changedFields.length === 0) {
+    return c.json({ ...toReportHead(row), changedFields: [] });
+  }
+
+  const submitted = row.status === 'SUBMITTED' || row.status === 'RETURNED';
+  if (submitted && !reason) {
+    return invalid(
+      c,
+      [{ field: 'reason', message: 'Write why the activity details were corrected.' }],
+      'A correction after submission needs a reason',
+    );
+  }
+
   const now = new Date().toISOString();
-  const origin = new URL(c.req.url).origin;
+  const origin = appOrigin(c);
   const byEmail = new Map(before.map((pic) => [pic.email, pic]));
 
-  const fresh = parsed.data.pics.filter((pic) => !byEmail.has(pic.email.toLowerCase()));
+  const fresh = form.pics.filter((pic) => !byEmail.has(pic.email.toLowerCase()));
   const assigned = fresh.length > 0 ? await ensurePicAccounts(c.env, fresh, origin) : [];
 
   const updated = await store.write.updateRecord({
     id: row.id,
-    form: parsed.data,
+    form,
     now,
     ...(version === undefined ? {} : { version }),
-    from: ['DRAFT', 'SUBMITTED', 'RETURNED'],
+    from: ['PENDING', 'SUBMITTED', 'RETURNED'],
   });
   if (!updated) return conflict(c, 'This record changed on the server. Reload it and try again.');
 
   const keep = new Map(assigned.map((pic) => [pic.email, pic]));
   await store.write.replaceLists(
     row.id,
-    parsed.data.sdgIds,
-    parsed.data.pics.map((pic) => {
+    form.sdgIds,
+    form.pics.map((pic) => {
       const email = pic.email.toLowerCase();
       const previous = byEmail.get(email);
       const created = keep.get(email);
@@ -324,7 +381,7 @@ reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
     }),
   );
 
-  const nowEmails = new Set(parsed.data.pics.map((pic) => pic.email.toLowerCase()));
+  const nowEmails = new Set(form.pics.map((pic) => pic.email.toLowerCase()));
   const removed = before.filter((pic) => !nowEmails.has(pic.email));
   if (removed.length > 0) {
     await mailRemovedPics(
@@ -347,6 +404,38 @@ reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
       },
       row.id,
     );
+
+    for (const pic of assigned) {
+      if (!pic.userId) continue;
+      await notify(c.env, {
+        userId: pic.userId,
+        kind: 'ASSIGNED',
+        description: `${row.referenceNo} was assigned to you`,
+        target: { kind: 'report', reportId: row.id },
+      });
+    }
+  }
+
+  const retained = before.filter((pic) => nowEmails.has(pic.email) && pic.userId);
+  if (submitted && retained.length > 0) {
+    for (const pic of retained) {
+      await notify(c.env, {
+        userId: pic.userId ?? '',
+        kind: 'RECORD_EDITED',
+        description: `${row.referenceNo} activity details were corrected`,
+        ...(reason ? { comment: reason } : {}),
+        target: { kind: 'report', reportId: row.id },
+        email: {
+          kind: 'RECORD_EDITED',
+          to: pic.email,
+          referenceNo: row.referenceNo,
+          title: form.title,
+          changedFields,
+          ...(reason ? { reason } : {}),
+          origin,
+        },
+      });
+    }
   }
 
   await recordAudit(c, {
@@ -357,10 +446,10 @@ reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
     entityId: row.id,
     fromStatus: row.status,
     toStatus: updated.status,
-    comment: row.referenceNo,
+    comment: reason ? `${changedFields.join(', ')}: ${reason}` : row.referenceNo,
   });
 
-  return c.json(toReportHead(updated));
+  return c.json({ ...toReportHead(updated), changedFields });
 });
 
 reportRoutes.delete('/:id', requireRole('ADMIN'), async (c) => {
@@ -395,6 +484,67 @@ reportRoutes.delete('/:id', requireRole('ADMIN'), async (c) => {
   return c.body(null, 204);
 });
 
+/* ---------- Archive (a filing flag, never a transition) ---------- */
+
+reportRoutes.post('/:id/archive', requireRole('ADMIN'), async (c) => {
+  const viewer = viewerOf(c);
+  if (!viewer) return unauthorized(c);
+
+  const store = stack(c);
+  const row = await store.read.findById(c.req.param('id') ?? '');
+  if (!row) return notFound(c);
+  if (!canArchive(viewer, row.status)) {
+    return forbidden(c, 'Only an approved record can be archived.');
+  }
+
+  if (row.archivedAt) return c.json(toReportHead(row));
+
+  const now = new Date().toISOString();
+  const archived = await store.write.setArchived(row.id, {
+    archivedAt: now,
+    archivedByUserId: viewer.userId,
+  });
+  if (!archived) return conflict(c, 'This record changed on the server. Reload it and try again.');
+
+  await recordAudit(c, {
+    actorUserId: viewer.userId,
+    actorRole: viewer.role,
+    action: 'RECORD_ARCHIVED',
+    entityType: 'report',
+    entityId: row.id,
+    comment: row.referenceNo,
+  });
+
+  return c.json(toReportHead(archived));
+});
+
+reportRoutes.delete('/:id/archive', requireRole('ADMIN'), async (c) => {
+  const viewer = viewerOf(c);
+  if (!viewer) return unauthorized(c);
+
+  const store = stack(c);
+  const row = await store.read.findById(c.req.param('id') ?? '');
+  if (!row) return notFound(c);
+  if (!row.archivedAt) return c.json(toReportHead(row));
+
+  const archived = await store.write.setArchived(row.id, {
+    archivedAt: null,
+    archivedByUserId: null,
+  });
+  if (!archived) return conflict(c, 'This record changed on the server. Reload it and try again.');
+
+  await recordAudit(c, {
+    actorUserId: viewer.userId,
+    actorRole: viewer.role,
+    action: 'RECORD_UNARCHIVED',
+    entityType: 'report',
+    entityId: row.id,
+    comment: row.referenceNo,
+  });
+
+  return c.json(toReportHead(archived));
+});
+
 reportRoutes.get('/:id', async (c) => {
   const viewer = viewerOf(c);
   if (!viewer) return unauthorized(c);
@@ -402,8 +552,6 @@ reportRoutes.get('/:id', async (c) => {
   const store = stack(c);
   const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
-  const isPic = await store.read.isPic(row.id, viewer.userId);
-  if (!canViewReport(viewer, isPic)) return notFound(c);
 
   return c.json(await detailOf(c, row));
 });
@@ -417,8 +565,7 @@ reportRoutes.put('/:id/narrative', async (c) => {
   const store = stack(c);
   const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
-  const isPic = await store.read.isPic(row.id, viewer.userId);
-  if (!canWriteNarrative(viewer, isPic, row.status)) {
+  if (!canWriteNarrative(viewer, row.status)) {
     return forbidden(c, 'This record is not open for a narrative edit.');
   }
 
@@ -433,7 +580,7 @@ reportRoutes.put('/:id/narrative', async (c) => {
     narrative: parsed.data.narrative,
     now: new Date().toISOString(),
     ...(version === undefined ? {} : { version }),
-    from: ['DRAFT', 'RETURNED'],
+    from: ['PENDING', 'RETURNED'],
   });
   if (!updated) return conflict(c, 'This record changed on the server. Reload it and try again.');
 
@@ -457,7 +604,9 @@ reportRoutes.post('/:id/submit', async (c) => {
   const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
   const isPic = await store.read.isPic(row.id, viewer.userId);
-  if (!isPic) return forbidden(c, 'Only the personnel in charge may submit this narrative.');
+  if (viewer.role !== 'PERSONNEL' && !isAdmin(viewer)) {
+    return forbidden(c, 'Only personnel in charge may submit a narrative.');
+  }
 
   const key = idempotencyKey(c);
   const fingerprint = key ? await requestFingerprint({ reportId: row.id }) : '';
@@ -469,7 +618,7 @@ reportRoutes.post('/:id/submit', async (c) => {
     }
   }
 
-  if (row.status !== 'DRAFT' && row.status !== 'RETURNED') {
+  if (row.status !== 'PENDING' && row.status !== 'RETURNED') {
     return conflict(c, 'This narrative has already been submitted.');
   }
 
@@ -487,6 +636,19 @@ reportRoutes.post('/:id/submit', async (c) => {
 
   const submitter = await store.users.findById(viewer.userId);
   const now = new Date().toISOString();
+
+  // Claiming: a PIC who was never named on the record joins it at submission,
+  // so approval still issues their OVPCASSS-F-013 (spec §5, §10).
+  if (!isPic && viewer.role === 'PERSONNEL' && submitter) {
+    await store.write.addPic({
+      reportId: row.id,
+      userId: submitter.id,
+      name: submitter.fullName,
+      email: submitter.email,
+      now,
+    });
+  }
+
   const snapshot = await snapshotSubmittedSignature({
     reportId: row.id,
     reportSignatureKey: row.narrativeSignatureKey,
@@ -536,7 +698,7 @@ reportRoutes.post('/:id/submit', async (c) => {
         title: row.title,
         submitterName: submitter?.fullName,
         approvedAt: now,
-        origin: new URL(c.req.url).origin,
+        origin: appOrigin(c),
       },
       row.id,
     );
@@ -610,13 +772,13 @@ reportRoutes.post('/:id/decision', requireRole('ADMIN'), async (c) => {
   });
   if (!updated) return conflict(c, 'This record changed on the server. Reload it and try again.');
 
-  if (!approving && parsed.data.comments) {
+  if (parsed.data.comments) {
     const round = (await store.write.countReturns(row.id)) + 1;
     await store.write.insertComment({
       id: crypto.randomUUID(),
       reportId: row.id,
       authorUserId: viewer.userId,
-      kind: 'RETURN',
+      kind: approving ? 'OFFICE_NOTE' : 'RETURN',
       round,
       body: parsed.data.comments,
       createdAt: now,
@@ -625,7 +787,7 @@ reportRoutes.post('/:id/decision', requireRole('ADMIN'), async (c) => {
 
   const pics = await store.read.listPics(row.id);
   const recipients = await picUsers(c, pics);
-  const origin = new URL(c.req.url).origin;
+  const origin = appOrigin(c);
 
   for (const [index, pic] of pics.entries()) {
     if (!pic.userId) continue;
@@ -694,7 +856,7 @@ reportRoutes.post('/:id/invitation', requireRole('ADMIN'), async (c) => {
   if (row.status === 'APPROVED') return conflict(c, 'This record is already approved.');
 
   const pics = await store.read.listPics(row.id);
-  const origin = new URL(c.req.url).origin;
+  const origin = appOrigin(c);
   for (const pic of pics) {
     await mailAssignedPics(
       c.env,
@@ -739,8 +901,6 @@ reportRoutes.get('/:id/receipts', async (c) => {
   const store = stack(c);
   const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
-  const isPic = await store.read.isPic(row.id, viewer.userId);
-  if (!canViewReport(viewer, isPic)) return notFound(c);
 
   const rows = await store.receipts.listForReport(row.id);
   const mine = isAdmin(viewer)
@@ -764,32 +924,30 @@ reportRoutes.get('/:id/receipts/:receiptId/file', async (c) => {
   const store = stack(c);
   const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
-  const isPic = await store.read.isPic(row.id, viewer.userId);
-  if (!canViewReport(viewer, isPic)) return notFound(c);
 
   const receipt = await store.receipts.findById(c.req.param('receiptId') ?? '');
   if (!receipt || receipt.reportId !== row.id) return notFound(c);
   if (!isAdmin(viewer) && receipt.recipientUserId !== viewer.userId) return notFound(c);
 
-  const object = await c.env.BUCKET.get(receipt.objectKey);
-  let body: BodyInit | null = object ? (object.body as BodyInit) : null;
+  const pic = (await store.read.listPics(row.id)).find(
+    (candidate) => candidate.id === receipt.recipientPicId,
+  );
+  if (!pic) return notFound(c);
 
-  // A render that failed at approval is repaired here, without re-sending mail.
-  if (!body) {
-    const pic = (await store.read.listPics(row.id)).find(
-      (candidate) => candidate.id === receipt.recipientPicId,
-    );
-    if (!pic) return notFound(c);
-
-    try {
-      const bytes = await renderReceiptBytes(c.env, row, pic);
-      await c.env.BUCKET.put(receipt.objectKey, bytes, {
-        httpMetadata: { contentType: 'application/pdf' },
-      });
-      body = bytes as unknown as BodyInit;
-    } catch {
-      return notFound(c);
-    }
+  // The form is re-rendered from the approved record on every request, so a
+  // copy issued before the receipt layout was corrected still prints the
+  // current form. A render failure falls back to the copy stored at approval.
+  let body: BodyInit;
+  try {
+    const bytes = await renderReceiptBytes(c.env, row, pic);
+    await c.env.BUCKET.put(receipt.objectKey, bytes, {
+      httpMetadata: { contentType: 'application/pdf' },
+    });
+    body = bytes as unknown as BodyInit;
+  } catch {
+    const stored = await c.env.BUCKET.get(receipt.objectKey);
+    if (!stored) return notFound(c);
+    body = stored.body as BodyInit;
   }
 
   await recordAudit(c, {
@@ -820,8 +978,6 @@ reportRoutes.get('/:id/attachments/:attachmentId/url', async (c) => {
   const store = stack(c);
   const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
-  const isPic = await store.read.isPic(row.id, viewer.userId);
-  if (!canViewReport(viewer, isPic)) return notFound(c);
 
   const attachment = await store.attachments.findById(row.id, c.req.param('attachmentId') ?? '');
   if (!attachment || attachment.status !== 'CONFIRMED') return notFound(c);

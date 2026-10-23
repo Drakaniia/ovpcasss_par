@@ -7,7 +7,7 @@ export type MonitoringAssembly =
   { ok: true; sheet: MonitoringSheet } | { ok: false; message: string };
 
 const APPROVED_ONLY: readonly ReportStatus[] = ['APPROVED'];
-const WITH_IN_PROGRESS: readonly ReportStatus[] = ['APPROVED', 'SUBMITTED', 'RETURNED', 'DRAFT'];
+const WITH_IN_PROGRESS: readonly ReportStatus[] = ['APPROVED', 'SUBMITTED', 'RETURNED', 'PENDING'];
 
 /**
  * Term is the bucket: the activity date decides which term a report belongs to
@@ -32,6 +32,7 @@ export async function assembleMonitoring(
     from: term.startsOn,
     to: term.endsOn,
     statuses: request.includeInProgress ? WITH_IN_PROGRESS : APPROVED_ONLY,
+    includeArchived: request.includeArchived,
   });
 
   return {

@@ -4,6 +4,7 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
 
 import type { AppEnv } from '../../../env';
+import { appOrigin } from '../../../lib/app-origin';
 import { recordAudit } from '../../../lib/audit';
 import { createId } from '../../../lib/ids';
 import { hashPassword } from '../../../lib/password';
@@ -43,7 +44,7 @@ export type GoogleOutcome =
   { ok: true; path: string } | { ok: false; code: GoogleFailure; path: string };
 
 function callbackUrl(c: Context<AppEnv>): string {
-  return new URL('/api/v1/auth/google/callback', new URL(c.req.url).origin).toString();
+  return new URL('/api/v1/auth/google/callback', appOrigin(c)).toString();
 }
 
 function failed(code: GoogleFailure, desktop: DesktopStart | null): GoogleOutcome {

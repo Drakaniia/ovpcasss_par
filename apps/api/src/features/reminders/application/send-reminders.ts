@@ -23,7 +23,7 @@ export interface ReminderSummary {
  * The reminder sweep (spec §14). It reuses `notify()`, so a reminder appears in
  * the in-app inbox as well as in mail and the recipient's mute is honoured by
  * the same rule as every other message. A record stops being reminded once its
- * narrative is submitted, which is why only `DRAFT` rows are selected.
+ * narrative is submitted, which is why only `PENDING` rows are selected.
  */
 export async function sendReminders(
   env: Env,
@@ -37,7 +37,7 @@ export async function sendReminders(
   const users = createUserQueries(db);
 
   const cutoff = new Date(now.getTime() - thresholdDays * 86_400_000).toISOString();
-  const drafts = await records.listOverdueDrafts(cutoff);
+  const drafts = await records.listOverduePending(cutoff);
   const summary: ReminderSummary = { due: drafts.length, sent: 0 };
 
   for (const draft of drafts) {

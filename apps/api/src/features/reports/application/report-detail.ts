@@ -48,6 +48,9 @@ export async function buildReportDetail(
   options: {
     canWriteNarrative: boolean;
     canManage: boolean;
+    canArchive: boolean;
+    /** The office never reads a narrative draft before it is submitted. */
+    concealUnsubmitted: boolean;
     /** Set for a non-admin reader: only their own receipt is disclosed. */
     receiptsForUserId?: string;
   },
@@ -66,6 +69,7 @@ export async function buildReportDetail(
     createdBy,
     submittedBy,
     decidedBy,
+    archivedBy,
   ] = await Promise.all([
     read.listPics(row.id),
     read.listSdgIds(row.id),
@@ -76,6 +80,7 @@ export async function buildReportDetail(
     users.findById(row.createdByUserId),
     row.submittedByUserId ? users.findById(row.submittedByUserId) : Promise.resolve(null),
     row.approvedByUserId ? users.findById(row.approvedByUserId) : Promise.resolve(null),
+    row.archivedByUserId ? users.findById(row.archivedByUserId) : Promise.resolve(null),
   ]);
 
   const visibleReceipts = options.receiptsForUserId
@@ -109,7 +114,10 @@ export async function buildReportDetail(
     version: row.version,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-    form: formOf(row, pics, sdgIds),
+    form: {
+      ...formOf(row, pics, sdgIds),
+      narrative: options.concealUnsubmitted ? '' : row.narrative,
+    },
     pics: pics.map((pic) => ({
       id: pic.id,
       name: pic.name,
@@ -117,7 +125,7 @@ export async function buildReportDetail(
       ...(pic.phone ? { phone: pic.phone } : {}),
       ...(pic.userId ? { userId: pic.userId } : {}),
     })),
-    attachments: attachments.map(toAttachment),
+    attachments: options.concealUnsubmitted ? [] : attachments.map(toAttachment),
     receipts: visibleReceipts.map((receipt) => ({
       id: receipt.id,
       recipientName: receipt.recipientName,
@@ -172,5 +180,8 @@ export async function buildReportDetail(
       : {}),
     canWriteNarrative: options.canWriteNarrative,
     canManage: options.canManage,
+    canArchive: options.canArchive,
+    ...(row.archivedAt ? { archivedAt: row.archivedAt } : {}),
+    ...(archivedBy ? { archivedByName: archivedBy.fullName } : {}),
   };
 }

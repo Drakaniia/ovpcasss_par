@@ -9,6 +9,7 @@ import type { Context } from 'hono';
 
 import { sendPasswordResetEmail } from '../../../email/auth-mail';
 import type { AppEnv } from '../../../env';
+import { appOrigin } from '../../../lib/app-origin';
 import { recordAudit } from '../../../lib/audit';
 import { createId } from '../../../lib/ids';
 import { hashPassword } from '../../../lib/password';
@@ -60,7 +61,7 @@ export async function requestPasswordReset(
       to: email,
       fullName: user.fullName,
       token,
-      origin: new URL(c.req.url).origin,
+      origin: appOrigin(c),
     });
 
     await recordAudit(c, {

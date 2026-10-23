@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  MAX_REMINDERS,
-  REMINDER_AFTER_DAYS,
-  shouldRemind,
-  waitingDays,
-} from './reminder-schedule';
+import { MAX_REMINDERS, REMINDER_AFTER_DAYS, shouldRemind, waitingDays } from './reminder-schedule';
 
 const CREATED = '2026-10-01T00:00:00.000Z';
 
@@ -16,10 +11,20 @@ function at(iso: string): Date {
 describe('shouldRemind', () => {
   it('waits seven days from creation for the first reminder', () => {
     expect(
-      shouldRemind({ createdAt: CREATED, sentCount: 0, lastSentAt: null, now: at('2026-10-07T23:00:00Z') }),
+      shouldRemind({
+        createdAt: CREATED,
+        sentCount: 0,
+        lastSentAt: null,
+        now: at('2026-10-07T23:00:00Z'),
+      }),
     ).toBe(false);
     expect(
-      shouldRemind({ createdAt: CREATED, sentCount: 0, lastSentAt: null, now: at('2026-10-08T00:00:00Z') }),
+      shouldRemind({
+        createdAt: CREATED,
+        sentCount: 0,
+        lastSentAt: null,
+        now: at('2026-10-08T00:00:00Z'),
+      }),
     ).toBe(true);
     expect(REMINDER_AFTER_DAYS).toBe(7);
   });
@@ -57,7 +62,12 @@ describe('shouldRemind', () => {
 
   it('does not remind when a later reminder has no record of the earlier one', () => {
     expect(
-      shouldRemind({ createdAt: CREATED, sentCount: 1, lastSentAt: null, now: at('2026-11-01T00:00:00Z') }),
+      shouldRemind({
+        createdAt: CREATED,
+        sentCount: 1,
+        lastSentAt: null,
+        now: at('2026-11-01T00:00:00Z'),
+      }),
     ).toBe(false);
   });
 });

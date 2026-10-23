@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 
 import type { AppEnv } from '../env';
+import { appOrigin } from './app-origin';
 import {
   PresignUnavailableError,
   presignGet,
@@ -18,7 +19,8 @@ export async function signedDownloadUrl(
   fallbackPath: string,
   expiresSeconds = 300,
 ): Promise<string> {
-  const fallback = new URL(fallbackPath, c.req.url).toString();
+  // Same-origin with the browser (the Pages site), not with this Worker.
+  const fallback = new URL(fallbackPath, appOrigin(c)).toString();
   if (isLoopback(c.req.url)) return fallback;
 
   try {

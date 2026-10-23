@@ -24,7 +24,11 @@ export function toReportHead(row: ReportRow): ReportHead {
   };
 }
 
-export function toReportListItem(row: ReportRow, pics: readonly ReportPicRow[]): ReportListItem {
+export function toReportListItem(
+  row: ReportRow,
+  pics: readonly ReportPicRow[],
+  submittedByName: string | null = null,
+): ReportListItem {
   return {
     id: row.id,
     referenceNo: row.referenceNo,
@@ -35,7 +39,9 @@ export function toReportListItem(row: ReportRow, pics: readonly ReportPicRow[]):
     activityEndDate: row.activityEndDate,
     location: row.location,
     picNames: pics.map((pic) => pic.name).join(', '),
+    submittedByName,
     updatedAt: row.updatedAt,
     ...(row.submittedAt ? { submittedAt: row.submittedAt } : {}),
+    ...(row.archivedAt ? { archivedAt: row.archivedAt } : {}),
   };
 }
