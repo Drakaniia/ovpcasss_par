@@ -18,6 +18,16 @@ Backups rely on D1 Time Travel plus a scheduled export to R2 (`apps/api/src/cron
 daily at 18:30 UTC). The restore runbook must be verified against a real copy
 before go-live (spec §10); the drill is written but has not been run.
 
+## Personnel-narrative release (one-off)
+
+The release that introduced the office-created-record flow and `AR No. 0001`
+cleared the old register on purpose. Its procedure is `deploy.md` steps 3 and 5:
+back up, run `packages/db/scripts/reset-reports.sql` on the `0008` schema, clear
+the `reports/` and `signatures/reports/` R2 prefixes, apply migrations 0009–0011,
+rewrite any `SUBMITTER`/`REVIEWER`/`APPROVER` accounts to `PERSONNEL`, and
+confirm the first new record is `AR No. 0001`. Accounts, sessions, notifications,
+the outbox, reference data, and the append-only audit log survive.
+
 Mail is observable without a console session: `email_outbox` records every
 attempt, the admin log at `/admin/emails` lists it with a resend, and the daily
 cron mails active admins a failure digest when anything is `FAILED`. The log's

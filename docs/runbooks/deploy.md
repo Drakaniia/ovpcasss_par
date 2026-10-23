@@ -41,19 +41,29 @@ Migrations run **before** the Worker that needs them. Never the other way round.
    ```bash
    pnpm --filter @par/web build
    ```
-3. **Apply migrations (remote).**
+3. **Clear the old register, if this is the office-created-record release
+   (one-off, destructive).** Migrations 0009–0011 expect no old report rows: a
+   record's AR No. cannot be backfilled. Take a backup, run
+   `packages/db/scripts/reset-reports.sql` against the `0008` schema, and delete
+   the R2 objects under `reports/` and `signatures/reports/`. User accounts,
+   sessions, notifications, the email outbox, reference data, and `audit_events`
+   survive. Skip this on a database that never held reports.
+
+4. **Apply migrations (remote).**
    ```bash
    pnpm --filter @par/db exec wrangler d1 migrations apply par-db --remote
    ```
    Review the pending list before confirming. Migrations are forward-only; see
-   `rollback.md`.
-4. **Backfill the retired role state (one-off).** Only when upgrading a database
+   `rollback.md`. `reference_counters` starts empty, so the first created record
+   is `AR No. 0001`.
+5. **Backfill the retired role state (one-off).** Only when upgrading a database
    created before `PENDING_ROLE` was removed. Run it before the new Worker,
-   which rejects the old value, and confirm zero rows remain.
+   which rejects the old value, and confirm zero rows remain. Retired roles move
+   to the current personnel role.
 
    ```bash
    pnpm --filter @par/db exec wrangler d1 execute par-db --remote --config ../../apps/api/wrangler.toml \
-     --command "UPDATE users SET role='SUBMITTER', updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE role IS NULL; UPDATE users SET status='ACTIVE', updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE status='PENDING_ROLE';"
+     --command "UPDATE users SET role='PERSONNEL', updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE role IS NULL OR role IN ('SUBMITTER','REVIEWER','APPROVER'); UPDATE users SET status='ACTIVE', updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE status='PENDING_ROLE';"
    pnpm --filter @par/db exec wrangler d1 execute par-db --remote --config ../../apps/api/wrangler.toml \
      --command "SELECT count(*) AS pending FROM users WHERE status='PENDING_ROLE';"
    ```
@@ -61,7 +71,7 @@ Migrations run **before** the Worker that needs them. Never the other way round.
    Expect `pending` to be 0. This is a data fix, not a migration; no environment
    can create the state again.
 
-5. **Seed reference data (fresh database only).** Campus, unit, program, SDG,
+6. **Seed reference data (fresh database only).** Campus, unit, program, SDG,
    department, and office lists come from the workbook seed. The command is
    idempotent: it skips a row whose natural key already exists, so office edits
    survive a rerun.
@@ -69,11 +79,11 @@ Migrations run **before** the Worker that needs them. Never the other way round.
    pnpm db:seed --remote
    ```
    Terms and attachment requirements are not seeded; the office maintains them.
-6. **Deploy the Worker** (API plus the static assets from step 2).
+7. **Deploy the Worker** (API plus the static assets from step 2).
    ```bash
    pnpm --filter @par/api exec wrangler deploy
    ```
-7. **Smoke test** the deployed origin:
+8. **Smoke test** the deployed origin:
    ```bash
    curl -fsS https://<origin>/api/health          # {"status":"ok"}
    ```

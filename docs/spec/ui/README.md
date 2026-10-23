@@ -9,6 +9,16 @@ The original document is still the source contract. These files reorganize it;
 they do not change any decision in it. If a phase file disagrees with
 `par-ui-ux-spec.md`, the original wins and the phase file is wrong.
 
+**Revised 2026-10-23 for the office-created-record flow.**
+[`../personnel-narrative-flow-spec.md`](../personnel-narrative-flow-spec.md)
+retired the reviewer/approver queues and the submitter-created report: roles are
+`ADMIN | PERSONNEL`, the office registers the record and mints `AR No. 0001`, the
+PIC writes the narrative, and approval issues the OVPCASSS-F-013 receipt. Phases
+02, 06, 07, 08, 09 and 16 below still describe parts of the old four-role flow;
+where a checklist item names a reviewer, an approver, a queue, a tracking
+number, or a submitter creating a report, the newer spec wins and that item is
+retired.
+
 ## How to run a phase
 
 1. Start the session in the repo root, with the workspace installed

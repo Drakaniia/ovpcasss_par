@@ -63,7 +63,7 @@ also should use the original format: OVCPASSS - Paperless Process for the submis
 
 refine all with missign apple-design ui with simple implimentation, there are some remaining generic ui implimentation
 
-add app origin in the wrangler worker api, or updarw it using wrangler so it wont just work locall 
+add app origin in the wrangler worker api, or updarw it using wrangler so it wont just work locall
 
 ctrol + k, also search for reports feature.. — done 2026-10-21: palette searches every report the role can open (tracking, title, narrative, location, submitter, PIC), previews it, and Ctrl+K works while typing
 
@@ -74,7 +74,6 @@ did not sent to the eemail log in admin page
 "we could not update passowrd", what if the user login with google, why is there in the settings, current password input?, how to handle this, also it error "we could not update password try again error"
 
 no google oauth in the installed exe or msi file
-
 
 is the draft report only in suer localstoreage?
 
@@ -104,34 +103,54 @@ Checked item by item against the working tree. `pnpm verify` (lint, typecheck, t
 - Google sign-in in the installed MSI/EXE needs `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set as Worker secrets; the installer only carries the API URL.
 - Verification and approved mail need `EMAIL_API_KEY` and a verified sender on the deployed Worker.
 
+deploy real seed data @OVPCASSS-PAPERLESS_PROCESS_FOR_PAR.md to the cloudflare storage, not in local so it sync in all device.. so that dropdown actually has real values
 
-deploy real seed data @OVPCASSS-PAPERLESS_PROCESS_FOR_PAR.md  to the cloudflare storage, not in local so it sync in all device..  so that  dropdown actually has real values
+all first time user that logins or signup.. their role should automatically asign as submitter role, so no extra step for the admin to asign them each role.. the admin will later assign them if what their role
 
-all first time user that logins or signup..  their role should automatically asign as submitter role,  so no extra step for the admin to asign them each role..  the admin will later assign them if what their role
+complety remove the campus.png in all places in auth pages
 
-complety remove the campus.png  in all places in auth pages
+can we rename the worders api into par.ovpcasss or something like ovpcass, not the old floresaybaez574 my default clouflare name
 
-can we rename the worders api into  par.ovpcasss or something like ovpcass,   not the old  floresaybaez574  my default clouflare name
-
-did you now removed the harcoded OVPCASSS-PAPERLESS_PROCESS_FOR_PAR.md  values in .ts and should load from remote or online?
+did you now removed the harcoded OVPCASSS-PAPERLESS_PROCESS_FOR_PAR.md values in .ts and should load from remote or online?
 
 is all queues and repository are both on remote and not local?
 
 email sending is blocked on DNS, not code: `send.buksu.edu.ph` exists in Resend (domain id 11096304-b51e-4c25-8fa3-0fa141cfaf62) but its four records are still pending from university IT, because `buksu.edu.ph` lives in a different Cloudflare account than this one. Until those records land Resend answers 403 for every send, so registration and password reset cannot complete; the two bootstrap admins are already verified and unaffected. `EMAIL_API_KEY`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set on the `par` Worker.
 
-
-remove  or hide cthe cmd that biriefly shows when i cvlick google sign in/login in the auth pages, just dont make it appear when i lcick loginn
+remove or hide cthe cmd that biriefly shows when i cvlick google sign in/login in the auth pages, just dont make it appear when i lcick loginn
 
 signature can sign signature..
-, add in the flow that can add isgnature   that is included in the port for  the submitter
+, add in the flow that can add isgnature that is included in the port for the submitter
 
+make the admin can still approve and review the request, even in their own report so they can test the full flow
 
-make the admin can still approve and review the request, even in their own report  so they can test the full flow 
+in the approver and review page, in their home page, it did no show the list of report to review or to approve (i want also to improve the home page of all roles when they open the app apple-design)
 
+in the dropdown in all post activity report like camput, college unit, Department etc, the edit and delte should be on each department not on one two bottons, because i cant focus which one dropdown list to edit,, and make the ui pencil or trash icon - only show when hovered
 
-in the approver and review page, in their home page, it did no show the list of report to review or to approve  (i want also to improve the home page of all roles when they open the app  apple-design)
+fix in all steps in creating post activity report,, the red validation is so anoying.. it appears everytime i click for example the calendar icon but i did not input the "title of activity" it shows check the highlited field.... even also if i click it and did not put yet, its anoying it appears.. it should only appear when i click the next or arrow right on the keybaord shows, not during
 
+similar to the behavior in step 3, when i click the person in charge input but blank(did not input yet,), and i click backk to total number of students or total number of PIC, it shows red
 
+add reusable location.. or integrate like geo search in the location input in step 2, so its not so hard to manually real type the location address
 
-in the dropdown in all post activity report like camput, college unit, Department etc,  the edit and delte should be  on each department  not on one two bottons, because i cant focus which one dropdown list to edit,, and make the ui  pencil or trash icon - only show when hovered
+the save signature, its saved but it did not properly put in the summary report printable..
 
+in queue page or repository page, its two section by default. what if only show the first section, but then when i click in the list only show the preview (in two section side by side)
+
+in the /repository /exports page, when i click the when there is no monotoring notebook or no preview, it should navigate directly to /admin/reference data/terms directly not in the /admin/reference data/campuses
+
+add apple-design red dot indicator if there is a list in the tab "review or approval or all where it can be fit.
+
+add new column in the export excel, the reciept number and the day they start requesting
+
+we now change the flow,, the admin, they can create all the data such as the activity type, classification, campus, title of activity, date, locatin, number of activities, person in charge, etc.. basically from all step 1,2 and 3, and that report start from "AR No. 000_" starts from 0001 for example and increment every report. see the ACKNOWLEDGMENT RECEIPT , @OVPCASSS-F-013.ACKNOWLEDGMENT RECEIPT.docx .. (this is very important). use the docs to integrate to the system that will email them then achnokwledgement receipt
+
+new role.. personnel_in_charge or just personnel
+
+the admin should only check their submitted narrative report..
+
+the personnel_in_charge, they have their own dashbaord or page that they only see the Reference number, and they will input and submit their narrative report based on that reference number. and they will be emailed with the acknokwledgement reciept
+in their end they cant create new report or edit the report
+
+did the ACKNOWLEDGMENT RECEIPT output when after submitted a narrative reprort matches the @OVPCASSS-F-013.ACKNOWLEDGMENT RECEIPT.docx exactly?

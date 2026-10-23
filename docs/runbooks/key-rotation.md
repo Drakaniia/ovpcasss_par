@@ -11,7 +11,7 @@ git-ignored). Never inline one in the Tauri bundle, a build arg, or a migration.
 | `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`             | S3-compatible presigning (SigV4)   | Invalidates every outstanding presigned URL                    |
 | `R2_ACCOUNT_ID`                                         | Presign host                       | Only changes with the account                                  |
 | `SESSION_SECRET`                                        | Declared in `env.ts`, **not read** | Nothing today                                                  |
-| `ALLOWED_EMAIL_DOMAINS`, `EMAIL_PROVIDER`, `EMAIL_FROM` | `wrangler.toml` vars               | Changes behaviour on the next request                          |
+| `EMAIL_PROVIDER`, `EMAIL_FROM`                           | `wrangler.toml` vars               | Changes behaviour on the next request                          |
 | `BOOTSTRAP_ADMIN_EMAILS`                                | `wrangler.toml` vars               | That address becomes an active Admin the next time it verifies |
 
 **Session revocation is not a secret rotation.** Sessions are opaque 32-byte

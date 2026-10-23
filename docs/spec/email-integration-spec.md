@@ -1,6 +1,14 @@
 # Email integration — full-flow specification
 
-**Status:** proposed, not implemented
+**Status:** implemented; catalogue revised **2026-10-23** for the personnel-narrative flow
+
+> The office-created-record flow (`personnel-narrative-flow-spec.md`) changed the
+> mail catalogue: subjects now lead with the AR No. (`AR No. 0001 — …`), the
+> receipt mail carries the OVPCASSS-F-013 PDF, and the reviewer/approver/endorsement
+> kinds are retired. Section 5 below is current; the queue, queue-driven reminder,
+> and subject-tag material elsewhere in this document records the earlier design.
+> Where they differ, section 5 and the personnel-narrative spec win.
+
 **Scope:** `packages/email`, the API's mail paths, the outbox, reminders, workbook
 mailing, the admin email log, and the small amount of new web UI they need
 **Refines:** `par-paperless-spec.md` §7.9 (Notifications), §7.10 (acknowledgement),
@@ -193,21 +201,20 @@ close).
 
 ### 5.1 Workflow
 
-| Kind             | Fires when                                  | To                                                            | Subject                                                                      | Attachments         | Mute                       |
-| ---------------- | ------------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------- | -------------------------- |
-| `SUBMITTED`      | First submission (step 9)                   | Every active Reviewer except the actor and the owner          | `[OVPCASSS PAR] OFF-2026-0014 is ready for review`                           | —                   | `WORKFLOW`                 |
-| `RECEIPT`        | First submission only (step 8)              | The submitter                                                 | `[OVPCASSS PAR] Submission received: OFF-2026-0014`                          | PAR PDF             | `WORKFLOW`                 |
-| `RESUBMITTED`    | Resubmission (step 12)                      | Every active Reviewer except the actor and the owner          | `[OVPCASSS PAR] OFF-2026-0014 was resubmitted`                               | —                   | `WORKFLOW`                 |
-| `RETURNED`       | Reviewer or approver returns (steps 11, 16) | The submitter                                                 | `[OVPCASSS PAR] OFF-2026-0014 was returned for revision`                     | —                   | `WORKFLOW`                 |
-| `ENDORSED`       | Endorsement (step 14)                       | Every active Approver except the actor and the owner          | `[OVPCASSS PAR] OFF-2026-0014 is ready for approval`                         | —                   | `WORKFLOW`                 |
-| `APPROVED`       | Approval (step 18)                          | The submitter                                                 | `[OVPCASSS PAR] OFF-2026-0014 is approved`                                   | Acknowledgement PDF | `WORKFLOW`                 |
-| `REMINDER`       | Daily sweep, per report (§10)               | Active Reviewers (review queue) or Approvers (approval queue) | `… is still awaiting review` / `… awaiting approval`, by queue               | —                   | `REMINDER`                 |
-| `WORKBOOK`       | Admin/reviewer sends from Exports (§11)     | Up to five institutional addresses                            | `[OVPCASSS PAR] Monitoring workbook, OFF-CAMPUS, SY 2026-2027, 1st semester` | Monitoring xlsx     | n/a (explicit user action) |
-| `FAILURE_DIGEST` | Daily cron when failures exist (§9.5)       | Active Admins                                                 | `[OVPCASSS PAR] 3 messages could not be delivered`                           | —                   | n/a (operational)          |
+| Kind             | Fires when                            | To                                 | Subject                                                       | Attachments        | Mute                       |
+| ---------------- | ------------------------------------- | ---------------------------------- | ------------------------------------------------------------- | ------------------ | -------------------------- |
+| `ASSIGNED`       | Record created, or a PIC added        | Each PIC                           | `AR No. 0001 — you are the personnel in charge`               | —                  | `WORKFLOW`                 |
+| `SUBMITTED`      | The PIC submits the narrative         | Every active admin                 | `AR No. 0001 — narrative report ready for review`             | —                  | `WORKFLOW`                 |
+| `RETURNED`       | The office returns the narrative      | Every PIC                          | `AR No. 0001 — narrative report returned for revision`        | —                  | `WORKFLOW`                 |
+| `RECEIPT_ISSUED` | The office approves                   | Each PIC                           | `AR No. 0001 — acknowledgment receipt`                        | OVPCASSS-F-013 PDF | `WORKFLOW`                 |
+| `PIC_REMOVED`    | A PIC is removed from the record      | The removed PIC                    | `AR No. 0001 — removed as personnel in charge`                | —                  | `WORKFLOW`                 |
+| `REMINDER`       | 7 days after creation, then weekly ×3 | PICs with no submission            | `AR No. 0001 — narrative report still pending`                | —                  | `REMINDER`                 |
+| `WORKBOOK`       | Admin sends from Exports (§11)        | Up to five institutional addresses | `Monitoring workbook, OFF-CAMPUS, SY 2026-2027, 1st semester` | Monitoring xlsx    | n/a (explicit user action) |
+| `FAILURE_DIGEST` | Daily cron when failures exist (§9.5) | Active admins                      | `3 messages could not be delivered`                           | —                  | n/a (operational)          |
 
-`RESUBMITTED` is a new kind. It exists because step 12 deserves different copy
-than step 9 ("submitted again after revision") and because the receipt must not
-repeat.
+The subject always begins with the formatted AR No. There is no bracketed
+`[OVPCASSS PAR]` tag, no `RESUBMITTED`/`ENDORSED`/`APPROVED` kind, and no mail
+without a stored attachment claims that a receipt is attached.
 
 ### 5.2 Account and security
 
@@ -236,29 +243,26 @@ optional facts block (label/value pairs), an optional single primary action
 button, the signature block, and a footer line with the tracking number and a
 "do not reply" note.
 
-- **SUBMITTED:** "A post-activity report was submitted and is waiting for your
-  review." Facts: reference, activity, submitter, date received (Asia/Manila),
-  classification, campus/college. Action: `Open the review queue` → `/review`.
-- **RECEIPT:** "Your post-activity report was received." Facts: reference,
-  activity, date and time received, current status, what happens next ("The
-  OVPCASSS reviewer will review the report and may return it with comments.").
-  Action: `View the report` → `/reports/{id}`. Attachment: the PAR PDF exactly as
-  filed, watermarked `NOT_APPROVED`.
-- **RESUBMITTED:** same shape as SUBMITTED, wording "was resubmitted after
-  revision", plus the revision round count.
-- **RETURNED:** "The report was returned for revision by {actor}." The full
-  comment in a quoted block, verbatim, wrapped at 72 characters in plain text.
-  Facts: reference, activity, returned by, date. Action: `Revise the report`.
-- **ENDORSED:** "A post-activity report was endorsed and is waiting for your
-  decision." Facts: reference, activity, reviewer, date endorsed. Action:
-  `Open the approval queue`.
-- **APPROVED:** "Your post-activity report was approved." Facts: reference,
-  activity, approved by, date approved. Attachment: acknowledgement PDF. Action:
-  `View the report`. Copy notes that the acknowledgement is attached **only when
-  the attachment is actually present** (§7.3).
-- **REMINDER:** "This report has been waiting {n} working days." Facts:
-  reference, activity, submitter, waiting since, working days waiting. Action:
-  the queue. No comment, no blame language.
+- **ASSIGNED:** "The OVPCASSS office registered an activity and named you as the
+  personnel in charge under {AR No.}." Facts: reference, activity, date,
+  location. Action: `Open your dashboard` → `/`, or `Create your account` →
+  `/register` when the account is newly provisioned.
+- **SUBMITTED:** "{PIC name} submitted the narrative report for {AR No.}." Facts:
+  reference, activity, personnel in charge, submission time (Asia/Manila).
+  Action: `Open the reports queue` → `/reports?tab=submitted`.
+- **RETURNED:** "The office returned the narrative report for {AR No.} with
+  comments." The full comment in a quoted block, verbatim. Facts: reference,
+  activity. Action: `Revise the narrative` → `/`.
+- **RECEIPT_ISSUED:** "The office approved the narrative report for {AR No.}, and
+  the acknowledgment receipt is attached." Facts: reference, activity, personnel
+  in charge, approval date. Attachment: the OVPCASSS-F-013 PDF, queued by
+  reference. Action: `Download the receipt` → `/`. The copy says the receipt is
+  attached **only when the attachment is actually present** (§7.3).
+- **PIC_REMOVED:** "The office removed you as personnel in charge for {AR No.}."
+  Facts: reference, activity. No record details beyond that.
+- **REMINDER:** "{AR No.} was assigned to you {n} days ago, and the narrative
+  report has not been submitted." Facts: reference, activity, date, location.
+  Action: `Write the narrative` → `/`. No comment, no blame language.
 - **ROLE_ASSIGNED / ACCOUNT_ACTIVATED:** role name, what it lets them do, action
   `Sign in` → `/login`.
 - **ACCOUNT_DISABLED:** no action button; says to contact the office, and prints

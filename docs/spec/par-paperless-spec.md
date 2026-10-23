@@ -1,13 +1,15 @@
 # OVPCASSS Paperless PAR System: Project Initialization Spec
 
-Status: Draft v0.1 (spec only, no code written yet)
-Sources: `OVPCASSS-PAPERLESS_PROCESS_FOR_PAR.xlsx` / `.md` and the interview decisions recorded below.
+Status: Draft v0.1, revised **2026-10-23** for the office-created-record flow.
+Sources: `OVPCASSS-PAPERLESS_PROCESS_FOR_PAR.xlsx` / `.md`, the interview decisions recorded below, and `docs/spec/personnel-narrative-flow-spec.md`.
+
+The personnel-narrative flow supersedes this document where they differ: the roles are `ADMIN` and `PERSONNEL`, the AR No. replaces the per-type tracking number, the office registers the activity and decides once on the submitted narrative, and the OVPCASSS-F-013 acknowledgment receipt replaces the old approval PDF. Sections 7.5–7.10, 8 and 9 below carry the revised contract; the summary, planning, and appendix material is kept as the original project record.
 
 ---
 
 ## 1. Purpose and scope
 
-Replace the paper Post-Activity Report (PAR) process of OVPCASSS with a paperless system. The system covers submission, validation, review, endorsement, approval, acknowledgement, storage, search, and audit trail (the 22-step process in the source file), and produces the three monitoring sheets the office currently maintains by hand in Excel.
+Replace the paper Post-Activity Report (PAR) process of OVPCASSS with a paperless system. The office registers the activity, the personnel in charge write and submit the narrative, the office decides, and the system issues the OVPCASSS-F-013 acknowledgment receipt, with storage, search, and an append-only audit trail (the 22-step process in the source file). It also produces the three monitoring sheets the office currently maintains by hand in Excel.
 
 Delivery is a **hybrid**: one SvelteKit web app, also wrapped in **Tauri** as a Windows desktop app. The backend is **Cloudflare** (Workers + D1 + R2).
 
@@ -15,7 +17,7 @@ Delivery is a **hybrid**: one SvelteKit web app, also wrapped in **Tauri** as a 
 
 - Account registration, role approval, sign-in
 - PAR form (18 monitoring-sheet fields plus narrative and attachments)
-- Workflow: submit, review, return, resubmit, endorse, approve, acknowledge
+- Workflow: register, assign, submit narrative, return, resubmit, approve, issue receipt
 - Attachment upload and secure retrieval
 - Search and retrieval of stored reports
 - Excel export of the three monitoring sheets
@@ -44,22 +46,22 @@ Delivery is a **hybrid**: one SvelteKit web app, also wrapped in **Tauri** as a 
 | API                | Hono on Cloudflare Workers, REST, Zod validation                                                |
 | Database           | Cloudflare D1 (SQLite) + Drizzle ORM                                                            |
 | File storage       | Cloudflare R2 with signed URLs                                                                  |
-| Auth               | University email + password, built in-app                                                       |
-| Account creation   | Self-registration limited to a university email domain; admin approves the role                 |
-| Roles              | Submitter, Reviewer (OVPCASSS), Approver, Admin                                                 |
-| Approval           | Single approver per report                                                                      |
-| Approval signature | Uploaded or drawn signature image placed on the acknowledgement                                 |
+| Auth               | Email + password, built in-app; Google sign-in where configured                                 |
+| Account creation   | Self-registration open to any email; verification required; new accounts are `PERSONNEL`        |
+| Roles              | Admin and Personnel in charge (`ADMIN`, `PERSONNEL`)                                            |
+| Approval           | One office decision (approve or return) on the submitted narrative                              |
+| Approval signature | Fixed VPCASSS block on the F-013 receipt; the PIC signature is snapshotted on the record        |
 | Notifications      | Email (Cloudflare Email Service or Resend, behind an interface)                                 |
 | Offline            | Drafts persist locally on both shells; submitting requires connectivity (no outbox queue in v1) |
 | Sync conflicts     | Drafts are local-only until submitted; server wins once submitted                               |
-| Tracking number    | Per-type prefix + year + sequence, e.g. `OFF-2026-0001`                                         |
+| Reference number   | Global `AR No. 0001`, minted at admin creation, never reset or reused                           |
 | Monitoring sheets  | System generates the three sheets as Excel exports                                              |
 | Student data       | Counts only in form fields (names/IDs may still appear inside attachments)                      |
 | Dropdowns          | Admin-editable at runtime, seeded from the source spreadsheet                                   |
 | Attachments        | Any common file type, up to 25 MB each                                                          |
 | Monorepo           | pnpm workspaces + Turborepo                                                                     |
 | Environments       | Local, staging, production, plus a preview deployment per pull request                          |
-| PAR form fields    | The 18 monitoring-sheet columns plus narrative and attachments                                  |
+| PAR form fields    | The office registers steps 1–3; the PIC writes the narrative and attachments                    |
 
 ---
 
@@ -137,20 +139,19 @@ Tooling: Node 22 LTS, pnpm, Turborepo tasks `dev`, `build`, `lint`, `typecheck`,
 
 **Screens (v1)**
 
-| Screen                                                                  | Roles                                |
-| ----------------------------------------------------------------------- | ------------------------------------ |
-| Register / Verify email / Sign in / Forgot password                     | public                               |
-| My Reports (drafts, submitted, returned, approved)                      | Submitter                            |
-| PAR form (create/edit, attachments, validation summary)                 | Submitter                            |
-| Report detail (timeline, comments, attachments, acknowledgement)        | all with access                      |
-| Review queue and review screen (return with comments / endorse)         | Reviewer                             |
-| Approval queue and approval screen (approve / return)                   | Approver                             |
-| Search and repository                                                   | Reviewer, Approver, Admin            |
-| Monitoring sheet export (choose type, semester, SY)                     | Reviewer, Admin                      |
-| Admin: users and roles                                                  | Admin                                |
-| Admin: reference data (campuses, colleges, programs, SDGs, terms, etc.) | Admin                                |
-| Profile: password, signature image                                      | Approver (signature), all (password) |
-| Audit log viewer                                                        | Admin                                |
+| Screen                                                                  | Roles                     |
+| ----------------------------------------------------------------------- | ------------------------- |
+| Register / Verify email / Sign in / Forgot password                     | public                    |
+| Home: office queue, or the PIC's assignments                            | all, scoped by role       |
+| Record register (AR No., activity, PIC, status)                         | all, scoped by membership |
+| New record / edit details (three steps, PIC assignment)                 | Admin                     |
+| Record detail, narrative editor, decision panel, receipts               | all with access           |
+| Search and repository                                                   | all, scoped by membership |
+| Monitoring sheet export (choose type, semester, SY)                     | Admin                     |
+| Admin: users and roles                                                  | Admin                     |
+| Admin: reference data (campuses, colleges, programs, SDGs, terms, etc.) | Admin                     |
+| Profile: password, signature image                                      | all (signature optional)  |
+| Audit log viewer                                                        | Admin                     |
 
 ---
 
@@ -158,10 +159,10 @@ Tooling: Node 22 LTS, pnpm, Turborepo tasks `dev`, `build`, `lint`, `typecheck`,
 
 - Tauri 2, Windows targets (NSIS or MSI installer; WebView2 runtime handled by the installer).
 - `frontendDist` points to the `apps/web` build output; no separate UI code.
-- **Local drafts:** a `DraftStore` implementation backed by local SQLite (Tauri SQL plugin) storing draft form data. The web build uses IndexedDB behind the same interface, so a draft survives a reload or a restart on both shells.
-- **Submit behavior** (matches the "server wins once submitted" decision):
-  - Drafts exist only on the device until the user presses Submit, and submitting requires connectivity: the server validates, issues the tracking number, and moves the report to `SUBMITTED`. A failed submit keeps the draft and shows the standard error state; there is no offline outbox, so nothing is queued and nothing syncs in the background.
-  - For a report that was **returned for revision**, the client downloads the server copy and records its `version`. Local edits are a draft on top of that version. On resubmit, if the server `version` differs, the API responds `409` and the client discards the local changes and shows the server copy, with the user's unsent text preserved in a "recover my edits" panel.
+- **No local draft store:** the office registers a record on the server and the PIC saves the narrative server-side, so both shells resume from the API. The old local `DraftStore` was removed with the submitter flow.
+- **Write behavior** (matches the "server wins once submitted" decision):
+  - The admin's three-step form creates the record and mints its AR No. in one request. A failed save keeps the form and shows the standard error state; a retried save reuses its idempotency key.
+  - The PIC saves a narrative draft, then submits it. A record returned for revision keeps the server's `version`; if the version differs on save, the API answers `409` and the client reloads the server copy rather than overwriting it.
 - **Auth on desktop:** bearer session token kept in the OS credential store (Tauri keyring/stronghold plugin), not in webview storage.
 - **API origin:** the API must allow the Tauri webview origins (`http://tauri.localhost` on Windows, `tauri://localhost` on macOS later) in CORS. Verify exact origins at scaffold time.
 - Tauri security: minimal capabilities/permissions, strict CSP, no arbitrary filesystem access beyond the file dialog and the app data folder.
@@ -178,7 +179,7 @@ Tooling: Node 22 LTS, pnpm, Turborepo tasks `dev`, `build`, `lint`, `typecheck`,
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | Worker (Hono)       | API under `/api/*`; also serves the web build via Static Assets so web and API share an origin (no CORS for web users) |
 | D1                  | All relational data                                                                                                    |
-| R2 bucket (private) | Attachments, signature images, generated acknowledgement PDFs, exports                                                 |
+| R2 bucket (private) | Attachments, signature images, F-013 receipt PDFs, the office facsimile, exports                                       |
 | Queues              | Outbound email with retries and a dead-letter queue                                                                    |
 | Cron Triggers       | Cleanup of expired sessions/tokens and orphaned uploads; optional D1 export to R2                                      |
 | Secrets             | Email provider key, session/HMAC secrets, R2 S3 credentials for presigning                                             |
@@ -191,29 +192,29 @@ Separate D1/R2/Queue resources for **staging** and **production**. Preview deplo
 - Zod validation on every input; consistent error envelope `{ error: { code, message, details? } }`.
 - Auth middleware resolves the session; role/permission middleware per route.
 - Pagination (cursor or page/limit) on all list endpoints.
-- Idempotency key support on submit, so a retried submit cannot create a duplicate report.
+- Idempotency key support on create and submit, so a retried write cannot mint a second AR No. or a second submission.
 
 ### 7.3 Endpoint groups (initial)
 
-| Group           | Endpoints (sketch)                                                                                                                                                                                     |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Auth            | `POST /auth/register`, `POST /auth/verify-email`, `POST /auth/login`, `POST /auth/logout`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `GET /me`                                        |
-| Users (admin)   | `GET /users`, `PATCH /users/:id/role`, `POST /users/:id/approve`, `POST /users/:id/disable`                                                                                                            |
-| Reference data  | `GET /ref/*` (all authenticated), `POST/PATCH/DELETE /ref/*` (admin)                                                                                                                                   |
-| Reports         | `POST /reports` (create draft), `GET /reports`, `GET /reports/:id`, `PATCH /reports/:id` (draft/returned only), `POST /reports/:id/validate`, `POST /reports/:id/submit`, `POST /reports/:id/resubmit` |
-| Review          | `POST /reports/:id/return` (reviewer, with comments), `POST /reports/:id/endorse`                                                                                                                      |
-| Approval        | `POST /reports/:id/approve`, `POST /reports/:id/return-for-revision` (approver)                                                                                                                        |
-| Attachments     | `POST /reports/:id/attachments/presign`, `POST /reports/:id/attachments/:aid/confirm`, `GET /reports/:id/attachments/:aid/url`, `DELETE ...`                                                           |
-| Acknowledgement | `GET /reports/:id/acknowledgement` (PDF)                                                                                                                                                               |
-| Search          | `GET /search/reports` with filters                                                                                                                                                                     |
-| Exports         | `POST /exports/monitoring` (type, term) returning an `.xlsx`                                                                                                                                           |
-| Audit           | `GET /audit` (admin), `GET /reports/:id/events` (timeline)                                                                                                                                             |
-| Profile         | `PUT /me/signature`, `POST /me/password`                                                                                                                                                               |
+| Group          | Endpoints (sketch)                                                                                                                                                                                  |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth           | `POST /auth/register`, `POST /auth/verify-email`, `POST /auth/login`, `POST /auth/logout`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `GET /me`                                     |
+| Users (admin)  | `GET /users`, `PATCH /users/:id/role`, `POST /users/:id/approve`, `POST /users/:id/disable`                                                                                                         |
+| Reference data | `GET /ref/*` (all authenticated), `POST/PATCH/DELETE /ref/*` (admin)                                                                                                                                |
+| Reports        | `POST /reports` (admin creates, mints AR No.), `GET /reports`, `GET /reports/:id`, `PATCH /reports/:id` (admin, until approved), `DELETE /reports/:id` (DRAFT only), `POST /reports/:id/invitation` |
+| Narrative      | `PUT /reports/:id/narrative` (PIC draft), `POST /reports/:id/submit` (PIC, idempotent)                                                                                                              |
+| Decision       | `POST /reports/:id/decision` (admin: `APPROVE` or `RETURN` with comments)                                                                                                                           |
+| Attachments    | `POST /reports/:id/attachments/presign`, `POST /reports/:id/attachments/:aid/confirm`, `GET /reports/:id/attachments/:aid/url`, `DELETE ...` (PIC while the narrative is open)                      |
+| Receipts       | `GET /reports/:id/receipts`, `GET /reports/:id/receipts/:receiptId/file` (F-013 PDF; admin or the named PIC)                                                                                        |
+| Search         | `GET /search/reports` with filters, scoped to the caller's records                                                                                                                                  |
+| Exports        | `POST /exports/monitoring` (type, term) returning an `.xlsx`                                                                                                                                        |
+| Audit          | `GET /audit` (admin), `GET /reports/:id/events` (timeline)                                                                                                                                          |
+| Profile        | `PUT /me/signature`, `POST /me/password`                                                                                                                                                            |
 
 ### 7.4 Authentication details
 
-- Registration is allowed only for emails on the configured university domain list (env/config, e.g. `ALLOWED_EMAIL_DOMAINS`). Email verification link required before the account can sign in.
-- A new account starts as a **Submitter**. After verification it is `ACTIVE`; there is no approval wait. An admin may change the role later (Submitter, Reviewer, Approver, Admin); a role change takes effect immediately and never gates activation.
+- Registration is open to any email address; the university-domain limit was removed with the personnel-in-charge flow. Email verification is still required before a password account can sign in, and Google sign-in is allowed where configured.
+- A new password account starts as **Personnel in charge** (`PERSONNEL`), `PENDING_VERIFICATION`; after verification it is `ACTIVE` and lands on its narrative dashboard. A first-time Google sign-in is `PERSONNEL` and already verified by the provider. `BOOTSTRAP_ADMIN_EMAILS` addresses become `ADMIN` on verification/sign-in, and an admin may promote another account from `/admin/users`; a role change takes effect immediately and never gates activation.
 - **Password hashing:** Workers limit WebCrypto PBKDF2 iteration counts, so the choice is PBKDF2-SHA256 at the platform maximum, or scrypt/Argon2 via a WASM build. Decide at scaffold time and store the algorithm and parameters per hash so it can be upgraded on login.
 - Sessions: random opaque tokens, stored **hashed** in D1 with expiry and last-seen. Web: `HttpOnly; Secure; SameSite=Lax` cookie. Desktop: bearer token from the OS credential store.
 - Brute-force protection: per-IP and per-account rate limiting (Workers rate limiting binding or a D1 counter), short lockout, uniform error messages.
@@ -223,46 +224,44 @@ Separate D1/R2/Queue resources for **staging** and **production**. Preview deplo
 
 Defined once in `packages/shared` as pure functions; the API enforces it, the UI reads it to show valid actions.
 
-| State                  | Meaning                                                                          | Source steps |
-| ---------------------- | -------------------------------------------------------------------------------- | ------------ |
-| `DRAFT`                | Being filled in (server-side draft optional; desktop drafts are local)           | 1-4          |
-| `SUBMITTED`            | Passed validation, reference number issued, reviewers notified                   | 5-9          |
-| `RETURNED_BY_REVIEWER` | Corrections requested, with comments                                             | 11           |
-| `RESUBMITTED`          | User revised and resubmitted; back in review queue                               | 12-13        |
-| `ENDORSED`             | Reviewer endorsed to the approving officer                                       | 14           |
-| `RETURNED_BY_APPROVER` | Approver requested corrections                                                   | 16           |
-| `APPROVED`             | Approved; approval date, officer name, acknowledgement generated, files archived | 15, 17-19    |
+| State       | Meaning                                                     | Who acts next        |
+| ----------- | ----------------------------------------------------------- | -------------------- |
+| `DRAFT`     | The office registered the activity; narrative not submitted | PIC (or admin edits) |
+| `SUBMITTED` | The narrative is in; the office review is pending           | Admin                |
+| `RETURNED`  | The office sent it back with comments; the PIC may revise   | PIC                  |
+| `APPROVED`  | Accepted; receipts issued; terminal                         | —                    |
 
 Allowed transitions (summary):
 
 ```
 DRAFT → SUBMITTED
-SUBMITTED | RESUBMITTED → RETURNED_BY_REVIEWER | ENDORSED
-RETURNED_BY_REVIEWER → RESUBMITTED
-ENDORSED → APPROVED | RETURNED_BY_APPROVER
-RETURNED_BY_APPROVER → RESUBMITTED   (goes back through review)
+SUBMITTED → RETURNED | APPROVED
+RETURNED → SUBMITTED
+APPROVED → (terminal)
 ```
 
 Rules:
 
-- Only the owning Submitter edits `DRAFT` / `RETURNED_*` reports. Everything else is read-only.
-- A user cannot review or approve a report they submitted (separation of duties), even if they hold multiple capabilities. An ADMIN is the one exception: it stands in for every role and may walk its own report through review and approval, which is recorded in the audit trail like any other decision.
-- The owner may attach a signature to a `DRAFT` or `RETURNED_*` report. It is optional, snapshotted onto the report, and printed in the facsimile's "Submitted by" slot; later changes to the profile signature never alter a signed report.
+- The admin registers the activity and may edit its details and PIC list until `APPROVED`; an activity edit never touches the narrative or its attachments.
+- Only a listed PIC writes the narrative, and only while the record is `DRAFT` or `RETURNED`. Everyone else reads it.
+- Deletion is allowed in `DRAFT` only, and retires the AR No. without renumbering the register.
+- A user cannot decide a narrative they submitted themselves. An ADMIN is the one exception: it stands in for the office and may decide its own record, which is recorded in the audit trail like any other decision.
+- The PIC may attach a signature to a `DRAFT` or `RETURNED` record. It is optional, snapshotted at submission, and printed in the facsimile's "Submitted by" slot; later changes to the profile signature never alter a submitted record.
 - Every transition writes an audit event and bumps `version`.
-- `APPROVED` is terminal; later changes require an admin-controlled amendment process (not in v1).
+- `APPROVED` is terminal; it locks the activity fields, PIC list, narrative, and deletion.
 
-### 7.6 Validation (step 5)
+### 7.6 Validation
 
-- Server-side Zod schema for the full report; `POST /reports/:id/validate` returns a list of field-level problems so the UI can show a completeness checklist.
-- Required attachments and minimum counts are configurable per activity type (admin reference data); exact required list is an **open question** (section 14).
-- Attachments must be in `CONFIRMED` state (uploaded and verified) to count.
+- One Zod schema for the activity the admin registers (three wizard steps) and one for the PIC's narrative. Validation runs inside `POST /reports`, `PATCH /reports/:id`, and `POST /reports/:id/submit`; there is no separate validate endpoint.
+- On create and edit: at least one SDG, at least one PIC with a name and email, activity count ≥ 1, and a complete activity block. The three-step UI reddens a field only after an attempt to continue, never on focus.
+- On submit: the narrative is required; attachments must be in `CONFIRMED` state (uploaded and verified) to count, and the configured attachment rules still apply.
 
-### 7.7 Tracking numbers (step 8)
+### 7.7 AR No. reference numbers
 
-- Format: `<PREFIX>-<YEAR>-<SEQ4+>`; prefixes `OFF` (Off-Campus), `EDU` (Educational Tour), `INC` (In-Campus). Sequence is zero-padded to at least 4 digits and resets each year, per prefix.
-- Issued at **first submission** only, never at draft creation and never changed on resubmission.
-- Generated atomically in D1 with a counter table, e.g. `INSERT ... ON CONFLICT(prefix, year) DO UPDATE SET last_seq = last_seq + 1 RETURNING last_seq`, in the same batch as the status change, with a unique index on `tracking_number`.
-- "Year" is assumed to be the calendar year of submission (confirm, see section 14).
+- Format: `AR No. ` followed by a zero-padded sequence of at least four digits — `AR No. 0001` … `AR No. 9999`, `AR No. 10000`. The full formatted string is stored on the record, so lists, detail, search, mail, PDFs, and exports never reformat it.
+- One global sequence for the life of the system: no type prefix, no year component, never reset and never reused. A deleted draft leaves a permanent gap.
+- Issued **at admin creation**, atomically with the counter increment, with a unique index on `reference_no`; `sequence` is stored beside it for ordering.
+- Search accepts `0001`, `AR No. 0001`, and the punctuation-free `ar no 0001`.
 
 ### 7.8 Attachments
 
@@ -274,27 +273,31 @@ Rules:
 
 ### 7.9 Notifications
 
-| Event                                             | Recipient                        |
-| ------------------------------------------------- | -------------------------------- |
-| Report submitted / resubmitted (step 9)           | Reviewers (all active Reviewers) |
-| Returned by reviewer or approver                  | Submitter, with comments         |
-| Endorsed                                          | Approver(s)                      |
-| Approved, acknowledgement ready                   | Submitter                        |
-| Email verification, password reset, role approved | The user                         |
+| Event                              | Recipient                             |
+| ---------------------------------- | ------------------------------------- |
+| Record created, or a PIC added     | Each PIC, naming the AR No.           |
+| Narrative submitted                | All active admins                     |
+| Narrative returned for revision    | Every PIC, with the office's comments |
+| Approved, receipt ready            | Each PIC, with the F-013 PDF attached |
+| Reminder (7 days, then weekly ×3)  | PICs with no submission               |
+| PIC removed                        | The removed PIC                       |
+| Email verification, password reset | The user                              |
 
 - `EmailProvider` interface with adapters for Resend and Cloudflare Email Service; chosen by env var. Templates live in `packages/email`.
 - Sends go through a Queue (retry with backoff, dead-letter queue, failed sends visible to admins). A failed email never blocks a workflow transition.
 
-### 7.10 Acknowledgement and storage (steps 17-19)
+### 7.10 Acknowledgment receipt (OVPCASSS-F-013)
 
-- On approval: record `approved_at` and the approver's name/ID, render a **PDF acknowledgement** (report summary, tracking number, dates, approver name, approver signature image) with a Worker-compatible PDF library (e.g. `pdf-lib`), store it in R2, and link it to the report.
-- Approver signature image: uploaded or drawn in the profile, validated (PNG/JPEG, size limit, optional transparent background), stored privately in R2. Only the signature rendering on the acknowledgement is shown; the raw file is not downloadable by others.
-- Approved reports plus attachments remain in the repository; retention period is an open question.
+- On approval the system renders one **ACKNOWLEDGMENT RECEIPT** per PIC with `pdf-lib`, stores it privately in R2 at `receipts/<reportId>/<picId>.pdf`, records it in `receipts`, and mails it as a PDF attachment. The receipt is the exact facsimile of `docs/OVPCASSS-F-013.ACKNOWLEDGMENT RECEIPT.docx`: letterhead, wording, AR No., activity date or range, approval-date line, fixed VPCASSS signatory, and the document-code footer. Only the in-campus/off-campus phrase changes.
+- The office facsimile PDF is an internal copy and is not mailed; it carries the watermark rules and the PIC's snapshotted signature.
+- A render or mail failure never rolls back the approval: the record stays `APPROVED`, the failure is visible in the admin email log, and a later download re-renders the stored file.
+- The PIC's signature is uploaded or drawn in the profile, validated (PNG/JPEG, size limit), stored privately in R2, and snapshotted onto the record at submission. The receipt itself is signed only by the fixed VPCASSS block.
+- Approved records plus attachments remain in the repository; retention period is an open question.
 
 ### 7.11 Search and retrieval (step 20)
 
-- Filters: tracking number, title, type, classification, campus, college, department, office, level, SDG, status, date received, activity date, PIC name.
-- Implementation: indexed columns plus SQLite FTS5 on title, narrative, PIC name, location. Role-scoped: Submitters only see their own reports; Reviewers, Approvers, Admins see all.
+- Filters: AR No., title, type, classification, campus, college, department, office, level, SDG, status, date received, activity date, PIC name.
+- Implementation: indexed columns plus SQLite FTS5 on title, narrative, PIC name, location. Role-scoped: a PERSONNEL account only retrieves records it is listed on; an ADMIN sees the whole register.
 
 ### 7.12 Audit trail (step 21)
 
@@ -315,7 +318,7 @@ All tables: `id` (ULID/UUID text), `created_at`, `updated_at` (UTC ISO text). So
 
 **Identity**
 
-- `users`: email (unique, lowercase), password_hash, hash_params, full_name, role (`SUBMITTER|REVIEWER|APPROVER|ADMIN`), status (`PENDING_VERIFICATION|ACTIVE|DISABLED`), campus_id, unit_id, contact_number, signature_object_key (nullable), email_verified_at
+- `users`: email (unique, lowercase), password_hash, hash_params, full_name, role (`ADMIN|PERSONNEL`), status (`PENDING_VERIFICATION|ACTIVE|DISABLED`), campus_id, unit_id, contact_number, signature_object_key (nullable), email_verified_at
 - `sessions`: token_hash, user_id, expires_at, last_seen_at, user_agent, ip
 - `email_tokens`: user_id, kind (`VERIFY|RESET`), token_hash, expires_at, used_at
 
@@ -331,16 +334,16 @@ All tables: `id` (ULID/UUID text), `created_at`, `updated_at` (UTC ISO text). So
 
 **Reports**
 
-- `reports`: id, `type` (`OFF_CAMPUS|EDUCATIONAL_TOUR|IN_CAMPUS`), tracking_number (unique, nullable until submitted), status, version, owner_user_id, plus the monitoring-sheet fields:
-  - classification (`CURRICULAR|NON_CURRICULAR`), campus_id, college/unit_id, department, office, level (`GRADUATE|UNDERGRADUATE`), title, activity_date (start/end), location, total_students, total_pic, pic_name(s), pic_contact (email/phone)
-  - narrative (rich text or markdown), date_received (= first submitted_at), date_completed (= approved_at)
-  - submitted_at, endorsed_at, approved_at, approved_by_user_id
-- `report_sdgs`: report_id, sdg_id (many-to-many, since a report can touch several SDGs)
-- `report_pics`: report_id, name, email, phone (supports more than one person in charge; the sheet columns are exported as joined text)
-- `report_comments`: report_id, author, body, kind (`RETURN|REVIEW_NOTE|APPROVER_NOTE`), created_at
+- `reports`: id, reference_no (unique, formatted `AR No. 0001`), sequence (integer for ordering), status, version, created_by_user_id, plus the monitoring-sheet fields:
+  - `type` (`OFF_CAMPUS|EDUCATIONAL_TOUR|IN_CAMPUS`), classification (`CURRICULAR|NON_CURRICULAR`), campus_id, college/unit_id, department, office, level (`GRADUATE|UNDERGRADUATE`), title, activity dates (start/end), location, activity_count (number of activities), total_students, total_pic
+  - narrative, date_received (= first submitted_at), date_completed (= approved_at)
+  - submitted_at, submitted_by_user_id, narrative_signature_key, narrative_signed_at, approved_at, approved_by_user_id, approval_signature_key, approval_signed_at
+- `report_sdgs`: report_id, sdg_id (many-to-many, since a record can touch several SDGs)
+- `report_pics`: report_id, user_id (linked account, nullable), name, email (both required), phone, sort_order, invited_at (more than one PIC per record; the sheet columns export as joined text)
+- `report_comments`: report_id, author, body, kind (`RETURN|OFFICE_NOTE`), round, created_at
 - `attachments`: report_id, label/category, original_name, object_key, size, mime, sha256, status (`PENDING|CONFIRMED|DELETED`), uploaded_by
-- `tracking_counters`: prefix, year, last_seq (composite PK)
-- `acknowledgements`: report_id, object_key (PDF), generated_at
+- `reference_counters`: name (`'AR'`), last_seq (one global number sequence)
+- `receipts`: report_id, recipient_pic_id, recipient_user_id, recipient_name, object_key (F-013 PDF), generated_at, emailed_at; unique `(report_id, recipient_pic_id)`
 
 **Operations**
 
@@ -348,7 +351,7 @@ All tables: `id` (ULID/UUID text), `created_at`, `updated_at` (UTC ISO text). So
 - `email_outbox`: kind, to, payload, status, attempts, last_error (visibility into queued/failed mail)
 - `idempotency_keys`: key, user_id, request_hash, response (so a retried submit cannot duplicate a report)
 
-Indexes: `reports(status, type)`, `reports(owner_user_id)`, `reports(tracking_number)` unique, FTS5 virtual table for search, `audit_events(entity_id, created_at)`.
+Indexes: `reports(reference_no)` unique, `reports(status)`, `reports(created_by_user_id)`, `reports(submitted_at)`, `reports(activity_start_date)`, `report_pics(user_id)`, `receipts(recipient_user_id)`, FTS5 virtual table for search, `audit_events(entity_id, created_at)`.
 
 ### Data notes found in the source files (clean up during seeding)
 
@@ -363,28 +366,22 @@ Indexes: `reports(status, type)`, `reports(owner_user_id)`, `reports(tracking_nu
 
 ## 9. Roles and permissions
 
-| Capability                                  | Submitter | Reviewer | Approver | Admin |
-| ------------------------------------------- | :-------: | :------: | :------: | :---: |
-| Register / sign in                          |     ✓     |    ✓     |    ✓     |   ✓   |
-| Create and edit own draft / returned report |     ✓     |          |          |   ✓   |
-| Submit / resubmit own report                |     ✓     |          |          |   ✓   |
-| View own reports                            |     ✓     |    ✓     |    ✓     |   ✓   |
-| View all reports and attachments            |           |    ✓     |    ✓     |   ✓   |
-| Review, comment, return, endorse            |           |    ✓     |          |   ✓   |
-| Approve or return endorsed reports          |           |          |    ✓     |   ✓   |
-| Upload own signature image                  |     ✓     |    ✓     |    ✓     |   ✓   |
-| Export monitoring sheets                    |           |    ✓     |    ✓     |   ✓   |
-| Manage users and roles                      |           |          |          |   ✓   |
-| Manage reference data                       |           |          |          |   ✓   |
-| View audit log                              |           |          |          |   ✓   |
+| Capability                                                   | ADMIN | PERSONNEL (listed PIC) | PERSONNEL (not listed) |
+| ------------------------------------------------------------ | :---: | :--------------------: | :--------------------: |
+| Register / sign in / verify / reset password                 |   ✓   |           ✓            |           ✓            |
+| Create a record (mint AR No.)                                |   ✓   |                        |                        |
+| Edit activity details and assign PICs (until approved)       |   ✓   |                        |                        |
+| Delete a DRAFT record                                        |   ✓   |                        |                        |
+| View a record                                                |   ✓   |       own only ✓       |                        |
+| Write narrative, upload attachments, sign, submit / resubmit |       |           ✓            |                        |
+| Approve or return a submitted narrative                      |   ✓   |                        |                        |
+| Download own receipt                                         |   ✓   |           ✓            |                        |
+| Resend invitation / reminder                                 |   ✓   |                        |                        |
+| Manage users, reference data, audit, email log, exports      |   ✓   |                        |                        |
 
-- One role per user in v1.
-- Admin stands in for every role (owner decision, 2026-10-20): it may create and
-  submit reports and make reviewer and approver decisions, so a small office can
-  run the whole process with one administrator account.
-- A user can never act on their own report as reviewer or approver, whatever
-  role they hold — except an ADMIN, which may decide its own report so one
-  administrator account can exercise the whole flow (2026-10-22).
+- One role per account in v1: `ADMIN` or `PERSONNEL`. Access to a record is membership in `report_pics.user_id`, never "a role can see everything".
+- Admin stands in for the office (owner decision, 2026-10-20): it may create a record and make the one decision on a submitted narrative. An ADMIN may also be a PIC of a record; the record then appears in the register and on that account's PIC dashboard, and the account still decides as admin.
+- A user can never decide a narrative they submitted themselves — except an ADMIN, which may decide its own record so one administrator account can exercise the whole flow (2026-10-22). The audit event names it as the actor.
 
 ---
 
@@ -454,6 +451,8 @@ Observability: Workers Logs and `wrangler tail`, structured JSON logs without PI
 ---
 
 ## 14. Open questions and assumptions
+
+The role set, numbering scheme, decision path, queues, data reset, and receipt format raised here were settled by `docs/spec/personnel-narrative-flow-spec.md` §18; its answers replace the earlier questions below.
 
 Open (need an answer before or during the milestone shown):
 
