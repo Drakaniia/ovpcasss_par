@@ -107,7 +107,7 @@ describe('renderFacsimilePdf', () => {
 
   it('draws a watermark for a non-approved report', async () => {
     const plain = await renderFacsimilePdf(facsimile);
-    const draft = await renderFacsimilePdf({ ...facsimile, watermark: 'DRAFT' });
+    const draft = await renderFacsimilePdf({ ...facsimile, watermark: 'NOT_SUBMITTED' });
 
     expect(await pageCount(draft)).toBe(1);
     // The watermark adds drawing operators, so the stored document differs.

@@ -301,9 +301,9 @@ describe('monitoring template matches the office workbook', () => {
   it.each(sheets)('matches the %s worksheet', (type, sourcePath) => {
     const index = Object.keys(SHEET_LAYOUTS).indexOf(type);
 
-    expect(normalize(withoutRequestedColumn(text(template, `xl/worksheets/sheet${index + 1}.xml`)))).toBe(
-      normalize(text(source, sourcePath)),
-    );
+    expect(
+      normalize(withoutRequestedColumn(text(template, `xl/worksheets/sheet${index + 1}.xml`))),
+    ).toBe(normalize(text(source, sourcePath)));
   });
 
   it.each(sheets)('matches the %s signature drawing', (type) => {

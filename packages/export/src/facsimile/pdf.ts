@@ -36,8 +36,10 @@ export interface FacsimilePdfData {
   sdgNumbers: number[];
   narrative: string;
   attachments: { label: string; originalName: string }[];
-  watermark: 'NONE' | 'DRAFT' | 'NOT_APPROVED';
+  watermark: 'NONE' | 'NOT_SUBMITTED' | 'NOT_APPROVED';
   generatedAt: string;
+  /** Set when the office filed the approved record away. */
+  archivedAt?: string | null;
   approvedByName?: string | null;
   approvedAt?: string | null;
   /** Snapshotted images, read server-side from storage (bug phase 05 §3.3). */
@@ -47,7 +49,7 @@ export interface FacsimilePdfData {
 
 const WATERMARK_LABELS: Record<FacsimilePdfData['watermark'], string> = {
   NONE: '',
-  DRAFT: 'DRAFT',
+  NOT_SUBMITTED: 'NOT SUBMITTED',
   NOT_APPROVED: 'NOT APPROVED',
 };
 
@@ -74,7 +76,8 @@ function drawFooters(doc: PDFDocument, font: PDFFont, data: FacsimilePdfData): v
 
   pages.forEach((page, index) => {
     const reference = data.referenceNo ? ` - ${data.referenceNo}` : '';
-    const footer = `Generated ${generated}${reference} - Page ${index + 1} of ${pages.length}`;
+    const archived = data.archivedAt ? ` - Archived ${formatLongDate(data.archivedAt)}` : '';
+    const footer = `Generated ${generated}${reference} - Page ${index + 1} of ${pages.length}${archived}`;
     page.drawText(clean(footer), {
       x: MARGIN,
       y: MARGIN - 18,

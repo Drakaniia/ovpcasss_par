@@ -1,9 +1,6 @@
 export { renderReceipt, type ReceiptData } from './receipt/pdf';
-export {
-  imageMediaType,
-  renderFacsimilePdf,
-  type FacsimilePdfData,
-} from './facsimile/pdf';
+export { renderRegisterPdf, type RegisterPdfData, type RegisterPdfRow } from './register/pdf';
+export { imageMediaType, renderFacsimilePdf, type FacsimilePdfData } from './facsimile/pdf';
 export {
   MONITORING_COLUMNS,
   MONITORING_SHEET_NAMES,
