@@ -23,7 +23,7 @@ export type ExportView = 'loading' | 'ready' | 'denied' | 'error';
 export type DownloadError = { message: string; requestId?: string };
 
 function canExport(role: string | undefined): boolean {
-  return role === 'REVIEWER' || role === 'APPROVER' || role === 'ADMIN';
+  return role === 'ADMIN';
 }
 
 /** Only reads, so both `URLSearchParams` and SvelteKit's read-only view fit. */

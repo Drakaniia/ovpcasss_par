@@ -88,7 +88,7 @@
       <input id="export-in-progress" type="checkbox" bind:checked={includeInProgress} />
       Include in-progress reports
     </label>
-    <p class="field-hint">Adds submitted and endorsed reports with Date Completed blank.</p>
+    <p class="field-hint">Adds submitted and returned records with Date Completed blank.</p>
   </div>
 
   <div class="actions">

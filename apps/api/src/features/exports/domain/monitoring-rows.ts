@@ -11,16 +11,23 @@ const LEVEL_LABELS: Record<Level, string> = {
   UNDERGRADUATE: 'Undergraduate',
 };
 
-/** Timestamps are stored UTC; the sheet only ever shows the date. */
-function isoDate(value: string | null): string {
-  return value ? value.slice(0, 10) : '';
+/** Every date cell is a Manila calendar date, never the UTC day before. */
+const MANILA_DATE = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Manila',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+export function manilaDate(value: string | null): string {
+  return value ? MANILA_DATE.format(new Date(value)) : '';
 }
 
 export function toMonitoringRow(report: MonitoringReportRecord, index: number): MonitoringSheetRow {
   return {
     index,
-    dateReceived: isoDate(report.submittedAt),
-    trackingNumber: report.trackingNumber ?? '',
+    dateReceived: manilaDate(report.submittedAt),
+    referenceNo: report.referenceNo,
     classification: CLASSIFICATION_LABELS[report.classification],
     campus: report.campusName,
     college: report.unitName,
@@ -29,7 +36,7 @@ export function toMonitoringRow(report: MonitoringReportRecord, index: number): 
     level: LEVEL_LABELS[report.level],
     title: report.title,
     sdg: report.sdgNumbers.join(', '),
-    activityDate: isoDate(report.activityStartDate),
+    activityDate: manilaDate(report.activityStartDate),
     location: report.location,
     totalStudents: report.totalStudents,
     totalPic: report.totalPic,
@@ -41,7 +48,8 @@ export function toMonitoringRow(report: MonitoringReportRecord, index: number): 
       .flatMap((pic) => [pic.email, pic.phone])
       .filter((value): value is string => Boolean(value))
       .join('; '),
-    dateCompleted: isoDate(report.approvedAt),
+    dateCompleted: manilaDate(report.approvedAt),
+    dateRequested: manilaDate(report.createdAt),
   };
 }
 
@@ -76,7 +84,7 @@ export function monitoringGaps(
     const row = rows[index];
     if (!row) return;
 
-    const label = row.trackingNumber || `Row ${row.index}`;
+    const label = row.referenceNo || `Row ${row.index}`;
     let missing = 0;
 
     for (const [field, name] of WATCHED_FIELDS) {

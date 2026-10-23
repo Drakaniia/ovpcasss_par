@@ -15,25 +15,9 @@ export type WorkbookSendResult =
   | { ok: false; code: 'TERM_NOT_CONFIGURED'; message: string }
   | { ok: false; code: 'VALIDATION_ERROR'; message: string };
 
-function allowedDomains(env: Env): string[] {
-  return (env.ALLOWED_EMAIL_DOMAINS ?? '')
-    .split(',')
-    .map((domain) => domain.trim().toLowerCase())
-    .filter(Boolean);
-}
-
 /** Lowercased and de-duplicated; the office address passes by definition. */
 function normalize(recipients: readonly string[]): string[] {
   return [...new Set(recipients.map((address) => address.trim().toLowerCase()).filter(Boolean))];
-}
-
-function outsideDomains(recipients: readonly string[], allowed: readonly string[]): string | null {
-  const offender = recipients.find((address) => {
-    const domain = address.split('@')[1] ?? '';
-    return !allowed.some((candidate) => domain === candidate || domain.endsWith(`.${candidate}`));
-  });
-
-  return offender ?? null;
 }
 
 /**
@@ -48,14 +32,8 @@ export async function sendMonitoringWorkbook(
   origin?: string,
 ): Promise<WorkbookSendResult> {
   const recipients = normalize(input.to);
-  const offender = outsideDomains(recipients, allowedDomains(env));
-
-  if (offender) {
-    return {
-      ok: false,
-      code: 'VALIDATION_ERROR',
-      message: `${offender} is not a university address. Use a buksu.edu.ph address.`,
-    };
+  if (recipients.length === 0) {
+    return { ok: false, code: 'VALIDATION_ERROR', message: 'Add at least one recipient.' };
   }
 
   const assembled = await assembleMonitoring(createMonitoringQueries(createDb(env.DB)), {

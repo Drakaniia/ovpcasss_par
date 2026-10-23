@@ -6,7 +6,7 @@
 
   let { sheet }: { sheet: MonitoringPreviewSheet } = $props();
 
-  const DATE_KEYS = new Set(['dateReceived', 'activityDate', 'dateCompleted']);
+  const DATE_KEYS = new Set(['dateReceived', 'activityDate', 'dateCompleted', 'dateRequested']);
 
   let showAllWarnings = $state(false);
 

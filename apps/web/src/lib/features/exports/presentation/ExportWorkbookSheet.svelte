@@ -13,10 +13,10 @@
    */
   let { sheet }: { sheet: MonitoringPreviewSheet } = $props();
 
-  const DATE_KEYS = new Set(['dateReceived', 'activityDate', 'dateCompleted']);
+  const DATE_KEYS = new Set(['dateReceived', 'activityDate', 'dateCompleted', 'dateRequested']);
   const CENTER_KEYS = new Set([
     'index',
-    'trackingNumber',
+    'referenceNo',
     'level',
     'sdg',
     'totalStudents',
@@ -24,6 +24,7 @@
     'dateReceived',
     'activityDate',
     'dateCompleted',
+    'dateRequested',
   ]);
 
   const COLUMN_CHAR_WIDTH_PX = 7;
@@ -232,7 +233,7 @@
   /*
    * The workbook centres this merged heading across A1:R1. The facsimile
    * scrolls horizontally, so it is anchored left to stay readable instead of
-   * sitting in the off-screen middle of an 18-column range.
+   * sitting in the off-screen middle of a 19-column range.
    */
   .title-cell {
     background: var(--surface-card);

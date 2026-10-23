@@ -8,7 +8,7 @@ function record(overrides: Partial<MonitoringReportRecord>): MonitoringReportRec
   return {
     id: 'rep_1',
     type: 'OFF_CAMPUS',
-    trackingNumber: 'OFF-2026-0042',
+    referenceNo: 'AR No. 0042',
     status: 'APPROVED',
     classification: 'CURRICULAR',
     campusName: 'MAIN',
@@ -22,6 +22,7 @@ function record(overrides: Partial<MonitoringReportRecord>): MonitoringReportRec
     location: 'Barangay Poblacion',
     totalStudents: 120,
     totalPic: 4,
+    createdAt: '2026-03-10T08:00:00.000Z',
     submittedAt: '2026-03-14T08:00:00.000Z',
     approvedAt: '2026-03-20T08:00:00.000Z',
     narrative: '',
@@ -43,7 +44,7 @@ describe('monitoring sheet', () => {
     const { sheet } = buildMonitoringSheet([record({})], REQUEST);
 
     expect(sheet.sheetName).toBe('OFF-CAMPUS');
-    expect(sheet.columns).toHaveLength(18);
+    expect(sheet.columns).toHaveLength(19);
     expect(sheet.title).toBe('LOCAL OFF-CAMPUS  ACTIVITIES MONITORING\n2nd SEMESTER, SY 2025-2026');
   });
 
@@ -51,13 +52,13 @@ describe('monitoring sheet', () => {
     const { sheet } = buildMonitoringSheet([record({})], REQUEST);
 
     expect(sheet.layout).toEqual(SHEET_GEOMETRY.OFF_CAMPUS);
-    expect(sheet.layout.columnWidths).toHaveLength(18);
+    expect(sheet.layout.columnWidths).toHaveLength(19);
     expect(sheet.layout.reservedRows).toBe(20);
   });
 
   it('ignores reports for the other sheets', () => {
     const { sheet, rows } = buildMonitoringSheet(
-      [record({}), record({ id: 'rep_2', type: 'IN_CAMPUS', trackingNumber: 'INC-2026-0001' })],
+      [record({}), record({ id: 'rep_2', type: 'IN_CAMPUS', referenceNo: 'AR No. 0001' })],
       { ...REQUEST, includeInProgress: true },
     );
 
@@ -65,14 +66,14 @@ describe('monitoring sheet', () => {
     expect(sheet.total).toBe(1);
   });
 
-  it('maps a report onto the 18 monitoring values', () => {
+  it('maps a report onto the 19 monitoring values', () => {
     const { sheet, rows } = buildMonitoringSheet([record({})], REQUEST);
     const row = sheet.rows[0]!;
 
     expect(row).toMatchObject({
       index: 1,
       dateReceived: '2026-03-14',
-      trackingNumber: 'OFF-2026-0042',
+      referenceNo: 'AR No. 0042',
       classification: 'Curricular',
       campus: 'MAIN',
       college: 'COLLEGE OF EDUCATION',
@@ -82,8 +83,28 @@ describe('monitoring sheet', () => {
       picName: 'Maria Santos',
       picContact: 'maria.santos@example.edu',
       dateCompleted: '2026-03-20',
+      dateRequested: '2026-03-10',
     });
     expect(rows[0]).toEqual(row);
+  });
+
+  it('renders dates as Manila calendar dates, not the previous UTC day', () => {
+    const { sheet } = buildMonitoringSheet(
+      [
+        record({
+          createdAt: '2026-10-21T23:30:00.000Z',
+          submittedAt: '2026-10-21T23:30:00.000Z',
+          approvedAt: '2026-10-21T23:30:00.000Z',
+        }),
+      ],
+      REQUEST,
+    );
+
+    expect(sheet.rows[0]).toMatchObject({
+      dateRequested: '2026-10-22',
+      dateReceived: '2026-10-22',
+      dateCompleted: '2026-10-22',
+    });
   });
 
   it('counts approved and in-progress rows', () => {
@@ -92,7 +113,7 @@ describe('monitoring sheet', () => {
         record({}),
         record({
           id: 'rep_2',
-          trackingNumber: 'OFF-2026-0043',
+          referenceNo: 'AR No. 0043',
           status: 'SUBMITTED',
           approvedAt: null,
         }),
@@ -109,9 +130,9 @@ describe('monitoring sheet', () => {
       REQUEST,
     );
 
-    expect(sheet.warnings).toContain('OFF-2026-0042 has no Office — it will export blank.');
+    expect(sheet.warnings).toContain('AR No. 0042 has no Office — it will export blank.');
     expect(sheet.warnings).toContain(
-      'OFF-2026-0042 has no Name of Personnel In-charge — it will export blank.',
+      'AR No. 0042 has no Name of Personnel In-charge — it will export blank.',
     );
     expect(sheet.missingCount).toBe(1);
     expect(sheet.total).toBe(1);

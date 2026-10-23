@@ -7,7 +7,7 @@ export type MonitoringAssembly =
   { ok: true; sheet: MonitoringSheet } | { ok: false; message: string };
 
 const APPROVED_ONLY: readonly ReportStatus[] = ['APPROVED'];
-const WITH_IN_PROGRESS: readonly ReportStatus[] = ['APPROVED', 'SUBMITTED', 'ENDORSED'];
+const WITH_IN_PROGRESS: readonly ReportStatus[] = ['APPROVED', 'SUBMITTED', 'RETURNED', 'DRAFT'];
 
 /**
  * Term is the bucket: the activity date decides which term a report belongs to

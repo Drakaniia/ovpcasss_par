@@ -34,7 +34,7 @@ export const exportRoutes = new Hono<AppEnv>();
 
 exportRoutes.use('*', requireSession);
 
-const canExport = requireRole('REVIEWER', 'APPROVER', 'ADMIN');
+const canExport = requireRole('ADMIN');
 
 function queries(c: Context<AppEnv>) {
   return createMonitoringQueries(createDb(c.env.DB));
