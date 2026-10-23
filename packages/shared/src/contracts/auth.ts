@@ -66,10 +66,8 @@ export const changePasswordSchema = z.object({
 });
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
-/** Derived: registration hint needs the configured domains (UI spec §7.2). */
+/** Registration is open; only the Google button is conditional. */
 export const authConfigSchema = z.object({
-  allowedEmailDomains: z.array(z.string().min(1)),
-  /** True when the server has a Google OAuth client; the login button follows it. */
   googleEnabled: z.boolean(),
 });
 export type AuthConfig = z.infer<typeof authConfigSchema>;

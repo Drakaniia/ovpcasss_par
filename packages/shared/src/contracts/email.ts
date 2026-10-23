@@ -11,12 +11,10 @@ import { monitoringExportRequestSchema } from './exports';
  * that was sent. The labels are what the admin log prints.
  */
 export const EMAIL_KINDS = [
+  'ASSIGNED',
   'SUBMITTED',
-  'RECEIPT',
-  'RESUBMITTED',
   'RETURNED',
-  'ENDORSED',
-  'APPROVED',
+  'RECEIPT_ISSUED',
   'REMINDER',
   'WORKBOOK',
   'FAILURE_DIGEST',
@@ -25,16 +23,15 @@ export const EMAIL_KINDS = [
   'ROLE_ASSIGNED',
   'ACCOUNT_ACTIVATED',
   'ACCOUNT_DISABLED',
+  'PIC_REMOVED',
 ] as const;
 export type EmailKind = (typeof EMAIL_KINDS)[number];
 
 export const EMAIL_KIND_LABELS: Record<EmailKind, string> = {
+  ASSIGNED: 'Assigned',
   SUBMITTED: 'Submitted',
-  RECEIPT: 'Receipt',
-  RESUBMITTED: 'Resubmitted',
   RETURNED: 'Returned',
-  ENDORSED: 'Endorsed',
-  APPROVED: 'Approved',
+  RECEIPT_ISSUED: 'Receipt issued',
   REMINDER: 'Reminder',
   WORKBOOK: 'Workbook',
   FAILURE_DIGEST: 'Failure digest',
@@ -43,6 +40,7 @@ export const EMAIL_KIND_LABELS: Record<EmailKind, string> = {
   ROLE_ASSIGNED: 'Role assigned',
   ACCOUNT_ACTIVATED: 'Account activated',
   ACCOUNT_DISABLED: 'Account disabled',
+  PIC_REMOVED: 'Removed as PIC',
 };
 
 /** Final states are `SENT`, `FAILED`, and `SUPPRESSED` (email spec §9.2). */
@@ -65,12 +63,10 @@ export type EmailPreferenceCategory = (typeof EMAIL_PREFERENCE_CATEGORIES)[numbe
  * account notice, a workbook the user sent themselves, or an operational digest.
  */
 export const EMAIL_KIND_CATEGORIES: Record<EmailKind, EmailPreferenceCategory | null> = {
+  ASSIGNED: 'WORKFLOW',
   SUBMITTED: 'WORKFLOW',
-  RECEIPT: 'WORKFLOW',
-  RESUBMITTED: 'WORKFLOW',
   RETURNED: 'WORKFLOW',
-  ENDORSED: 'WORKFLOW',
-  APPROVED: 'WORKFLOW',
+  RECEIPT_ISSUED: 'WORKFLOW',
   REMINDER: 'REMINDER',
   WORKBOOK: null,
   FAILURE_DIGEST: null,
@@ -79,6 +75,7 @@ export const EMAIL_KIND_CATEGORIES: Record<EmailKind, EmailPreferenceCategory | 
   ROLE_ASSIGNED: null,
   ACCOUNT_ACTIVATED: null,
   ACCOUNT_DISABLED: null,
+  PIC_REMOVED: 'WORKFLOW',
 };
 
 export const emailPreferencesSchema = z.object({

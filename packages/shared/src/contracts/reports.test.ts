@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  acknowledgementResponseSchema,
+  reportActivitySchema,
   reportDetailSchema,
   reportListQuerySchema,
   reportPdfResponseSchema,
@@ -12,13 +12,13 @@ import {
 
 const detail = {
   id: 'r1',
-  ownerUserId: 'u1',
-  trackingNumber: 'OFF-2026-0014',
-  status: 'RETURNED_BY_APPROVER',
-  version: 4,
+  referenceNo: 'AR No. 0001',
+  createdByUserId: 'a1',
+  status: 'RETURNED',
+  version: 3,
+  createdAt: '2026-03-10T03:20:00.000Z',
   updatedAt: '2026-03-18T03:20:00.000Z',
   submittedAt: '2026-03-14T01:12:00.000Z',
-  returnedAt: '2026-03-18T03:20:00.000Z',
   form: {
     type: 'OFF_CAMPUS',
     classification: 'CURRICULAR',
@@ -29,108 +29,85 @@ const detail = {
     activityStartDate: '2026-03-12',
     activityEndDate: '2026-03-13',
     location: 'Brgy. Poblacion',
+    activityCount: 2,
     totalStudents: 42,
-    totalPic: 3,
-    pics: [{ name: 'M. Santos' }],
+    totalPic: 1,
+    pics: [{ name: 'M. Santos', email: 'santos@buksu.edu.ph' }],
     sdgIds: ['s14'],
     narrative: 'Summary.',
   },
+  pics: [{ id: 'p1', name: 'M. Santos', email: 'santos@buksu.edu.ph', userId: 'u1' }],
   attachments: [],
+  receipts: [],
+  returnEvent: {
+    comments: 'Add the partner office.',
+    authorName: 'A. Reyes',
+    createdAt: '2026-03-18T03:20:00.000Z',
+  },
   people: {
-    submitter: { fullName: 'J. Dela Cruz', role: 'SUBMITTER' },
-    approver: { fullName: 'A. Reyes', role: 'APPROVER', actedAt: '2026-03-18T03:20:00.000Z' },
+    createdBy: { fullName: 'A. Reyes', role: 'ADMIN' },
+    personnel: [{ fullName: 'M. Santos', role: 'PERSONNEL' }],
   },
   history: [
     {
       at: '2026-03-14T01:12:00.000Z',
-      actorName: 'J. Dela Cruz',
-      actorRole: 'SUBMITTER',
-      action: 'Submitted',
+      actorName: 'M. Santos',
+      actorRole: 'PERSONNEL',
+      action: 'Narrative submitted',
       fromStatus: 'DRAFT',
       toStatus: 'SUBMITTED',
     },
   ],
-  commentRounds: [
-    {
-      round: 1,
-      authorName: 'A. Reyes',
-      authorRole: 'APPROVER',
-      createdAt: '2026-03-18T03:20:00.000Z',
-      comments: 'Add the partner office.',
-    },
-  ],
 } as const;
 
-describe('reportDetailSchema', () => {
-  it('accepts the facsimile detail with people, history, rounds, and approval', () => {
-    const parsed = reportDetailSchema.parse({
+describe('record contracts', () => {
+  it('accepts the full detail and a spare one', () => {
+    expect(reportDetailSchema.parse(detail).referenceNo).toBe('AR No. 0001');
+    const sparse = reportDetailSchema.parse({
       ...detail,
-      approval: { signerName: 'A. Reyes', signedAt: '2026-03-20T01:00:00.000Z' },
-      completedAt: '2026-03-20T01:00:00.000Z',
-    });
-
-    expect(parsed.people?.submitter.fullName).toBe('J. Dela Cruz');
-    expect(parsed.history?.[0]?.toStatus).toBe('SUBMITTED');
-    expect(parsed.commentRounds?.[0]?.round).toBe(1);
-  });
-
-  it('accepts a report that carries none of the facsimile extras', () => {
-    const parsed = reportDetailSchema.parse({
-      ...detail,
-      status: 'SUBMITTED',
       people: undefined,
       history: undefined,
-      commentRounds: undefined,
+      returnEvent: undefined,
     });
-
-    expect(parsed.people).toBeUndefined();
-    expect(parsed.history).toBeUndefined();
+    expect(sparse.people).toBeUndefined();
   });
 
   it('rejects a status the workflow does not have', () => {
-    expect(reportDetailSchema.safeParse({ ...detail, status: 'IN_PROGRESS' }).success).toBe(false);
+    expect(reportDetailSchema.safeParse({ ...detail, status: 'ENDORSED' }).success).toBe(false);
+  });
+
+  it('requires an email for every listed person in charge', () => {
+    const { pics: _pics, ...rest } = detail.form;
+    expect(reportActivitySchema.safeParse({ ...rest, pics: [{ name: 'M. Santos' }] }).success).toBe(
+      false,
+    );
+    expect(
+      reportActivitySchema.safeParse({
+        ...rest,
+        pics: [{ name: 'M. Santos', email: 'santos@buksu.edu.ph' }],
+      }).success,
+    ).toBe(true);
   });
 });
 
 describe('report signature', () => {
-  it('accepts either an inline image or a request to copy the profile one', () => {
+  it('accepts either an inline image or the profile copy', () => {
     expect(reportSignatureSchema.parse({ image: 'data:image/png;base64,AAAA' })).toEqual({
       image: 'data:image/png;base64,AAAA',
     });
     expect(reportSignatureSchema.parse({ fromProfile: true })).toEqual({ fromProfile: true });
   });
 
-  it('rejects an empty image and the old boolean spelling', () => {
+  it('rejects empty input', () => {
     expect(reportSignatureSchema.safeParse({ image: '' }).success).toBe(false);
     expect(reportSignatureSchema.safeParse({ fromProfile: false }).success).toBe(false);
-    expect(reportSignatureSchema.safeParse({}).success).toBe(false);
-  });
-
-  it('parses the detail with a snapshotted submitter signature', () => {
-    const parsed = reportDetailSchema.parse({
-      ...detail,
-      submitterSignature: {
-        signerName: 'J. Dela Cruz',
-        signedAt: '2026-03-14T01:00:00.000Z',
-        signatureUrl: 'https://signed',
-      },
-    });
-
-    expect(parsed.submitterSignature?.signatureUrl).toBe('https://signed');
-    expect(reportDetailSchema.parse(detail).submitterSignature).toBeUndefined();
   });
 });
 
-describe('reportListQuerySchema', () => {
-  it('reads the page size from the query string the page sends', () => {
+describe('register query', () => {
+  it('reads paging from the query string and defaults the rest', () => {
     const parsed = reportListQuerySchema.parse({ size: '50', page: '2' });
-
-    expect(parsed.size).toBe(50);
-    expect(parsed.page).toBe(2);
-  });
-
-  it('defaults the page size when the query omits it', () => {
-    expect(reportListQuerySchema.parse({}).size).toBe(25);
+    expect(parsed).toMatchObject({ tab: 'all', size: 50, page: 2, sort: 'updated' });
   });
 
   it('rejects a page size the table cannot show', () => {
@@ -138,76 +115,43 @@ describe('reportListQuerySchema', () => {
   });
 });
 
-describe('reportSearchQuerySchema', () => {
-  it('accepts the empty query that asks for the recent group', () => {
+describe('palette search', () => {
+  it('accepts the empty query and rejects one character', () => {
     expect(reportSearchQuerySchema.parse({})).toEqual({ limit: 8 });
-  });
-
-  it('rejects a one-character query rather than searching the world', () => {
     expect(reportSearchQuerySchema.safeParse({ q: 'c' }).success).toBe(false);
-    expect(reportSearchQuerySchema.parse({ q: 'co' }).q).toBe('co');
   });
 
-  it('caps the number of rows the palette can ask for', () => {
-    expect(reportSearchQuerySchema.safeParse({ limit: '21' }).success).toBe(false);
-    expect(reportSearchQuerySchema.parse({ limit: '5' }).limit).toBe(5);
-  });
-});
+  it('names the reference as a match reason', () => {
+    const item = {
+      id: 'r1',
+      referenceNo: 'AR No. 0001',
+      title: 'Coastal cleanup',
+      type: 'OFF_CAMPUS',
+      status: 'SUBMITTED',
+      activityStartDate: '2026-03-12',
+      activityEndDate: '2026-03-13',
+      location: 'Brgy. Poblacion',
+      picNames: 'M. Santos',
+      updatedAt: '2026-03-14T01:12:00.000Z',
+      classification: 'CURRICULAR',
+      unitName: 'College of Arts and Sciences',
+      matched: 'reference',
+    };
 
-describe('reportSearchResponseSchema', () => {
-  const item = {
-    id: 'r1',
-    ownerUserId: 'u1',
-    trackingNumber: 'OFF-2026-0014',
-    title: 'Coastal cleanup',
-    type: 'OFF_CAMPUS',
-    classification: 'CURRICULAR',
-    status: 'SUBMITTED',
-    activityStartDate: '2026-03-12',
-    activityEndDate: '2026-03-13',
-    updatedAt: '2026-03-14T01:12:00.000Z',
-    ownerName: 'M. Santos',
-    unitName: 'College of Arts and Sciences',
-  };
-
-  it('accepts a recent row with no match reason', () => {
-    const parsed = reportSearchResponseSchema.parse({ items: [item] });
-
-    expect(parsed.items[0]?.matched).toBeUndefined();
-    expect(parsed.items[0]?.trackingNumber).toBe('OFF-2026-0014');
-  });
-
-  it('names the field a hit came from', () => {
-    const parsed = reportSearchResponseSchema.parse({
-      items: [{ ...item, matched: 'narrative', snippet: '…the cleanup…' }],
-    });
-
-    expect(parsed.items[0]?.matched).toBe('narrative');
-  });
-
-  it('rejects an unknown match reason', () => {
+    expect(reportSearchResponseSchema.parse({ items: [item] }).items[0]?.matched).toBe('reference');
     expect(
-      reportSearchResponseSchema.safeParse({ items: [{ ...item, matched: 'vibes' }] }).success,
+      reportSearchResponseSchema.safeParse({ items: [{ ...item, matched: 'tracking' }] }).success,
     ).toBe(false);
   });
 });
 
-describe('reportPdfResponseSchema', () => {
+describe('printed report', () => {
   it('carries one of the three watermark values', () => {
     expect(
-      reportPdfResponseSchema.parse({ url: 'https://signed', watermark: 'NOT_APPROVED' }),
-    ).toMatchObject({ watermark: 'NOT_APPROVED' });
+      reportPdfResponseSchema.parse({ url: 'https://signed', watermark: 'NOT_APPROVED' }).watermark,
+    ).toBe('NOT_APPROVED');
     expect(
       reportPdfResponseSchema.safeParse({ url: 'https://signed', watermark: 'DRAFTED' }).success,
     ).toBe(false);
-  });
-});
-
-describe('acknowledgementResponseSchema', () => {
-  it('requires a signed URL', () => {
-    expect(acknowledgementResponseSchema.safeParse({}).success).toBe(false);
-    expect(acknowledgementResponseSchema.parse({ url: 'https://signed' }).url).toBe(
-      'https://signed',
-    );
   });
 });

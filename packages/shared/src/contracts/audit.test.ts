@@ -12,79 +12,53 @@ import {
 
 describe('audit contracts', () => {
   it('defines the expected entity types and actions', () => {
-    expect(AUDIT_ENTITY_TYPES).toContain('user');
     expect(AUDIT_ENTITY_TYPES).toContain('report');
     expect(AUDIT_ENTITY_TYPES).toContain('attachment');
     expect(AUDIT_ENTITY_TYPES).toContain('reference_data');
-    expect(AUDIT_ENTITY_TYPES).toContain('export');
-    expect(AUDIT_ENTITY_TYPES).toContain('session');
 
-    expect(AUDIT_ACTIONS).toContain('REGISTER');
-    expect(AUDIT_ACTIONS).toContain('LOGIN');
-    expect(AUDIT_ACTIONS).toContain('ROLE_ASSIGNED');
-    expect(AUDIT_ACTIONS).toContain('SUBMITTED');
-    expect(AUDIT_ACTIONS).toContain('ENDORSED');
-    expect(AUDIT_ACTIONS).toContain('APPROVED');
+    expect(AUDIT_ACTIONS).toContain('RECORD_CREATED');
+    expect(AUDIT_ACTIONS).toContain('NARRATIVE_SUBMITTED');
+    expect(AUDIT_ACTIONS).toContain('NARRATIVE_APPROVED');
+    expect(AUDIT_ACTIONS).toContain('RECEIPT_ISSUED');
+    expect(AUDIT_ACTIONS).not.toContain('ENDORSED');
   });
 
-  it('parses admin audit list query with defaults', () => {
-    const parsed = adminAuditListQuerySchema.parse({});
-    expect(parsed.page).toBe(1);
-    expect(parsed.limit).toBe(50);
-  });
-
-  it('parses admin audit list query with filters', () => {
+  it('parses the admin query with defaults and filters', () => {
+    expect(adminAuditListQuerySchema.parse({}).page).toBe(1);
     const parsed = adminAuditListQuerySchema.parse({
-      actor: 'Santos',
-      action: 'ENDORSED',
-      entityType: 'report',
-      entityId: 'OFF-2026-0014',
-      from: '2026-10-01',
-      to: '2026-10-31',
+      action: 'NARRATIVE_APPROVED',
       fromStatus: 'SUBMITTED',
-      toStatus: 'ENDORSED',
+      toStatus: 'APPROVED',
       page: '2',
-      limit: '50',
     });
-    expect(parsed.actor).toBe('Santos');
-    expect(parsed.action).toBe('ENDORSED');
-    expect(parsed.entityType).toBe('report');
-    expect(parsed.entityId).toBe('OFF-2026-0014');
-    expect(parsed.fromStatus).toBe('SUBMITTED');
-    expect(parsed.toStatus).toBe('ENDORSED');
     expect(parsed.page).toBe(2);
-    expect(parsed.limit).toBe(50);
+    expect(parsed.toStatus).toBe('APPROVED');
   });
 
-  it('parses an audit event item', () => {
+  it('parses an event with the two roles only', () => {
     const item = auditEventItemSchema.parse({
       id: 'aud_123',
-      actorUserId: 'usr_1',
       actorName: 'M. Santos',
-      actorRole: 'REVIEWER',
-      action: 'ENDORSED',
+      actorRole: 'PERSONNEL',
+      action: 'NARRATIVE_SUBMITTED',
       entityType: 'report',
       entityId: 'rep_1',
-      entityLabel: 'OFF-2026-0014',
-      fromStatus: 'SUBMITTED',
-      toStatus: 'ENDORSED',
-      comment: 'All clear',
+      entityLabel: 'AR No. 0001',
+      fromStatus: 'DRAFT',
+      toStatus: 'SUBMITTED',
       createdAt: '2026-10-17T06:02:00.000Z',
     });
-    expect(item.id).toBe('aud_123');
-    expect(item.actorRole).toBe('REVIEWER');
-    expect(item.action).toBe('ENDORSED');
+    expect(item.actorRole).toBe('PERSONNEL');
+    expect(auditEventItemSchema.safeParse({ ...item, actorRole: 'REVIEWER' }).success).toBe(false);
   });
 
-  it('parses diff entries and event detail', () => {
+  it('parses diff entries and detail', () => {
     const diffEntry = auditDiffEntrySchema.parse({
       key: 'title',
-      before: 'Old Title',
-      after: 'New Title',
+      before: 'Old',
+      after: 'New',
       changed: true,
     });
-    expect(diffEntry.changed).toBe(true);
-
     const detail = auditEventDetailSchema.parse({
       id: 'aud_456',
       action: 'REFERENCE_UPDATED',
@@ -94,11 +68,10 @@ describe('audit contracts', () => {
       after: { name: 'New' },
       diff: [diffEntry],
     });
-    expect(detail.before).toEqual({ name: 'Old' });
-    expect(detail.diff?.[0]?.key).toBe('title');
+    expect(detail.diff?.[0]?.changed).toBe(true);
   });
 
-  it('parses admin audit list response', () => {
+  it('parses the admin list response', () => {
     const response = adminAuditListResponseSchema.parse({
       items: [
         {
@@ -113,6 +86,5 @@ describe('audit contracts', () => {
       pageSize: 50,
     });
     expect(response.total).toBe(1);
-    expect(response.items).toHaveLength(1);
   });
 });

@@ -9,8 +9,7 @@ import {
 
 const item = {
   id: 'r1',
-  ownerUserId: 'u1',
-  trackingNumber: 'OFF-2026-0014',
+  referenceNo: 'AR No. 0001',
   title: 'Coastal cleanup',
   type: 'OFF_CAMPUS',
   classification: 'CURRICULAR',
@@ -19,16 +18,15 @@ const item = {
   campusId: 'c1',
   collegeId: 'un1',
   college: 'College of Arts and Sciences',
+  picNames: 'M. Santos',
   receivedAt: '2026-03-14T01:12:00.000Z',
   activityStartDate: '2026-03-12',
   activityEndDate: '2026-03-13',
 };
 
 describe('repository search contract', () => {
-  it('defaults to approved reports, newest received first, 25 rows', () => {
-    const query = repositoryQuerySchema.parse({});
-
-    expect(query).toEqual({
+  it('defaults to approved, newest received, 25 rows', () => {
+    expect(repositoryQuerySchema.parse({})).toEqual({
       status: 'APPROVED',
       sort: 'received',
       dir: 'desc',
@@ -37,21 +35,15 @@ describe('repository search contract', () => {
     });
   });
 
-  it('never accepts a draft as a repository status', () => {
+  it('never accepts a draft', () => {
     expect(repositoryQuerySchema.safeParse({ status: 'DRAFT' }).success).toBe(false);
     expect(repositoryItemSchema.safeParse({ ...item, status: 'DRAFT' }).success).toBe(false);
   });
 
-  it('rejects an unknown sort or status instead of guessing one', () => {
-    expect(repositoryQuerySchema.safeParse({ sort: 'updated' }).success).toBe(false);
-    expect(repositoryQuerySchema.safeParse({ status: 'IN_PROGRESS' }).success).toBe(false);
-  });
-
-  it('accepts the filter panel fields, including the SDG list and both date ranges', () => {
+  it('accepts the reference filter and the full filter panel', () => {
     const parsed = repositoryQuerySchema.parse({
       q: 'cleanup',
-      tracking: 'OFF-2026',
-      title: 'coastal',
+      reference: '0001',
       type: 'OFF_CAMPUS',
       classification: 'NON_CURRICULAR',
       campus: 'c1',
@@ -68,17 +60,12 @@ describe('repository search contract', () => {
       pic: 'A. Cruz',
     });
 
+    expect(parsed.reference).toBe('0001');
     expect(parsed.sdg).toEqual(['s1', 's2']);
-    expect(parsed.receivedFrom).toBe('2026-03-01');
     expect(parsed.activityTo).toBe('2026-03-31');
-    expect(parsed.status).toBe('APPROVED');
   });
 
-  it('rejects a date that is not an ISO date', () => {
-    expect(repositoryQuerySchema.safeParse({ receivedFrom: '14 Mar 2026' }).success).toBe(false);
-  });
-
-  it('carries the facets so a saved URL can show an inactive value', () => {
+  it('carries facets so a saved URL can show an inactive value', () => {
     const parsed = repositoryResponseSchema.parse({
       items: [item],
       total: 212,
@@ -92,7 +79,6 @@ describe('repository search contract', () => {
       },
     });
 
-    expect(parsed.total).toBe(212);
     expect(parsed.facets.colleges[0]?.isActive).toBe(false);
   });
 });

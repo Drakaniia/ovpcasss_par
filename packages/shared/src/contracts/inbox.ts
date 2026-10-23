@@ -3,23 +3,18 @@ import { z } from 'zod';
 import { REPORT_STATUSES, REPORT_TYPES } from '../domain/enums';
 import { idSchema, isoDateTimeSchema } from './common';
 
-/**
- * Aggregated work-inbox payload (UI spec §7.3). The server resolves the counts
- * for the signed-in account; the client renders at most three rows per section
- * and never derives a total from the rows it received.
- */
+/** One record in a home section; the server already scoped it to the caller. */
 export const inboxItemSchema = z.object({
   id: idSchema,
-  trackingNumber: z.string().nullable(),
+  referenceNo: z.string().min(1),
   title: z.string().min(1),
   type: z.enum(REPORT_TYPES),
   status: z.enum(REPORT_STATUSES),
+  activityStartDate: z.string().min(1),
+  activityEndDate: z.string().min(1),
+  location: z.string(),
   updatedAt: isoDateTimeSchema,
   submittedAt: isoDateTimeSchema.nullable().optional(),
-  /** Draft-only: share of required fields completed, 0–100. */
-  completeness: z.number().int().min(0).max(100).nullable().optional(),
-  /** The caller submitted this report; as an administrator it may still decide it. */
-  isOwn: z.boolean().optional(),
 });
 export type InboxItem = z.infer<typeof inboxItemSchema>;
 
@@ -29,21 +24,14 @@ export const inboxSectionSchema = z.object({
 });
 export type InboxSection = z.infer<typeof inboxSectionSchema>;
 
-/** Report events that reach the submitter's recent activity. */
-export const INBOX_ACTIVITY_KINDS = [
-  'SUBMITTED',
-  'RESUBMITTED',
-  'RETURNED_BY_REVIEWER',
-  'RETURNED_BY_APPROVER',
-  'ENDORSED',
-  'APPROVED',
-] as const;
+/** Report events that reach the reader's recent activity. */
+export const INBOX_ACTIVITY_KINDS = ['SUBMITTED', 'RETURNED', 'APPROVED'] as const;
 export type InboxActivityKind = (typeof INBOX_ACTIVITY_KINDS)[number];
 
 export const inboxActivitySchema = z.object({
   id: idSchema,
   reportId: idSchema,
-  trackingNumber: z.string().nullable(),
+  referenceNo: z.string().min(1),
   title: z.string().min(1),
   kind: z.enum(INBOX_ACTIVITY_KINDS),
   occurredAt: isoDateTimeSchema,
@@ -64,24 +52,28 @@ export const inboxAdminSchema = z.object({
 });
 export type InboxAdmin = z.infer<typeof inboxAdminSchema>;
 
-/** Server-owned checklist state (derived spec, phase 02 §5). */
 export const inboxOnboardingSchema = z.object({
   profileComplete: z.boolean(),
+  /** The reader has submitted at least one narrative. */
   hasSubmitted: z.boolean(),
+  /** A narrative draft this account may continue, if any. */
   draftId: idSchema.nullable(),
 });
 export type InboxOnboarding = z.infer<typeof inboxOnboardingSchema>;
 
 export const inboxResponseSchema = z.object({
+  /** ADMIN: narratives waiting for a decision. Empty for PERSONNEL. */
+  awaitingReview: inboxSectionSchema,
+  /** ADMIN: records created but not yet submitted by their PICs. */
+  withPic: inboxSectionSchema,
+  /** Both: sent back for revision. */
   returned: inboxSectionSchema,
-  review: inboxSectionSchema,
-  approval: inboxSectionSchema,
-  drafts: inboxSectionSchema,
-  waiting: inboxSectionSchema,
+  /** Both: approved records, newest first. */
+  approved: inboxSectionSchema,
+  /** PERSONNEL: every record assigned to the reader. */
+  myReports: inboxSectionSchema,
   activity: z.array(inboxActivitySchema).max(5),
-  /** Decisions the caller recorded; omitted from older payloads. */
   recentlyDecided: z.array(inboxActivitySchema).max(3).optional(),
-  /** Bell count for the notifications digest; 0 renders nothing. */
   notificationsUnread: z.number().int().min(0).optional(),
   admin: inboxAdminSchema.nullable(),
   onboarding: inboxOnboardingSchema,

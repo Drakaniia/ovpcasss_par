@@ -5,15 +5,19 @@ import { attachmentSchema } from './attachments';
 import { emailSchema, signatureUploadSchema } from './auth';
 import { idSchema, isoDateTimeSchema } from './common';
 
-/** A person in charge: name is required, email and phone are validated when supplied. */
+/** Every listed PIC needs an email: that address is the account and the mailbox. */
 export const reportPicSchema = z.object({
+  id: idSchema.optional(),
   name: z.string().trim().min(1).max(200),
-  email: z.union([z.literal(''), emailSchema]).optional(),
+  email: emailSchema,
   phone: z.string().trim().max(50).optional(),
+  /** Set when the address already has an account. */
+  userId: idSchema.optional(),
 });
 export type ReportPic = z.infer<typeof reportPicSchema>;
 
-export const reportFormSchema = z.object({
+/** Steps 1-3 of the office's record: everything the admin owns (spec §12.1). */
+export const reportActivitySchema = z.object({
   type: z.enum(REPORT_TYPES),
   classification: z.enum(CLASSIFICATIONS),
   campusId: idSchema,
@@ -25,43 +29,34 @@ export const reportFormSchema = z.object({
   activityStartDate: z.string().min(1),
   activityEndDate: z.string().min(1),
   location: z.string().min(1).max(300),
+  activityCount: z.number().int().min(1),
   totalStudents: z.number().int().min(0),
   totalPic: z.number().int().min(0),
   pics: z.array(reportPicSchema).min(1),
   sdgIds: z.array(idSchema).min(1),
-  narrative: z.string().min(1),
+});
+export type ReportActivityInput = z.infer<typeof reportActivitySchema>;
+
+/** The PIC's half: typed narrative, saved as a draft until submitted. */
+export const reportNarrativeSchema = z.object({
+  narrative: z.string().max(50_000),
+});
+export type ReportNarrativeInput = z.infer<typeof reportNarrativeSchema>;
+
+/** The whole record as the facsimile and the detail page read it. */
+export const reportFormSchema = reportActivitySchema.extend({
+  narrative: z.string(),
 });
 export type ReportFormInput = z.infer<typeof reportFormSchema>;
-
-/** Drafts are partial until submit; values stay in `form` so they survive schema changes. */
 export type ReportDraftForm = Partial<ReportFormInput>;
 
-/** Local or server-side draft. */
-export interface ReportDraft {
-  /** Local id, available the moment the wizard opens. */
-  id: string;
-  /**
-   * Account this device copy belongs to. A device draft is never listed for
-   * another account, even on a shared computer.
-   */
-  ownerUserId?: string;
-  /** Server draft id, set once the API has persisted the draft. */
-  serverId?: string;
-  version: number;
-  updatedAt: string;
-  /** Last wizard step, so a restored draft reopens where the submitter left off. */
-  step?: number;
-  form: ReportDraftForm;
-}
+/* ---------- Register ---------- */
 
-/* ---------- My reports list (UI spec §7.4) ---------- */
-
-/** Tabs double as the `?tab=` state of `/reports`; Drafts is a status scope. */
-export const REPORT_LIST_TABS = ['all', 'drafts', 'returned', 'approved'] as const;
+/** `withPic` is the office's list of records whose narrative is still missing. */
+export const REPORT_LIST_TABS = ['all', 'withPic', 'submitted', 'returned', 'approved'] as const;
 export type ReportListTab = (typeof REPORT_LIST_TABS)[number];
 
-/** Only these headers sort; Updated is the default order, not a click target. */
-export const REPORT_SORT_FIELDS = ['updated', 'trackingNumber', 'activityDate', 'status'] as const;
+export const REPORT_SORT_FIELDS = ['updated', 'referenceNo', 'activityDate', 'status'] as const;
 export type ReportSortField = (typeof REPORT_SORT_FIELDS)[number];
 
 export const SORT_DIRECTIONS = ['asc', 'desc'] as const;
@@ -76,20 +71,11 @@ const pageSizeSchema = z.union([
   z.literal(REPORT_PAGE_SIZES[2]),
 ]);
 
-/**
- * Query strings reach the Worker as text (`?size=25`), so the page size is
- * coerced before the allowed values are checked. Responses keep the strict
- * number schema above.
- */
 const pageSizeQuerySchema = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() !== '' ? Number(value) : value),
   pageSizeSchema,
 );
 
-/**
- * Filters, tab, sort, and paging live in the URL (`?tab=all&type=OFF_CAMPUS`),
- * so a shared view reproduces exactly what the sender saw.
- */
 export const reportListQuerySchema = z.object({
   tab: z.enum(REPORT_LIST_TABS).default('all'),
   type: z.enum(REPORT_TYPES).optional(),
@@ -111,21 +97,22 @@ export const reportListQuerySchema = z.object({
 });
 export type ReportListQuery = z.infer<typeof reportListQuerySchema>;
 
-/** One row of the table; the server already scoped it to what the caller may see. */
 export const reportListItemSchema = z.object({
   id: idSchema,
-  ownerUserId: idSchema,
-  trackingNumber: z.string().nullable(),
+  referenceNo: z.string().min(1),
   title: z.string().min(1),
   type: z.enum(REPORT_TYPES),
   status: z.enum(REPORT_STATUSES),
   activityStartDate: z.string().min(1),
   activityEndDate: z.string().min(1),
+  location: z.string(),
+  /** Joined PIC names, so the register answers "who is accountable" at a glance. */
+  picNames: z.string(),
   updatedAt: isoDateTimeSchema,
+  submittedAt: isoDateTimeSchema.nullable().optional(),
 });
 export type ReportListItem = z.infer<typeof reportListItemSchema>;
 
-/** Deactivated entries stay in the facets so a saved URL can show them as inactive. */
 export const reportFilterOptionSchema = z.object({
   id: idSchema,
   label: z.string().min(1),
@@ -148,13 +135,8 @@ export const reportListResponseSchema = z.object({
 });
 export type ReportListResponse = z.infer<typeof reportListResponseSchema>;
 
-/* ---------- Command palette search (phase 12 §4) ---------- */
+/* ---------- Palette search ---------- */
 
-/**
- * The palette asks for documents before the first keystroke, so `q` is
- * optional: without one the server returns the reports the viewer touched most
- * recently. A present query must be worth a request (two characters).
- */
 export const reportSearchQuerySchema = z.object({
   q: z
     .string()
@@ -168,28 +150,19 @@ export const reportSearchQuerySchema = z.object({
 });
 export type ReportSearchQuery = z.infer<typeof reportSearchQuerySchema>;
 
-/** Where the query hit, so the preview can say why a report was found. */
 export const REPORT_SEARCH_MATCHES = [
-  'tracking',
+  'reference',
   'title',
   'narrative',
   'location',
-  'submitter',
   'pic',
 ] as const;
 export type ReportSearchMatch = (typeof REPORT_SEARCH_MATCHES)[number];
 
-/**
- * A palette row carries the list row plus the context the preview pane shows:
- * who filed it, which unit, and the narrative excerpt around the hit.
- */
 export const reportSearchItemSchema = reportListItemSchema.extend({
   classification: z.enum(CLASSIFICATIONS),
-  ownerName: z.string().min(1),
   unitName: z.string().nullable(),
-  /** Absent in the recent group, which is not a match at all. */
   matched: z.enum(REPORT_SEARCH_MATCHES).optional(),
-  /** The narrative around the hit; present only for a narrative match. */
   snippet: z.string().optional(),
 });
 export type ReportSearchItem = z.infer<typeof reportSearchItemSchema>;
@@ -197,82 +170,56 @@ export type ReportSearchItem = z.infer<typeof reportSearchItemSchema>;
 export const reportSearchResponseSchema = z.object({ items: z.array(reportSearchItemSchema) });
 export type ReportSearchResponse = z.infer<typeof reportSearchResponseSchema>;
 
-/* ---------- Create, validate, submit (UI spec §7.5) ---------- */
+/* ---------- Create, narrative, decisions ---------- */
 
-/**
- * The head of a report, returned when a draft is created or updated. The client
- * uses the id for validation, submission, and attachment endpoints.
- */
 export const reportHeadSchema = z.object({
   id: idSchema,
   version: z.number().int().min(0),
   status: z.enum(REPORT_STATUSES),
-  trackingNumber: z.string().nullable().optional(),
+  referenceNo: z.string().min(1),
   updatedAt: isoDateTimeSchema.optional(),
 });
 export type ReportHead = z.infer<typeof reportHeadSchema>;
 
-/** Field-level problems returned by `POST /reports/:id/validate`, rendered as a linked summary. */
-export const reportValidationIssueSchema = z.object({
-  field: z.string().min(1),
-  message: z.string().min(1),
-  step: z.number().int().min(1).max(4).optional(),
-});
-export type ReportValidationIssue = z.infer<typeof reportValidationIssueSchema>;
-
-export const reportValidationResponseSchema = z.object({
-  valid: z.boolean(),
-  issues: z.array(reportValidationIssueSchema),
-});
-export type ReportValidationResponse = z.infer<typeof reportValidationResponseSchema>;
-
-/** The tracking number is issued on first submission only. */
-export const submitReportResponseSchema = reportHeadSchema.extend({
-  trackingNumber: z.string().min(1),
+export const submitNarrativeResponseSchema = reportHeadSchema.extend({
   submittedAt: isoDateTimeSchema.optional(),
 });
-export type SubmitReportResponse = z.infer<typeof submitReportResponseSchema>;
+export type SubmitNarrativeResponse = z.infer<typeof submitNarrativeResponseSchema>;
 
-/* ---------- Detail and edit returned (UI spec §7.6) ---------- */
+export const REPORT_DECISIONS = ['APPROVE', 'RETURN'] as const;
+export type ReportDecision = (typeof REPORT_DECISIONS)[number];
 
-/**
- * The latest return, shown in the maroon callout. `fieldIds` are optional: when
- * the API omits them the comment stands alone and no field is flagged.
- */
+export const reportDecisionSchema = z.object({
+  decision: z.enum(REPORT_DECISIONS),
+  /** Required on a return, ignored on an approval. */
+  comments: z.string().trim().max(4000).optional(),
+});
+export type ReportDecisionInput = z.infer<typeof reportDecisionSchema>;
+
+/* ---------- Detail ---------- */
+
 export const reportReturnEventSchema = z.object({
-  round: z.number().int().min(1).optional(),
   comments: z.string().min(1),
   authorName: z.string().min(1),
-  authorRole: z.enum(ROLES),
   createdAt: isoDateTimeSchema,
-  fieldIds: z.array(z.string()).optional(),
 });
 export type ReportReturnEvent = z.infer<typeof reportReturnEventSchema>;
 
-/**
- * A named participant in the workflow. Roles that have not acted are omitted
- * from `reportPeopleSchema`, never rendered with a blank name.
- */
 export const reportPersonSchema = z.object({
   userId: idSchema.optional(),
   fullName: z.string().min(1),
   role: z.enum(ROLES),
-  /** When this person last acted in that role. */
   actedAt: isoDateTimeSchema.optional(),
 });
 export type ReportPerson = z.infer<typeof reportPersonSchema>;
 
 export const reportPeopleSchema = z.object({
-  submitter: reportPersonSchema,
-  reviewer: reportPersonSchema.nullable().optional(),
-  approver: reportPersonSchema.nullable().optional(),
+  createdBy: reportPersonSchema,
+  personnel: z.array(reportPersonSchema),
+  decidedBy: reportPersonSchema.nullable().optional(),
 });
 export type ReportPeople = z.infer<typeof reportPeopleSchema>;
 
-/**
- * One audit event as the facsimile timeline presents it. The API owns the
- * action copy; the UI only adds the status transition and the actor role.
- */
 export const reportHistoryEventSchema = z.object({
   id: idSchema.optional(),
   at: isoDateTimeSchema,
@@ -285,97 +232,61 @@ export const reportHistoryEventSchema = z.object({
 });
 export type ReportHistoryEvent = z.infer<typeof reportHistoryEventSchema>;
 
-/** One round of review comments, grouped under "Round n" in the document. */
-export const reportCommentRoundSchema = z.object({
-  round: z.number().int().min(1),
-  authorName: z.string().min(1),
-  authorRole: z.enum(ROLES),
-  createdAt: isoDateTimeSchema,
-  comments: z.string().min(1),
-});
-export type ReportCommentRound = z.infer<typeof reportCommentRoundSchema>;
-
-/** The approver's signature; absent until the approval is recorded. */
-export const reportApprovalSchema = z.object({
-  signerName: z.string().min(1),
-  signedAt: isoDateTimeSchema,
-  /** Short-lived signed URL to the approver's signature image. */
-  signatureUrl: z.string().min(1).optional(),
-});
-export type ReportApproval = z.infer<typeof reportApprovalSchema>;
-
-/**
- * The submitter's signature, snapshotted onto the report when they sign it
- * (signature spec W2). Distinct from `approval`, so the two slots never share a
- * source: replacing the profile image later leaves a signed report as signed.
- */
-export const reportSubmitterSignatureSchema = z.object({
-  signerName: z.string().min(1),
-  signedAt: isoDateTimeSchema,
-  /** Short-lived signed URL to the report's own copy of the image. */
-  signatureUrl: z.string().min(1).optional(),
-});
-export type ReportSubmitterSignature = z.infer<typeof reportSubmitterSignatureSchema>;
-
-/**
- * `PUT /reports/:id/signature` takes either an inline data URL (drawn or an
- * uploaded PNG the browser already cleaned) or `{ fromProfile: true }`, which
- * asks the server to copy the profile image onto the report.
- */
 export const reportSignatureSchema = z.union([
   signatureUploadSchema,
   z.object({ fromProfile: z.literal(true) }),
 ]);
 export type ReportSignatureInput = z.infer<typeof reportSignatureSchema>;
 
-/** Full report used by the facsimile and the edit-returned page. */
+export const reportSubmitterSignatureSchema = z.object({
+  signerName: z.string().min(1),
+  signedAt: isoDateTimeSchema,
+  signatureUrl: z.string().min(1).optional(),
+});
+export type ReportSubmitterSignature = z.infer<typeof reportSubmitterSignatureSchema>;
+
+export const reportReceiptSchema = z.object({
+  id: idSchema,
+  recipientName: z.string().min(1),
+  generatedAt: isoDateTimeSchema,
+  emailedAt: isoDateTimeSchema.nullable().optional(),
+  /** Short-lived signed URL; omitted until it is requested. */
+  url: z.string().optional(),
+});
+export type ReportReceipt = z.infer<typeof reportReceiptSchema>;
+
 export const reportDetailSchema = z.object({
   id: idSchema,
-  ownerUserId: idSchema,
-  trackingNumber: z.string().nullable(),
+  referenceNo: z.string().min(1),
+  createdByUserId: idSchema,
   status: z.enum(REPORT_STATUSES),
   version: z.number().int().min(0),
+  createdAt: isoDateTimeSchema,
   updatedAt: isoDateTimeSchema,
   form: reportFormSchema,
+  pics: z.array(reportPicSchema),
   attachments: z.array(attachmentSchema),
-  /** Latest return only; earlier rounds live in the facsimile's review history. */
+  receipts: z.array(reportReceiptSchema),
   returnEvent: reportReturnEventSchema.nullable().optional(),
   submittedAt: isoDateTimeSchema.optional(),
-  returnedAt: isoDateTimeSchema.optional(),
-  /** Set when the approving officer records the approval. */
-  completedAt: isoDateTimeSchema.optional(),
-  /** Who holds the report, as far as it has travelled (facsimile rail). */
+  submittedByName: z.string().optional(),
+  approvedAt: isoDateTimeSchema.optional(),
   people: reportPeopleSchema.optional(),
-  /** Full audit timeline for the facsimile; ascending is the UI's business. */
   history: z.array(reportHistoryEventSchema).optional(),
-  /** Every return round with its comment, oldest first. */
-  commentRounds: z.array(reportCommentRoundSchema).optional(),
-  approval: reportApprovalSchema.nullable().optional(),
-  /** The submitter's snapshotted signature; null when unsigned. */
-  submitterSignature: reportSubmitterSignatureSchema.nullable().optional(),
-  /** Who last changed the report, when the API supplies it (409 copy). */
-  updatedByName: z.string().optional(),
+  narrativeSignature: reportSubmitterSignatureSchema.nullable().optional(),
+  /** The caller is a listed PIC: the client shows the narrative editor. */
+  canWriteNarrative: z.boolean().optional(),
+  /** The caller may edit activity details, assign PICs, or delete a draft. */
+  canManage: z.boolean().optional(),
 });
 export type ReportDetail = z.infer<typeof reportDetailSchema>;
 
-/** Watermark the API applies to a facsimile PDF; approved reports carry none. */
 export const REPORT_PDF_WATERMARKS = ['NONE', 'DRAFT', 'NOT_APPROVED'] as const;
 export type ReportPdfWatermark = (typeof REPORT_PDF_WATERMARKS)[number];
 
-/** Short-lived signed URL for a server-rendered facsimile PDF (UI spec §7.8). */
 export const reportPdfResponseSchema = z.object({
   url: z.string().min(1),
   expiresAt: isoDateTimeSchema.optional(),
   watermark: z.enum(REPORT_PDF_WATERMARKS),
 });
 export type ReportPdfResponse = z.infer<typeof reportPdfResponseSchema>;
-
-/**
- * Server-generated acknowledgement for an approved report (derived, phase 08
- * §6). The UI never signs or renders the PDF itself.
- */
-export const acknowledgementResponseSchema = z.object({
-  url: z.string().min(1),
-  expiresAt: isoDateTimeSchema.optional(),
-});
-export type AcknowledgementResponse = z.infer<typeof acknowledgementResponseSchema>;
