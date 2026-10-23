@@ -14,7 +14,7 @@ const FACETS: RepositoryFacets = {
 describe('active chips', () => {
   it('names the filters that are not already visible as controls', () => {
     const chips = activeChips(
-      { ...DEFAULT_REPOSITORY_FILTERS, type: 'IN_CAMPUS', campusId: 'c1', status: 'ENDORSED' },
+      { ...DEFAULT_REPOSITORY_FILTERS, type: 'IN_CAMPUS', campusId: 'c1', status: 'SUBMITTED' },
       FACETS,
     );
 
@@ -57,21 +57,28 @@ describe('active chips', () => {
     ]);
   });
 
+  it('labels the reference number as the AR No.', () => {
+    const chips = activeChips({ ...DEFAULT_REPOSITORY_FILTERS, reference: 'AR No. 0014' }, FACETS);
+
+    expect(chips.map((chip) => chip.label)).toEqual(['AR No.: AR No. 0014']);
+  });
+
   it('removes one filter at a time', () => {
     expect(removedFilter('received')).toEqual({ receivedFrom: '', receivedTo: '' });
     expect(removedFilter('sdg')).toEqual({ sdgIds: [] });
     expect(removedFilter('campus')).toEqual({ campusId: '' });
+    expect(removedFilter('reference')).toEqual({ reference: '' });
   });
 });
 
 describe('scope echo', () => {
   it('echoes every active filter with the filter count', () => {
     const echo = filterEcho(
-      { ...DEFAULT_REPOSITORY_FILTERS, type: 'OFF_CAMPUS', status: 'ENDORSED', campusId: 'c1' },
+      { ...DEFAULT_REPOSITORY_FILTERS, type: 'OFF_CAMPUS', status: 'SUBMITTED', campusId: 'c1' },
       FACETS,
     );
 
-    expect(echo).toBe('Type: Off-campus · Status: Endorsed · Campus: Main campus · 3 filters');
+    expect(echo).toBe('Type: Off-campus · Status: Submitted · Campus: Main campus · 3 filters');
   });
 
   it('stays silent when only the approved default applies', () => {

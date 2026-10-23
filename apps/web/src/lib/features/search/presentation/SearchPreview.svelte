@@ -1,48 +1,48 @@
 <script lang="ts">
-  import { AlertCircle } from '@lucide/svelte';
+  import { AlertCircle, X } from '@lucide/svelte';
 
   import StatusBadge from '$lib/components/StatusBadge.svelte';
-  import {
-    facsimileSections,
-    type FacsimileReferences,
-  } from '$lib/features/facsimile/application/facsimile-document';
 
   import type { RepositoryPreview as RepositoryPreviewData } from '../application/repository-state.svelte';
   import type { RepositoryRow } from '../application/repository-rows';
 
   /**
-   * The pane beside the results at ≥1440 px (UI spec §7.11): the record's key
-   * facts, a compact facsimile summary, and one way into the full report. The
-   * facsimile and the print actions stay on the report page.
+   * The pane beside the results once a row is chosen (UI spec §7.11): the
+   * record's key facts and one way into the full report. Nothing else changes
+   * on the page; closing it returns to the full-width list.
    */
   let {
     row,
     preview,
-    references,
     onretry,
+    onclose,
   }: {
     row: RepositoryRow | null;
     preview: RepositoryPreviewData;
-    references: FacsimileReferences;
     onretry: () => void;
+    onclose: () => void;
   } = $props();
 
-  const detail = $derived(preview.detail);
-  const sections = $derived(detail ? facsimileSections(detail, references).slice(0, 2) : []);
+  let heading = $state<HTMLHeadingElement | null>(null);
+
+  // Opening a report moves focus to the pane; the row keeps its place in the list.
+  $effect(() => {
+    if (row || preview.notFound) heading?.focus({ preventScroll: true });
+  });
 </script>
 
-<aside class="search-pane" aria-label="Selected report">
-  {#if !row}
-    <div class="pane-empty">
-      <h2>Select a report</h2>
-      <p>The report opens here with its summary, status, and a link to the full record.</p>
-    </div>
-  {:else}
-    <header class="pane-head">
-      <p class="reference mono">{row.trackingNumber ?? 'No tracking number'}</p>
-      <h2>{row.title}</h2>
-      <StatusBadge status={row.status} />
+<aside class="search-pane" aria-labelledby="preview-title">
+  <header class="pane-head">
+    <button class="close" type="button" aria-label="Close preview" onclick={onclose}>
+      <X size={16} aria-hidden="true" />
+    </button>
+    {#if row}<p class="reference mono">{row.referenceNo ?? 'No AR No.'}</p>{/if}
+    <h2 id="preview-title" tabindex="-1" bind:this={heading}>
+      {row?.title ?? 'Report not available'}
+    </h2>
+    {#if row}<StatusBadge status={row.status} />{/if}
 
+    {#if row}
       <dl class="facts">
         <div>
           <dt>Received</dt>
@@ -69,48 +69,35 @@
           <dd>{row.levelLabel}</dd>
         </div>
       </dl>
-    </header>
+    {/if}
+  </header>
 
-    <div class="pane-body">
-      {#if preview.loading}
-        <div class="summary-skeleton" aria-busy="true">
-          <span class="sr-only">Loading the report summary</span>
-          {#each [64, 88, 72, 80, 56] as width, index (index)}
-            <div class="skeleton line" style="width: {width}%"></div>
-          {/each}
-        </div>
-      {:else if preview.notFound}
-        <div class="pane-error" role="alert">
-          <p class="heading">This report does not exist or you do not have access</p>
-          <p>The report may have been removed, or your access to it may have changed.</p>
-        </div>
-      {:else if preview.error}
-        <div class="pane-error" role="alert">
-          <p>
-            <AlertCircle size={16} aria-hidden="true" />
-            <span>The report summary did not load.</span>
-          </p>
-          <button class="btn btn-outline" type="button" onclick={onretry}>Retry</button>
-        </div>
-      {:else if detail}
-        {#each sections as section (section.id)}
-          <section class="pane-section">
-            <h3>{section.numeral}. {section.title}</h3>
-            <dl>
-              {#each section.rows as item (item.label)}
-                <div>
-                  <dt>{item.label}</dt>
-                  <dd class:multiline={item.multiline}>{item.value}</dd>
-                </div>
-              {/each}
-            </dl>
-          </section>
+  <div class="pane-body">
+    {#if preview.loading}
+      <div class="summary-skeleton" aria-busy="true">
+        <span class="sr-only">Loading the report summary</span>
+        {#each [64, 88, 72] as width, index (index)}
+          <div class="skeleton line" style="width: {width}%"></div>
         {/each}
-      {/if}
+      </div>
+    {:else if preview.notFound}
+      <div class="pane-error" role="alert">
+        <p class="heading">This report does not exist or you do not have access</p>
+        <p>The report may have been removed, or your access to it may have changed.</p>
+        <button class="btn btn-outline" type="button" onclick={onclose}>Back to results</button>
+      </div>
+    {:else if preview.error}
+      <div class="pane-error" role="alert">
+        <p>
+          <AlertCircle size={16} aria-hidden="true" />
+          <span>The report summary did not load.</span>
+        </p>
+        <button class="btn btn-outline" type="button" onclick={onretry}>Retry</button>
+      </div>
+    {/if}
 
-      <a class="btn btn-outline open-full" href={row.href}>Open full report</a>
-    </div>
-  {/if}
+    {#if row}<a class="btn btn-outline open-full" href={row.href}>Open full report</a>{/if}
+  </div>
 </aside>
 
 <style>
@@ -126,36 +113,45 @@
     top: 24px;
   }
 
-  .pane-empty {
-    color: var(--text-secondary);
-    padding: 48px 24px;
-    text-align: center;
-  }
-
-  .pane-empty h2 {
-    color: var(--text-primary);
-    font-size: 16px;
-    margin: 0 0 6px;
-  }
-
-  .pane-empty p {
-    font-size: 13px;
-    margin: 0 auto;
-    max-width: 34ch;
-  }
-
   .pane-head {
     border-bottom: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 16px;
+    position: relative;
   }
 
   .pane-head h2 {
     font-size: 16px;
     line-height: 1.3;
     margin: 0;
+    padding-right: 28px;
+  }
+
+  .pane-head h2:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .close {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-badge);
+    color: var(--text-secondary);
+    display: inline-flex;
+    height: 28px;
+    justify-content: center;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    width: 28px;
+  }
+
+  .close:hover {
+    background: var(--status-neutral-bg);
+    color: var(--text-primary);
   }
 
   .reference {
@@ -192,36 +188,6 @@
     flex-direction: column;
     gap: 16px;
     padding: 16px;
-  }
-
-  .pane-section h3 {
-    color: var(--text-secondary);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    margin: 0 0 8px;
-    text-transform: uppercase;
-  }
-
-  .pane-section dl {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin: 0;
-  }
-
-  .pane-section dt {
-    color: var(--text-secondary);
-    font-size: 12px;
-  }
-
-  .pane-section dd {
-    font-size: 13px;
-    margin: 0;
-  }
-
-  .multiline {
-    white-space: pre-line;
   }
 
   .open-full {

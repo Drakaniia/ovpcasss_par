@@ -16,7 +16,7 @@
   import {
     CLASSIFICATION_OPTIONS,
     LEVEL_OPTIONS,
-  } from '$lib/features/reports/application/wizard-form';
+  } from '$lib/features/reports/application/record-form';
 
   import { statusLabel } from '../application/repository-chips';
   import {
@@ -142,14 +142,14 @@
   <form onsubmit={apply} aria-label="Repository filters">
     <div class="grid">
       <label class="field">
-        <span class="field-label">Tracking number</span>
+        <span class="field-label">AR No.</span>
         <input
           class="input"
           type="text"
-          value={draft.tracking}
+          value={draft.reference}
           maxlength="40"
           autocomplete="off"
-          oninput={(event) => set('tracking', event.currentTarget.value)}
+          oninput={(event) => set('reference', event.currentTarget.value)}
         />
       </label>
 

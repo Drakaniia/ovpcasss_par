@@ -6,12 +6,12 @@
   import { sortDirectionFor } from '../application/repository-filter-scope';
   import type { RepositoryFilters } from '../application/repository-filters';
   import type { RepositoryRow } from '../application/repository-rows';
-  import { paneAvailable } from './repository-viewport';
+  import { paneWide } from './repository-viewport';
 
   /**
    * Repository results (UI spec §7.11). Received and Title sort; the title is the
-   * row link. At ≥1440 px a click selects the report in the preview pane;
-   * activating the link with the keyboard always opens the full report.
+   * row link. At desktop widths a click or keyboard activation selects the
+   * report in the preview pane; a modified click keeps the browser's behaviour.
    */
   let {
     rows,
@@ -36,9 +36,16 @@
   }
 
   function linkClick(event: MouseEvent, row: RepositoryRow) {
-    // Below 1440 px the link navigates on its own; a keyboard activation on the
-    // link always opens the report, never the pane.
-    if (!paneAvailable() || event.detail === 0) return;
+    // A modified click is left to the browser (new tab, new window, download).
+    if (!paneWide() || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    onselect(row);
+  }
+
+  /** Enter and Space open the focused row, including the row focus after close. */
+  function rowKeydown(event: KeyboardEvent, row: RepositoryRow) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    if (event.target instanceof Element && event.target.closest('a')) return;
     event.preventDefault();
     onselect(row);
   }
@@ -61,7 +68,7 @@
             {/if}
           </button>
         </th>
-        <th scope="col" class="col-tracking">Tracking no.</th>
+        <th scope="col" class="col-reference">AR No.</th>
         <th scope="col" class="col-title" aria-sort={sortDirectionFor(filters, 'title')}>
           <button class="sort-button" type="button" onclick={() => onsort('title')}>
             Title
@@ -78,11 +85,17 @@
 
     <tbody>
       {#each rows as row (row.id)}
-        <tr aria-selected={selectedId === row.id} onclick={(event) => rowClick(event, row)}>
+        <tr
+          id={`report-row-${row.id}`}
+          tabindex="-1"
+          aria-selected={selectedId === row.id}
+          onclick={(event) => rowClick(event, row)}
+          onkeydown={(event) => rowKeydown(event, row)}
+        >
           <td class="mono col-received">{row.received}</td>
 
-          <td class="mono col-tracking">
-            <span class="tracking-value">{row.trackingNumber ?? '—'}</span>
+          <td class="mono col-reference">
+            <span class="reference-value">{row.referenceNo ?? '—'}</span>
           </td>
 
           <td class="col-title">
@@ -142,11 +155,11 @@
     white-space: nowrap;
   }
 
-  .col-tracking {
+  .col-reference {
     min-width: 180px;
   }
 
-  .tracking-value {
+  .reference-value {
     color: var(--text-secondary);
   }
 
@@ -197,14 +210,24 @@
     white-space: nowrap;
   }
 
-  /* College hides first, then Type; received, tracking, title, and status stay. */
-  @media (max-width: 1439px) {
+  /* The open row is marked with a navy leading edge and medium weight, plus
+     aria-selected, so the state never rides on colour alone. */
+  tbody tr[aria-selected='true'] {
+    box-shadow: inset 2px 0 0 var(--brand-navy-800);
+  }
+
+  tbody tr[aria-selected='true'] .title-link {
+    font-weight: 600;
+  }
+
+  /* College hides first, then Type; received, AR No., title, and status stay. */
+  @media (max-width: 1279px) {
     .col-college {
       display: none;
     }
   }
 
-  @media (max-width: 1279px) {
+  @media (max-width: 1099px) {
     .col-type {
       display: none;
     }

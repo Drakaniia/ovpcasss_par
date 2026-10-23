@@ -2,11 +2,7 @@
   import { REPOSITORY_PAGE_SIZE } from '@par/shared';
   import { ChevronLeft, ChevronRight } from '@lucide/svelte';
 
-  import {
-    pageCountFor,
-    pageWindow,
-    showingRange,
-  } from '$lib/features/reports/application/report-list';
+  import { pageCountFor, pageWindow, showingRange } from '$lib/pagination';
 
   /** 25 rows per page, the same paging math as the other tables (UI spec §7.11). */
   let { total, page, onpage }: { total: number; page: number; onpage: (page: number) => void } =

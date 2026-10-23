@@ -10,8 +10,7 @@ import {
 
 const item = (overrides: Partial<RepositoryItem> = {}): RepositoryItem => ({
   id: 'r1',
-  ownerUserId: 'u1',
-  trackingNumber: 'OFF-2026-0014',
+  referenceNo: 'AR No. 0014',
   title: 'Coastal cleanup',
   type: 'OFF_CAMPUS',
   classification: 'CURRICULAR',
@@ -20,6 +19,7 @@ const item = (overrides: Partial<RepositoryItem> = {}): RepositoryItem => ({
   campusId: 'c1',
   collegeId: 'un1',
   college: 'College of Arts and Sciences',
+  picNames: 'Maria Santos',
   receivedAt: '2026-03-14T01:12:00.000Z',
   activityStartDate: '2026-03-12',
   activityEndDate: '2026-03-13',
@@ -76,7 +76,7 @@ describe('rows', () => {
 
     expect(row).toMatchObject({
       href: '/reports/r1',
-      trackingNumber: 'OFF-2026-0014',
+      referenceNo: 'AR No. 0014',
       typeLabel: 'Off-campus',
       classificationLabel: 'Curricular',
       levelLabel: 'Undergraduate',

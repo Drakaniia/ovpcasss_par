@@ -1,7 +1,7 @@
-/** Results and preview share the screen only when there is room for both (UI spec §12). */
-export const PANE_MIN_WIDTH = 1440;
+/** The preview sits beside the list only at desktop widths (UI spec §12). */
+export const PANE_MIN_WIDTH = 1024;
 
-export function paneAvailable(): boolean {
+export function paneWide(): boolean {
   return (
     typeof window !== 'undefined' && window.matchMedia(`(min-width: ${PANE_MIN_WIDTH}px)`).matches
   );

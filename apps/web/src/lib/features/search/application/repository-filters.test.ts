@@ -58,7 +58,7 @@ describe('repository URL state', () => {
       q: 'cleanup',
       type: 'OFF_CAMPUS' as const,
       sdgIds: ['s4', 's13'],
-      status: 'ENDORSED' as const,
+      status: 'SUBMITTED' as const,
       sort: 'title' as const,
       dir: 'desc' as const,
       page: 2,
@@ -71,11 +71,19 @@ describe('repository URL state', () => {
     expect(filtersFromParams(new URLSearchParams(filtersToParams(filters)))).toEqual(filters);
   });
 
+  it('carries the AR No. filter as the reference parameter', () => {
+    const filters = filtersFromParams(new URLSearchParams('reference=AR+No.+0014'));
+
+    expect(filters.reference).toBe('AR No. 0014');
+    expect(filtersToParams(filters)).toBe('reference=AR+No.+0014');
+    expect(repositoryQueryFor(filters).reference).toBe('AR No. 0014');
+  });
+
   it('restarts at page 1 when the scope changes and keeps it when paging', () => {
     const current = { ...DEFAULT_REPOSITORY_FILTERS, page: 3 };
 
     expect(updateFilters(current, { q: 'museum' }).page).toBe(1);
-    expect(updateFilters(current, { status: 'ENDORSED' }).page).toBe(1);
+    expect(updateFilters(current, { status: 'SUBMITTED' }).page).toBe(1);
     expect(updateFilters(current, { sort: 'title' }).page).toBe(1);
     expect(updateFilters(current, { page: 2 }).page).toBe(2);
   });
@@ -95,12 +103,19 @@ describe('repository URL state', () => {
       '/search?type=IN_CAMPUS',
     );
   });
+
+  it('adds the open report to the href so the pane is URL state', () => {
+    expect(repositoryHref(DEFAULT_REPOSITORY_FILTERS, 'r1')).toBe('/search?report=r1');
+    expect(repositoryHref({ ...DEFAULT_REPOSITORY_FILTERS, type: 'IN_CAMPUS' }, 'r1')).toBe(
+      '/search?type=IN_CAMPUS&report=r1',
+    );
+  });
 });
 
 describe('active scope', () => {
   it('treats the default status as the scope, not as an active filter', () => {
     expect(hasActiveFilters(DEFAULT_REPOSITORY_FILTERS)).toBe(false);
-    expect(hasActiveFilters({ ...DEFAULT_REPOSITORY_FILTERS, status: 'ENDORSED' })).toBe(true);
+    expect(hasActiveFilters({ ...DEFAULT_REPOSITORY_FILTERS, status: 'SUBMITTED' })).toBe(true);
     expect(hasActiveFilters({ ...DEFAULT_REPOSITORY_FILTERS, q: 'x' })).toBe(false);
     expect(panelStartsOpen(DEFAULT_REPOSITORY_FILTERS)).toBe(false);
     expect(panelStartsOpen({ ...DEFAULT_REPOSITORY_FILTERS, type: 'IN_CAMPUS' })).toBe(true);
@@ -119,7 +134,7 @@ describe('active scope', () => {
       activeFilterCount({
         ...DEFAULT_REPOSITORY_FILTERS,
         type: 'OFF_CAMPUS',
-        status: 'ENDORSED',
+        status: 'SUBMITTED',
         pic: 'A. Cruz',
       }),
     ).toBe(3);
@@ -142,7 +157,7 @@ describe('active scope', () => {
   it('maps to the API query without empty values', () => {
     expect(repositoryQueryFor(DEFAULT_REPOSITORY_FILTERS)).toEqual({
       q: undefined,
-      tracking: undefined,
+      reference: undefined,
       title: undefined,
       type: undefined,
       classification: undefined,

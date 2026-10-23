@@ -2,7 +2,7 @@ import type { ReportFilterOption, RepositoryItem, RepositoryStatus } from '@par/
 
 import { formatDate, formatDateRange } from '$lib/format/datetime';
 import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
-import { classificationLabel, levelLabel } from '$lib/features/reports/application/wizard-form';
+import { classificationLabel, levelLabel } from '$lib/features/reports/application/record-form';
 
 /**
  * Repository result rows and their copy (UI spec §7.11). A row carries the six
@@ -51,7 +51,7 @@ export function highlightSegments(text: string, query: string): HighlightSegment
 export type RepositoryRow = {
   id: string;
   href: string;
-  trackingNumber: string | null;
+  referenceNo: string | null;
   title: string;
   titleSegments: HighlightSegment[];
   /** Narrative excerpt around the match, when the API found one. */
@@ -76,7 +76,7 @@ export function repositoryRowFromItem(
   return {
     id: item.id,
     href: `/reports/${item.id}`,
-    trackingNumber: item.trackingNumber,
+    referenceNo: item.referenceNo,
     title: item.title,
     titleSegments: highlightSegments(item.title, query),
     snippet: item.snippet ?? null,

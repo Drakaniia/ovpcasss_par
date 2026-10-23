@@ -55,7 +55,7 @@ describe('SearchToolbar', () => {
   });
 
   it('counts the active filters and offers Clear', () => {
-    const { body } = renderToolbar({ type: 'OFF_CAMPUS', status: 'ENDORSED' });
+    const { body } = renderToolbar({ type: 'OFF_CAMPUS', status: 'SUBMITTED' });
 
     expect(body).toContain('Filters (2)');
     expect(body).toContain('Clear</button>');

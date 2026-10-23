@@ -23,7 +23,7 @@ describe('SearchFilters', () => {
     const { body } = renderPanel();
 
     for (const label of [
-      'Tracking number',
+      'AR No.',
       'Title',
       'Type',
       'Classification',

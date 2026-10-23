@@ -23,7 +23,7 @@ function isActiveField(filters: RepositoryFilters, field: RepositoryFilterField)
 
 /** Panel order, which is also the order of the chips and the scope echo. */
 export const ACTIVE_FIELDS = [
-  'tracking',
+  'reference',
   'title',
   'type',
   'classification',
@@ -82,7 +82,7 @@ export function clearedFilters(filters: RepositoryFilters): RepositoryFilters {
 export function repositoryQueryFor(filters: RepositoryFilters): RepositoryQuery {
   return {
     q: filters.q || undefined,
-    tracking: filters.tracking || undefined,
+    reference: filters.reference || undefined,
     title: filters.title || undefined,
     type: filters.type || undefined,
     classification: filters.classification || undefined,

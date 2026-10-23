@@ -8,8 +8,7 @@ import SearchResults from './SearchResults.svelte';
 
 const item = (overrides: Partial<RepositoryItem> = {}): RepositoryItem => ({
   id: 'r1',
-  ownerUserId: 'u1',
-  trackingNumber: 'OFF-2026-0014',
+  referenceNo: 'AR No. 0014',
   title: 'Coastal cleanup',
   type: 'OFF_CAMPUS',
   classification: 'CURRICULAR',
@@ -18,6 +17,7 @@ const item = (overrides: Partial<RepositoryItem> = {}): RepositoryItem => ({
   campusId: 'c1',
   collegeId: 'un1',
   college: 'College of Arts and Sciences',
+  picNames: 'Maria Santos',
   receivedAt: '2026-03-14T01:12:00.000Z',
   activityStartDate: '2026-03-12',
   activityEndDate: '2026-03-13',
@@ -40,12 +40,12 @@ describe('SearchResults', () => {
   it('shows the register columns and the row facts', () => {
     const { body } = renderTable();
 
-    for (const heading of ['Received', 'Tracking no.', 'Title', 'Type', 'College', 'Status']) {
+    for (const heading of ['Received', 'AR No.', 'Title', 'Type', 'College', 'Status']) {
       expect(body).toContain(heading);
     }
 
     expect(body).toContain('14 Mar 2026');
-    expect(body).toContain('OFF-2026-0014');
+    expect(body).toContain('AR No. 0014');
     expect(body).toContain('Coastal cleanup');
     expect(body).toContain('Off-campus');
     expect(body).toContain('College of Arts and Sciences');

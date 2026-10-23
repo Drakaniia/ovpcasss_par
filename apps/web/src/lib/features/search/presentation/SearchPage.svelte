@@ -3,7 +3,7 @@
   import { AlertCircle } from '@lucide/svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
-  import { onMount, untrack } from 'svelte';
+  import { onMount, tick, untrack } from 'svelte';
 
   import EmptyState from '$lib/components/EmptyState.svelte';
   import ErrorState from '$lib/components/ErrorState.svelte';
@@ -41,7 +41,7 @@
     type RepositoryRow,
   } from '../application/repository-rows';
   import { RepositoryState } from '../application/repository-state.svelte';
-  import { paneAvailable } from './repository-viewport';
+  import { paneWide } from './repository-viewport';
   import SearchFilters from './SearchFilters.svelte';
   import SearchPagination from './SearchPagination.svelte';
   import SearchPreview from './SearchPreview.svelte';
@@ -52,12 +52,15 @@
   /**
    * The repository (UI spec §7.11). It defaults to every approved report, newest
    * date received first, searches the full record, and can hand its exact scope
-   * to the exports screen. Query, filters, sort, and page are URL state.
+   * to the exports screen. Query, filters, sort, page, and the open report are
+   * URL state.
    */
   const repository = untrack(() => new RepositoryState());
 
   let filters = $state(untrack(() => filtersFromParams(new URLSearchParams(page.url.search))));
   let panelOpen = $state(untrack(() => panelStartsOpen(filters)));
+  /** Back and Forward close the pane through the URL; only Back restores focus. */
+  let focusOnClose = false;
 
   const rows = $derived(
     repository.items.map((item) => repositoryRowFromItem(item, { query: filters.q })),
@@ -76,6 +79,11 @@
   );
   const showingResults = $derived(!repository.loading && !repository.loadFailed && rows.length > 0);
 
+  /** The open report is in the URL, so Back closes the pane and a link reopens it. */
+  function reportParam(): string | null {
+    return new URLSearchParams(page.url.search).get('report');
+  }
+
   async function applyFilters(patch: Partial<RepositoryFilters>) {
     const next = updateFilters(filters, patch);
     if (filtersEqual(next, filters)) return;
@@ -88,21 +96,60 @@
     void applyFilters(toggledSort(filters, field));
   }
 
-  /** Row click: the pane only exists at the master–detail width. */
+  /** One click, one meaning: open the pane at desktop widths, otherwise the page. */
   function openRow(row: RepositoryRow) {
-    if (paneAvailable()) {
-      void repository.select(row.id);
+    if (!paneWide()) {
+      void goto(row.href);
       return;
     }
 
-    void goto(row.href);
+    void goto(repositoryHref(filters, row.id), { replaceState: false });
+    void repository.select(row.id);
+  }
+
+  async function closePreview() {
+    const id = repository.selectedId;
+    repository.clearSelection();
+    await goto(repositoryHref(filters), { replaceState: true });
+    await tick();
+
+    const row = id ? document.getElementById(`report-row-${id}`) : null;
+    (row ?? document.getElementById('results-heading'))?.focus();
+  }
+
+  function focusPreview() {
+    document.getElementById('preview-title')?.focus();
+  }
+
+  function onKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape' && repository.selectedId) {
+      event.preventDefault();
+      void closePreview();
+      return;
+    }
+
+    if (!event.altKey || event.key !== 'ArrowRight' || !repository.selectedId) return;
+    event.preventDefault();
+    focusPreview();
   }
 
   function retry() {
     void repository.reload(repositoryQueryFor(filters));
   }
 
-  onMount(() => void repository.load());
+  function onPopState() {
+    focusOnClose = true;
+  }
+
+  onMount(() => {
+    void repository.load();
+    window.addEventListener('keydown', onKeydown);
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('keydown', onKeydown);
+      window.removeEventListener('popstate', onPopState);
+    };
+  });
 
   // Back/forward or a shared link replaces the local filter state.
   $effect(() => {
@@ -116,14 +163,50 @@
       filters = fromUrl;
   });
 
+  // The open report follows the URL in both directions, including Back. A link
+  // to a report outside the current results keeps the URL and shows not-found.
+  $effect(() => {
+    const id = reportParam();
+    const fromHistory = focusOnClose;
+    focusOnClose = false;
+
+    if (repository.view !== 'ready' || !repository.loaded) return;
+    if (id === untrack(() => repository.selectedId)) return;
+
+    if (!id) {
+      const closedId = untrack(() => repository.selectedId);
+      repository.clearSelection();
+
+      if (closedId && fromHistory) {
+        void tick().then(
+          () =>
+            (
+              document.getElementById(`report-row-${closedId}`) ??
+              document.getElementById('results-heading')
+            )?.focus(),
+        );
+      }
+    } else if (repository.items.some((item) => item.id === id)) void repository.select(id);
+    else repository.markNotFound(id);
+  });
+
   // One search per scope change; the API owns the ordering and the paging.
   $effect(() => {
     if (repository.view !== 'ready') return;
 
     const query = repositoryQueryFor(filters);
     void repository.reload(query).then((target) => {
-      if (target === null) return;
-      void applyFilters({ page: target });
+      if (target !== null) {
+        void applyFilters({ page: target });
+        return;
+      }
+
+      // A report named in the URL but outside these results keeps the pane open
+      // with the shared not-found state; a linked report is never an error page.
+      const id = reportParam();
+      if (id && repository.selectedId === null && !repository.items.some((item) => item.id === id)) {
+        repository.markNotFound(id);
+      }
     });
   });
 </script>
@@ -152,7 +235,7 @@
   <ErrorState
     variant="permission"
     title="You do not have access to the repository"
-    description="The repository is available to reviewers, approvers, and administrators. Contact the OVPCASSS administrator if you believe this is a mistake."
+    description="The repository is available to signed-in accounts. Contact the OVPCASSS administrator if you believe this is a mistake."
     backHref="/"
     backLabel="Back to inbox"
   />
@@ -197,7 +280,7 @@
     {@render notice()}
   {/if}
 
-  <div class="results-layout">
+  <div class="results-layout" class:open={repository.selectedId !== null}>
     <div class="results-list">
       {#if repository.loadFailed}
         <div class="table-state">
@@ -232,7 +315,7 @@
         </div>
       {:else}
         <div class="scope-bar">
-          <p class="count">{countLine(repository.total)}</p>
+          <p class="count" id="results-heading" tabindex="-1">{countLine(repository.total)}</p>
           {#if echo}
             <p class="echo">{echo}</p>
           {/if}
@@ -255,14 +338,16 @@
       {/if}
     </div>
 
-    <div class="preview-column">
-      <SearchPreview
-        row={selectedRow}
-        preview={repository.preview}
-        references={repository.references}
-        onretry={() => void repository.reloadPreview()}
-      />
-    </div>
+    {#if repository.selectedId !== null}
+      <div class="preview-column">
+        <SearchPreview
+          row={selectedRow}
+          preview={repository.preview}
+          onretry={() => void repository.reloadPreview()}
+          onclose={() => void closePreview()}
+        />
+      </div>
+    {/if}
   </div>
 {/if}
 
@@ -289,23 +374,19 @@
     margin: 0;
   }
 
+  /* One section until a row is chosen; the split only exists when there is a
+     report to show beside the list. */
   .results-layout {
     align-items: start;
     display: grid;
     gap: 24px;
     grid-template-columns: minmax(0, 1fr);
+    transition: grid-template-columns var(--duration-base) var(--ease-standard);
   }
 
-  /* Master–detail appears only when there is room for both (UI spec §12). */
-  @media (min-width: 1440px) {
-    .results-layout {
-      grid-template-columns: minmax(0, 1.15fr) minmax(360px, 1fr);
-    }
-  }
-
-  @media (max-width: 1439px) {
-    .preview-column {
-      display: none;
+  @media (min-width: 1024px) {
+    .results-layout.open {
+      grid-template-columns: minmax(0, 1fr) minmax(380px, 0.9fr);
     }
   }
 
@@ -332,6 +413,11 @@
     font-variant-numeric: tabular-nums;
     font-weight: 500;
     margin: 0;
+  }
+
+  .count:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
   }
 
   .echo {
@@ -385,5 +471,11 @@
 
   .mono {
     font-family: var(--font-mono);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .results-layout {
+      transition: none;
+    }
   }
 </style>

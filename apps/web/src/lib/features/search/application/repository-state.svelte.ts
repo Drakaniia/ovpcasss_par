@@ -1,28 +1,17 @@
-import type {
-  Campus,
-  ReportDetail,
-  RepositoryFacets,
-  RepositoryItem,
-  RepositoryQuery,
-  Sdg,
-  Unit,
-} from '@par/shared';
+import type { ReportDetail, RepositoryFacets, RepositoryItem, RepositoryQuery } from '@par/shared';
 import { goto } from '$app/navigation';
 
 import { api } from '$lib/api/client';
 import { ApiError } from '$lib/api/http';
-import type { FacsimileReferences } from '$lib/features/facsimile/application/facsimile-document';
-import { ensureActiveSession } from '$lib/features/reports/application/edit-returned-requests';
-import { fallbackPage } from '$lib/features/reports/application/report-list';
 import { canSearchRepository } from '$lib/navigation/navigation';
-import { clearSession, session } from '$lib/session/session.svelte';
+import { loadSession } from '$lib/session/session.svelte';
 
 import { SEARCH_TIMEOUT_CODES, SEARCH_TIMEOUT_COPY } from './repository-rows';
 
 /**
- * Repository page state (UI spec §7.11). The URL owns the query and every
- * filter; this module owns the role gate, the results, the preview pane, and the
- * states that are not URL state (loading, failure, access revoked).
+ * Repository page state (UI spec §7.11). The URL owns the query, the filters,
+ * and the open report; this module owns the results, the preview pane, and the
+ * states that are not URL state (loading, failure).
  */
 export type RepositoryView = 'loading' | 'ready' | 'denied' | 'error';
 
@@ -44,14 +33,16 @@ function emptyPreview(): RepositoryPreview {
   return { loading: false, detail: null, notFound: false, error: null };
 }
 
-function emptyReferences(): FacsimileReferences {
-  return { campuses: [], units: [], sdgs: [] };
-}
-
 /** A search that timed out keeps the previous results instead of showing a lie. */
 function isTimeout(error: unknown): boolean {
   if (!(error instanceof ApiError)) return false;
   return error.status === 408 || error.status === 504 || SEARCH_TIMEOUT_CODES.has(error.code);
+}
+
+/** The last page may have emptied under a new scope; clamp instead of lying. */
+function fallbackPage(total: number, size: number, page: number): number {
+  const last = Math.max(1, Math.ceil(total / size));
+  return Math.min(page, last);
 }
 
 export class RepositoryState {
@@ -66,13 +57,13 @@ export class RepositoryState {
   /** A timeout or too-large scope: the last results stay, with an inline notice. */
   notice = $state<RepositoryNotice | null>(null);
   selectedId = $state<string | null>(null);
+  /** The first successful page has arrived, so URL selection can be resolved. */
+  loaded = $state(false);
   /** Screen-reader line for changes the user did not trigger directly. */
   announcement = $state('');
   preview = $state<RepositoryPreview>(emptyPreview());
-  references = $state<FacsimileReferences>(emptyReferences());
 
   private hasLoaded = false;
-  private referencesLoaded = false;
   private previewToken = 0;
 
   /** Signed in, active, and holding a role the repository admits. */
@@ -80,18 +71,21 @@ export class RepositoryState {
     this.view = 'loading';
     this.requestId = undefined;
 
-    const gate = await ensureActiveSession();
-    if (gate !== 'ok') {
-      if (gate === 'error') this.view = 'error';
-      return;
+    try {
+      const user = await loadSession();
+      if (!user) {
+        await goto('/login', { replaceState: true });
+        return;
+      }
+      if (!canSearchRepository(user.role)) {
+        this.view = 'denied';
+        return;
+      }
+      this.view = 'ready';
+    } catch (error) {
+      this.view = 'error';
+      this.requestId = error instanceof ApiError ? error.requestId : undefined;
     }
-
-    if (!canSearchRepository(session.user?.role)) {
-      this.view = 'denied';
-      return;
-    }
-
-    this.view = 'ready';
   }
 
   /** Runs the search; returns a page to fall back to when the scope shrank. */
@@ -111,11 +105,11 @@ export class RepositoryState {
       this.facets = response.facets;
       this.notice = null;
       this.hasLoaded = true;
+      this.loaded = true;
       this.keepSelection();
       return null;
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
-        clearSession();
         await goto('/login', { replaceState: true });
         return null;
       }
@@ -154,7 +148,7 @@ export class RepositoryState {
   }
 
   async select(id: string) {
-    if (this.selectedId === id) return;
+    if (this.selectedId === id && this.preview.detail) return;
     await this.openPreview(id);
   }
 
@@ -170,7 +164,6 @@ export class RepositoryState {
     this.preview = { loading: true, detail: null, notFound: false, error: null };
 
     try {
-      await this.loadReferences();
       const detail = await api.reports.get(id);
 
       if (token !== this.previewToken) return;
@@ -194,27 +187,16 @@ export class RepositoryState {
     }
   }
 
+  /** A report named in the URL but absent from the current results. */
+  markNotFound(id: string) {
+    this.previewToken += 1;
+    this.selectedId = id;
+    this.preview = { loading: false, detail: null, notFound: true, error: null };
+  }
+
   clearSelection() {
     this.previewToken += 1;
     this.selectedId = null;
     this.preview = emptyPreview();
-  }
-
-  private async loadReferences(): Promise<FacsimileReferences> {
-    if (this.referencesLoaded) return this.references;
-
-    const [campuses, units, sdgs] = await Promise.all([
-      api.reference.list('campuses'),
-      api.reference.list('units'),
-      api.reference.list('sdgs'),
-    ]);
-
-    this.references = {
-      campuses: campuses.items as Campus[],
-      units: units.items as Unit[],
-      sdgs: sdgs.items as Sdg[],
-    };
-    this.referencesLoaded = true;
-    return this.references;
   }
 }

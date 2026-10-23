@@ -24,7 +24,7 @@ import {
 export type RepositoryFilters = {
   /** Free text over title, narrative, PIC, and location. */
   q: string;
-  tracking: string;
+  reference: string;
   title: string;
   type: ReportType | '';
   classification: Classification | '';
@@ -49,7 +49,7 @@ export type RepositoryFilters = {
 
 export const DEFAULT_REPOSITORY_FILTERS: RepositoryFilters = {
   q: '',
-  tracking: '',
+  reference: '',
   title: '',
   type: '',
   classification: '',
@@ -109,7 +109,7 @@ export function filtersFromParams(params: URLSearchParams): RepositoryFilters {
 
   return {
     q: text(params.get('q')),
-    tracking: text(params.get('tracking')),
+    reference: text(params.get('reference')),
     title: text(params.get('title')),
     type: oneOf<ReportType>(TYPE_SET, params.get('type'), ''),
     classification: oneOf<Classification>(CLASSIFICATION_SET, params.get('classification'), ''),
@@ -145,7 +145,7 @@ export function filtersToParams(filters: RepositoryFilters): string {
   };
 
   set('q', filters.q);
-  set('tracking', filters.tracking);
+  set('reference', filters.reference);
   set('title', filters.title);
   set('type', filters.type);
   set('classification', filters.classification);
@@ -169,8 +169,10 @@ export function filtersToParams(filters: RepositoryFilters): string {
   return params.toString();
 }
 
-export function repositoryHref(filters: RepositoryFilters): string {
-  const search = filtersToParams(filters);
+export function repositoryHref(filters: RepositoryFilters, report?: string | null): string {
+  const params = new URLSearchParams(filtersToParams(filters));
+  if (report) params.set('report', report);
+  const search = params.toString();
   return search ? `/search?${search}` : '/search';
 }
 
@@ -186,7 +188,7 @@ export function exportHref(filters: RepositoryFilters): string {
 export function filtersEqual(a: RepositoryFilters, b: RepositoryFilters): boolean {
   return (
     a.q === b.q &&
-    a.tracking === b.tracking &&
+    a.reference === b.reference &&
     a.title === b.title &&
     a.type === b.type &&
     a.classification === b.classification &&
@@ -212,7 +214,7 @@ export function filtersEqual(a: RepositoryFilters, b: RepositoryFilters): boolea
 /** Fields that describe results; changing one restarts at page 1. */
 export const RESCOPING_FIELDS = [
   'q',
-  'tracking',
+  'reference',
   'title',
   'type',
   'classification',

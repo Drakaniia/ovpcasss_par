@@ -3,7 +3,7 @@ import { REPOSITORY_DEFAULT_STATUS } from '@par/shared';
 
 import { formatDate } from '$lib/format/datetime';
 import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
-import { classificationLabel, levelLabel } from '$lib/features/reports/application/wizard-form';
+import { classificationLabel, levelLabel } from '$lib/features/reports/application/record-form';
 import { STATUS_PRESENTATION } from '$lib/status/report-status';
 
 import type { RepositoryFilters } from './repository-filters';
@@ -15,7 +15,7 @@ import { activeFilterCount } from './repository-filter-scope';
  * so they are echoed but never duplicated as chips.
  */
 export type RepositoryChipId =
-  | 'tracking'
+  | 'reference'
   | 'title'
   | 'classification'
   | 'campus'
@@ -50,7 +50,7 @@ export function activeChips(
 ): RepositoryChip[] {
   const chips: RepositoryChip[] = [];
 
-  if (filters.tracking) chips.push({ id: 'tracking', label: `Tracking: ${filters.tracking}` });
+  if (filters.reference) chips.push({ id: 'reference', label: `AR No.: ${filters.reference}` });
   if (filters.title) chips.push({ id: 'title', label: `Title: ${filters.title}` });
   if (filters.classification) {
     chips.push({
@@ -126,8 +126,8 @@ function rangeLabel(from: string, to: string): string {
 
 export function removedFilter(id: RepositoryChipId): Partial<RepositoryFilters> {
   switch (id) {
-    case 'tracking':
-      return { tracking: '' };
+    case 'reference':
+      return { reference: '' };
     case 'title':
       return { title: '' };
     case 'classification':
