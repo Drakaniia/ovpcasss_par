@@ -52,15 +52,6 @@ export const inboxAdminSchema = z.object({
 });
 export type InboxAdmin = z.infer<typeof inboxAdminSchema>;
 
-export const inboxOnboardingSchema = z.object({
-  profileComplete: z.boolean(),
-  /** The reader has submitted at least one narrative. */
-  hasSubmitted: z.boolean(),
-  /** A narrative draft this account may continue, if any. */
-  draftId: idSchema.nullable(),
-});
-export type InboxOnboarding = z.infer<typeof inboxOnboardingSchema>;
-
 export const inboxResponseSchema = z.object({
   /** ADMIN: narratives waiting for a decision. Empty for PERSONNEL. */
   awaitingReview: inboxSectionSchema,
@@ -70,12 +61,9 @@ export const inboxResponseSchema = z.object({
   returned: inboxSectionSchema,
   /** Both: approved records, newest first. */
   approved: inboxSectionSchema,
-  /** PERSONNEL: every record assigned to the reader. */
-  myReports: inboxSectionSchema,
   activity: z.array(inboxActivitySchema).max(5),
   recentlyDecided: z.array(inboxActivitySchema).max(3).optional(),
   notificationsUnread: z.number().int().min(0).optional(),
   admin: inboxAdminSchema.nullable(),
-  onboarding: inboxOnboardingSchema,
 });
 export type InboxResponse = z.infer<typeof inboxResponseSchema>;

@@ -7,7 +7,7 @@ export type UserStatus = (typeof USER_STATUSES)[number];
 export const REPORT_TYPES = ['OFF_CAMPUS', 'EDUCATIONAL_TOUR', 'IN_CAMPUS'] as const;
 export type ReportType = (typeof REPORT_TYPES)[number];
 
-export const REPORT_STATUSES = ['DRAFT', 'SUBMITTED', 'RETURNED', 'APPROVED'] as const;
+export const REPORT_STATUSES = ['PENDING', 'SUBMITTED', 'RETURNED', 'APPROVED'] as const;
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
 
 export const CLASSIFICATIONS = ['CURRICULAR', 'NON_CURRICULAR'] as const;

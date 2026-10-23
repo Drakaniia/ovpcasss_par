@@ -48,6 +48,8 @@ export const monitoringExportRequestSchema = z.object({
   schoolYear: z.string().regex(/^\d{4}-\d{4}$/),
   semester: z.union([z.literal(1), z.literal(2)]),
   includeInProgress: z.boolean().default(false),
+  /** Filing flag: archived records stay out of the sheet unless asked for. */
+  includeArchived: z.boolean().default(false),
 });
 export type MonitoringExportRequest = z.infer<typeof monitoringExportRequestSchema>;
 

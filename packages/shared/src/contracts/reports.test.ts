@@ -54,7 +54,7 @@ const detail = {
       actorName: 'M. Santos',
       actorRole: 'PERSONNEL',
       action: 'Narrative submitted',
-      fromStatus: 'DRAFT',
+      fromStatus: 'PENDING',
       toStatus: 'SUBMITTED',
     },
   ],

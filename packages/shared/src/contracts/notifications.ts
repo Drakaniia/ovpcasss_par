@@ -7,6 +7,7 @@ export const NOTIFICATION_KINDS = [
   'SUBMITTED',
   'RETURNED',
   'APPROVED',
+  'RECORD_EDITED',
   'REMINDER',
   'ACCOUNT',
 ] as const;
@@ -17,6 +18,7 @@ export const NOTIFICATION_KIND_LABELS: Record<NotificationKind, string> = {
   SUBMITTED: 'Submitted',
   RETURNED: 'Returned',
   APPROVED: 'Approved',
+  RECORD_EDITED: 'Details corrected',
   REMINDER: 'Reminder',
   ACCOUNT: 'Account',
 };
@@ -47,6 +49,8 @@ export function notificationFlagsFor(kind: NotificationKind): NotificationFlags 
     case 'RETURNED':
       return { needsAction: true, aboutOwnReport: true };
     case 'APPROVED':
+      return { needsAction: false, aboutOwnReport: true };
+    case 'RECORD_EDITED':
       return { needsAction: false, aboutOwnReport: true };
     case 'REMINDER':
       return { needsAction: true, aboutOwnReport: true };

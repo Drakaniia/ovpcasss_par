@@ -6,11 +6,12 @@ import { reportFilterOptionSchema, SORT_DIRECTIONS } from './reports';
 
 /**
  * Repository search (spec §17). One shape serves the URL state, the API query,
- * and the export handoff. Drafts are not repository records.
+ * and the export handoff. A pending record has no submitted narrative, so the
+ * office's repository does not carry it.
  */
 export const REPOSITORY_STATUSES = REPORT_STATUSES.filter(
-  (status) => status !== 'DRAFT',
-) as readonly Exclude<(typeof REPORT_STATUSES)[number], 'DRAFT'>[];
+  (status) => status !== 'PENDING',
+) as readonly Exclude<(typeof REPORT_STATUSES)[number], 'PENDING'>[];
 export type RepositoryStatus = (typeof REPOSITORY_STATUSES)[number];
 
 export const REPOSITORY_DEFAULT_STATUS: RepositoryStatus = 'APPROVED';
