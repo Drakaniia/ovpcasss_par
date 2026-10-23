@@ -1,112 +1,47 @@
-import { actsAs } from '@par/shared';
 import type {
-  InboxAdmin,
   InboxActivity,
   InboxActivityKind,
+  InboxAdmin,
   InboxAuditEvent,
   InboxItem,
-  InboxOnboarding,
   InboxResponse,
+  InboxSection,
   Role,
 } from '@par/shared';
 
 import { formatDateTime } from '$lib/format/datetime';
 import { formatAge, formatRelativeTime } from '$lib/format/relative-time';
-import { nextStepText, STATUS_PRESENTATION } from '$lib/status/report-status';
+import { STATUS_PRESENTATION } from '$lib/status/report-status';
 
 /**
- * Work-inbox composition (UI spec §7.3). Roles decide which sections a person
- * may have; the server decides which ones actually have content. Sections keep
- * one fixed order and empty sections are omitted, never rendered as "0".
+ * Work-inbox composition (spec §12.1–§12.2). The server decides which sections
+ * this account may have and how many rows each holds; the client keeps one fixed
+ * order and omits every empty section rather than rendering a zero.
  */
+
 export type InboxCapabilities = {
-  submitter: boolean;
-  reviewer: boolean;
-  approver: boolean;
   admin: boolean;
+  personnel: boolean;
 };
 
 export function capabilitiesFor(roles: readonly Role[]): InboxCapabilities {
-  const can = (expected: Role) => roles.some((role) => actsAs(role, expected));
-
   return {
-    submitter: can('SUBMITTER'),
-    reviewer: can('REVIEWER'),
-    approver: can('APPROVER'),
-    admin: can('ADMIN'),
+    admin: roles.includes('ADMIN'),
+    personnel: roles.includes('PERSONNEL'),
   };
 }
 
-export type InboxSectionId =
-  'returned' | 'review' | 'approval' | 'admin' | 'drafts' | 'waiting' | 'activity';
-
-export type InboxStat = {
-  id: 'review' | 'approval' | 'returned' | 'drafts';
-  label: string;
-  count: number;
-  href: string;
-};
-
-/**
- * At-a-glance numbers (signature spec §6.3). Only sections this role owns and
- * that actually have rows: a zero is never turned into a tile.
- */
-export function inboxStatsFor(roles: readonly Role[], inbox: InboxResponse): InboxStat[] {
-  const caps = capabilitiesFor(roles);
-  const stats: InboxStat[] = [];
-
-  if (caps.reviewer && inbox.review.total > 0) {
-    stats.push({
-      id: 'review',
-      label: 'Awaiting review',
-      count: inbox.review.total,
-      href: '/review',
-    });
-  }
-  if (caps.approver && inbox.approval.total > 0) {
-    stats.push({
-      id: 'approval',
-      label: 'Awaiting approval',
-      count: inbox.approval.total,
-      href: '/approval',
-    });
-  }
-  if (caps.submitter && inbox.returned.total > 0) {
-    stats.push({
-      id: 'returned',
-      label: 'Returned to you',
-      count: inbox.returned.total,
-      href: '/reports?tab=returned',
-    });
-  }
-  if (caps.submitter && inbox.drafts.total > 0) {
-    stats.push({
-      id: 'drafts',
-      label: 'Drafts',
-      count: inbox.drafts.total,
-      href: '/reports?tab=drafts',
-    });
-  }
-
-  return stats;
-}
+export type InboxSectionId = 'awaitingReview' | 'withPic' | 'returned' | 'approved' | 'myReports';
 
 export function inboxSectionsFor(roles: readonly Role[], inbox: InboxResponse): InboxSectionId[] {
   const caps = capabilitiesFor(roles);
-  const admin = caps.admin ? inbox.admin : null;
   const sections: InboxSectionId[] = [];
 
-  if (caps.submitter && inbox.returned.total > 0) sections.push('returned');
-  if (caps.reviewer && inbox.review.total > 0) sections.push('review');
-  if (caps.approver && inbox.approval.total > 0) sections.push('approval');
-
-  if (admin && adminActionsFor(admin).length > 0) sections.push('admin');
-
-  if (caps.submitter && inbox.drafts.total > 0) sections.push('drafts');
-  if (caps.submitter && inbox.waiting.total > 0) sections.push('waiting');
-  if (inbox.activity.length > 0 || (admin && admin.auditEvents.length > 0)) {
-    sections.push('activity');
-  }
+  if (caps.admin && inbox.awaitingReview.total > 0) sections.push('awaitingReview');
+  if (caps.admin && inbox.withPic.total > 0) sections.push('withPic');
+  if (inbox.returned.total > 0) sections.push('returned');
+  if (inbox.approved.total > 0) sections.push('approved');
+  if (caps.personnel && inbox.myReports.total > 0) sections.push('myReports');
 
   return sections;
 }
@@ -115,56 +50,134 @@ export function hasInboxContent(roles: readonly Role[], inbox: InboxResponse): b
   return inboxSectionsFor(roles, inbox).length > 0;
 }
 
+export type InboxStat = {
+  id: 'awaitingReview' | 'returned' | 'withPic';
+  label: string;
+  count: number;
+  href: string;
+};
+
+/** At-a-glance numbers; a zero is never turned into a tile. */
+export function inboxStatsFor(roles: readonly Role[], inbox: InboxResponse): InboxStat[] {
+  const caps = capabilitiesFor(roles);
+  const stats: InboxStat[] = [];
+
+  if (caps.admin && inbox.awaitingReview.total > 0) {
+    stats.push({
+      id: 'awaitingReview',
+      label: 'Awaiting your decision',
+      count: inbox.awaitingReview.total,
+      href: '/reports?tab=submitted',
+    });
+  }
+  if (caps.admin && inbox.withPic.total > 0) {
+    stats.push({
+      id: 'withPic',
+      label: 'With personnel in charge',
+      count: inbox.withPic.total,
+      href: '/reports?tab=withPic',
+    });
+  }
+  if (inbox.returned.total > 0) {
+    stats.push({
+      id: 'returned',
+      label: 'Returned for revision',
+      count: inbox.returned.total,
+      href: '/reports?tab=returned',
+    });
+  }
+
+  return stats;
+}
+
 export type InboxRow = {
   id: string;
   href: string;
-  trackingNumber: string | null;
+  referenceNo: string;
   title: string;
   meta: string;
-  /** An administrator's own report stays visible, marked rather than hidden. */
-  isOwn?: boolean;
+  overdue: boolean;
+  canResend: boolean;
 };
 
-/** Returned rows open the edit page, not the facsimile (phase 02 §3.1). */
-export function returnedRows(items: readonly InboxItem[], now: Date = new Date()): InboxRow[] {
-  return items.map((item) => ({
-    id: item.id,
-    href: `/reports/${item.id}/edit`,
-    trackingNumber: item.trackingNumber,
-    title: item.title,
-    meta: `${STATUS_PRESENTATION[item.status].label} · ${formatRelativeTime(item.updatedAt, now)}`,
-    isOwn: item.isOwn ?? false,
-  }));
+function ageOf(item: InboxItem, now: Date): string {
+  return formatAge(item.submittedAt ?? item.updatedAt, now);
 }
 
-/** Queue rows open the matching detail route; the inbox offers no decisions. */
-export function queueRows(
-  items: readonly InboxItem[],
-  queue: 'review' | 'approval',
-  now: Date = new Date(),
+function overdue(item: InboxItem, now: Date): boolean {
+  const since = new Date(item.submittedAt ?? item.updatedAt).getTime();
+  return Number.isFinite(since) && now.getTime() - since >= 7 * 24 * 60 * 60 * 1000;
+}
+
+function rowsFor(
+  section: InboxSection,
+  now: Date,
+  meta: (item: InboxItem) => string,
+  options: { overdue?: boolean; canResend?: boolean } = {},
 ): InboxRow[] {
-  return items.map((item) => ({
-    id: item.id,
-    href: `/${queue}/${item.id}`,
-    trackingNumber: item.trackingNumber,
-    title: item.title,
-    meta: `Submitted · ${formatAge(item.submittedAt ?? item.updatedAt, now)}`,
-    isOwn: item.isOwn ?? false,
-  }));
-}
-
-export function waitingRows(items: readonly InboxItem[], now: Date = new Date()): InboxRow[] {
-  return items.map((item) => ({
+  return section.items.slice(0, 3).map((item) => ({
     id: item.id,
     href: `/reports/${item.id}`,
-    trackingNumber: item.trackingNumber,
+    referenceNo: item.referenceNo,
     title: item.title,
-    meta: `${nextStepText(item.status, item.submittedAt ?? undefined)} · ${formatAge(
-      item.submittedAt ?? item.updatedAt,
-      now,
-    )}`,
-    isOwn: item.isOwn ?? false,
+    meta: meta(item),
+    overdue: options.overdue ? overdue(item, now) : false,
+    canResend: options.canResend ? overdue(item, now) : false,
   }));
+}
+
+/** Narratives waiting for the office's decision. */
+export function awaitingReviewRows(section: InboxSection, now: Date): InboxRow[] {
+  return rowsFor(section, now, (item) => `Submitted · ${ageOf(item, now)} ago`);
+}
+
+/** Records created but not yet submitted; overdue after seven days. */
+export function withPicRows(section: InboxSection, now: Date): InboxRow[] {
+  return section.items.slice(0, 3).map((item) => {
+    const waiting = new Date(item.updatedAt).getTime();
+    const stale = Number.isFinite(waiting) && now.getTime() - waiting >= 7 * 24 * 60 * 60 * 1000;
+
+    return {
+      id: item.id,
+      href: `/reports/${item.id}`,
+      referenceNo: item.referenceNo,
+      title: item.title,
+      meta: `${STATUS_PRESENTATION[item.status].label} · ${formatAge(item.updatedAt, now)}`,
+      overdue: stale,
+      canResend: stale,
+    };
+  });
+}
+
+export function returnedRows(section: InboxSection, now: Date): InboxRow[] {
+  return rowsFor(
+    section,
+    now,
+    (item) => `Revise and resubmit · ${formatRelativeTime(item.updatedAt, now)}`,
+  );
+}
+
+export function approvedRows(section: InboxSection, now: Date): InboxRow[] {
+  return rowsFor(
+    section,
+    now,
+    (item) => `Approved · ${formatRelativeTime(item.submittedAt ?? item.updatedAt, now)}`,
+  );
+}
+
+/** A personnel account's whole list of assignments. */
+export function myReportRows(section: InboxSection, now: Date): InboxRow[] {
+  return rowsFor(section, now, (item) => {
+    const action =
+      item.status === 'DRAFT'
+        ? 'Write narrative'
+        : item.status === 'RETURNED'
+          ? 'Revise and resubmit'
+          : item.status === 'APPROVED'
+            ? 'Download receipt'
+            : 'View';
+    return `${action} · ${formatRelativeTime(item.updatedAt, now)}`;
+  });
 }
 
 export type AdminAction = {
@@ -175,21 +188,19 @@ export type AdminAction = {
   linkLabel: string;
 };
 
-/** Zero-count admin cards are omitted, never shown as "(0)" (phase 02 §4). */
+/** Zero-count admin cards are omitted, never shown as "(0)". */
 export function adminActionsFor(admin: InboxAdmin): AdminAction[] {
-  const actions: AdminAction[] = [];
+  if (admin.failedEmails <= 0) return [];
 
-  if (admin.failedEmails > 0) {
-    actions.push({
+  return [
+    {
       id: 'failed-emails',
       title: 'Failed emails',
       count: admin.failedEmails,
-      href: '/admin/audit',
-      linkLabel: 'Open audit log',
-    });
-  }
-
-  return actions;
+      href: '/admin/emails',
+      linkLabel: 'Open email log',
+    },
+  ];
 }
 
 export type ActivityRow = {
@@ -205,10 +216,7 @@ export type ActivityRow = {
 
 const ACTIVITY_SUFFIX: Record<InboxActivityKind, string> = {
   SUBMITTED: 'was submitted',
-  RESUBMITTED: 'was resubmitted',
-  RETURNED_BY_REVIEWER: 'was returned by the reviewer',
-  RETURNED_BY_APPROVER: 'was returned by the approver',
-  ENDORSED: 'was endorsed',
+  RETURNED: 'was returned for revision',
   APPROVED: 'was approved',
 };
 
@@ -219,8 +227,7 @@ export function reportActivityRows(
   return activity.slice(0, 5).map((event) => ({
     id: event.id,
     href: `/reports/${event.reportId}`,
-    prefix: 'Your report',
-    label: event.trackingNumber ?? event.title,
+    label: `${event.referenceNo} — ${event.title}`,
     suffix: ACTIVITY_SUFFIX[event.kind],
     occurredAt: event.occurredAt,
     relative: formatRelativeTime(event.occurredAt, now),
@@ -229,11 +236,8 @@ export function reportActivityRows(
 }
 
 const DECIDED_SUFFIX: Record<InboxActivityKind, string> = {
-  SUBMITTED: 'was submitted by you',
-  RESUBMITTED: 'was resubmitted by you',
-  RETURNED_BY_REVIEWER: 'you returned as reviewer',
-  RETURNED_BY_APPROVER: 'you returned as approver',
-  ENDORSED: 'you endorsed',
+  SUBMITTED: 'was submitted',
+  RETURNED: 'you returned for revision',
   APPROVED: 'you approved',
 };
 
@@ -245,7 +249,7 @@ export function recentlyDecidedRows(
   return decided.slice(0, 3).map((event) => ({
     id: event.id,
     href: `/reports/${event.reportId}`,
-    label: event.trackingNumber ?? event.title,
+    label: event.referenceNo,
     suffix: DECIDED_SUFFIX[event.kind],
     occurredAt: event.occurredAt,
     relative: formatRelativeTime(event.occurredAt, now),
@@ -267,52 +271,3 @@ export function auditActivityRows(
   }));
 }
 
-export type ChecklistStep = {
-  id: 'profile' | 'create' | 'submit';
-  title: string;
-  description: string;
-  href: string;
-  linkLabel: string;
-  complete: boolean;
-};
-
-/**
- * Derived first-run checklist (phase 02 §5): no dismiss, no modal, text
- * progress only. Step 3 links to the draft when one exists.
- */
-export function checklistFor(onboarding: InboxOnboarding): ChecklistStep[] {
-  const draftHref = onboarding.draftId ? `/reports/${onboarding.draftId}/edit` : '/reports/new';
-  const hasReport = onboarding.hasSubmitted || onboarding.draftId !== null;
-
-  return [
-    {
-      id: 'profile',
-      title: 'Complete your profile',
-      description: 'Add your campus or unit and contact number.',
-      href: '/profile',
-      linkLabel: 'Open profile',
-      complete: onboarding.profileComplete,
-    },
-    {
-      id: 'create',
-      title: 'Create your first report',
-      description: 'Start a Post-Activity Report for a completed activity.',
-      href: draftHref,
-      linkLabel: onboarding.draftId ? 'Continue draft' : 'New report',
-      complete: hasReport,
-    },
-    {
-      id: 'submit',
-      title: 'Submit it for review',
-      description:
-        'Submitting issues a tracking number and sends the report to the OVPCASSS reviewer.',
-      href: draftHref,
-      linkLabel: onboarding.draftId ? 'Continue draft' : 'New report',
-      complete: onboarding.hasSubmitted,
-    },
-  ];
-}
-
-export function completedStepCount(steps: readonly ChecklistStep[]): number {
-  return steps.filter((step) => step.complete).length;
-}

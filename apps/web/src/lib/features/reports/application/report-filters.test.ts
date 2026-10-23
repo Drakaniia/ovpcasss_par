@@ -66,7 +66,7 @@ describe('filtersFromParams', () => {
 describe('filtersToParams', () => {
   it('round-trips a shared view', () => {
     const filters = filtersFromParams(
-      new URLSearchParams('tab=drafts&campus=c1&q=cleanup&sort=status&dir=desc&page=3&size=100'),
+      new URLSearchParams('tab=withPic&campus=c1&q=cleanup&sort=status&dir=desc&page=3&size=100'),
     );
 
     expect(filtersFromParams(new URLSearchParams(filtersToParams(filters)))).toEqual(filters);
@@ -137,7 +137,7 @@ describe('clearedFilters', () => {
   it('clears the filters but keeps the tab, sort, and row count', () => {
     const cleared = clearedFilters({
       ...DEFAULT_REPORT_FILTERS,
-      tab: 'drafts',
+      tab: 'withPic',
       type: 'IN_CAMPUS',
       q: 'cleanup',
       sort: 'status',
@@ -147,7 +147,7 @@ describe('clearedFilters', () => {
     });
 
     expect(cleared).toMatchObject({
-      tab: 'drafts',
+      tab: 'withPic',
       sort: 'status',
       dir: 'desc',
       pageSize: 100,

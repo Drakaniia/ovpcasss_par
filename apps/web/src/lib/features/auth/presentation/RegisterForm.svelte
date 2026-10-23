@@ -2,7 +2,7 @@
   import { registerSchema } from '@par/shared';
   import { AlertCircle, LoaderCircle } from '@lucide/svelte';
   import { goto } from '$app/navigation';
-  import { onMount, tick } from 'svelte';
+  import { tick } from 'svelte';
 
   import { api } from '$lib/api/client';
   import { ApiError } from '$lib/api/http';
@@ -26,7 +26,6 @@
   let alert = $state<string | null>(null);
   let submitting = $state(false);
   let alertEl = $state<HTMLElement | null>(null);
-  let domains = $state<string[]>([]);
 
   const FIELDS = [
     'fullName',
@@ -38,23 +37,6 @@
   ] as const;
 
   const strength = $derived(passwordStrengthText(password));
-  const domainHint = $derived.by(() => {
-    if (domains.length === 0) return null;
-    const values = domains.map((domain) => (domain.startsWith('@') ? domain : `@${domain}`));
-    return values.length === 1
-      ? `Use your ${values[0]} address.`
-      : `Use your university address (${values.join(', ')}).`;
-  });
-
-  onMount(() => {
-    api.auth
-      .config()
-      .then((config) => (domains = config.allowedEmailDomains))
-      .catch(() => {
-        // The hint is assistance only; registration stays available without it.
-      });
-  });
-
   function setError(field: string, message?: string) {
     const next = { ...errors };
     if (message) next[field] = message;
@@ -166,7 +148,7 @@
 
   <p class="field-hint">
     Have a university Google account? <a href="/login">Sign in with Google</a> instead — that first sign-in
-    creates your account already verified, with a Submitter role.
+    creates your account already verified, as personnel in charge.
   </p>
 
   <div class="field">
@@ -201,18 +183,13 @@
       spellcheck="false"
       onblur={checkEmail}
       aria-invalid={errors.email ? 'true' : undefined}
-      aria-describedby={[errors.email ? 'email-error' : '', domainHint ? 'email-hint' : '']
-        .filter(Boolean)
-        .join(' ') || undefined}
+      aria-describedby={errors.email ? 'email-error' : undefined}
     />
     {#if errors.email}
       <p class="field-error" id="email-error">
         <AlertCircle size={16} aria-hidden="true" />
         {errors.email}
       </p>
-    {/if}
-    {#if domainHint}
-      <p class="field-hint" id="email-hint">{domainHint}</p>
     {/if}
   </div>
 

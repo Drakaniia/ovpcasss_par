@@ -96,7 +96,7 @@
         <span class="switch-copy">
           <span class="switch-title">Workflow mail</span>
           <span class="switch-hint">
-            Submissions, returns, endorsements, approvals, receipts, and acknowledgements.
+            Assignments, submissions, returns, and acknowledgment receipts.
           </span>
         </span>
         <span class="switch-control">

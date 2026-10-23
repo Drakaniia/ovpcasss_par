@@ -98,10 +98,6 @@ export function notificationHref(target: Notification['target']): string {
   switch (target.kind) {
     case 'report':
       return target.reportId ? `/reports/${target.reportId}` : '/reports';
-    case 'review':
-      return target.reportId ? `/review/${target.reportId}` : '/review';
-    case 'approval':
-      return target.reportId ? `/approval/${target.reportId}` : '/approval';
     case 'profile':
       return '/profile';
     default:

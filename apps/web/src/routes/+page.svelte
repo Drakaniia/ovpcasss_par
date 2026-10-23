@@ -83,7 +83,7 @@
   />
 {:else if loaded && inbox && user}
   <InboxPageHeader {user} {roles} />
-  <WorkInbox {inbox} {roles} />
+  <WorkInbox {inbox} {roles} onrefresh={() => void load()} />
 {:else}
   {#if user}
     <InboxPageHeader {user} {roles} />

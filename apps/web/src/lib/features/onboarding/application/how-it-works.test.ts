@@ -12,9 +12,8 @@ describe('workflow explainer', () => {
   it('reads from the first draft to final approval', () => {
     expect(WORKFLOW_STAGES.map((stage) => stage.key)).toEqual([
       'prepare',
-      'submit',
-      'review',
-      'approve',
+      'narrative',
+      'decision',
     ]);
     expect(WORKFLOW_STAGES[0].statuses).toEqual(['DRAFT']);
     expect(WORKFLOW_STAGES[WORKFLOW_STAGES.length - 1].statuses).toContain('APPROVED');

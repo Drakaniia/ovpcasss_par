@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ReportStatus } from '@par/shared';
-  import { ArrowRight, Check, Inbox, Pencil, Send, Undo2 } from '@lucide/svelte';
+  import { Check, Inbox, Pencil, Undo2 } from '@lucide/svelte';
 
   import { STATUS_PRESENTATION, type StatusIcon } from '$lib/status/report-status';
 
@@ -9,9 +9,7 @@
   const ICONS: Record<StatusIcon, typeof Pencil> = {
     pencil: Pencil,
     inbox: Inbox,
-    send: Send,
     undo: Undo2,
-    forward: ArrowRight,
     check: Check,
   };
 

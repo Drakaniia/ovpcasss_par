@@ -11,57 +11,44 @@ import {
 
 const item = (overrides: Partial<ReportSearchItem> = {}): ReportSearchItem => ({
   id: 'r1',
-  ownerUserId: 'u1',
-  trackingNumber: 'OFF-2026-0001',
+  referenceNo: 'AR No. 0001',
   title: 'Coastal cleanup',
   type: 'OFF_CAMPUS',
   classification: 'CURRICULAR',
   status: 'SUBMITTED',
   activityStartDate: '2026-03-12',
   activityEndDate: '2026-03-13',
+  location: 'Batangas City',
+  picNames: 'M. Santos',
   updatedAt: '2026-03-14T01:12:00.000Z',
-  ownerName: 'M. Santos',
   unitName: 'College of Arts and Sciences',
   ...overrides,
 });
 
 describe('palettePages', () => {
   it('lists the role destinations in nav order, then Profile and Notifications', () => {
-    expect(palettePages('SUBMITTER').map((page) => page.label)).toEqual([
+    expect(palettePages('PERSONNEL').map((page) => page.label)).toEqual([
       'Home',
       'Reports',
-      'Profile',
-      'Notifications',
-    ]);
-  });
-
-  it('hides Queues, Repository, and Admin from a Submitter', () => {
-    const labels = palettePages('SUBMITTER').map((page) => page.label);
-
-    expect(labels).not.toContain('Queues');
-    expect(labels).not.toContain('Repository');
-    expect(labels).not.toContain('Admin');
-  });
-
-  it('adds the reviewer and admin destinations for the roles that have them', () => {
-    expect(palettePages('REVIEWER').map((page) => page.label)).toEqual([
-      'Home',
-      'Reports',
-      'Queues',
       'Repository',
       'Profile',
       'Notifications',
     ]);
+  });
 
+  it('adds Admin for the office account', () => {
     expect(palettePages('ADMIN').map((page) => page.label)).toEqual([
       'Home',
       'Reports',
-      'Queues',
       'Repository',
       'Admin',
       'Profile',
       'Notifications',
     ]);
+  });
+
+  it('offers no destinations when signed out', () => {
+    expect(palettePages(null).map((page) => page.label)).toEqual(['Profile', 'Notifications']);
   });
 
   it('gives every page a description', () => {
@@ -70,7 +57,7 @@ describe('palettePages', () => {
 });
 
 describe('filterPages', () => {
-  const pages = palettePages('APPROVER');
+  const pages = palettePages('ADMIN');
 
   it('returns every page for an empty query', () => {
     expect(filterPages(pages, '')).toHaveLength(pages.length);
@@ -78,11 +65,11 @@ describe('filterPages', () => {
 
   it('matches page labels case-insensitively', () => {
     expect(filterPages(pages, 'rep').map((page) => page.label)).toEqual(['Reports', 'Repository']);
-    expect(filterPages(pages, 'QUEUE').map((page) => page.label)).toEqual(['Queues']);
+    expect(filterPages(pages, 'ADM').map((page) => page.label)).toEqual(['Admin']);
   });
 
   it('returns nothing for a label that does not exist', () => {
-    expect(filterPages(pages, 'exports')).toEqual([]);
+    expect(filterPages(pages, 'queues')).toEqual([]);
   });
 });
 
@@ -101,28 +88,28 @@ describe('matchSegments', () => {
   });
 
   it('handles a match at either end', () => {
-    expect(matchSegments('OFF-2026-0014', 'OFF')).toEqual([
-      { text: 'OFF', match: true },
-      { text: '-2026-0014', match: false },
+    expect(matchSegments('AR No. 0014', 'AR')).toEqual([
+      { text: 'AR', match: true },
+      { text: ' No. 0014', match: false },
     ]);
-    expect(matchSegments('OFF-2026-0014', '0014')).toEqual([
-      { text: 'OFF-2026-', match: false },
+    expect(matchSegments('AR No. 0014', '0014')).toEqual([
+      { text: 'AR No. ', match: false },
       { text: '0014', match: true },
     ]);
   });
 });
 
 describe('paletteReports', () => {
-  it('opens a submitted report on its facsimile and carries the preview context', () => {
+  it('opens a submitted report on its record page and carries the preview context', () => {
     expect(paletteReports([item({ matched: 'narrative', snippet: '…the cleanup…' })])).toEqual([
       {
         id: 'r1',
         href: '/reports/r1',
-        trackingNumber: 'OFF-2026-0001',
+        referenceNo: 'AR No. 0001',
         title: 'Coastal cleanup',
         status: 'SUBMITTED',
         type: 'OFF_CAMPUS',
-        ownerName: 'M. Santos',
+        picNames: 'M. Santos',
         unitName: 'College of Arts and Sciences',
         activityStartDate: '2026-03-12',
         activityEndDate: '2026-03-13',
@@ -137,11 +124,11 @@ describe('paletteReports', () => {
     expect(paletteReports([item()])[0]).not.toHaveProperty('snippet');
   });
 
-  it('opens a draft on the edit page and keeps its missing tracking number', () => {
-    const [draft] = paletteReports([item({ status: 'DRAFT', trackingNumber: null })]);
+  it('opens a draft on the edit page and keeps its assigned AR No.', () => {
+    const [draft] = paletteReports([item({ status: 'DRAFT' })]);
 
     expect(draft.href).toBe('/reports/r1/edit');
-    expect(draft.trackingNumber).toBeNull();
+    expect(draft.referenceNo).toBe('AR No. 0001');
   });
 
   it('searches reports only from two characters', () => {

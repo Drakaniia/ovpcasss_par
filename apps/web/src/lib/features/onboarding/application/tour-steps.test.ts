@@ -10,43 +10,40 @@ function ids(role: Role | null, hasTarget = allTargets) {
 }
 
 describe('resolveTourSteps', () => {
-  it('gives a submitter the full eight-step sequence in order', () => {
-    expect(ids('SUBMITTER')).toEqual([
+  it('gives personnel in charge the assignment tour, without a create step', () => {
+    expect(ids('PERSONNEL')).toEqual([
       'welcome',
       'primary-nav',
-      'new-report',
       'search',
       'notifications',
       'account',
-      'checklist',
       'finish',
     ]);
   });
 
-  it('swaps the entry point and the checklist for each role', () => {
-    expect(ids('REVIEWER')).toEqual([
+  it('gives the administrator the record-creation step', () => {
+    expect(ids('ADMIN')).toEqual([
       'welcome',
       'primary-nav',
-      'queues',
+      'new-record',
+      'admin',
       'search',
       'notifications',
       'account',
       'finish',
     ]);
-    expect(ids('APPROVER')).toContain('queues');
-    expect(ids('ADMIN')).toContain('admin');
-    expect(ids('ADMIN')).not.toContain('queues');
-    expect(ids('ADMIN')).not.toContain('new-report');
     expect(ids('ADMIN')).not.toContain('checklist');
+    expect(ids('PERSONNEL')).not.toContain('admin');
+    expect(ids('PERSONNEL')).not.toContain('new-record');
   });
 
   it('lets the role gate win even when the anchor exists', () => {
-    expect(ids('REVIEWER', () => true)).not.toContain('new-report');
-    expect(ids('SUBMITTER', () => false)).toEqual(['welcome', 'finish']);
+    expect(ids('PERSONNEL', () => true)).not.toContain('new-record');
+    expect(ids('PERSONNEL', () => false)).toEqual(['welcome', 'finish']);
   });
 
   it('renumbers the surviving steps contiguously', () => {
-    const steps = resolveTourSteps({ role: 'SUBMITTER' }, { hasTarget: allTargets });
+    const steps = resolveTourSteps({ role: 'PERSONNEL' }, { hasTarget: allTargets });
 
     expect(steps.every((step, index) => step.position === index + 1)).toBe(true);
     expect(steps.every((step) => step.total === steps.length)).toBe(true);
@@ -55,15 +52,15 @@ describe('resolveTourSteps', () => {
 
   it('reports whether anything survived to point at', () => {
     expect(
-      hasSpotlightStep(resolveTourSteps({ role: 'SUBMITTER' }, { hasTarget: allTargets })),
+      hasSpotlightStep(resolveTourSteps({ role: 'PERSONNEL' }, { hasTarget: allTargets })),
     ).toBe(true);
     expect(
-      hasSpotlightStep(resolveTourSteps({ role: 'SUBMITTER' }, { hasTarget: () => false })),
+      hasSpotlightStep(resolveTourSteps({ role: 'PERSONNEL' }, { hasTarget: () => false })),
     ).toBe(false);
   });
 
   it('writes institutional copy with no exclamation marks', () => {
-    for (const role of ['SUBMITTER', 'REVIEWER', 'APPROVER', 'ADMIN'] as const) {
+    for (const role of ['PERSONNEL', 'ADMIN'] as const) {
       for (const step of resolveTourSteps({ role }, { hasTarget: allTargets })) {
         expect(step.title).not.toContain('!');
         expect(step.description).not.toContain('!');
@@ -73,11 +70,12 @@ describe('resolveTourSteps', () => {
   });
 
   it('never names a destination the role cannot reach', () => {
-    const nav = resolveTourSteps({ role: 'SUBMITTER' }, { hasTarget: allTargets }).find(
+    const nav = resolveTourSteps({ role: 'PERSONNEL' }, { hasTarget: allTargets }).find(
       (step) => step.id === 'primary-nav',
     );
 
     expect(nav?.description).toContain('Reports');
+    expect(nav?.description).not.toContain('Admin');
     expect(nav?.description).not.toContain('Queues');
   });
 });

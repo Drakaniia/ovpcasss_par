@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { STATUS_PRESENTATION, nextStepText } from './report-status';
 
 describe('STATUS_PRESENTATION', () => {
-  it('maps all seven API statuses to a label and a tone', () => {
+  it('maps all four API statuses to a label and a tone', () => {
     expect(
       Object.fromEntries(
         Object.entries(STATUS_PRESENTATION).map(([status, meta]) => [status, meta.label]),
@@ -11,10 +11,7 @@ describe('STATUS_PRESENTATION', () => {
     ).toEqual({
       DRAFT: 'Draft',
       SUBMITTED: 'Submitted',
-      RESUBMITTED: 'Resubmitted',
-      RETURNED_BY_REVIEWER: 'Returned by reviewer',
-      RETURNED_BY_APPROVER: 'Returned by approver',
-      ENDORSED: 'Endorsed',
+      RETURNED: 'Returned',
       APPROVED: 'Approved',
     });
   });
@@ -22,21 +19,14 @@ describe('STATUS_PRESENTATION', () => {
 
 describe('nextStepText', () => {
   it('matches the spec copy for every non-terminal status', () => {
-    expect(nextStepText('DRAFT')).toBe('Not yet submitted · Next: complete the form and submit');
-    expect(nextStepText('SUBMITTED')).toBe('With OVPCASSS reviewer · Next: review');
-    expect(nextStepText('RESUBMITTED')).toBe('With OVPCASSS reviewer · Next: re-review');
-    expect(nextStepText('RETURNED_BY_REVIEWER')).toBe(
-      'Returned to submitter · Next: revise and resubmit',
-    );
-    expect(nextStepText('ENDORSED')).toBe('With approving officer · Next: approve');
-    expect(nextStepText('RETURNED_BY_APPROVER')).toBe(
-      'Returned to submitter · Next: revise and resubmit',
-    );
+    expect(nextStepText('DRAFT')).toBe('With personnel in charge · Next: narrative report');
+    expect(nextStepText('SUBMITTED')).toBe('With the office · Next: review and decision');
+    expect(nextStepText('RETURNED')).toBe('With personnel in charge · Next: revise and resubmit');
   });
 
   it('uses the completion date on an approved report', () => {
     expect(nextStepText('APPROVED', '2026-03-20T01:00:00Z')).toBe(
-      'Completed 20 Mar 2026 · Acknowledgement available',
+      'Completed 20 Mar 2026 · Acknowledgment receipt available',
     );
   });
 

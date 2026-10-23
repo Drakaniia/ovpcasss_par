@@ -11,9 +11,8 @@ export function isTauri(): boolean {
  */
 export async function createPlatform(): Promise<Platform> {
   if (isTauri()) {
-    const [auth, drafts, tokens, files, downloads, updater, startup, chrome] = await Promise.all([
+    const [auth, tokens, files, downloads, updater, startup, chrome] = await Promise.all([
       import('./tauri/auth-flow'),
-      import('./tauri/draft-store'),
       import('./tauri/secure-token-store'),
       import('./tauri/file-picker'),
       import('./tauri/downloads'),
@@ -25,7 +24,6 @@ export async function createPlatform(): Promise<Platform> {
     return {
       shell: 'desktop',
       auth: auth.createAuthFlow(),
-      drafts: drafts.createDraftStore(),
       tokens: tokens.createTokenStore(),
       files: files.createFilePicker(),
       downloads: downloads.createDownloads(),
@@ -35,9 +33,8 @@ export async function createPlatform(): Promise<Platform> {
     };
   }
 
-  const [auth, drafts, tokens, files, downloads, updater, startup, chrome] = await Promise.all([
+  const [auth, tokens, files, downloads, updater, startup, chrome] = await Promise.all([
     import('./web/auth-flow'),
-    import('./web/draft-store'),
     import('./web/secure-token-store'),
     import('./web/file-picker'),
     import('./web/downloads'),
@@ -49,7 +46,6 @@ export async function createPlatform(): Promise<Platform> {
   return {
     shell: 'web',
     auth: auth.createAuthFlow(),
-    drafts: drafts.createDraftStore(),
     tokens: tokens.createTokenStore(),
     files: files.createFilePicker(),
     downloads: downloads.createDownloads(),

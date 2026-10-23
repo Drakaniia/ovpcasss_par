@@ -1,6 +1,5 @@
 import type {
   Account,
-  AcknowledgementResponse,
   AdminAuditListQuery,
   AdminAuditListResponse,
   AdminUser,
@@ -12,7 +11,6 @@ import type {
   ChangePasswordInput,
   ConfirmAttachmentInput,
   ConfirmAttachmentResponse,
-  DecisionNoteInput,
   EmailLogQuery,
   EmailLogResponse,
   EmailMessageResponse,
@@ -21,9 +19,10 @@ import type {
   ForgotPasswordInput,
   InboxResponse,
   LoginInput,
+  LocationQuery,
+  LocationSuggestionsResponse,
   LoginResult,
   MonitoringExportRequest,
-  MonitoringImportResponse,
   MonitoringPreviewResponse,
   NotificationListQuery,
   NotificationListResponse,
@@ -32,40 +31,39 @@ import type {
   PresignRequest,
   PresignResponse,
   ReferenceEntityKey,
-  ReportDetail,
-  ReportDraftForm,
-  ReportHead,
-  ReportListQuery,
-  ReportListResponse,
-  ReportSearchQuery,
-  ReportSearchResponse,
-  ReportSignatureInput,
-  ReportPdfResponse,
-  ReportValidationResponse,
-  RepositoryQuery,
-  RepositorySearchResponse,
-  QueueListQuery,
-  QueueListResponse,
   ReferenceInputMap,
   ReferenceItemMap,
   ReferenceListResponse,
   RegisterInput,
+  ReportDecisionInput,
+  ReportActivityInput,
+  ReportDetail,
+  ReportHead,
+  ReportListQuery,
+  ReportListResponse,
+  ReportNarrativeInput,
+  ReportPdfResponse,
+  ReportReceipt,
+  ReportSearchQuery,
+  ReportSearchResponse,
+  ReportSignatureInput,
+  RepositoryQuery,
+  RepositorySearchResponse,
   ResendVerificationInput,
   ResetPasswordInput,
-  ReturnReportInput,
   Role,
   SendWorkbookInput,
   SendWorkbookResponse,
   SignatureState,
   SignatureUploadInput,
   SignatureUrl,
-  SubmitReportResponse,
+  SubmitNarrativeResponse,
   UnreadNotificationCount,
   UpdateProfileInput,
   VerifyEmailInput,
 } from '@par/shared';
 
-import { apiDownload, apiFetch, apiUpload } from './http';
+import { apiDownload, apiFetch } from './http';
 
 /** Drops empty filters so the URL only carries what the user chose. */
 function queryString<T extends object>(query: T): string {
@@ -85,9 +83,9 @@ function queryString<T extends object>(query: T): string {
 }
 
 /**
- * Single typed entry point to the API (spec §5). Extended per milestone.
- * Auth and profile shapes are the client half of the M1 contract; the Worker
- * implementations land with the identity milestone.
+ * Single typed entry point to the API (spec §5). The office registers an
+ * activity, the personnel in charge write the narrative, and one admin decision
+ * ends it; every function here is one of those steps or a read around them.
  */
 export const api = {
   auth: {
@@ -113,8 +111,8 @@ export const api = {
     get: () => apiFetch<InboxResponse>('/me/inbox'),
   },
   /**
-   * The signed-in account's own inbox (UI spec §7.13). Never carries a user id:
-   * the server reads the recipient from the session.
+   * The signed-in account's own notifications. Never carries a user id: the
+   * server reads the recipient from the session.
    */
   notifications: {
     list: (query: NotificationListQuery) => {
@@ -122,44 +120,61 @@ export const api = {
       return apiFetch<NotificationListResponse>(`/me/notifications${search ? `?${search}` : ''}`);
     },
     unreadCount: () => apiFetch<UnreadNotificationCount>('/me/notifications/unread-count'),
-    /** Marks one row read; the response carries the fresh count for the bell. */
     markRead: (id: string) =>
       apiFetch<NotificationReadResponse>(`/me/notifications/${id}/read`, { method: 'POST' }),
     markAllRead: () =>
       apiFetch<NotificationReadAllResponse>('/me/notifications/read-all', { method: 'POST' }),
   },
   reports: {
-    /** My reports, already scoped by the server to what the caller may see (§7.4). */
+    /** The register; the server scopes PERSONNEL to their own records (§9). */
     list: (query: ReportListQuery) => {
       const search = queryString(query);
       return apiFetch<ReportListResponse>(`/reports${search ? `?${search}` : ''}`);
     },
-    /**
-     * Palette documents (phase 12 §4): the caller's own when they submit, every
-     * report they may open otherwise. No query asks for the recent group.
-     */
+    /** Palette documents: only rows the caller may open. */
     search: (query: ReportSearchQuery) => {
       const search = queryString(query);
       return apiFetch<ReportSearchResponse>(`/reports/search${search ? `?${search}` : ''}`);
     },
-    /** Drafts only; the server removes the draft and its stored copy. */
-    deleteDraft: (id: string) => apiFetch<void>(`/reports/${id}`, { method: 'DELETE' }),
-    /** Creates the server draft from a partial form on the first upload (spec §7.5). */
-    create: (input: ReportDraftForm) =>
-      apiFetch<ReportHead>('/reports', { method: 'POST', body: JSON.stringify(input) }),
-    /**
-     * Persists edits before validate/submit. `version` is sent as `if-match`, so
-     * a stale local copy is rejected with 409 instead of overwriting the report.
-     */
-    update: (id: string, input: ReportDraftForm, version?: number) =>
+    get: (id: string) => apiFetch<ReportDetail>(`/reports/${id}`),
+    /** Admin: mints the AR No. and mails every personnel in charge. */
+    create: (input: ReportActivityInput, idempotencyKey?: string) =>
+      apiFetch<ReportHead & { sentTo: number }>('/reports', {
+        method: 'POST',
+        headers: idempotencyKey ? { 'idempotency-key': idempotencyKey } : undefined,
+        body: JSON.stringify(input),
+      }),
+    /** Admin: activity fields and the PIC list, until approval. */
+    update: (id: string, input: ReportActivityInput, version?: number) =>
       apiFetch<ReportHead>(`/reports/${id}`, {
         method: 'PATCH',
         headers: version === undefined ? undefined : { 'if-match': String(version) },
         body: JSON.stringify(input),
       }),
-    /** Full report; used by the facsimile and the edit page. */
-    get: (id: string) => apiFetch<ReportDetail>(`/reports/${id}`),
-    /** Snapshots a signature onto the report (signature spec §4.4). */
+    /** Admin: a DRAFT record only. The AR No. is never reused. */
+    remove: (id: string) => apiFetch<void>(`/reports/${id}`, { method: 'DELETE' }),
+    /** PIC: saves the narrative draft, allowed in DRAFT and RETURNED. */
+    saveNarrative: (id: string, input: ReportNarrativeInput) =>
+      apiFetch<ReportHead>(`/reports/${id}/narrative`, {
+        method: 'PUT',
+        body: JSON.stringify(input),
+      }),
+    /** PIC: validates and submits, with an idempotency key (spec §7.2). */
+    submit: (id: string, idempotencyKey: string) =>
+      apiFetch<SubmitNarrativeResponse>(`/reports/${id}/submit`, {
+        method: 'POST',
+        headers: { 'idempotency-key': idempotencyKey },
+      }),
+    /** Admin: one decision on a submitted narrative. */
+    decide: (id: string, input: ReportDecisionInput) =>
+      apiFetch<ReportHead>(`/reports/${id}/decision`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    /** Admin: re-sends the assignment mail to every PIC. */
+    resendInvitation: (id: string) =>
+      apiFetch<{ sentTo: number }>(`/reports/${id}/invitation`, { method: 'POST' }),
+    /** Snapshots a signature onto the record (signature spec §4.4). */
     setSignature: (id: string, input: ReportSignatureInput) =>
       apiFetch<ReportDetail>(`/reports/${id}/signature`, {
         method: 'PUT',
@@ -169,31 +184,13 @@ export const api = {
       apiFetch<ReportDetail>(`/reports/${id}/signature`, { method: 'DELETE' }),
     /** Server-rendered facsimile PDF; the server decides the watermark (§7.8). */
     pdf: (id: string) => apiFetch<ReportPdfResponse>(`/reports/${id}/pdf`),
-    /** Server-generated acknowledgement for an approved report (phase 08 §6). */
-    acknowledgement: (id: string) =>
-      apiFetch<AcknowledgementResponse>(`/reports/${id}/acknowledgement`),
-    /** Server-owned field list rendered as the linked error summary on step 4. */
-    validate: (id: string) =>
-      apiFetch<ReportValidationResponse>(`/reports/${id}/validate`, { method: 'POST' }),
-    /** Idempotency key makes an outbox retry safe (spec §7.2). */
-    submit: (id: string, idempotencyKey: string) =>
-      apiFetch<SubmitReportResponse>(`/reports/${id}/submit`, {
-        method: 'POST',
-        headers: { 'idempotency-key': idempotencyKey },
-      }),
-    /** `RETURNED_BY_*` → `RESUBMITTED`; the tracking number never changes. */
-    resubmit: (id: string, idempotencyKey: string, version?: number) =>
-      apiFetch<SubmitReportResponse>(`/reports/${id}/resubmit`, {
-        method: 'POST',
-        headers: {
-          'idempotency-key': idempotencyKey,
-          ...(version === undefined ? {} : { 'if-match': String(version) }),
-        },
-      }),
+    receipts: (id: string) => apiFetch<{ items: ReportReceipt[] }>(`/reports/${id}/receipts`),
+    receiptFile: (id: string, receiptId: string) =>
+      apiDownload(`/reports/${id}/receipts/${receiptId}/file`),
   },
   /**
-   * Runtime dropdowns for the PAR form (spec §7.3). Any authenticated user may
-   * read them; only admins write through `api.admin.referenceData`.
+   * Runtime dropdowns for the record form (spec §7.3). Any authenticated user
+   * may read them; only admins write through `api.admin.referenceData`.
    */
   reference: {
     list: <E extends ReferenceEntityKey>(entity: E) =>
@@ -223,11 +220,10 @@ export const api = {
       apiFetch<Account>('/me', { method: 'PATCH', body: JSON.stringify(input) }),
     changePassword: (input: ChangePasswordInput) =>
       apiFetch<void>('/me/password', { method: 'POST', body: JSON.stringify(input) }),
-    /** Approver signature image; the returned state is what the approval gate reads. */
+    /** The signature the narrative editor reuses; never printed on the receipt. */
     saveSignature: (input: SignatureUploadInput) =>
       apiFetch<SignatureState>('/me/signature', { method: 'PUT', body: JSON.stringify(input) }),
     removeSignature: () => apiFetch<SignatureState>('/me/signature', { method: 'DELETE' }),
-    /** Short-lived preview URL; the stored object key never reaches the page. */
     signatureUrl: () => apiFetch<SignatureUrl>('/me/signature/url'),
     /** Category mutes (email spec §8); account mail is reported, not toggleable. */
     emailPreferences: {
@@ -239,53 +235,19 @@ export const api = {
         }),
     },
   },
-  /**
-   * Repository search (UI spec §7.11). Role-gated server-side to Reviewer,
-   * Approver, and Admin, and scoped to reports the caller may see.
-   */
+  /** Locations the office already used (bug phase 04 §3.1). */
+  locations: {
+    suggest: (query: LocationQuery) => {
+      const search = queryString(query);
+      return apiFetch<LocationSuggestionsResponse>(`/locations${search ? `?${search}` : ''}`);
+    },
+  },
+  /** Repository search; the server scopes it to what the caller may open. */
   search: {
     repository: (query: RepositoryQuery) => {
       const search = queryString(query);
       return apiFetch<RepositorySearchResponse>(`/search${search ? `?${search}` : ''}`);
     },
-  },
-  /** The two decision queues (UI spec §7.9). Role-gated server-side. */
-  queues: {
-    review: (query: QueueListQuery) => {
-      const search = queryString(query);
-      return apiFetch<QueueListResponse>(`/review/queue${search ? `?${search}` : ''}`);
-    },
-    approval: (query: QueueListQuery) => {
-      const search = queryString(query);
-      return apiFetch<QueueListResponse>(`/approval/queue${search ? `?${search}` : ''}`);
-    },
-  },
-  /**
-   * Decisions (project spec §7.3). Each returns the report as it now stands, so
-   * the UI updates the badge, the stepper, and the history from the response
-   * instead of assuming the transition.
-   */
-  decisions: {
-    endorse: (id: string, input: DecisionNoteInput) =>
-      apiFetch<ReportDetail>(`/reports/${id}/endorse`, {
-        method: 'POST',
-        body: JSON.stringify(input),
-      }),
-    approve: (id: string, input: DecisionNoteInput) =>
-      apiFetch<ReportDetail>(`/reports/${id}/approve`, {
-        method: 'POST',
-        body: JSON.stringify(input),
-      }),
-    return: (id: string, input: ReturnReportInput) =>
-      apiFetch<ReportDetail>(`/reports/${id}/return`, {
-        method: 'POST',
-        body: JSON.stringify(input),
-      }),
-    returnForRevision: (id: string, input: ReturnReportInput) =>
-      apiFetch<ReportDetail>(`/reports/${id}/return-for-revision`, {
-        method: 'POST',
-        body: JSON.stringify(input),
-      }),
   },
   admin: {
     users: {
@@ -293,7 +255,6 @@ export const api = {
         const search = queryString(query);
         return apiFetch<AdminUserListResponse>(`/users${search ? `?${search}` : ''}`);
       },
-      /** Reads the server's current state when a concurrent change wins (§4). */
       get: (id: string) => apiFetch<AdminUser>(`/users/${id}`),
       assignRole: (id: string, role: Role) =>
         apiFetch<AdminUser>(`/users/${id}/role`, {
@@ -318,13 +279,11 @@ export const api = {
           method: 'PATCH',
           body: JSON.stringify(input),
         }),
-      /** Soft delete: the entry stays resolvable in existing reports. */
       deactivate: <E extends ReferenceEntityKey>(entity: E, id: string) =>
         apiFetch<ReferenceItemMap[E]>(`/ref/${entity}/${id}`, { method: 'DELETE' }),
       activate: <E extends ReferenceEntityKey>(entity: E, id: string) =>
         apiFetch<ReferenceItemMap[E]>(`/ref/${entity}/${id}/activate`, { method: 'POST' }),
     },
-    /** The mail log and its one action (email spec §9.4, phase 17 §2). */
     emails: {
       list: (query: EmailLogQuery) => {
         const search = queryString(query);
@@ -364,13 +323,5 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(input),
       }),
-  },
-  /** Admin-only migration path for an existing monitoring workbook. */
-  imports: {
-    monitoring: (file: File) => {
-      const form = new FormData();
-      form.append('file', file);
-      return apiUpload<MonitoringImportResponse>('/imports/monitoring', form);
-    },
   },
 };

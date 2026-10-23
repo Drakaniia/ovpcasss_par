@@ -11,6 +11,7 @@
     href,
     linkLabel,
     rows = [],
+    onresend,
   }: {
     id: string;
     title: string;
@@ -18,6 +19,7 @@
     href: string;
     linkLabel: string;
     rows?: InboxRowModel[];
+    onresend?: (row: InboxRowModel) => void;
   } = $props();
 </script>
 
@@ -36,7 +38,7 @@
   {#if rows.length > 0}
     <ul class="rows">
       {#each rows as row (row.id)}
-        <InboxRow {row} />
+        <InboxRow {row} {onresend} />
       {/each}
     </ul>
   {/if}

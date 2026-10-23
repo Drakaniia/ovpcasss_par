@@ -1,12 +1,4 @@
-import type { ReportDraft } from '@par/shared';
-
 /** Everything that differs between the web build and the Tauri build (spec §3). */
-export interface DraftStore {
-  list(): Promise<ReportDraft[]>;
-  get(id: string): Promise<ReportDraft | null>;
-  put(draft: ReportDraft): Promise<void>;
-  remove(id: string): Promise<void>;
-}
 
 export interface SecureTokenStore {
   read(): Promise<string | null>;
@@ -101,10 +93,9 @@ export interface WindowChrome {
 }
 
 export interface Platform {
-  /** Which shell is running. Drafts are device-local in both shells (§7.4). */
+  /** Which shell is running. */
   shell: 'web' | 'desktop';
   auth: AuthFlow;
-  drafts: DraftStore;
   tokens: SecureTokenStore;
   files: FilePicker;
   downloads: Downloads;

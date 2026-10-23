@@ -11,13 +11,11 @@ import type { TourPlacement } from './tour-placement';
 export type TourStepId =
   | 'welcome'
   | 'primary-nav'
-  | 'new-report'
-  | 'queues'
+  | 'new-record'
   | 'admin'
   | 'search'
   | 'notifications'
   | 'account'
-  | 'checklist'
   | 'finish';
 
 export type TourContext = {
@@ -48,14 +46,10 @@ export type ResolvedStep = {
 };
 
 const NAV_COPY: Record<Role, string> = {
-  SUBMITTER:
-    'Home shows the work that needs your attention. Reports holds every report you have drafted, submitted or had returned.',
-  REVIEWER:
-    'Home shows the work that needs your attention. Reports lists reports, and Queues holds the submissions waiting for your review.',
-  APPROVER:
-    'Home shows the work that needs your attention. Reports lists reports, and Queues holds the reports waiting for your approval.',
+  PERSONNEL:
+    'Home shows the activities assigned to you. Reports lists every record you are the personnel in charge of, with its status.',
   ADMIN:
-    'Home shows the work that needs your attention. Reports, Queues, Repository and Admin reach every part of the system.',
+    'Home shows the work that needs your attention. Reports, Repository and Admin reach every part of the system.',
 };
 
 const DEFAULT_NAV_COPY =
@@ -76,22 +70,13 @@ export const TOUR_STEPS: readonly TourStepConfig[] = [
     description: ({ role }) => (role ? NAV_COPY[role] : DEFAULT_NAV_COPY),
   },
   {
-    id: 'new-report',
-    anchor: 'new-report',
-    roles: ['SUBMITTER'],
+    id: 'new-record',
+    anchor: 'new-record',
+    roles: ['ADMIN'],
     placement: 'bottom',
-    title: () => 'Start a report',
+    title: () => 'Create a record',
     description: () =>
-      'New report opens the four-step form for a completed activity. Your work is saved as a draft on this device until you submit it. Submission issues the tracking number.',
-  },
-  {
-    id: 'queues',
-    anchor: 'nav-queues',
-    roles: ['REVIEWER', 'APPROVER'],
-    placement: 'bottom',
-    title: () => 'Your decision queues',
-    description: () =>
-      'Queues collects the reports waiting for your decision. Open one to read the facsimile and record a review or an approval.',
+      'New record captures the activity and the people in charge. Saving issues the AR No. and mails each person their assignment.',
   },
   {
     id: 'admin',
@@ -100,7 +85,7 @@ export const TOUR_STEPS: readonly TourStepConfig[] = [
     placement: 'bottom',
     title: () => 'Administration',
     description: () =>
-      'Admin holds user accounts, reference data, workbook import and the audit log. Changes here apply to every campus.',
+      'Admin holds user accounts, reference data and the audit log. Changes here apply to every campus.',
   },
   {
     id: 'search',
@@ -108,7 +93,7 @@ export const TOUR_STEPS: readonly TourStepConfig[] = [
     placement: 'bottom',
     title: () => 'Search from anywhere',
     description: () =>
-      'Search opens the command palette, where you can jump to a page or a tracking number without leaving the keyboard.',
+      'Search opens the command palette, where you can jump to a page or an AR No. without leaving the keyboard.',
   },
   {
     id: 'notifications',
@@ -125,15 +110,6 @@ export const TOUR_STEPS: readonly TourStepConfig[] = [
     title: () => 'Your account',
     description: () =>
       'This menu opens your profile and the keyboard shortcut reference, and signs you out.',
-  },
-  {
-    id: 'checklist',
-    anchor: 'onboarding-checklist',
-    roles: ['SUBMITTER'],
-    placement: 'right',
-    title: () => 'Your first report',
-    description: () =>
-      'This checklist follows your progress: complete your profile, start a report, and submit it. It gives way once the inbox has other work to show.',
   },
   {
     id: 'finish',

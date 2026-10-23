@@ -1,149 +1,100 @@
 <script lang="ts">
-  import type { Sdg } from '@par/shared';
-
-  import { newPic, type WizardForm, type WizardPic } from '../application/wizard-form';
-  import type { FieldErrors } from '../application/wizard-validation';
+  import type { RecordFormState } from '../application/record-state.svelte';
   import PicRows from './PicRows.svelte';
-  import SdgPicker from './SdgPicker.svelte';
   import WizardField from './WizardField.svelte';
 
-  /**
-   * Step 3 — people and outcomes (UI phase 06 §3). Counts are whole numbers; the
-   * PIC count must agree with the rows, and at least one SDG is required.
-   */
-  let {
-    form,
-    errors,
-    sdgs,
-    flagged,
-    disabled = false,
-    onchange,
-  }: {
-    form: WizardForm;
-    errors: FieldErrors;
-    sdgs: readonly Sdg[];
-    /** Fields named in a return comment; only phase 07 sets this. */
-    flagged?: ReadonlySet<string>;
-    disabled?: boolean;
-    onchange: (patch: Partial<WizardForm>) => void;
-  } = $props();
-
-  function patchPic(id: string, patch: Partial<Omit<WizardPic, 'id'>>): void {
-    onchange({
-      pics: form.pics.map((pic) => (pic.id === id ? { ...pic, ...patch } : pic)),
-    });
-  }
-
-  function addPic(): void {
-    onchange({ pics: [...form.pics, newPic()] });
-  }
-
-  function removePic(id: string): void {
-    onchange({ pics: form.pics.filter((pic) => pic.id !== id) });
-  }
+  /** Step 3 — the counts and the people who will write the narrative. */
+  let { state }: { state: RecordFormState } = $props();
 </script>
 
-<div class="step-fields">
-  <div class="count-row">
+<section id="wizard-step-3" tabindex="-1" aria-labelledby="wizard-step-3-title" class="step-pane">
+  <h2 id="wizard-step-3-title" class="visually-hidden">People and hand-over</h2>
+
+  <div class="two-col">
     <WizardField
-      id="wiz-totalStudents"
+      id="wiz-total-students"
       label="Total number of students"
-      error={errors.totalStudents}
-      flagged={flagged?.has('totalStudents')}
       required
+      error={state.errors.totalStudents}
     >
       {#snippet children({ describedBy, invalid })}
         <input
-          id="wiz-totalStudents"
-          class="input count"
+          id="wiz-total-students"
+          class="input"
           type="number"
-          inputmode="numeric"
           min="0"
           step="1"
-          value={form.totalStudents}
-          {disabled}
+          inputmode="numeric"
           aria-invalid={invalid ? 'true' : undefined}
           aria-describedby={describedBy}
-          oninput={(event) => onchange({ totalStudents: event.currentTarget.value })}
+          value={state.form.totalStudents}
+          oninput={(event) => state.patchForm({ totalStudents: event.currentTarget.value })}
         />
       {/snippet}
     </WizardField>
 
     <WizardField
-      id="wiz-totalPic"
+      id="wiz-total-pic"
       label="Total number of PIC"
-      error={errors.totalPic}
-      flagged={flagged?.has('totalPic')}
       required
-      hint="Must match the rows below."
+      error={state.errors.totalPic}
     >
       {#snippet children({ describedBy, invalid })}
         <input
-          id="wiz-totalPic"
-          class="input count"
+          id="wiz-total-pic"
+          class="input"
           type="number"
-          inputmode="numeric"
           min="0"
           step="1"
-          value={form.totalPic}
-          {disabled}
+          inputmode="numeric"
           aria-invalid={invalid ? 'true' : undefined}
           aria-describedby={describedBy}
-          oninput={(event) => onchange({ totalPic: event.currentTarget.value })}
+          value={state.form.totalPic}
+          oninput={(event) => state.patchForm({ totalPic: event.currentTarget.value })}
         />
       {/snippet}
     </WizardField>
   </div>
 
-  <div class="field-group">
-    <h2 class="group-title">People in charge</h2>
-    <PicRows
-      pics={form.pics}
-      {errors}
-      flagged={flagged?.has('pics')}
-      {disabled}
-      onchange={patchPic}
-      onadd={addPic}
-      onremove={removePic}
-    />
-  </div>
+  {#if state.errors.pics}
+    <p class="rows-error" role="alert">{state.errors.pics}</p>
+  {/if}
 
-  <SdgPicker
-    id="wiz-sdgIds"
-    selected={form.sdgIds}
-    options={sdgs}
-    error={errors.sdgIds}
-    flagged={flagged?.has('sdgIds')}
-    {disabled}
-    onchange={(sdgIds) => onchange({ sdgIds })}
+  <PicRows
+    pics={state.form.pics}
+    errors={state.errors}
+    onpatch={(id, patch) => state.patchPic(id, patch)}
+    onadd={() => state.addPic()}
+    onremove={(id) => state.removePic(id)}
   />
-</div>
+</section>
 
 <style>
-  .step-fields {
+  .step-pane {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 14px;
   }
 
-  .count-row {
+  .two-col {
     display: grid;
-    gap: 16px;
-    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .count {
-    font-variant-numeric: tabular-nums;
-  }
-
-  .field-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .group-title {
-    font-size: 15px;
+  .rows-error {
+    color: var(--status-danger-fg);
+    font-size: 12px;
     margin: 0;
+  }
+
+  .visually-hidden {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
   }
 </style>

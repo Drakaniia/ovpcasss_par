@@ -1,348 +1,126 @@
 <script lang="ts">
-  import type { ReportDetail, ReportSubmitterSignature } from '@par/shared';
-  import { AlertCircle, LoaderCircle } from '@lucide/svelte';
+  import type { ReportDetail } from '@par/shared';
+  import { PenLine, Trash2 } from '@lucide/svelte';
 
   import { api } from '$lib/api/client';
-  import { ApiError } from '$lib/api/http';
-  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-  import SignatureCapture from '$lib/features/profile/presentation/SignatureCapture.svelte';
-  import { formatDate } from '$lib/format/datetime';
   import { toast } from '$lib/toast/toast.svelte';
 
+  import SignatureImage from './SignatureImage.svelte';
+
   /**
-   * "Your signature" on the review step and the returned-report editor
-   * (signature spec §4.5). Optional: Submit never waits for it. Saving happens
-   * immediately, so a signature survives navigation, a draft reload, and a
-   * failed submit. The report keeps its own copy — replacing the profile image
-   * later never changes a signed report.
+   * The narrative signature (signature spec §4.4). Optional: the printed record
+   * simply keeps its rule blank. Saving in Settings is enough — the API copies
+   * the profile image at submit when this card was never used (phase 05).
    */
   let {
     reportId,
-    ensureReportId,
-    disabled = false,
+    signed,
+    canEdit,
     onchanged,
   }: {
-    reportId: string | null;
-    ensureReportId: () => Promise<string>;
-    disabled?: boolean;
-    onchanged?: (detail: ReportDetail) => void;
+    reportId: string;
+    signed: boolean;
+    canEdit: boolean;
+    onchanged: (detail: ReportDetail) => void;
   } = $props();
 
-  let saved = $state<ReportSubmitterSignature | null>(null);
-  let profileUrl = $state<string | null>(null);
-  let pending = $state<string | null>(null);
-  let capturing = $state(false);
-  let loading = $state(false);
-  let failure = $state<string | null>(null);
-  let busy = $state<'profile' | 'upload' | 'remove' | null>(null);
-  let removeOpen = $state(false);
-  let loadedFor = $state<string | null>(null);
+  let busy = $state(false);
 
-  /** A draft created after this card mounted still gets its signature read back. */
-  $effect(() => {
-    const id = reportId;
-    if (!id || loadedFor === id) return;
-    loadedFor = id;
-    void loadSaved(id);
-  });
-
-  // Whether the profile can lend its image is known before the author picks a tab.
-  $effect(() => {
-    void loadProfile();
-  });
-
-  async function loadSaved(id: string) {
-    loading = true;
-    try {
-      const detail = await api.reports.get(id);
-      saved = detail.submitterSignature ?? null;
-    } catch {
-      // Reading the report back is a convenience; saving still works.
-    } finally {
-      loading = false;
-    }
-  }
-
-  async function loadProfile() {
-    if (profileUrl !== null) return;
-    try {
-      const { url } = await api.profile.signatureUrl();
-      profileUrl = url;
-    } catch {
-      profileUrl = null;
-    }
-  }
-
-  function toggleCapture() {
-    capturing = !capturing;
-    pending = null;
-    if (capturing) void loadProfile();
-  }
-
-  async function useProfile() {
-    if (busy) return;
-    busy = 'profile';
-    failure = null;
+  async function useProfile(): Promise<void> {
+    if (!canEdit || busy) return;
+    busy = true;
 
     try {
-      const detail = await api.reports.setSignature(await ensureReportId(), { fromProfile: true });
-      saved = detail.submitterSignature ?? null;
-      capturing = false;
-      pending = null;
-      onchanged?.(detail);
-      toast.success('Signature added to this report');
+      onchanged(await api.reports.setSignature(reportId, { fromProfile: true }));
+      toast.success('Signature added to this record.');
     } catch (error) {
-      failure =
-        error instanceof ApiError
-          ? error.message
-          : 'The signature was not saved. Check your connection and try again.';
+      toast.error(error instanceof Error ? error.message : 'The signature was not saved.');
     } finally {
-      busy = null;
+      busy = false;
     }
   }
 
-  async function savePending() {
-    if (!pending || busy) return;
-    busy = 'upload';
-    failure = null;
+  async function remove(): Promise<void> {
+    if (!canEdit || busy) return;
+    busy = true;
 
     try {
-      const detail = await api.reports.setSignature(await ensureReportId(), { image: pending });
-      saved = detail.submitterSignature ?? null;
-      pending = null;
-      capturing = false;
-      onchanged?.(detail);
-      toast.success('Signature added to this report');
+      onchanged(await api.reports.removeSignature(reportId));
+      toast.success('Signature removed from this record.');
     } catch (error) {
-      failure =
-        error instanceof ApiError
-          ? error.message
-          : 'The signature was not saved. Check your connection and try again.';
+      toast.error(error instanceof Error ? error.message : 'The signature was not removed.');
     } finally {
-      busy = null;
-    }
-  }
-
-  async function remove() {
-    if (busy) return;
-    busy = 'remove';
-    failure = null;
-
-    try {
-      const detail = await api.reports.removeSignature(await ensureReportId());
-      saved = null;
-      onchanged?.(detail);
-      toast.success('Signature removed from this report');
-    } catch (error) {
-      failure =
-        error instanceof ApiError
-          ? error.message
-          : 'The signature was not removed. Check your connection and try again.';
-    } finally {
-      busy = null;
+      busy = false;
     }
   }
 </script>
 
-<section class="card card-body" aria-labelledby="report-signature-heading">
-  <div class="card-head">
-    <h2 id="report-signature-heading">Your signature</h2>
-    <p class="card-copy">Optional. Your signature is printed on the report under Submitted by.</p>
+<div class="signature-card">
+  <div class="signature-head">
+    <p class="signature-label">Your signature</p>
+    <p class="signature-hint">
+      Optional. Your saved signature is copied onto the record when you submit. Removing it here
+      leaves the record unsigned.
+    </p>
   </div>
 
-  {#if failure}
-    <div class="form-alert" role="alert">
-      <AlertCircle size={16} aria-hidden="true" />
-      <p>{failure}</p>
-    </div>
-  {/if}
-
-  {#if saved}
-    <div class="saved-block">
-      {#if saved.signatureUrl}
-        <img class="preview sheet" src={saved.signatureUrl} alt="Signature of {saved.signerName}" />
-      {/if}
-      <p class="saved-note">
-        Signed {formatDate(saved.signedAt)}. This report keeps the image it was signed with.
-      </p>
-    </div>
-
-    {#if !disabled}
-      <div class="actions">
-        <button
-          class="btn btn-outline"
-          type="button"
-          disabled={busy !== null}
-          onclick={toggleCapture}
-        >
-          Replace
-        </button>
-        <button
-          class="btn btn-ghost remove"
-          type="button"
-          disabled={busy !== null}
-          onclick={() => (removeOpen = true)}
-        >
-          Remove
-        </button>
-      </div>
-    {/if}
-  {:else if loading}
-    <p class="saved-note" role="status">Reading the report…</p>
-  {:else if !capturing}
-    {#if profileUrl}
-      <img class="preview sheet" src={profileUrl} alt="Your signature on file" />
-    {/if}
-
-    <div class="actions">
-      {#if profileUrl}
-        <button
-          class="btn btn-outline"
-          type="button"
-          disabled={disabled || busy !== null}
-          onclick={() => void useProfile()}
-        >
-          {#if busy === 'profile'}
-            <LoaderCircle class="spin" size={16} aria-hidden="true" />
-            Saving…
-          {:else}
-            Use my signature on file
-          {/if}
-        </button>
-      {/if}
+  {#if signed}
+    <SignatureImage {reportId} alt="Your saved signature on this record" />
+    {#if canEdit}
       <button
-        class="btn btn-ghost"
+        class="btn btn-ghost btn-sm"
         type="button"
-        disabled={disabled || busy !== null}
-        onclick={toggleCapture}
+        disabled={busy}
+        onclick={() => void remove()}
       >
-        {profileUrl ? 'Draw or upload instead' : 'Draw or upload'}
+        <Trash2 size={14} aria-hidden="true" /> Remove signature
       </button>
-    </div>
-  {:else}
-    <SignatureCapture onchange={(dataUrl) => (pending = dataUrl)} />
-
-    <div class="actions">
-      <button class="btn btn-ghost" type="button" disabled={busy !== null} onclick={toggleCapture}>
-        Cancel
-      </button>
-      <button
-        class="btn btn-outline"
-        type="button"
-        disabled={!pending || busy !== null}
-        onclick={() => void savePending()}
-      >
-        {#if busy === 'upload'}
-          <LoaderCircle class="spin" size={16} aria-hidden="true" />
-          Saving…
-        {:else}
-          Save signature
-        {/if}
-      </button>
-    </div>
+    {/if}
+  {:else if canEdit}
+    <button
+      class="btn btn-outline btn-sm"
+      type="button"
+      disabled={busy}
+      onclick={() => void useProfile()}
+    >
+      <PenLine size={14} aria-hidden="true" /> Use my signature on file
+    </button>
   {/if}
-</section>
-
-<ConfirmDialog
-  bind:open={removeOpen}
-  title="Remove this signature?"
-  description="The report will print a ruled line under Submitted by instead. You can add a signature again while the report is still editable."
-  confirmLabel="Remove signature"
-  tone="destructive"
-  onconfirm={() => void remove()}
-/>
+</div>
 
 <style>
-  .card-body {
-    padding: 20px 24px 24px;
-  }
-
-  .card-head {
-    margin-bottom: 16px;
-  }
-
-  .card-head h2 {
-    font-size: 15px;
-    margin: 0;
-  }
-
-  .card-copy {
-    color: var(--text-secondary);
-    font-size: 13px;
-    margin: 4px 0 0;
-  }
-
-  .saved-block {
+  .signature-card {
+    align-items: flex-start;
+    background: var(--surface-page);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-bottom: 16px;
+    padding: 10px 12px;
   }
 
-  .preview {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-card);
-    display: block;
-    height: auto;
-    max-width: 240px;
-    padding: 4px;
-    width: 100%;
+  .signature-head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
-  .sheet {
-    background-color: var(--signature-checker-a);
-    background-image:
-      linear-gradient(
-        45deg,
-        var(--signature-checker-b) 25%,
-        transparent 25%,
-        transparent 75%,
-        var(--signature-checker-b) 75%
-      ),
-      linear-gradient(
-        45deg,
-        var(--signature-checker-b) 25%,
-        transparent 25%,
-        transparent 75%,
-        var(--signature-checker-b) 75%
-      );
-    background-position:
-      0 0,
-      8px 8px;
-    background-size: 16px 16px;
+  .signature-label {
+    font-size: 13px;
+    font-weight: 500;
+    margin: 0;
   }
 
-  .saved-note {
+  .signature-hint {
     color: var(--text-secondary);
     font-size: 12px;
     margin: 0;
   }
 
-  .actions {
+  .btn {
     align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .remove {
-    color: var(--status-danger-fg);
-  }
-
-  .form-alert {
-    align-items: flex-start;
-    background: var(--status-danger-bg);
-    border: 1px solid var(--status-danger-fg);
-    border-radius: var(--radius-card);
-    color: var(--status-danger-fg);
-    display: flex;
-    font-size: 13px;
-    gap: 8px;
-    margin-bottom: 12px;
-    padding: 10px 14px;
-  }
-
-  .form-alert p {
-    margin: 0;
+    display: inline-flex;
+    gap: 6px;
   }
 </style>

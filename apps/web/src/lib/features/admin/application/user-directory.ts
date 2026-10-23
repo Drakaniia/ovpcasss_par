@@ -16,10 +16,8 @@ import { ROLES, USER_STATUSES } from '@par/shared';
 
 /** Role names use the project vocabulary; the avatar menu abbreviates Admin differently. */
 export const USER_ROLE_LABELS: Record<Role, string> = {
-  SUBMITTER: 'Submitter',
-  REVIEWER: 'Reviewer',
-  APPROVER: 'Approver',
-  ADMIN: 'Admin',
+  ADMIN: 'Administrator',
+  PERSONNEL: 'Personnel in charge',
 };
 
 export type UserStatusTone = 'info' | 'gold' | 'success' | 'neutral';

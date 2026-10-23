@@ -2,11 +2,7 @@
   import { NOTIFICATION_PAGE_SIZE } from '@par/shared';
   import { ChevronLeft, ChevronRight } from '@lucide/svelte';
 
-  import {
-    pageCountFor,
-    pageWindow,
-    showingRange,
-  } from '$lib/features/reports/application/report-list';
+  import { pageCountFor, pageWindow, showingRange } from '$lib/pagination';
 
   /** Phase 11 §2: 50 rows a page, the same paging math as the other lists. */
   let { total, page, onpage }: { total: number; page: number; onpage: (page: number) => void } =

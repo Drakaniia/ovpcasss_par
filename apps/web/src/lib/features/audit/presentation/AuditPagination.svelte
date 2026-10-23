@@ -1,11 +1,7 @@
 <script lang="ts">
   import { ChevronLeft, ChevronRight } from '@lucide/svelte';
 
-  import {
-    pageCountFor,
-    pageWindow,
-    showingRange,
-  } from '$lib/features/reports/application/report-list';
+  import { pageCountFor, pageWindow, showingRange } from '$lib/pagination';
 
   const AUDIT_PAGE_SIZE = 50;
 

@@ -1,5 +1,7 @@
 <script lang="ts">
-  import ReportWizardPage from '$lib/features/reports/presentation/ReportWizardPage.svelte';
+  import RecordFormPage from '$lib/features/reports/presentation/RecordFormPage.svelte';
 </script>
 
-<ReportWizardPage />
+<svelte:head><title>New record · OVPCASSS Paperless PAR</title></svelte:head>
+
+<RecordFormPage mode="create" />

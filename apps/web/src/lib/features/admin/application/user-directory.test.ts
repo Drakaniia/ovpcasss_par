@@ -19,7 +19,7 @@ const user = (overrides: Partial<AdminUser> = {}): AdminUser => ({
   id: 'u1',
   fullName: 'M. Santos',
   email: 'ms@university.edu',
-  role: 'SUBMITTER',
+  role: 'PERSONNEL',
   status: 'ACTIVE',
   campusUnit: 'Main',
   contactNumber: null,
@@ -38,10 +38,10 @@ describe('filtersFromParams', () => {
 
   it('restores a shared view', () => {
     const filters = filtersFromParams(
-      new URLSearchParams('status=DISABLED&role=REVIEWER&q=santos'),
+      new URLSearchParams('status=DISABLED&role=PERSONNEL&q=santos'),
     );
 
-    expect(filters).toMatchObject({ status: 'DISABLED', role: 'REVIEWER', q: 'santos' });
+    expect(filters).toMatchObject({ status: 'DISABLED', role: 'PERSONNEL', q: 'santos' });
   });
 
   it('falls back on unknown values instead of inventing state', () => {
@@ -64,7 +64,7 @@ describe('filtersFromParams', () => {
 describe('filtersToParams', () => {
   it('round-trips a shared view', () => {
     const filters = filtersFromParams(
-      new URLSearchParams('status=DISABLED&role=REVIEWER&q=santos'),
+      new URLSearchParams('status=DISABLED&role=PERSONNEL&q=santos'),
     );
 
     expect(filtersFromParams(new URLSearchParams(filtersToParams(filters)))).toEqual(filters);
@@ -106,7 +106,7 @@ describe('updateFilters', () => {
   it('restarts at page 1 when the scope changes', () => {
     const current = { ...DEFAULT_USER_FILTERS, page: 3 };
 
-    expect(updateFilters(current, { role: 'REVIEWER' }).page).toBe(1);
+    expect(updateFilters(current, { role: 'PERSONNEL' }).page).toBe(1);
     expect(updateFilters(current, { status: 'DISABLED' }).page).toBe(1);
     expect(updateFilters(current, { q: 'santos' }).page).toBe(1);
     expect(updateFilters(current, { pageSize: 100 }).page).toBe(1);

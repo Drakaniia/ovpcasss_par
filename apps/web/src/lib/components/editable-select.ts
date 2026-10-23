@@ -54,6 +54,24 @@ export function rowsFor(
   return rows;
 }
 
+export type RowAction = 'rename' | 'remove';
+
+/**
+ * `F2` renames and `Shift+Delete` removes the highlighted entry (bug phase 01
+ * §3.7). Only an official entry carries those actions: the "Add …" and free-text
+ * rows are a name being created, not a row the office maintains, and plain
+ * `Delete` stays with the search box that owns Delete and Backspace.
+ */
+export function rowActionFor(
+  row: EditableSelectRow | null,
+  event: { key: string; shiftKey?: boolean },
+): RowAction | null {
+  if (!row || row.kind !== 'option') return null;
+  if (event.key === 'F2') return 'rename';
+  if (event.key === 'Delete' && event.shiftKey) return 'remove';
+  return null;
+}
+
 /** The selected row opens highlighted; an empty list starts at the first row. */
 export function initialRowIndex(rows: readonly EditableSelectRow[]): number {
   const selected = rows.findIndex((row) => row.kind === 'option' && row.selected);

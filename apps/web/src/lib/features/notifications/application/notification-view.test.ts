@@ -17,7 +17,7 @@ function notification(overrides: Partial<Notification> = {}): Notification {
   return {
     id: 'n1',
     kind: 'RETURNED',
-    description: 'OFF-2026-0014 was returned by M. Santos',
+    description: 'AR No. 0014 was returned by the office',
     comment: null,
     target: { kind: 'report', reportId: 'r1' },
     readAt: null,
@@ -82,16 +82,14 @@ describe('notificationTimeLabel', () => {
 });
 
 describe('notificationHref', () => {
-  it('opens the report, the queue that holds it, or the account', () => {
+  it('opens the report or the account', () => {
     expect(notificationHref({ kind: 'report', reportId: 'r1' })).toBe('/reports/r1');
-    expect(notificationHref({ kind: 'review', reportId: 'r1' })).toBe('/review/r1');
-    expect(notificationHref({ kind: 'approval', reportId: 'r1' })).toBe('/approval/r1');
     expect(notificationHref({ kind: 'profile', reportId: null })).toBe('/profile');
     expect(notificationHref({ kind: 'home', reportId: null })).toBe('/');
   });
 
-  it('falls back to the queue index when the report id is gone', () => {
-    expect(notificationHref({ kind: 'review', reportId: null })).toBe('/review');
+  it('falls back to the reports list when the report id is gone', () => {
+    expect(notificationHref({ kind: 'report', reportId: null })).toBe('/reports');
   });
 });
 

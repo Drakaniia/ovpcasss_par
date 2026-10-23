@@ -1,248 +1,174 @@
 <script lang="ts">
-  import type { Campus, Department, Office, ReportType, Unit } from '@par/shared';
+  import type { Classification, Level, ReportType } from '@par/shared';
 
   import EditableSelect from '$lib/components/EditableSelect.svelte';
-  import type {
-    DirectoryEntity,
-    DirectoryEntry,
-  } from '$lib/features/admin/application/directory-entries';
+  import { session } from '$lib/session/session.svelte';
 
   import {
     CLASSIFICATION_OPTIONS,
     LEVEL_OPTIONS,
     REPORT_TYPE_OPTIONS,
-    unitsForCampus,
     unitLabel,
-    type WizardForm,
-    type WizardOption,
-  } from '../application/wizard-form';
-  import type { FieldErrors } from '../application/wizard-validation';
+  } from '../application/record-form';
+  import type { RecordFormState } from '../application/record-state.svelte';
   import WizardDirectorySelect from './WizardDirectorySelect.svelte';
   import WizardField from './WizardField.svelte';
 
-  /**
-   * Step 1 — activity classification (UI phase 06 §3). Type comes first because
-   * it drives the tracking-number prefix, attachment requirements, and exports.
-   * Campus filters the colleges/units and explains a cleared selection inline.
-   *
-   * Every control is the shared dropdown, so the same search, keyboard walk, and
-   * popover motion apply to the fixed contract lists and the two admin-managed
-   * directories alike. Only the directories accept a new value.
-   */
-  let {
-    form,
-    campuses,
-    units,
-    departments,
-    offices,
-    errors,
-    flagged,
-    disabled = false,
-    canManageDirectories = false,
-    onchange,
-    onreferencechange,
-  }: {
-    form: WizardForm;
-    campuses: readonly Campus[];
-    units: readonly Unit[];
-    departments: readonly Department[];
-    offices: readonly Office[];
-    errors: FieldErrors;
-    /** Fields named in a return comment; only phase 07 sets this. */
-    flagged?: ReadonlySet<string>;
-    disabled?: boolean;
-    canManageDirectories?: boolean;
-    onchange: (patch: Partial<WizardForm>) => void;
-    onreferencechange?: (entity: DirectoryEntity, entries: readonly DirectoryEntry[]) => void;
-  } = $props();
+  /** Step 1 — the classification facts the office registers before anything else. */
+  let { state }: { state: RecordFormState } = $props();
 
-  let campusNotice = $state('');
+  const canManage = $derived(session.user?.role === 'ADMIN');
 
-  const campusOptions = $derived<WizardOption[]>(
-    [...campuses]
-      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
-      .map((campus) => ({
-        value: campus.id,
-        label: campus.isActive ? campus.name : `${campus.name} (inactive)`,
-      })),
+  const campusOptions = $derived(
+    state.references.campuses.map((campus) => ({
+      value: campus.id,
+      label: campus.isActive ? campus.name : `${campus.name} (inactive)`,
+    })),
   );
 
-  const unitChoices = $derived(unitsForCampus(units, form.campusId));
-  const unitOptions = $derived<WizardOption[]>(
-    unitChoices.map((unit) => ({ value: unit.id, label: unitLabel(unit) })),
+  const unitOptions = $derived(
+    state.units.map((unit) => ({ value: unit.id, label: unitLabel(unit) })),
   );
-
-  function selectCampus(campusId: string): void {
-    const current = units.find((unit) => unit.id === form.unitId);
-    if (current && current.campusId !== campusId) {
-      campusNotice =
-        'The previous college or unit is not offered at this campus. Select one from this campus.';
-      onchange({ campusId, unitId: '' });
-      return;
-    }
-
-    campusNotice = '';
-    onchange({ campusId });
-  }
-
-  function selectUnit(unitId: string): void {
-    campusNotice = '';
-    onchange({ unitId });
-  }
 </script>
 
-<div class="step-fields">
-  <WizardField
-    id="wiz-type"
-    label="Activity type"
-    error={errors.type}
-    flagged={flagged?.has('type')}
-    required
-  >
-    {#snippet children({ describedBy, invalid })}
-      <EditableSelect
-        id="wiz-type"
-        label="Activity type"
-        value={form.type}
-        options={REPORT_TYPE_OPTIONS}
-        {describedBy}
-        {invalid}
-        {disabled}
-        onchange={(value) => onchange({ type: value as ReportType | '' })}
-      />
-    {/snippet}
-  </WizardField>
+<section id="wizard-step-1" tabindex="-1" aria-labelledby="wizard-step-1-title" class="step-pane">
+  <h2 id="wizard-step-1-title" class="visually-hidden">Activity classification</h2>
 
-  <WizardField
-    id="wiz-classification"
-    label="Classification"
-    error={errors.classification}
-    flagged={flagged?.has('classification')}
-    required
-  >
-    {#snippet children({ describedBy, invalid })}
-      <EditableSelect
-        id="wiz-classification"
-        label="Classification"
-        value={form.classification}
-        options={CLASSIFICATION_OPTIONS}
-        {describedBy}
-        {invalid}
-        {disabled}
-        onchange={(value) => onchange({ classification: value as WizardForm['classification'] })}
-      />
-    {/snippet}
-  </WizardField>
+  <div class="two-col">
+    <WizardField id="wiz-type" label="Activity type" required error={state.errors.type}>
+      {#snippet children({ describedBy, invalid })}
+        <EditableSelect
+          id="wiz-type"
+          label="Activity type"
+          value={state.form.type}
+          options={REPORT_TYPE_OPTIONS}
+          placeholder="Select the activity type"
+          searchable={false}
+          {invalid}
+          {describedBy}
+          onchange={(value) => state.patchForm({ type: value as ReportType })}
+        />
+      {/snippet}
+    </WizardField>
 
-  <WizardField
-    id="wiz-campusId"
-    label="Campus"
-    error={errors.campusId}
-    flagged={flagged?.has('campusId')}
-    required
-  >
-    {#snippet children({ describedBy, invalid })}
-      <EditableSelect
-        id="wiz-campusId"
-        label="Campus"
-        value={form.campusId}
-        options={campusOptions}
-        {describedBy}
-        {invalid}
-        {disabled}
-        onchange={selectCampus}
-      />
-    {/snippet}
-  </WizardField>
+    <WizardField
+      id="wiz-classification"
+      label="Classification"
+      required
+      error={state.errors.classification}
+    >
+      {#snippet children({ describedBy, invalid })}
+        <EditableSelect
+          id="wiz-classification"
+          label="Classification"
+          value={state.form.classification}
+          options={CLASSIFICATION_OPTIONS}
+          placeholder="Select the classification"
+          searchable={false}
+          {invalid}
+          {describedBy}
+          onchange={(value) => state.patchForm({ classification: value as Classification })}
+        />
+      {/snippet}
+    </WizardField>
 
-  <WizardField
-    id="wiz-unitId"
-    label="College or unit"
-    error={errors.unitId}
-    flagged={flagged?.has('unitId')}
-    required
-    hint={!form.campusId ? 'Select a campus first.' : undefined}
-  >
-    {#snippet children({ describedBy, invalid })}
-      <EditableSelect
-        id="wiz-unitId"
-        label="College or unit"
-        value={form.unitId}
-        options={unitOptions}
-        {describedBy}
-        {invalid}
-        disabled={disabled || !form.campusId}
-        onchange={selectUnit}
-      />
+    <WizardField id="wiz-campus" label="Campus" required error={state.errors.campusId}>
+      {#snippet children({ describedBy, invalid })}
+        <EditableSelect
+          id="wiz-campus"
+          label="Campus"
+          value={state.form.campusId}
+          options={campusOptions}
+          placeholder="Select the campus"
+          emptyMessage="No campuses are configured."
+          {invalid}
+          {describedBy}
+          onchange={(value) => state.patchForm({ campusId: value })}
+        />
+      {/snippet}
+    </WizardField>
 
-      {#if campusNotice}
-        <p class="inline-note" role="status">{campusNotice}</p>
-      {/if}
-    {/snippet}
-  </WizardField>
+    <WizardField id="wiz-unit" label="College or unit" required error={state.errors.unitId}>
+      {#snippet children({ describedBy, invalid })}
+        <EditableSelect
+          id="wiz-unit"
+          label="College or unit"
+          value={state.form.unitId}
+          options={unitOptions}
+          placeholder={state.form.campusId
+            ? 'Select the college or unit'
+            : 'Select the campus first'}
+          emptyMessage="No units are configured for this campus."
+          disabled={!state.form.campusId}
+          {invalid}
+          {describedBy}
+          onchange={(value) => state.patchForm({ unitId: value })}
+        />
+      {/snippet}
+    </WizardField>
 
-  <WizardDirectorySelect
-    id="wiz-department"
-    label="Department"
-    value={form.department}
-    entity="departments"
-    entries={departments}
-    error={errors.department}
-    flagged={flagged?.has('department')}
-    optional
-    {disabled}
-    canManage={canManageDirectories}
-    onchange={(value) => onchange({ department: value })}
-    onentrieschange={onreferencechange}
-  />
+    <WizardDirectorySelect
+      id="wiz-department"
+      label="Department"
+      value={state.form.department}
+      entity="departments"
+      entries={state.references.departments}
+      error={state.errors.department}
+      optional
+      {canManage}
+      onchange={(value) => state.patchForm({ department: value })}
+      onentrieschange={(entity, entries) => state.setDirectory(entity, entries)}
+    />
 
-  <WizardDirectorySelect
-    id="wiz-office"
-    label="Office"
-    value={form.office}
-    entity="offices"
-    entries={offices}
-    error={errors.office}
-    flagged={flagged?.has('office')}
-    optional
-    {disabled}
-    canManage={canManageDirectories}
-    onchange={(value) => onchange({ office: value })}
-    onentrieschange={onreferencechange}
-  />
+    <WizardDirectorySelect
+      id="wiz-office"
+      label="Office"
+      value={state.form.office}
+      entity="offices"
+      entries={state.references.offices}
+      error={state.errors.office}
+      optional
+      {canManage}
+      onchange={(value) => state.patchForm({ office: value })}
+      onentrieschange={(entity, entries) => state.setDirectory(entity, entries)}
+    />
 
-  <WizardField
-    id="wiz-level"
-    label="Level"
-    error={errors.level}
-    flagged={flagged?.has('level')}
-    required
-  >
-    {#snippet children({ describedBy, invalid })}
-      <EditableSelect
-        id="wiz-level"
-        label="Level"
-        value={form.level}
-        options={LEVEL_OPTIONS}
-        {describedBy}
-        {invalid}
-        {disabled}
-        onchange={(value) => onchange({ level: value as WizardForm['level'] })}
-      />
-    {/snippet}
-  </WizardField>
-</div>
+    <WizardField id="wiz-level" label="Level" required error={state.errors.level}>
+      {#snippet children({ describedBy, invalid })}
+        <EditableSelect
+          id="wiz-level"
+          label="Level"
+          value={state.form.level}
+          options={LEVEL_OPTIONS}
+          placeholder="Select the level"
+          searchable={false}
+          {invalid}
+          {describedBy}
+          onchange={(value) => state.patchForm({ level: value as Level })}
+        />
+      {/snippet}
+    </WizardField>
+  </div>
+</section>
 
 <style>
-  .step-fields {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  .step-pane {
+    display: block;
   }
 
-  .inline-note {
-    color: var(--status-danger-fg);
-    font-size: 12px;
-    margin: 4px 0 0;
+  .two-col {
+    display: grid;
+    gap: 16px 24px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .visually-hidden {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
   }
 </style>

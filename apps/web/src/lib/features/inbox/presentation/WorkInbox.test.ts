@@ -11,10 +11,13 @@ const empty = (): InboxSection => ({ total: 0, items: [] });
 
 const item = (overrides: Partial<InboxItem> = {}): InboxItem => ({
   id: 'report-1',
-  trackingNumber: 'OFF-2026-0014',
+  referenceNo: 'AR No. 0014',
   title: 'Coastal cleanup',
   type: 'OFF_CAMPUS',
   status: 'SUBMITTED',
+  activityStartDate: '2026-03-10',
+  activityEndDate: '2026-03-11',
+  location: 'Batangas',
   updatedAt: '2026-03-18T10:00:00Z',
   submittedAt: '2026-03-18T10:00:00Z',
   ...overrides,
@@ -27,11 +30,11 @@ const section = (overrides: Partial<InboxSection> = {}): InboxSection => ({
 });
 
 const inbox = (overrides: Partial<InboxResponse> = {}): InboxResponse => ({
+  awaitingReview: empty(),
+  withPic: empty(),
   returned: empty(),
-  review: empty(),
-  approval: empty(),
-  drafts: empty(),
-  waiting: empty(),
+  approved: empty(),
+  myReports: empty(),
   activity: [],
   admin: null,
   onboarding: { profileComplete: false, hasSubmitted: false, draftId: null },
@@ -41,25 +44,24 @@ const inbox = (overrides: Partial<InboxResponse> = {}): InboxResponse => ({
 const renderInbox = (data: InboxResponse, roles: Role[]) =>
   render(WorkInbox, { props: { inbox: data, roles, now: NOW } }).body;
 
-const submitterInbox = () =>
+const personnelInbox = () =>
   inbox({
     returned: section({
       total: 2,
       items: [
-        item({ status: 'RETURNED_BY_REVIEWER' }),
-        item({ id: 'report-2', trackingNumber: 'INC-2026-0009', title: 'Outreach program' }),
+        item({ status: 'RETURNED' }),
+        item({ id: 'report-2', referenceNo: 'AR No. 0009', title: 'Outreach program' }),
       ],
     }),
-    drafts: section({
+    myReports: section({
       total: 3,
-      items: [item({ id: 'draft-1', trackingNumber: null, status: 'DRAFT', completeness: 62 })],
+      items: [item({ id: 'report-3', status: 'DRAFT', submittedAt: null })],
     }),
-    waiting: section(),
     activity: [
       {
         id: 'event-1',
         reportId: 'report-1',
-        trackingNumber: 'OFF-2026-0014',
+        referenceNo: 'AR No. 0014',
         title: 'Coastal cleanup',
         kind: 'SUBMITTED',
         occurredAt: '2026-03-20T08:00:00Z',
@@ -68,51 +70,67 @@ const submitterInbox = () =>
   });
 
 describe('WorkInbox', () => {
-  it('renders the submitter sections in the fixed order with the true count', () => {
-    const html = renderInbox(submitterInbox(), ['SUBMITTER']);
+  it('renders a personnel account sections in the fixed order with the true count', () => {
+    const html = renderInbox(personnelInbox(), ['PERSONNEL']);
 
-    expect(html).toContain('Returned to you');
+    expect(html).toContain('AR No. 0014');
+    expect(html).toContain('Returned for revision');
     expect(html).toContain('(2)');
-    expect(html).toContain('Your drafts');
+    expect(html).toContain('Your assignments');
     expect(html).toContain('(3)');
-    expect(html).toContain('62%');
     expect(html).toContain('Recent activity');
 
-    expect(html.indexOf('Needs your action')).toBeLessThan(html.indexOf('Your drafts'));
-    expect(html.indexOf('Your drafts')).toBeLessThan(html.indexOf('Waiting on the office'));
-    expect(html.indexOf('Waiting on the office')).toBeLessThan(html.indexOf('Recent activity'));
+    expect(html.indexOf('Returned for revision')).toBeLessThan(
+      html.indexOf('Your assignments'),
+    );
+    expect(html.indexOf('Your assignments')).toBeLessThan(html.indexOf('Recent activity'));
   });
 
-  it('links returned rows to edit and keeps decisions off the inbox', () => {
-    const html = renderInbox(submitterInbox(), ['SUBMITTER']);
+  it('keeps decisions off the inbox and links rows to the record', () => {
+    const html = renderInbox(personnelInbox(), ['PERSONNEL']);
 
-    expect(html).toContain('href="/reports/report-1/edit"');
+    expect(html).toContain('href="/reports/report-1"');
     expect(html).not.toMatch(/>\s*(Endorse|Approve|Return)\s*</);
   });
 
-  it('filters queues by role and omits every empty section', () => {
+  it('shows the office only the records it must act on', () => {
     const html = renderInbox(
       inbox({
-        returned: section(),
-        drafts: section(),
-        review: section({ total: 4 }),
-        activity: [],
+        awaitingReview: section({ total: 4 }),
+        withPic: section({ total: 2 }),
+        myReports: section({ total: 9 }),
       }),
-      ['REVIEWER'],
+      ['ADMIN'],
     );
 
-    expect(html).toContain('Awaiting your review');
+    expect(html).toContain('Awaiting your decision');
+    expect(html).toContain('With personnel in charge');
     expect(html).toContain('(4)');
-    expect(html).toContain('href="/review"');
-    expect(html).not.toContain('Returned to you');
-    expect(html).not.toContain('Your drafts');
+    expect(html).toContain('href="/reports?tab=submitted"');
+    expect(html).not.toContain('Your assignments');
     expect(html).not.toContain('(0)');
   });
 
-  it('gives an admin its own block beside the queues it can act on', () => {
+  it('marks an overdue record and offers a resend', () => {
     const html = renderInbox(
       inbox({
-        review: section({ total: 4 }),
+        withPic: section({
+          total: 1,
+          items: [item({ status: 'DRAFT', updatedAt: '2026-03-01T10:00:00Z' })],
+        }),
+      }),
+      ['ADMIN'],
+    );
+
+    expect(html).toContain('Overdue');
+    expect(html).toContain('Resend invitation for AR No. 0014');
+  });
+
+  it('adds the stat row, the notifications digest, and audit activity', () => {
+    const html = renderInbox(
+      inbox({
+        awaitingReview: section({ total: 2 }),
+        notificationsUnread: 3,
         admin: {
           failedEmails: 1,
           auditEvents: [
@@ -123,31 +141,13 @@ describe('WorkInbox', () => {
             },
           ],
         },
-      }),
-      ['ADMIN'],
-    );
-
-    expect(html).toContain('Failed emails');
-    expect(html).toContain('Recent audit activity');
-    expect(html).toContain('Awaiting your review');
-    expect(html).not.toContain('New report');
-  });
-
-  it('adds the stat row, the own-report chip, and the notifications digest', () => {
-    const html = renderInbox(
-      inbox({
-        returned: section({
-          total: 2,
-          items: [item({ status: 'RETURNED_BY_REVIEWER', isOwn: true })],
-        }),
-        notificationsUnread: 3,
         recentlyDecided: [
           {
             id: 'e2',
             reportId: 'report-9',
-            trackingNumber: 'INC-2026-0009',
+            referenceNo: 'AR No. 0009',
             title: 'Outreach program',
-            kind: 'ENDORSED',
+            kind: 'APPROVED',
             occurredAt: '2026-03-19T08:00:00Z',
           },
         ],
@@ -156,34 +156,45 @@ describe('WorkInbox', () => {
     );
 
     expect(html).toContain('At a glance');
-    expect(html).toContain('Returned to you');
     expect(html).toContain('3 unread notifications');
     expect(html).toContain('href="/notifications"');
-    expect(html).toContain('Your report');
     expect(html).toContain('Recently decided by you');
+    expect(html).toContain('you approved');
+    expect(html).toContain('Failed emails');
+    expect(html).toContain('Recent audit activity');
   });
 
   it('renders no digest line at zero unread', () => {
-    const html = renderInbox(submitterInbox(), ['SUBMITTER']);
+    const html = renderInbox(personnelInbox(), ['PERSONNEL']);
 
     expect(html).not.toContain('unread notification');
     expect(html).not.toContain('href="/notifications"');
   });
 
-  it('shows the onboarding checklist only when a submitter has nothing else', () => {
-    const html = renderInbox(inbox(), ['SUBMITTER']);
+  it('sends a personnel account with no assignments to the empty state', () => {
+    const html = renderInbox(inbox(), ['PERSONNEL']);
 
-    expect(html).toContain('Get started');
-    expect(html).toContain('0 of 3 complete');
+    expect(html).toContain('No activities are assigned to you yet');
     expect(html).toContain('Complete your profile');
-    expect(html).not.toContain('Needs your action');
+    expect(html).not.toContain('Awaiting your decision');
+    expect(html).not.toContain('href="/reports/new"');
   });
 
-  it('uses a quiet empty panel for read-only roles, without a filled primary', () => {
-    const html = renderInbox(inbox(), ['APPROVER']);
+  it('sends an empty office inbox to the shared records message', () => {
+    const html = renderInbox(inbox(), ['ADMIN']);
 
-    expect(html).toContain('No reports are awaiting your approval');
+    expect(html).toContain('Nothing needs your attention');
+    expect(html).toContain('href="/reports/new"');
     expect(html).not.toContain('btn-primary');
+  });
+
+  it('tells a new personnel account no activity has been assigned yet', () => {
+    const html = renderInbox(
+      inbox({ onboarding: { profileComplete: false, hasSubmitted: true, draftId: null } }),
+      ['PERSONNEL'],
+    );
+
+    expect(html).toContain('No activities are assigned to you yet');
   });
 });
 

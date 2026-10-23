@@ -1,135 +1,70 @@
-import type { ReportDraft, ReportListItem } from '@par/shared';
+import type { ReportListItem } from '@par/shared';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 
-import { pendingRowsFromDrafts, reportRowFromItem } from '../application/report-list';
+import { registerRow, type RegisterRow } from '../application/report-register';
 import ReportTable from './ReportTable.svelte';
 
-const NOW = new Date('2026-03-16T00:00:00.000Z');
+const NOW = new Date('2026-10-22T04:00:00Z');
 
-const item = (overrides: Partial<ReportListItem> = {}): ReportListItem => ({
-  id: 'r1',
-  ownerUserId: 'u1',
-  trackingNumber: 'OFF-2026-0001',
-  title: 'Marine survey',
-  type: 'OFF_CAMPUS',
-  status: 'SUBMITTED',
-  activityStartDate: '2026-03-12',
-  activityEndDate: '2026-03-13',
-  updatedAt: '2026-03-14T01:12:00.000Z',
-  ...overrides,
-});
+const item = {
+  id: 'report-1',
+  referenceNo: 'AR No. 0001',
+  title: 'Coastal cleanup',
+  type: 'OFF_CAMPUS' as const,
+  status: 'DRAFT' as const,
+  activityStartDate: '2026-10-21',
+  activityEndDate: '2026-10-23',
+  location: 'Brgy. Poblacion',
+  picNames: 'Maria Santos; Juan Dela Cruz',
+  updatedAt: '2026-10-22T02:00:00Z',
+  version: 0,
+  submittedAt: null,
+  approvedAt: null,
+};
 
-const draft = (overrides: Partial<ReportDraft> = {}): ReportDraft => ({
-  id: 'd1',
-  ownerUserId: 'u1',
-  version: 2,
-  updatedAt: '2026-03-15T01:12:00.000Z',
-  form: {
-    type: 'IN_CAMPUS',
-    classification: 'CURRICULAR',
-    campusId: 'c1',
-    unitId: 'un1',
-    level: 'UNDERGRADUATE',
-    title: 'Coastal cleanup',
-    activityStartDate: '2026-03-12',
-    activityEndDate: '2026-03-12',
-    location: 'Gymnasium',
-    totalStudents: 10,
-    totalPic: 1,
-    pics: [{ name: 'A. Cruz', phone: '0917 000 0000' }],
-    sdgIds: ['s1'],
-    narrative: 'Summary',
-  },
-  ...overrides,
-});
+function renderTable(role: 'ADMIN' | 'PERSONNEL', itemOverrides: Partial<ReportListItem> = {}) {
+  const rows: RegisterRow[] = [registerRow({ ...item, ...itemOverrides }, { role })];
+  const noop = () => {};
 
-const noop = () => {};
-
-function renderTable(rows: ReturnType<typeof reportRowFromItem>[]) {
   return render(ReportTable, {
     props: {
       rows,
-      sort: 'updated',
+      sort: 'referenceNo',
       dir: 'desc',
+      role,
+      now: NOW,
       onsort: noop,
-      onopen: noop,
       onedit: noop,
       ondelete: noop,
+      onresend: noop,
     },
   }).body;
 }
 
 describe('ReportTable', () => {
-  it('renders the seven columns and marks the active sort', () => {
-    const html = renderTable([
-      reportRowFromItem(item(), { role: 'SUBMITTER', userId: 'u1', now: NOW }),
-    ]);
+  it('leads with the AR No. and names the people in charge', () => {
+    const html = renderTable('ADMIN');
 
-    for (const label of [
-      'Tracking no.',
-      'Title',
-      'Type',
-      'Status',
-      'Activity date',
-      'Updated',
-      'Actions',
-    ]) {
-      expect(html).toContain(label);
-    }
-
-    expect(html).toContain('aria-sort="descending"');
-    expect(html).toContain('aria-sort="none"');
-    expect(html).toContain('caption');
-  });
-
-  it('shows the tracking number, badge, range, and exact updated timestamp', () => {
-    const html = renderTable([
-      reportRowFromItem(item(), { role: 'SUBMITTER', userId: 'u1', now: NOW }),
-    ]);
-
-    expect(html).toContain('OFF-2026-0001');
-    expect(html).toContain('Submitted');
-    expect(html).toContain('12–13 Mar 2026');
-    expect(html).toContain('title="14 March 2026, 9:12 AM"');
-    expect(html).toContain('yesterday');
-    expect(html).toContain('Actions for Marine survey');
-    expect(html).toContain('title-text');
-    expect(html).toContain('mono');
-  });
-
-  it('renders an em dash for a draft with no tracking number', () => {
-    const html = renderTable([
-      reportRowFromItem(item({ status: 'DRAFT', trackingNumber: null }), {
-        role: 'SUBMITTER',
-        userId: 'u1',
-        now: NOW,
-      }),
-    ]);
-
-    expect(html).toContain('—');
-    expect(html).not.toContain('OFF-2026-0001');
-  });
-
-  it('renders a device-only draft as a plain DRAFT row', () => {
-    const pending = pendingRowsFromDrafts([draft()], {
-      ownerUserId: 'u1',
-      role: 'SUBMITTER',
-      now: NOW,
-    });
-    const html = renderTable(pending);
-
+    expect(html).toContain('AR No.');
+    expect(html).toContain('AR No. 0001');
     expect(html).toContain('Coastal cleanup');
-    expect(html).not.toContain('On this device');
-    expect(html).not.toContain('is-pending');
+    expect(html).toContain('Maria Santos; Juan Dela Cruz');
+    expect(html.indexOf('AR No. 0001')).toBeLessThan(html.indexOf('Coastal cleanup'));
   });
 
-  it('keeps the row menu out of the row navigation target', () => {
-    const html = renderTable([
-      reportRowFromItem(item(), { role: 'SUBMITTER', userId: 'u1', now: NOW }),
-    ]);
+  it('offers the office its row actions', () => {
+    const html = renderTable('ADMIN');
 
-    expect(html).toContain('aria-haspopup="menu"');
-    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain('aria-label="Edit AR No. 0001"');
+    expect(html).toContain('aria-label="Resend invitation for AR No. 0001"');
+    expect(html).toContain('aria-label="Delete AR No. 0001"');
+    expect(html).not.toContain('Write narrative');
+  });
+
+  it('offers a personnel row its one next action', () => {
+    expect(renderTable('PERSONNEL')).toContain('Write narrative');
+    expect(renderTable('PERSONNEL', { status: 'RETURNED' })).toContain('Revise and resubmit');
+    expect(renderTable('PERSONNEL', { status: 'SUBMITTED' })).toContain('View');
   });
 });

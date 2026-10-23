@@ -1,50 +1,88 @@
 <script lang="ts">
-  import type { WizardForm } from '../application/wizard-form';
-  import { errorSummary, fieldDomId, type FieldErrors } from '../application/wizard-validation';
+  import { AlertCircle } from '@lucide/svelte';
+
+  import type { WizardForm } from '../application/record-form';
+  import {
+    domIdForField,
+    labelFor,
+    orderedErrors,
+    type FieldErrors,
+  } from '../application/record-validation';
 
   /**
-   * Foundation §4.2: every wizard step starts with a linked summary of its
-   * problems, and the first link points at the first invalid field.
+   * The advanced-attempt summary (bug phase 02 §3.4). It appears because the
+   * reporter tried to leave the step, never because a blur produced a message.
    */
-  let { errors, form }: { errors: FieldErrors; form: WizardForm } = $props();
+  let {
+    errors,
+    form,
+    onfocus,
+  }: {
+    errors: FieldErrors;
+    form: WizardForm;
+    onfocus?: (domId: string | undefined) => void;
+  } = $props();
 
-  const issues = $derived(errorSummary(form, errors));
+  const fields = $derived(orderedErrors(errors, form));
 
-  function focusField(field: string): void {
-    document.getElementById(fieldDomId(field))?.focus();
+  function focus(field: string): void {
+    const id = domIdForField(field);
+    if (id) onfocus?.(id);
   }
 </script>
 
-{#if issues.length > 0}
-  <div class="error-summary" id="wizard-error-summary" role="alert" tabindex="-1">
-    <p>Check the highlighted fields and try again.</p>
-    <ul>
-      {#each issues as issue (issue.field)}
-        <li>
-          <a
-            href="#{fieldDomId(issue.field)}"
-            onclick={(event) => {
-              event.preventDefault();
-              focusField(issue.field);
-            }}>{issue.label}: {issue.message}</a
-          >
-        </li>
-      {/each}
-    </ul>
-  </div>
-{/if}
+<div class="summary" role="alert" tabindex="-1">
+  <p class="summary-title">
+    <AlertCircle size={16} aria-hidden="true" />
+    <span>Check the highlighted {fields.length === 1 ? 'field' : 'fields'}.</span>
+  </p>
+  <ul>
+    {#each fields as field (field)}
+      <li>
+        <button class="link" type="button" onclick={() => focus(field)}>
+          {labelFor(field, form)}: {errors[field]}
+        </button>
+      </li>
+    {/each}
+  </ul>
+</div>
 
 <style>
-  .error-summary p {
-    margin: 0 0 6px;
+  .summary {
+    background: var(--status-danger-bg);
+    border: 1px solid var(--status-danger-fg);
+    border-radius: var(--radius-card);
+    color: var(--status-danger-fg);
+    margin-bottom: 16px;
+    padding: 10px 14px;
   }
 
-  .error-summary ul {
+  .summary-title {
+    align-items: center;
+    display: flex;
+    font-size: 13px;
+    font-weight: 500;
+    gap: 6px;
     margin: 0;
-    padding-left: 18px;
   }
 
-  .error-summary a {
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+  }
+
+  .link {
+    background: none;
+    border: 0;
     color: inherit;
+    font-size: 12px;
+    padding: 0;
+    text-align: left;
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 </style>

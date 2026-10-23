@@ -98,7 +98,7 @@
           onclick={() => onchoose(report)}
           onkeydown={(event) => rowKeys(event, report)}
         >
-          <span class="tracking">{@render marked(report.trackingNumber ?? '—')}</span>
+          <span class="tracking">{@render marked(report.referenceNo)}</span>
           <span class="option-label">{@render marked(report.title)}</span>
           <StatusBadge status={report.status} />
         </div>
@@ -129,9 +129,7 @@
   {#if noResults}
     <div class="state-row">
       <SearchX size={15} aria-hidden="true" />
-      <span class="state-text"
-        >No pages or reports match “{query}”. Try a tracking number or name.</span
-      >
+      <span class="state-text">No pages or reports match “{query}”. Try an AR No. or a name.</span>
     </div>
   {/if}
 </div>

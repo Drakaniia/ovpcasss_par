@@ -23,12 +23,12 @@ export type PalettePage = {
 export type PaletteReport = {
   id: string;
   href: string;
-  trackingNumber: string | null;
+  referenceNo: string;
   title: string;
   status: ReportStatus;
   /** Preview context: what the report is, who filed it, and when it ran. */
   type: ReportType;
-  ownerName: string;
+  picNames: string;
   unitName: string | null;
   activityStartDate: string;
   activityEndDate: string;
@@ -44,7 +44,6 @@ export const PALETTE_MIN_REPORT_QUERY = 2;
 const PAGE_DESCRIPTIONS: Record<NavId, string> = {
   home: 'Your work inbox and what needs action',
   reports: 'Your reports, drafts, and returns',
-  queues: 'Reports waiting for your review or approval',
   repository: 'Find stored reports and monitoring exports',
   admin: 'Users, reference data, and the audit log',
 };
@@ -105,18 +104,18 @@ export function matchSegments(text: string, query: string): MatchSegment[] {
 }
 
 /**
- * A draft has no tracking number yet and the facsimile is not useful, so it opens
+ * A draft has no submitted narrative and the facsimile is not useful, so it opens
  * the edit page — the same rule the reports table follows (UI spec §7.4).
  */
 export function paletteReports(items: readonly ReportSearchItem[]): PaletteReport[] {
   return items.map((item) => ({
     id: item.id,
     href: item.status === 'DRAFT' ? `/reports/${item.id}/edit` : `/reports/${item.id}`,
-    trackingNumber: item.trackingNumber,
+    referenceNo: item.referenceNo,
     title: item.title,
     status: item.status,
     type: item.type,
-    ownerName: item.ownerName,
+    picNames: item.picNames,
     unitName: item.unitName,
     activityStartDate: item.activityStartDate,
     activityEndDate: item.activityEndDate,

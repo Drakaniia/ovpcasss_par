@@ -20,10 +20,8 @@
   const STATUSES = Object.keys(STATUS_PRESENTATION) as ReportStatus[];
 
   const DEMO_NAMES: Record<Role, string> = {
-    SUBMITTER: 'Juan Dela Cruz',
-    REVIEWER: 'Maria Santos',
-    APPROVER: 'Ana Reyes',
     ADMIN: 'Paolo Cruz',
+    PERSONNEL: 'Maria Santos',
   };
 
   let openDefault = $state(false);
@@ -48,7 +46,7 @@
     session.user = null;
   }
 
-  // Deep link for screenshots and quick checks: /dev/components?role=REVIEWER.
+  // Deep link for screenshots and quick checks: /dev/components?role=PERSONNEL.
   onMount(() => {
     const requested = new URLSearchParams(page.url.search).get('role')?.toUpperCase();
     if (requested && requested in ROLE_LABELS) preview(requested as Role);
@@ -105,7 +103,7 @@
     <EmptyState
       title="No reports yet"
       description="Create a report to start the process."
-      action={{ label: 'New report', href: '/reports/new' }}
+      action={{ label: 'New record', href: '/reports/new' }}
     />
   </section>
 
@@ -115,7 +113,7 @@
     {#if retryCount > 0}
       <p class="hint">Retry pressed {retryCount} time(s).</p>
     {/if}
-    <ErrorState variant="permission" requiredRole="REVIEWER" />
+    <ErrorState variant="permission" requiredRole="ADMIN" />
     <ErrorState variant="not-found" />
   </section>
 
@@ -127,7 +125,7 @@
         <thead>
           <tr>
             <th scope="col" aria-sort="ascending">
-              Tracking number <span class="sort-indicator" aria-hidden="true">▲</span>
+              AR No. <span class="sort-indicator" aria-hidden="true">▲</span>
             </th>
             <th scope="col">Title</th>
             <th class="table-col-secondary" scope="col">Type</th>
@@ -148,7 +146,7 @@
             <td>Educational tour to the National Museum</td>
             <td class="table-col-secondary">Educational tour</td>
             <td class="mono">12 Mar 2026</td>
-            <td><StatusBadge status="RETURNED_BY_REVIEWER" /></td>
+            <td><StatusBadge status="RETURNED" /></td>
           </tr>
           <tr>
             <td class="mono">INC-2026-0003</td>
@@ -254,7 +252,7 @@
 <ConfirmDialog
   bind:open={openDefault}
   title="Submit this report?"
-  description="The report will be sent to the OVPCASSS reviewer and a tracking number will be issued."
+  description="The narrative will be sent to OVPCASSS for checking. The AR No. is already issued."
   confirmLabel="Submit report"
 />
 <ConfirmDialog

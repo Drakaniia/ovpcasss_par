@@ -27,7 +27,7 @@
         <button
           class="copy"
           type="button"
-          aria-label="Copy tracking number {item.copyText}"
+          aria-label="Copy AR No. {item.copyText}"
           onclick={() => void copy(item)}
         >
           {#if copiedId === item.id}

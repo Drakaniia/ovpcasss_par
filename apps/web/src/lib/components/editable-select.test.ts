@@ -1,11 +1,15 @@
+import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 
+import EditableSelectRowActions from './EditableSelectRowActions.svelte';
 import {
   initialRowIndex,
+  rowActionFor,
   rowsFor,
   stepRowIndex,
   triggerLabel,
   type EditableSelectOption,
+  type EditableSelectRow,
 } from './editable-select';
 
 const options: EditableSelectOption[] = [
@@ -87,5 +91,72 @@ describe('triggerLabel', () => {
     expect(triggerLabel(options, 'Registrar', 'Select…')).toBe('Registrar');
     expect(triggerLabel(options, 'New Office', 'Select…')).toBe('New Office');
     expect(triggerLabel(options, '', 'Select…')).toBe('Select…');
+  });
+});
+
+describe('rowActionFor', () => {
+  const option: EditableSelectRow = {
+    kind: 'option',
+    value: 'Registrar',
+    label: 'Registrar',
+    selected: false,
+  };
+
+  it('renames the highlighted entry on F2', () => {
+    expect(rowActionFor(option, { key: 'F2' })).toBe('rename');
+  });
+
+  it('removes the highlighted entry on Shift+Delete', () => {
+    expect(rowActionFor(option, { key: 'Delete', shiftKey: true })).toBe('remove');
+  });
+
+  it('leaves Delete and Backspace to the search box', () => {
+    expect(rowActionFor(option, { key: 'Delete' })).toBeNull();
+    expect(rowActionFor(option, { key: 'Backspace' })).toBeNull();
+    expect(rowActionFor(option, { key: 'F2', shiftKey: true })).toBe('rename');
+  });
+
+  it('never acts on the add or free-text row', () => {
+    const add: EditableSelectRow = {
+      kind: 'create',
+      name: 'Cultural Affairs',
+      label: 'Add “Cultural Affairs”',
+    };
+    const custom: EditableSelectRow = {
+      kind: 'custom',
+      name: 'Cultural Affairs',
+      label: 'Use “Cultural Affairs”',
+    };
+
+    expect(rowActionFor(add, { key: 'F2' })).toBeNull();
+    expect(rowActionFor(custom, { key: 'Delete', shiftKey: true })).toBeNull();
+  });
+
+  it('does nothing when no row is highlighted', () => {
+    expect(rowActionFor(null, { key: 'F2' })).toBeNull();
+    expect(rowActionFor(null, { key: 'Delete', shiftKey: true })).toBeNull();
+  });
+});
+
+describe('EditableSelectRowActions', () => {
+  const noop = () => {};
+
+  it('names the entry each control acts on and stays out of the tab order', () => {
+    const html = render(EditableSelectRowActions, {
+      props: { name: 'Registrar', onrename: noop, onremove: noop },
+    }).body;
+
+    expect(html).toContain('aria-label="Rename Registrar"');
+    expect(html).toContain('aria-label="Remove Registrar"');
+    expect(html.match(/tabindex="-1"/g)).toHaveLength(2);
+    expect(html).toContain('data-row-control="true"');
+  });
+
+  it('disables both controls while an edit is saving', () => {
+    const html = render(EditableSelectRowActions, {
+      props: { name: 'Registrar', disabled: true, onrename: noop, onremove: noop },
+    }).body;
+
+    expect(html.match(/disabled/g)).toHaveLength(2);
   });
 });

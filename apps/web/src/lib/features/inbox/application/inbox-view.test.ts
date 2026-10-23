@@ -3,17 +3,18 @@ import { describe, expect, it } from 'vitest';
 
 import {
   adminActionsFor,
+  approvedRows,
   auditActivityRows,
-  checklistFor,
-  completedStepCount,
+  awaitingReviewRows,
+  capabilitiesFor,
   hasInboxContent,
   inboxSectionsFor,
   inboxStatsFor,
-  queueRows,
+  myReportRows,
   recentlyDecidedRows,
   reportActivityRows,
   returnedRows,
-  waitingRows,
+  withPicRows,
 } from './inbox-view';
 
 const NOW = new Date('2026-03-20T10:00:00Z');
@@ -22,10 +23,13 @@ const emptySection = (): InboxSection => ({ total: 0, items: [] });
 
 const item = (overrides: Partial<InboxItem> = {}): InboxItem => ({
   id: 'report-1',
-  trackingNumber: 'OFF-2026-0014',
+  referenceNo: 'AR No. 0014',
   title: 'Coastal cleanup',
   type: 'OFF_CAMPUS',
   status: 'SUBMITTED',
+  activityStartDate: '2026-03-10',
+  activityEndDate: '2026-03-11',
+  location: 'Batangas',
   updatedAt: '2026-03-18T10:00:00Z',
   submittedAt: '2026-03-18T10:00:00Z',
   ...overrides,
@@ -38,11 +42,11 @@ const section = (overrides: Partial<InboxSection> = {}): InboxSection => ({
 });
 
 const inbox = (overrides: Partial<InboxResponse> = {}): InboxResponse => ({
+  awaitingReview: emptySection(),
+  withPic: emptySection(),
   returned: emptySection(),
-  review: emptySection(),
-  approval: emptySection(),
-  drafts: emptySection(),
-  waiting: emptySection(),
+  approved: emptySection(),
+  myReports: emptySection(),
   activity: [],
   admin: null,
   onboarding: { profileComplete: false, hasSubmitted: false, draftId: null },
@@ -51,246 +55,240 @@ const inbox = (overrides: Partial<InboxResponse> = {}): InboxResponse => ({
 
 const allSections = () =>
   inbox({
+    awaitingReview: section(),
+    withPic: section(),
     returned: section(),
-    review: section(),
-    approval: section(),
-    drafts: section(),
-    waiting: section(),
-    activity: [
-      {
-        id: 'event-1',
-        reportId: 'report-1',
-        trackingNumber: 'OFF-2026-0014',
-        title: 'Coastal cleanup',
-        kind: 'SUBMITTED',
-        occurredAt: '2026-03-20T08:00:00Z',
-      },
-    ],
-    admin: { failedEmails: 1, auditEvents: [] },
+    approved: section(),
+    myReports: section(),
   });
 
+describe('capabilitiesFor', () => {
+  it('separates the office from the personnel in charge', () => {
+    expect(capabilitiesFor(['ADMIN'])).toEqual({ admin: true, personnel: false });
+    expect(capabilitiesFor(['PERSONNEL'])).toEqual({ admin: false, personnel: true });
+  });
+});
+
 describe('inboxSectionsFor', () => {
-  it('keeps the fixed order for a person with every capability', () => {
-    const roles: Role[] = ['SUBMITTER', 'REVIEWER', 'APPROVER', 'ADMIN'];
+  it('keeps the fixed order for the office', () => {
+    const roles: Role[] = ['ADMIN'];
+    expect(inboxSectionsFor(roles, allSections())).toEqual([
+      'awaitingReview',
+      'withPic',
+      'returned',
+      'approved',
+    ]);
+  });
+
+  it('gives personnel only their own assignments', () => {
+    const roles: Role[] = ['PERSONNEL'];
     expect(inboxSectionsFor(roles, allSections())).toEqual([
       'returned',
-      'review',
-      'approval',
-      'admin',
-      'drafts',
-      'waiting',
-      'activity',
+      'approved',
+      'myReports',
     ]);
   });
 
   it('omits every empty section instead of rendering a zero', () => {
-    const roles: Role[] = ['SUBMITTER'];
+    const roles: Role[] = ['PERSONNEL'];
     expect(inboxSectionsFor(roles, inbox())).toEqual([]);
     expect(hasInboxContent(roles, inbox())).toBe(false);
   });
 
-  it('shows a submitter only their own work', () => {
-    const roles: Role[] = ['SUBMITTER'];
-    const data = inbox({ returned: section(), drafts: section(), waiting: section() });
-
-    expect(inboxSectionsFor(roles, data)).toEqual(['returned', 'drafts', 'waiting']);
-  });
-
-  it('filters queues by role even when the payload carries rows', () => {
-    const roles: Role[] = ['SUBMITTER'];
-    const data = inbox({ review: section(), approval: section() });
-
+  it('ignores rows the role may not see even when the payload carries them', () => {
+    const roles: Role[] = ['PERSONNEL'];
+    const data = inbox({ awaitingReview: section(), withPic: section() });
     expect(inboxSectionsFor(roles, data)).toEqual([]);
   });
+});
 
-  it('gives an admin its own block and the queues it can act on', () => {
-    const roles: Role[] = ['ADMIN'];
-    const data = inbox({
-      review: section(),
-      approval: section(),
-      admin: { failedEmails: 1, auditEvents: [] },
-    });
-
-    expect(inboxSectionsFor(roles, data)).toEqual(['review', 'approval', 'admin']);
+describe('inboxStatsFor', () => {
+  it('never turns a zero into a tile', () => {
+    expect(inboxStatsFor(['ADMIN'], inbox())).toEqual([]);
   });
 
-  it('shows only recent audit activity when nothing else needs an admin', () => {
-    const roles: Role[] = ['ADMIN'];
-    const data = inbox({
-      admin: {
-        failedEmails: 0,
-        auditEvents: [{ id: 'audit-1', summary: 'Role assigned', occurredAt: NOW.toISOString() }],
+  it('scopes the tiles to the office and links each to the register', () => {
+    const data = inbox({ awaitingReview: section({ total: 4 }), withPic: section({ total: 2 }) });
+    expect(inboxStatsFor(['ADMIN'], data)).toEqual([
+      {
+        id: 'awaitingReview',
+        label: 'Awaiting your decision',
+        count: 4,
+        href: '/reports?tab=submitted',
       },
-    });
+      {
+        id: 'withPic',
+        label: 'With personnel in charge',
+        count: 2,
+        href: '/reports?tab=withPic',
+      },
+    ]);
+  });
 
-    expect(inboxSectionsFor(roles, data)).toEqual(['activity']);
+  it('counts a return for either role', () => {
+    const data = inbox({ returned: section({ total: 1 }) });
+    expect(inboxStatsFor(['PERSONNEL'], data)).toEqual([
+      {
+        id: 'returned',
+        label: 'Returned for revision',
+        count: 1,
+        href: '/reports?tab=returned',
+      },
+    ]);
   });
 });
 
-describe('at-a-glance stats', () => {
-  it('keeps only the numbers the role owns and that are not zero', () => {
-    const stats = inboxStatsFor(
-      ['SUBMITTER'],
-      inbox({ returned: section({ total: 2 }), drafts: section({ total: 0 }) }),
+describe('section rows', () => {
+  it('reads a submission with its age and limits the preview to three rows', () => {
+    const rows = awaitingReviewRows(
+      section({
+        total: 9,
+        items: [
+          item(),
+          item({ id: 'report-2' }),
+          item({ id: 'report-3' }),
+          item({ id: 'report-4' }),
+        ],
+      }),
+      NOW,
     );
 
-    expect(stats.map((stat) => stat.id)).toEqual(['returned']);
-    expect(stats[0]?.count).toBe(2);
-    expect(stats[0]?.href).toBe('/reports?tab=returned');
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toMatchObject({
+      id: 'report-1',
+      href: '/reports/report-1',
+      referenceNo: 'AR No. 0014',
+      meta: 'Submitted · 2 days ago',
+      overdue: false,
+    });
   });
 
-  it('gives an admin the queue numbers it can act on', () => {
-    const stats = inboxStatsFor(['ADMIN'], inbox({ review: section({ total: 4 }) }));
+  it('flags a record with its personnel in charge once seven days pass', () => {
+    const [row] = withPicRows(
+      section({ items: [item({ status: 'DRAFT', submittedAt: null })] }),
+      NOW,
+    );
+    expect(row.meta).toBe('Draft · 2 days');
+    expect(row.overdue).toBe(false);
 
-    expect(stats).toEqual([{ id: 'review', label: 'Awaiting review', count: 4, href: '/review' }]);
+    const [stale] = withPicRows(
+      section({
+        items: [item({ status: 'DRAFT', updatedAt: '2026-03-01T10:00:00Z' })],
+      }),
+      NOW,
+    );
+    expect(stale.overdue).toBe(true);
+    expect(stale.canResend).toBe(true);
+  });
+
+  it('reads a returned record as the revision it needs', () => {
+    const [row] = returnedRows(
+      section({ items: [item({ status: 'RETURNED', updatedAt: '2026-03-20T08:00:00Z' })] }),
+      NOW,
+    );
+    expect(row.meta).toBe('Revise and resubmit · 2 hours ago');
+  });
+
+  it('reads an approved record with when the narrative was submitted', () => {
+    const [row] = approvedRows(
+      section({ items: [item({ status: 'APPROVED', submittedAt: '2026-03-19T10:00:00Z' })] }),
+      NOW,
+    );
+    expect(row.meta).toBe('Approved · yesterday');
+  });
+
+  it('names the next action on a personnel record, three rows at most', () => {
+    const rows = myReportRows(
+      section({
+        total: 4,
+        items: [
+          item({ status: 'DRAFT', submittedAt: null }),
+          item({ id: 'r2', status: 'RETURNED' }),
+          item({ id: 'r3', status: 'APPROVED' }),
+          item({ id: 'r4', status: 'SUBMITTED' }),
+        ],
+      }),
+      NOW,
+    );
+
+    expect(rows).toHaveLength(3);
+    expect(rows.map((row) => row.meta.split(' · ')[0])).toEqual([
+      'Write narrative',
+      'Revise and resubmit',
+      'Download receipt',
+    ]);
+  });
+
+  it('reads a submitted narrative as a view', () => {
+    const [row] = myReportRows(section({ items: [item({ status: 'SUBMITTED' })] }), NOW);
+    expect(row.meta).toBe('View · 2 days ago');
   });
 });
 
-describe('recently decided', () => {
-  it('reads as the action the caller took, capped at three rows', () => {
-    const rows = recentlyDecidedRows(
+describe('adminActionsFor', () => {
+  it('omits a zero-count card', () => {
+    expect(adminActionsFor({ failedEmails: 0, auditEvents: [] })).toEqual([]);
+  });
+
+  it('keeps the failed-email card with its true count', () => {
+    expect(adminActionsFor({ failedEmails: 3, auditEvents: [] })).toEqual([
+      {
+        id: 'failed-emails',
+        title: 'Failed emails',
+        count: 3,
+        href: '/admin/emails',
+        linkLabel: 'Open email log',
+      },
+    ]);
+  });
+});
+
+describe('activity rows', () => {
+  it('labels a report event with its AR No. and what happened', () => {
+    const [row] = reportActivityRows(
       [
         {
-          id: 'e1',
+          id: 'event-1',
           reportId: 'report-1',
-          trackingNumber: 'OFF-2026-0014',
+          referenceNo: 'AR No. 0014',
           title: 'Coastal cleanup',
-          kind: 'APPROVED',
+          kind: 'SUBMITTED',
           occurredAt: '2026-03-20T08:00:00Z',
-        },
-        {
-          id: 'e2',
-          reportId: 'report-2',
-          trackingNumber: null,
-          title: 'Outreach program',
-          kind: 'RETURNED_BY_REVIEWER',
-          occurredAt: '2026-03-19T08:00:00Z',
-        },
-        {
-          id: 'e3',
-          reportId: 'report-3',
-          trackingNumber: 'INC-2026-0009',
-          title: 'Clean-up drive',
-          kind: 'ENDORSED',
-          occurredAt: '2026-03-18T08:00:00Z',
-        },
-        {
-          id: 'e4',
-          reportId: 'report-4',
-          trackingNumber: 'INC-2026-0010',
-          title: 'Forum',
-          kind: 'ENDORSED',
-          occurredAt: '2026-03-17T08:00:00Z',
         },
       ],
       NOW,
     );
 
-    expect(rows).toHaveLength(3);
-    expect(rows[0]).toMatchObject({ label: 'OFF-2026-0014', suffix: 'you approved' });
-    expect(rows[1]?.suffix).toBe('you returned as reviewer');
-    expect(rows[2]?.label).toBe('INC-2026-0009');
-  });
-});
-
-describe('row mapping', () => {
-  it('opens returned reports on the edit page', () => {
-    const [row] = returnedRows([item({ status: 'RETURNED_BY_REVIEWER' })], NOW);
-
-    expect(row).toMatchObject({
-      href: '/reports/report-1/edit',
-      trackingNumber: 'OFF-2026-0014',
-      meta: 'Returned by reviewer · 2 days ago',
-    });
+    expect(row.label).toBe('AR No. 0014 — Coastal cleanup');
+    expect(row.suffix).toBe('was submitted');
+    expect(row.href).toBe('/reports/report-1');
+    expect(row.relative).toBe('2 hours ago');
   });
 
-  it('marks an own report without changing its destination', () => {
-    const [own] = queueRows([item({ isOwn: true })], 'review', NOW);
-
-    expect(own?.isOwn).toBe(true);
-    expect(own?.href).toBe('/review/report-1');
-  });
-
-  it('opens queue rows on the matching detail route', () => {
-    expect(queueRows([item()], 'review', NOW)[0]?.href).toBe('/review/report-1');
-    expect(queueRows([item()], 'approval', NOW)[0]?.href).toBe('/approval/report-1');
-    expect(queueRows([item()], 'review', NOW)[0]?.meta).toBe('Submitted · 2 days');
-  });
-
-  it('uses the status next-step copy on waiting rows', () => {
-    const [row] = waitingRows([item({ status: 'ENDORSED' })], NOW);
-
-    expect(row?.href).toBe('/reports/report-1');
-    expect(row?.meta).toBe('With approving officer · Next: approve · 2 days');
-  });
-
-  it('phrases report activity from the API status and caps the list', () => {
-    const events = Array.from({ length: 7 }, (_, index) => ({
-      id: `event-${index}`,
-      reportId: 'report-1',
-      trackingNumber: 'OFF-2026-0014',
-      title: 'Coastal cleanup',
-      kind: 'SUBMITTED' as const,
-      occurredAt: '2026-03-20T08:00:00Z',
-    }));
-
-    const rows = reportActivityRows(events, NOW);
-    expect(rows).toHaveLength(5);
-    expect(rows[0]).toMatchObject({
-      prefix: 'Your report',
-      label: 'OFF-2026-0014',
-      suffix: 'was submitted',
-      href: '/reports/report-1',
-    });
-  });
-
-  it('links admin audit events to the audit log', () => {
-    const [row] = auditActivityRows(
-      [{ id: 'audit-1', summary: 'Role assigned to J. Dela Cruz', occurredAt: NOW.toISOString() }],
+  it('reads a decision as the action the reader took', () => {
+    const [row] = recentlyDecidedRows(
+      [
+        {
+          id: 'event-2',
+          reportId: 'report-9',
+          referenceNo: 'AR No. 0009',
+          title: 'Outreach program',
+          kind: 'RETURNED',
+          occurredAt: '2026-03-19T08:00:00Z',
+        },
+      ],
       NOW,
     );
 
-    expect(row).toMatchObject({
-      href: '/admin/audit',
-      label: 'Role assigned to J. Dela Cruz',
-    });
-  });
-});
-
-describe('adminActionsFor', () => {
-  it('omits the zero-count card', () => {
-    expect(
-      adminActionsFor({ failedEmails: 2, auditEvents: [] }).map((action) => action.id),
-    ).toEqual(['failed-emails']);
-
-    expect(adminActionsFor({ failedEmails: 0, auditEvents: [] })).toEqual([]);
-  });
-});
-
-describe('checklistFor', () => {
-  it('starts with three incomplete steps', () => {
-    const steps = checklistFor({ profileComplete: false, hasSubmitted: false, draftId: null });
-
-    expect(completedStepCount(steps)).toBe(0);
-    expect(steps.map((step) => step.title)).toEqual([
-      'Complete your profile',
-      'Create your first report',
-      'Submit it for review',
-    ]);
+    expect(row.label).toBe('AR No. 0009');
+    expect(row.suffix).toBe('you returned for revision');
   });
 
-  it('completes step 2 for a draft and links back to it', () => {
-    const steps = checklistFor({ profileComplete: true, hasSubmitted: false, draftId: 'draft-9' });
-
-    expect(completedStepCount(steps)).toBe(2);
-    expect(steps[1]?.complete).toBe(true);
-    expect(steps[1]?.href).toBe('/reports/draft-9/edit');
-    expect(steps[2]?.complete).toBe(false);
-  });
-
-  it('completes all three after a submission', () => {
-    const steps = checklistFor({ profileComplete: true, hasSubmitted: true, draftId: null });
-
-    expect(completedStepCount(steps)).toBe(3);
+  it('sends an audit event to the audit log', () => {
+    const [row] = auditActivityRows(
+      [{ id: 'audit-1', summary: 'Role assigned to Maria Santos', occurredAt: NOW.toISOString() }],
+      NOW,
+    );
+    expect(row.href).toBe('/admin/audit');
   });
 });

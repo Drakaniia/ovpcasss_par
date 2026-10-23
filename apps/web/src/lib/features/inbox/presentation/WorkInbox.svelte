@@ -1,46 +1,47 @@
 <script lang="ts">
   import type { InboxResponse, Role } from '@par/shared';
 
+  import { api } from '$lib/api/client';
+  import { toast } from '$lib/toast/toast.svelte';
+
   import {
     adminActionsFor,
+    approvedRows,
     auditActivityRows,
+    awaitingReviewRows,
     capabilitiesFor,
     inboxSectionsFor,
     inboxStatsFor,
-    queueRows,
+    myReportRows,
     recentlyDecidedRows,
     reportActivityRows,
     returnedRows,
-    type InboxSectionId,
+    withPicRows,
+    type InboxRow,
   } from '../application/inbox-view';
   import InboxActionCard from './InboxActionCard.svelte';
   import InboxActivitySection from './InboxActivitySection.svelte';
-  import InboxDraftsSection from './InboxDraftsSection.svelte';
   import InboxNothing from './InboxNothing.svelte';
-  import InboxOnboardingChecklist from './InboxOnboardingChecklist.svelte';
-  import InboxWaitingSection from './InboxWaitingSection.svelte';
 
   let {
     inbox,
     roles,
     now = new Date(),
+    onrefresh,
   }: {
     inbox: InboxResponse;
     roles: readonly Role[];
     now?: Date;
+    onrefresh?: () => void | Promise<void>;
   } = $props();
-
-  const ACTION_IDS = new Set<InboxSectionId>(['returned', 'review', 'approval', 'admin']);
 
   const caps = $derived(capabilitiesFor(roles));
   const sections = $derived(inboxSectionsFor(roles, inbox));
-  const actionSections = $derived(sections.filter((id) => ACTION_IDS.has(id)));
-  const adminActions = $derived(inbox.admin ? adminActionsFor(inbox.admin) : []);
-
   const stats = $derived(inboxStatsFor(roles, inbox));
+  const adminActions = $derived(inbox.admin ? adminActionsFor(inbox.admin) : []);
   const decided = $derived(recentlyDecidedRows(inbox.recentlyDecided ?? [], now));
+
   const unread = $derived(inbox.notificationsUnread ?? 0);
-  // One text node so the digest copy stays contiguous in the rendered HTML.
   const digest = $derived(
     `${unread} ${unread === 1 ? 'unread notification' : 'unread notifications'}`,
   );
@@ -51,10 +52,25 @@
     showingAudit ? auditActivityRows(adminAudit, now) : reportActivityRows(inbox.activity, now),
   );
 
-  // The counts are server totals; rows never exceed three even if a payload does.
-  const returned = $derived(returnedRows(inbox.returned.items.slice(0, 3), now));
-  const review = $derived(queueRows(inbox.review.items.slice(0, 3), 'review', now));
-  const approval = $derived(queueRows(inbox.approval.items.slice(0, 3), 'approval', now));
+  const awaitingReview = $derived(awaitingReviewRows(inbox.awaitingReview, now));
+  const withPic = $derived(withPicRows(inbox.withPic, now));
+  const returned = $derived(returnedRows(inbox.returned, now));
+  const approved = $derived(approvedRows(inbox.approved, now));
+  const myReports = $derived(myReportRows(inbox.myReports, now));
+
+  async function resend(row: InboxRow): Promise<void> {
+    try {
+      const result = await api.reports.resendInvitation(row.id);
+      toast.success(
+        `Assignment mailed to ${result.sentTo} ${result.sentTo === 1 ? 'person' : 'people'}.`,
+      );
+      await onrefresh?.();
+    } catch {
+      toast.error('The invitation was not sent. Try again.');
+    }
+  }
+
+  const hasNothing = $derived(sections.length === 0);
 </script>
 
 {#if unread > 0}
@@ -63,43 +79,27 @@
   </p>
 {/if}
 
-{#if sections.length === 0}
-  {#if caps.admin}
+{#if hasNothing}
+  {#if caps.personnel && inbox.myReports.total === 0}
+    <InboxNothing
+      title="No activities are assigned to you yet"
+      description="The OVPCASSS office adds the personnel in charge for each activity. Your records appear here once the office registers one."
+      href="/profile"
+      linkLabel="Complete your profile"
+    />
+  {:else if caps.admin}
     <InboxNothing
       title="Nothing needs your attention"
-      description="Role approvals and failed emails appear here when an administrator needs to act."
-      href="/admin/users"
-      linkLabel="Open users"
-    />
-  {:else if caps.submitter}
-    <InboxOnboardingChecklist onboarding={inbox.onboarding} />
-  {:else if caps.reviewer && caps.approver}
-    <InboxNothing
-      title="No reports are awaiting your decision"
-      description="Reports submitted for review or approval appear here."
-      href="/reports"
-      linkLabel="View all reports"
-    />
-  {:else if caps.reviewer}
-    <InboxNothing
-      title="No reports are awaiting your review"
-      description="Submitted reports appear here when a submitter sends them for review."
-      href="/reports"
-      linkLabel="View all reports"
-    />
-  {:else if caps.approver}
-    <InboxNothing
-      title="No reports are awaiting your approval"
-      description="Endorsed reports appear here for the approving officer."
-      href="/reports"
-      linkLabel="View all reports"
+      description="Submitted narratives and records still with their personnel in charge appear here when the office needs to act."
+      href="/reports/new"
+      linkLabel="Create a record"
     />
   {:else}
     <InboxNothing
       title="Nothing needs your attention"
-      description="Your reports and queues appear here."
+      description="Your assignments and their updates appear here."
       href="/reports"
-      linkLabel="View all reports"
+      linkLabel="View your records"
     />
   {/if}
 {:else}
@@ -115,72 +115,79 @@
       </section>
     {/if}
 
-    {#if actionSections.length > 0}
-      <section class="group" aria-labelledby="inbox-needs-action">
-        <h2 id="inbox-needs-action">Needs your action</h2>
+    <div class="cards">
+      {#if sections.includes('awaitingReview')}
+        <InboxActionCard
+          id="awaiting-review"
+          title="Awaiting your decision"
+          count={inbox.awaitingReview.total}
+          href="/reports?tab=submitted"
+          linkLabel="Open the register"
+          rows={awaitingReview}
+        />
+      {/if}
 
-        <div class="cards">
-          {#if actionSections.includes('returned')}
-            <InboxActionCard
-              id="returned"
-              title="Returned to you"
-              count={inbox.returned.total}
-              href="/reports?tab=returned"
-              linkLabel="Review changes"
-              rows={returned}
-            />
-          {/if}
+      {#if sections.includes('withPic')}
+        <InboxActionCard
+          id="with-pic"
+          title="With personnel in charge"
+          count={inbox.withPic.total}
+          href="/reports?tab=withPic"
+          linkLabel="Open the register"
+          rows={withPic}
+          onresend={(row) => void resend(row)}
+        />
+      {/if}
 
-          {#if actionSections.includes('review')}
-            <InboxActionCard
-              id="review"
-              title="Awaiting your review"
-              count={inbox.review.total}
-              href="/review"
-              linkLabel="Open queue"
-              rows={review}
-            />
-          {/if}
+      {#if sections.includes('returned')}
+        <InboxActionCard
+          id="returned"
+          title="Returned for revision"
+          count={inbox.returned.total}
+          href="/reports?tab=returned"
+          linkLabel="Open the register"
+          rows={returned}
+        />
+      {/if}
 
-          {#if actionSections.includes('approval')}
-            <InboxActionCard
-              id="approval"
-              title="Awaiting your approval"
-              count={inbox.approval.total}
-              href="/approval"
-              linkLabel="Open queue"
-              rows={approval}
-            />
-          {/if}
+      {#if sections.includes('approved')}
+        <InboxActionCard
+          id="approved"
+          title="Recently approved"
+          count={inbox.approved.total}
+          href="/reports?tab=approved"
+          linkLabel="Open the register"
+          rows={approved}
+        />
+      {/if}
 
-          {#if actionSections.includes('admin')}
-            {#each adminActions as action (action.id)}
-              <InboxActionCard
-                id={action.id}
-                title={action.title}
-                count={action.count}
-                href={action.href}
-                linkLabel={action.linkLabel}
-              />
-            {/each}
-          {/if}
-        </div>
-      </section>
-    {/if}
+      {#if sections.includes('myReports')}
+        <InboxActionCard
+          id="my-reports"
+          title="Your assignments"
+          count={inbox.myReports.total}
+          href="/reports"
+          linkLabel="Open my reports"
+          rows={myReports}
+        />
+      {/if}
+
+      {#each adminActions as action (action.id)}
+        <InboxActionCard
+          id={action.id}
+          title={action.title}
+          count={action.count}
+          href={action.href}
+          linkLabel={action.linkLabel}
+        />
+      {/each}
+    </div>
 
     {#if decided.length > 0}
       <InboxActivitySection title="Recently decided by you" rows={decided} />
     {/if}
 
-    {#if sections.includes('drafts')}
-      <InboxDraftsSection section={inbox.drafts} {now} />
-    {/if}
-
-    {#if sections.includes('waiting')}
-      <InboxWaitingSection section={inbox.waiting} {now} />
-    {/if}
-
-    {#if sections.includes('activity')}
+    {#if inbox.activity.length > 0 || (caps.admin && adminAudit.length > 0)}
       <InboxActivitySection
         title={showingAudit ? 'Recent audit activity' : 'Recent activity'}
         rows={activityRows}
@@ -195,21 +202,7 @@
   .inbox {
     display: flex;
     flex-direction: column;
-    gap: 32px;
-  }
-
-  .group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .group > h2 {
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    margin: 0;
-    text-transform: uppercase;
+    gap: 28px;
   }
 
   .cards {
@@ -226,7 +219,7 @@
   .stat-row {
     display: grid;
     gap: 8px;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 
   .stat {
@@ -267,43 +260,7 @@
     font-size: 12px;
   }
 
-  /* First paint only: the groups settle in order, never one element at a time. */
-  .inbox > * {
-    animation: inbox-enter var(--duration-base) var(--ease-standard) both;
-  }
-
-  .inbox > :nth-child(2) {
-    animation-delay: 30ms;
-  }
-
-  .inbox > :nth-child(3) {
-    animation-delay: 60ms;
-  }
-
-  .inbox > :nth-child(4) {
-    animation-delay: 90ms;
-  }
-
-  .inbox > :nth-child(n + 5) {
-    animation-delay: 120ms;
-  }
-
-  @keyframes inbox-enter {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .inbox > * {
-      animation: none;
-    }
-
     .stat {
       transition: none;
     }

@@ -29,7 +29,7 @@ function fakeStorage() {
   return storage;
 }
 
-function signIn(id: string, role: Role = 'SUBMITTER') {
+function signIn(id: string, role: Role = 'PERSONNEL') {
   session.user = {
     id,
     fullName: 'Maria Santos',

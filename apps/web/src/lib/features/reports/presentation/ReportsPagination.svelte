@@ -3,8 +3,6 @@
   import { REPORT_PAGE_SIZES } from '@par/shared';
   import { ChevronLeft, ChevronRight } from '@lucide/svelte';
 
-  import { pageCountFor, pageWindow, showingRange } from '../application/report-list';
-
   let {
     total,
     page,
@@ -19,146 +17,112 @@
     onpagesize: (size: ReportPageSize) => void;
   } = $props();
 
-  const count = $derived(pageCountFor(total, pageSize));
-  const range = $derived(showingRange(page, pageSize, total));
-  const pages = $derived(pageWindow(page, count));
+  const pages = $derived(Math.max(1, Math.ceil(total / pageSize)));
+  const from = $derived(total === 0 ? 0 : (page - 1) * pageSize + 1);
+  const to = $derived(Math.min(total, page * pageSize));
 </script>
 
-<nav class="pagination" aria-label="Reports pagination">
-  <p class="range">Showing {range.from}–{range.to} of {total}</p>
+<div class="pagination">
+  <p class="count-line">
+    {from}–{to} of {total}
+    {total === 1 ? 'record' : 'records'}
+  </p>
 
   <div class="controls">
     <label class="size">
-      <span>Rows per page</span>
+      <span>Rows</span>
       <select
-        class="select size-select"
-        value={pageSize}
+        class="select"
+        value={String(pageSize)}
         onchange={(event) => onpagesize(Number(event.currentTarget.value) as ReportPageSize)}
       >
         {#each REPORT_PAGE_SIZES as size (size)}
-          <option value={size}>{size}</option>
+          <option value={String(size)}>{size}</option>
         {/each}
       </select>
     </label>
 
-    <div class="pages">
-      <button
-        class="page-button"
-        type="button"
-        aria-label="Previous page"
-        disabled={page <= 1}
-        onclick={() => onpage(page - 1)}
-      >
-        <ChevronLeft size={16} aria-hidden="true" />
-      </button>
-
-      {#each pages as entry, index (index)}
-        {#if entry === null}
-          <span class="ellipsis" aria-hidden="true">…</span>
-        {:else}
-          <button
-            class="page-button"
-            class:is-current={entry === page}
-            type="button"
-            aria-label="Page {entry}"
-            aria-current={entry === page ? 'page' : undefined}
-            onclick={() => onpage(entry)}
-          >
-            {entry}
-          </button>
-        {/if}
-      {/each}
-
-      <button
-        class="page-button"
-        type="button"
-        aria-label="Next page"
-        disabled={page >= count}
-        onclick={() => onpage(page + 1)}
-      >
-        <ChevronRight size={16} aria-hidden="true" />
-      </button>
-    </div>
+    <button
+      class="icon-action"
+      type="button"
+      aria-label="Previous page"
+      disabled={page <= 1}
+      onclick={() => onpage(page - 1)}
+    >
+      <ChevronLeft size={16} aria-hidden="true" />
+    </button>
+    <span class="page-label">Page {page} of {pages}</span>
+    <button
+      class="icon-action"
+      type="button"
+      aria-label="Next page"
+      disabled={page >= pages}
+      onclick={() => onpage(page + 1)}
+    >
+      <ChevronRight size={16} aria-hidden="true" />
+    </button>
   </div>
-</nav>
+</div>
 
 <style>
   .pagination {
     align-items: center;
     display: flex;
-    flex-wrap: wrap;
     gap: 16px;
     justify-content: space-between;
     margin-top: 12px;
   }
 
-  .range {
+  .count-line {
     color: var(--text-secondary);
     font-size: 12px;
+    font-variant-numeric: tabular-nums;
     margin: 0;
   }
 
   .controls {
     align-items: center;
     display: flex;
-    gap: 16px;
+    gap: 8px;
   }
 
   .size {
     align-items: center;
     color: var(--text-secondary);
-    display: inline-flex;
-    font-size: 12px;
-    gap: 8px;
-  }
-
-  .size-select {
-    height: 28px;
-    min-height: 28px;
-    padding: 2px 6px;
-    width: 68px;
-  }
-
-  .pages {
-    align-items: center;
     display: flex;
-    gap: 4px;
+    font-size: 12px;
+    gap: 6px;
   }
 
-  .page-button {
+  .size .select {
+    font-size: 12px;
+    min-height: 28px;
+  }
+
+  .icon-action {
     align-items: center;
     background: var(--surface-card);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text-primary);
+    border-radius: var(--radius-card);
+    color: var(--text-secondary);
     display: inline-flex;
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
     height: 28px;
     justify-content: center;
-    min-width: 28px;
-    padding: 0 6px;
+    width: 28px;
   }
 
-  .page-button:hover:not(:disabled) {
+  .icon-action:hover:not(:disabled) {
     background: var(--surface-page);
+    color: var(--text-primary);
   }
 
-  .page-button:disabled {
+  .icon-action:disabled {
     color: var(--text-disabled);
-    cursor: not-allowed;
   }
 
-  .page-button.is-current {
-    background: var(--primary-subtle);
-    border-color: var(--primary);
-    color: var(--primary);
-    font-weight: 600;
-  }
-
-  .ellipsis {
+  .page-label {
     color: var(--text-secondary);
     font-size: 12px;
-    padding: 0 2px;
+    font-variant-numeric: tabular-nums;
   }
 </style>

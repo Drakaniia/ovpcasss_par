@@ -30,11 +30,10 @@
   const page = $derived(option && !('status' in option) ? option : null);
 
   const MATCH_LABELS: Record<NonNullable<PaletteReport['matched']>, string> = {
-    tracking: 'Matched the tracking number',
+    reference: 'Matched the AR No.',
     title: 'Matched the title',
     narrative: 'Found in the narrative',
     location: 'Matched the location',
-    submitter: 'Matched the submitter',
     pic: 'Matched a person in charge',
   };
 
@@ -57,9 +56,7 @@
 <aside class="palette-preview" aria-label="Preview">
   {#if report}
     <div class="head">
-      {#if report.trackingNumber}
-        <span class="tracking">{report.trackingNumber}</span>
-      {/if}
+      <span class="tracking">{report.referenceNo}</span>
       <StatusBadge status={report.status} />
     </div>
 
@@ -67,8 +64,8 @@
 
     <dl class="meta">
       <div>
-        <dt>Submitted by</dt>
-        <dd>{report.ownerName}</dd>
+        <dt>People in charge</dt>
+        <dd>{report.picNames || '—'}</dd>
       </div>
       <div>
         <dt>Unit</dt>

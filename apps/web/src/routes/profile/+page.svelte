@@ -87,8 +87,8 @@
       <PasswordCard hasPassword={user.hasPassword ?? true} />
       <EmailPreferences />
       <UpdateCard />
-      <!-- Every role keeps a signature: approvers sign with it, submitters
-           are offered it while authoring a report (signature spec W2). -->
+      <!-- Every account keeps a signature; the personnel in charge may
+           snapshot it onto a narrative before submitting. -->
       <div class="signature-slot">
         <SignatureUpload />
       </div>

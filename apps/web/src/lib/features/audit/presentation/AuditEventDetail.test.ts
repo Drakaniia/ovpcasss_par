@@ -7,13 +7,13 @@ import AuditEventDetail from './AuditEventDetail.svelte';
 const BASE_EVENT: AuditEventItem = {
   id: 'aud_123',
   actorName: 'M. Santos',
-  actorRole: 'REVIEWER',
-  action: 'ENDORSED',
+  actorRole: 'PERSONNEL',
+  action: 'NARRATIVE_APPROVED',
   entityType: 'report',
   entityId: 'rep_1',
-  entityLabel: 'OFF-2026-0014',
+  entityLabel: 'AR No. 0014',
   fromStatus: 'SUBMITTED',
-  toStatus: 'ENDORSED',
+  toStatus: 'APPROVED',
   comment: 'Recommended for approval',
   ip: '192.168.1.50',
   userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -24,7 +24,7 @@ const BASE_EVENT: AuditEventItem = {
 const BASE_DETAIL: AuditEventDetailType = {
   ...BASE_EVENT,
   before: { title: 'Old Title', status: 'SUBMITTED' },
-  after: { title: 'New Title', status: 'ENDORSED' },
+  after: { title: 'New Title', status: 'APPROVED' },
 };
 
 function renderDetail(
@@ -51,8 +51,10 @@ describe('AuditEventDetail', () => {
   it('renders summary, status change, diff table, context, and request info', () => {
     const { body } = renderDetail();
 
-    expect(body).toContain('M. Santos (Reviewer) endorsed OFF-2026-0014 on 17 Oct 2026 at 14:02.');
-    expect(body).toContain('Submitted → Endorsed');
+    expect(body).toContain(
+      'M. Santos (Personnel in charge) narrative approved AR No. 0014 on 17 Oct 2026 at 14:02.',
+    );
+    expect(body).toContain('Submitted → Approved');
     expect(body).toContain('title');
     expect(body).toContain('Old Title');
     expect(body).toContain('New Title');

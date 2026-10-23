@@ -1,14 +1,16 @@
 <script lang="ts">
-  import { Check, ChevronDown, Pencil, Plus, Search, Trash2 } from '@lucide/svelte';
+  import { Check, ChevronDown, Pencil, Plus, Search, X } from '@lucide/svelte';
   import { tick } from 'svelte';
 
   import {
     initialRowIndex,
+    rowActionFor,
     rowsFor,
     stepRowIndex,
     triggerLabel,
     type EditableSelectOption,
   } from './editable-select';
+  import EditableSelectRowActions from './EditableSelectRowActions.svelte';
 
   /**
    * A dropdown that behaves like a list, not a form control (UI spec §4.2).
@@ -63,6 +65,7 @@
   let search = $state<HTMLInputElement | null>(null);
   let popover = $state<HTMLElement | null>(null);
   let list = $state<HTMLElement | null>(null);
+  let renameInput = $state<HTMLInputElement | null>(null);
 
   let open = $state(false);
   let closing = $state(false);
@@ -80,7 +83,6 @@
   );
   const shown = $derived(triggerLabel(options, value, placeholder));
   const activeRow = $derived(rows[active] ?? null);
-  const activeOption = $derived(activeRow && activeRow.kind === 'option' ? activeRow : null);
 
   async function show(): Promise<void> {
     if (disabled || busy) return;
@@ -173,6 +175,7 @@
       renaming = null;
       query = '';
       active = 0;
+      focusList();
     } catch (error) {
       failure = message(error, 'The entry was not renamed. Try again.');
     } finally {
@@ -180,17 +183,18 @@
     }
   }
 
-  async function remove(): Promise<void> {
-    const target = activeOption;
-    if (!manage || !target || busy) return;
+  /** Removes the entry the control belongs to, never whichever row is lit now. */
+  async function removeEntry(target: { value: string }): Promise<void> {
+    if (!manage || busy) return;
 
     busy = true;
     failure = null;
     try {
       await manage.onRemove(target.value);
-      renaming = null;
+      if (renaming === target.value) renaming = null;
       query = '';
       active = 0;
+      focusList();
     } catch (error) {
       failure = message(error, 'The entry was not removed. Try again.');
     } finally {
@@ -199,13 +203,54 @@
   }
 
   function startRename(option: { value: string }): void {
+    if (!manage || busy) return;
+
+    const index = rows.findIndex((row) => row.kind === 'option' && row.value === option.value);
+    if (index >= 0) active = index;
     renaming = option.value;
     renameText = option.value;
     failure = null;
-    void tick().then(() => document.getElementById(`${id}-rename`)?.focus());
+    void tick().then(() => {
+      renameInput?.focus();
+      renameInput?.select();
+    });
+  }
+
+  /** Escape leaves the popover open and hands the list back its highlight. */
+  function cancelRename(): void {
+    renaming = null;
+    failure = null;
+    focusList();
+  }
+
+  function focusList(): void {
+    if (searchable) search?.focus();
+    else list?.focus();
+  }
+
+  /** A row's own controls own Enter, the arrow keys, and the caret while focused. */
+  function inRowControl(event: KeyboardEvent): boolean {
+    return Boolean((event.target as Element | null)?.closest?.('[data-row-control]'));
   }
 
   function walk(event: KeyboardEvent): void {
+    if (inRowControl(event)) {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      if (renaming) cancelRename();
+      else close(true);
+      return;
+    }
+
+    const highlight = rows[active] ?? null;
+    const action = manage ? rowActionFor(highlight, event) : null;
+    if (action && highlight?.kind === 'option') {
+      event.preventDefault();
+      if (action === 'rename') startRename(highlight);
+      else void removeEntry(highlight);
+      return;
+    }
+
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault();
@@ -232,7 +277,7 @@
       }
       case 'Escape':
         event.preventDefault();
-        if (renaming) renaming = null;
+        if (renaming) cancelRename();
         else close(true);
         break;
       case 'Tab':
@@ -324,6 +369,8 @@
           {/if}
 
           {#each rows as row, index (row.kind === 'option' ? row.value : row.kind)}
+            <!-- The listbox owns the keys; a row click is the pointer shortcut for the same choice. -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
             <li
               id={`${id}-row-${index}`}
               data-index={index}
@@ -333,12 +380,61 @@
               aria-selected={row.kind === 'option' ? row.selected : false}
               onmouseenter={() => (active = index)}
               onclick={() => void choose(row)}
-              onkeydown={() => {}}
             >
-              {#if row.kind === 'option'}
+              {#if row.kind === 'option' && renaming === row.value}
+                <form
+                  class="row-rename"
+                  data-row-control="true"
+                  onsubmit={(event) => {
+                    event.preventDefault();
+                    void commitRename();
+                  }}
+                >
+                  <input
+                    class="rename-input"
+                    bind:this={renameInput}
+                    bind:value={renameText}
+                    type="text"
+                    maxlength="120"
+                    autocomplete="off"
+                    aria-label="New name for {row.value}"
+                    disabled={busy}
+                    onclick={(event) => event.stopPropagation()}
+                  />
+                  <button
+                    class="row-action"
+                    type="submit"
+                    aria-label="Save name"
+                    disabled={busy || !renameText.trim()}
+                    onclick={(event) => event.stopPropagation()}
+                  >
+                    <Check size={14} aria-hidden="true" />
+                  </button>
+                  <button
+                    class="row-action"
+                    type="button"
+                    aria-label="Cancel rename"
+                    disabled={busy}
+                    onclick={(event) => {
+                      event.stopPropagation();
+                      cancelRename();
+                    }}
+                  >
+                    <X size={14} aria-hidden="true" />
+                  </button>
+                </form>
+              {:else if row.kind === 'option'}
                 <span class="option-label">{row.label}</span>
                 {#if row.selected}
                   <span class="check"><Check size={14} aria-hidden="true" /></span>
+                {/if}
+                {#if manage}
+                  <EditableSelectRowActions
+                    name={row.value}
+                    disabled={busy}
+                    onrename={() => startRename(row)}
+                    onremove={() => void removeEntry(row)}
+                  />
                 {/if}
               {:else}
                 <span class="create-icon">
@@ -360,55 +456,9 @@
       {/if}
 
       {#if manage}
-        {#if renaming}
-          <form
-            class="rename"
-            onsubmit={(event) => {
-              event.preventDefault();
-              void commitRename();
-            }}
-          >
-            <input
-              id={`${id}-rename`}
-              class="rename-input"
-              type="text"
-              maxlength="120"
-              aria-label="New name for {renaming}"
-              bind:value={renameText}
-              onkeydown={(event) => {
-                if (event.key !== 'Escape') return;
-                event.preventDefault();
-                event.stopPropagation();
-                renaming = null;
-              }}
-            />
-            <button class="mini" type="submit" disabled={busy || !renameText.trim()}>
-              Save name
-            </button>
-            <button class="mini" type="button" onclick={() => (renaming = null)}>Cancel</button>
-          </form>
-        {:else if activeOption}
-          <div class="footer">
-            <button
-              class="footer-action"
-              type="button"
-              disabled={busy}
-              onclick={() => startRename(activeOption)}
-            >
-              <Pencil size={13} aria-hidden="true" /> Rename
-            </button>
-            <button
-              class="footer-action is-danger"
-              type="button"
-              disabled={busy}
-              onclick={() => void remove()}
-            >
-              <Trash2 size={13} aria-hidden="true" /> Remove
-            </button>
-          </div>
-        {:else}
-          <p class="hint">Edits apply to the official list for everyone.</p>
-        {/if}
+        <p class="hint">
+          Edits apply to the official list for everyone. F2 rename · Shift+Delete remove.
+        </p>
       {/if}
     </div>
   {/if}
@@ -629,83 +679,79 @@
     padding: 8px 10px;
   }
 
-  .footer {
+  /* The controls stay in the DOM so a row never changes height; only the reveal
+     moves, and it moves without layout. */
+  .row :global(.row-actions) {
+    opacity: 0;
+    transform: translateX(2px);
+    transition:
+      opacity 120ms var(--ease-standard),
+      transform 120ms var(--ease-standard);
+  }
+
+  .row:hover :global(.row-actions),
+  .row.is-active :global(.row-actions),
+  .row:focus-within :global(.row-actions) {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .row :global(.row-actions) {
+      transform: none;
+      transition: opacity 120ms var(--ease-standard);
+    }
+  }
+
+  .row-rename {
     align-items: center;
-    border-top: 1px solid var(--border);
     display: flex;
     gap: 4px;
-    padding: 4px;
-  }
-
-  .footer-action {
-    align-items: center;
-    background: transparent;
-    border: 0;
-    border-radius: 6px;
-    color: var(--text-secondary);
-    display: inline-flex;
-    font-family: var(--font-ui);
-    font-size: 12px;
-    gap: 5px;
-    padding: 6px 8px;
-  }
-
-  .footer-action:hover:not(:disabled) {
-    background: var(--surface-page);
-    color: var(--text-primary);
-  }
-
-  .footer-action.is-danger {
-    color: var(--status-danger-fg);
-  }
-
-  .footer-action.is-danger:hover:not(:disabled) {
-    background: var(--status-danger-bg);
-    color: var(--status-danger-fg);
-  }
-
-  .rename {
-    align-items: center;
-    border-top: 1px solid var(--border);
-    display: flex;
-    gap: 6px;
-    padding: 6px;
+    width: 100%;
   }
 
   .rename-input {
     background: var(--surface-card);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 5px;
     color: var(--text-primary);
     flex: 1;
     font-family: var(--font-ui);
     font-size: 13px;
-    min-height: 30px;
+    height: 22px;
+    margin-block: -1px;
     min-width: 0;
-    padding: 4px 8px;
+    padding: 0 6px;
   }
 
-  .mini {
+  .rename-input:focus-visible {
+    border-color: var(--focus-ring);
+    outline: none;
+  }
+
+  .row-action {
+    align-items: center;
     background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text-primary);
+    border: 0;
+    border-radius: 5px;
+    color: var(--text-secondary);
+    display: inline-flex;
     flex: none;
-    font-family: var(--font-ui);
-    font-size: 12px;
-    height: 30px;
-    padding: 0 8px;
+    height: 26px;
+    justify-content: center;
+    margin-block: -3px;
+    width: 26px;
   }
 
-  .mini[type='submit'] {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: var(--on-primary);
+  .row-action:hover:not(:disabled),
+  .row-action:focus-visible {
+    background: var(--surface-page);
+    color: var(--text-primary);
   }
 
-  .mini:disabled {
+  .row-action:disabled {
     cursor: not-allowed;
-    opacity: 0.55;
+    opacity: 0.5;
   }
 
   .hint {

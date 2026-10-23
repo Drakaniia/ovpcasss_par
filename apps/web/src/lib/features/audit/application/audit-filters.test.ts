@@ -16,24 +16,24 @@ import {
 describe('audit-filters', () => {
   it('parses filters from URL search params', () => {
     const params = new URLSearchParams(
-      'actor=Santos&action=ENDORSED&entityType=report&entityId=OFF-2026-0014&from=2026-10-01&to=2026-10-31&fromStatus=SUBMITTED&toStatus=ENDORSED&page=3',
+      'actor=Santos&action=NARRATIVE_APPROVED&entityType=report&entityId=AR-2026-0014&from=2026-10-01&to=2026-10-31&fromStatus=SUBMITTED&toStatus=NARRATIVE_APPROVED&page=3',
     );
     const filters = filtersFromParams(params);
     expect(filters.actor).toBe('Santos');
-    expect(filters.action).toBe('ENDORSED');
+    expect(filters.action).toBe('NARRATIVE_APPROVED');
     expect(filters.entityType).toBe('report');
-    expect(filters.entityId).toBe('OFF-2026-0014');
+    expect(filters.entityId).toBe('AR-2026-0014');
     expect(filters.from).toBe('2026-10-01');
     expect(filters.to).toBe('2026-10-31');
     expect(filters.fromStatus).toBe('SUBMITTED');
-    expect(filters.toStatus).toBe('ENDORSED');
+    expect(filters.toStatus).toBe('NARRATIVE_APPROVED');
     expect(filters.page).toBe(3);
   });
 
   it('serializes filters to URL search params', () => {
     const filters: AuditFilters = {
       actor: 'Santos',
-      action: 'ENDORSED',
+      action: 'NARRATIVE_APPROVED',
       entityType: '',
       entityId: '',
       from: '2026-10-01',
@@ -43,7 +43,7 @@ describe('audit-filters', () => {
       page: 1,
     };
     const params = filtersToParams(filters);
-    expect(params).toBe('actor=Santos&action=ENDORSED&from=2026-10-01&to=2026-10-31');
+    expect(params).toBe('actor=Santos&action=NARRATIVE_APPROVED&from=2026-10-01&to=2026-10-31');
   });
 
   it('converts date filters to Asia/Manila boundaries for API query', () => {
@@ -98,13 +98,13 @@ describe('audit-filters', () => {
   it('generates active chips and handles removal', () => {
     const filters: AuditFilters = {
       actor: 'Santos',
-      action: 'ENDORSED',
+      action: 'NARRATIVE_APPROVED',
       entityType: 'report',
       entityId: 'OFF-1',
       from: '2026-10-01',
       to: '2026-10-05',
       fromStatus: 'SUBMITTED',
-      toStatus: 'ENDORSED',
+      toStatus: 'NARRATIVE_APPROVED',
       page: 2,
     };
     const chips = activeAuditChips(filters);

@@ -34,10 +34,10 @@
     </p>
   </div>
 
-  {#if showPrimary && roles.includes('SUBMITTER')}
-    <a class="btn btn-primary" data-tour="new-report" href="/reports/new">
+  {#if showPrimary && roles.includes('ADMIN')}
+    <a class="btn btn-primary" data-tour="new-record" href="/reports/new">
       <Plus size={16} aria-hidden="true" />
-      New report
+      New record
     </a>
   {/if}
 </header>

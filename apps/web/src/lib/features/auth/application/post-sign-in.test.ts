@@ -14,7 +14,7 @@ const account = (overrides: Partial<Account>): Account => ({
 
 describe('destinationAfterSignIn', () => {
   it('sends an active account to the work inbox', () => {
-    expect(destinationAfterSignIn(account({ role: 'SUBMITTER', status: 'ACTIVE' }))).toBe('/');
+    expect(destinationAfterSignIn(account({ role: 'PERSONNEL', status: 'ACTIVE' }))).toBe('/');
   });
 
   it('sends an unverified account to the verify screen with the address', () => {

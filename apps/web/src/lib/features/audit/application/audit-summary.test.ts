@@ -17,20 +17,20 @@ describe('audit-summary', () => {
   });
 
   it('formats action labels to human title', () => {
-    expect(formatAuditActionLabel('ENDORSED')).toBe('Endorsed');
+    expect(formatAuditActionLabel('NARRATIVE_APPROVED')).toBe('Narrative approved');
     expect(formatAuditActionLabel('ROLE_ASSIGNED')).toBe('Role assigned');
     expect(formatAuditActionLabel('LOGIN_FAILED')).toBe('Login failed');
   });
 
   it('formats actor with role label', () => {
-    expect(formatAuditActorLabel('M. Santos', 'REVIEWER')).toBe('M. Santos (Reviewer)');
+    expect(formatAuditActorLabel('M. Santos', 'PERSONNEL')).toBe('M. Santos (Personnel in charge)');
     expect(formatAuditActorLabel(null, 'ADMIN')).toBe('Administrator');
     expect(formatAuditActorLabel(null, null)).toBe('System');
   });
 
   it('formats status transition with text arrow', () => {
     expect(formatAuditStatusTransition('DRAFT', 'SUBMITTED')).toBe('Draft → Submitted');
-    expect(formatAuditStatusTransition('SUBMITTED', 'ENDORSED')).toBe('Submitted → Endorsed');
+    expect(formatAuditStatusTransition('SUBMITTED', 'APPROVED')).toBe('Submitted → Approved');
     expect(formatAuditStatusTransition(null, null)).toBeNull();
   });
 
@@ -38,13 +38,15 @@ describe('audit-summary', () => {
     const summary = formatAuditSummary({
       id: 'aud_1',
       actorName: 'M. Santos',
-      actorRole: 'REVIEWER',
-      action: 'ENDORSED',
+      actorRole: 'PERSONNEL',
+      action: 'NARRATIVE_APPROVED',
       entityType: 'report',
       entityId: 'rep_1',
-      entityLabel: 'OFF-2026-0014',
+      entityLabel: 'AR No. 0014',
       createdAt: '2026-10-17T06:02:00.000Z',
     });
-    expect(summary).toBe('M. Santos (Reviewer) endorsed OFF-2026-0014 on 17 Oct 2026 at 14:02.');
+    expect(summary).toBe(
+      'M. Santos (Personnel in charge) narrative approved AR No. 0014 on 17 Oct 2026 at 14:02.',
+    );
   });
 });

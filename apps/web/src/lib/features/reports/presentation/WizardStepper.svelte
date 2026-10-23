@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Check } from '@lucide/svelte';
 
-  import { STEP_META, WIZARD_STEPS, type WizardStep } from '../application/wizard-form';
+  import { STEP_META, WIZARD_STEPS, type WizardStep } from '../application/record-form';
 
   let { step, onstep }: { step: WizardStep; onstep: (step: WizardStep) => void } = $props();
 </script>
@@ -14,7 +14,7 @@
       class:is-complete={item < step}
       type="button"
       aria-current={item === step ? 'step' : undefined}
-      aria-label="Step {item} of 4 — {STEP_META[item].title}"
+      aria-label="Step {item} of 3 — {STEP_META[item].title}"
       onclick={() => onstep(item)}
     >
       <span class="dot" aria-hidden="true">
@@ -25,7 +25,7 @@
         {/if}
       </span>
     </button>
-    {#if item !== 4}
+    {#if item !== 3}
       <span class="line" class:is-complete={item < step} aria-hidden="true"></span>
     {/if}
   {/each}

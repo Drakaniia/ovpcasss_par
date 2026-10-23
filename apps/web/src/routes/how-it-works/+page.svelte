@@ -1,5 +1,5 @@
 <script lang="ts">
-  import HowItWorksPage from '$lib/features/onboarding/presentation/HowItWorksPage.svelte';
+  import HowReportsWorkPage from '$lib/features/onboarding/presentation/HowReportsWorkPage.svelte';
 </script>
 
-<HowItWorksPage />
+<HowReportsWorkPage />

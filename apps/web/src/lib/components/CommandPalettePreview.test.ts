@@ -8,11 +8,11 @@ import CommandPalettePreview from './CommandPalettePreview.svelte';
 const REPORT: PaletteReport = {
   id: 'r1',
   href: '/reports/r1',
-  trackingNumber: 'OFF-2026-0014',
+  referenceNo: 'AR No. 0014',
   title: 'Coastal cleanup',
   status: 'SUBMITTED',
   type: 'OFF_CAMPUS',
-  ownerName: 'M. Santos',
+  picNames: 'M. Santos',
   unitName: 'College of Arts and Sciences',
   activityStartDate: '2026-03-12',
   activityEndDate: '2026-03-13',
@@ -43,7 +43,7 @@ describe('CommandPalettePreview', () => {
   it('describes the selected report before it is opened', () => {
     const body = renderPreview({ option: REPORT });
 
-    expect(body).toContain('OFF-2026-0014');
+    expect(body).toContain('AR No. 0014');
     expect(body).toContain('Coastal cleanup');
     expect(body).toContain('Submitted');
     expect(body).toContain('M. Santos');
