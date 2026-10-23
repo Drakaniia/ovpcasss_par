@@ -108,7 +108,7 @@ export function createInboxQueries(db: Database) {
 
     /** Records created but not yet submitted by their PICs. */
     withPic(limit = 3) {
-      return section(eq(reports.status, 'DRAFT'), desc(reports.updatedAt), limit);
+      return section(eq(reports.status, 'PENDING'), desc(reports.updatedAt), limit);
     },
 
     /** Returned to the reader's own records. */
@@ -126,32 +126,6 @@ export function createInboxQueries(db: Database) {
         desc(reports.approvedAt),
         limit,
       );
-    },
-
-    /** Every record assigned to the reader, newest first. */
-    myReports(userId: string, limit = 3) {
-      return section(memberOf(userId), desc(reports.updatedAt), limit);
-    },
-
-    async hasSubmitted(userId: string): Promise<boolean> {
-      const rows = await db
-        .select({ id: reports.id })
-        .from(reports)
-        .where(and(eq(reports.submittedByUserId, userId), sql`${reports.submittedAt} is not null`))
-        .limit(1);
-
-      return rows.length > 0;
-    },
-
-    async firstDraftId(userId: string): Promise<string | null> {
-      const rows = await db
-        .select({ id: reports.id })
-        .from(reports)
-        .where(and(eq(reports.status, 'DRAFT'), memberOf(userId)))
-        .orderBy(desc(reports.updatedAt))
-        .limit(1);
-
-      return rows[0]?.id ?? null;
     },
 
     /** Events on the reader's records (or the whole office for an admin). */

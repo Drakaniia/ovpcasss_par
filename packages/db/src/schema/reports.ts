@@ -74,6 +74,9 @@ export const reports = sqliteTable(
     submittedAt: text('submitted_at'),
     approvedAt: text('approved_at'),
     approvedByUserId: text('approved_by_user_id'),
+    /** Filing flag (spec §7): an approved record leaves the working register. */
+    archivedAt: text('archived_at'),
+    archivedByUserId: text('archived_by_user_id'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },
@@ -83,6 +86,7 @@ export const reports = sqliteTable(
     index('reports_created_by_idx').on(table.createdByUserId),
     index('reports_activity_idx').on(table.activityStartDate),
     index('reports_submitted_idx').on(table.submittedAt),
+    index('reports_archived_idx').on(table.archivedAt),
   ],
 );
 

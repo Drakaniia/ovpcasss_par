@@ -2,9 +2,24 @@ import type {
   ReportFilterOption,
   ReportListFacets,
   ReportSortField,
+  ReportStatus,
   SortDirection,
 } from '@par/shared';
-import { and, asc, desc, eq, gte, inArray, like, lte, or, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  like,
+  lte,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 
 import type { Database } from '../client';
 import { users } from '../schema/identity';
@@ -32,12 +47,17 @@ export interface ReportWithNames extends ReportRow {
 
 export interface ReportListFilter {
   viewer: { userId: string; isAdmin: boolean };
-  tab: 'all' | 'withPic' | 'submitted' | 'returned' | 'approved';
+  tab: 'all' | 'pending' | 'submitted' | 'returned' | 'approved';
+  archived?: 'active' | 'archived' | 'all' | undefined;
   type?: string | undefined;
   campus?: string | undefined;
   from?: string | undefined;
   to?: string | undefined;
   q?: string | undefined;
+  /** Matches a personnel in charge by name only. */
+  picName?: string | undefined;
+  /** Matches the name of the account that submitted the narrative. */
+  submittedBy?: string | undefined;
   sort: ReportSortField;
   dir: SortDirection;
   page: number;
@@ -66,11 +86,21 @@ export interface CommentWithAuthor extends ReportCommentRow {
 
 const TAB_STATUSES: Record<ReportListFilter['tab'], SQL | undefined> = {
   all: undefined,
-  withPic: eq(reports.status, 'DRAFT'),
+  pending: eq(reports.status, 'PENDING'),
   submitted: eq(reports.status, 'SUBMITTED'),
   returned: eq(reports.status, 'RETURNED'),
   approved: eq(reports.status, 'APPROVED'),
 };
+
+/**
+ * One deploy window reads a stored `DRAFT` as `PENDING`, so a request landing
+ * between the data script and the Worker deploy still answers. The stored value
+ * is rewritten by `scripts/rename-draft-status.sql` (spec §15.2).
+ */
+function normalizeStatus<T extends { status: ReportStatus }>(row: T): T {
+  if ((row.status as string) !== 'DRAFT') return row;
+  return { ...row, status: 'PENDING' as ReportStatus };
+}
 
 /** SQLite takes at most 999 bound values; ids are batched well below that. */
 const ID_BATCH = 80;
@@ -84,16 +114,11 @@ function chunks<T>(values: readonly T[], size: number): T[][] {
 }
 
 export function createReportReadQueries(db: Database) {
-  function picIdsFor(userId: string) {
-    return db
-      .select({ id: reportPics.reportId })
-      .from(reportPics)
-      .where(eq(reportPics.userId, userId));
-  }
-
-  function scope(viewer: ReportListFilter['viewer']): SQL | undefined {
-    return viewer.isAdmin ? undefined : inArray(reports.id, picIdsFor(viewer.userId));
-  }
+  /**
+   * The register is no longer scoped to PIC membership (spec §5): a PIC browses
+   * every activity and claims one by writing its narrative, so every signed-in
+   * reader sees the same list, search and location suggestions.
+   */
 
   async function campusOptions(): Promise<ReportFilterOption[]> {
     const rows = await db.select().from(refCampuses).orderBy(asc(refCampuses.sortOrder));
@@ -128,7 +153,7 @@ export function createReportReadQueries(db: Database) {
   return {
     async findById(id: string): Promise<ReportRow | null> {
       const rows = await db.select().from(reports).where(eq(reports.id, id)).limit(1);
-      return rows[0] ?? null;
+      return rows[0] ? normalizeStatus(rows[0]) : null;
     },
 
     async findWithNames(id: string): Promise<ReportWithNames | null> {
@@ -149,7 +174,7 @@ export function createReportReadQueries(db: Database) {
       const row = rows[0];
       if (!row) return null;
       return {
-        ...row.report,
+        ...normalizeStatus(row.report),
         campusName: row.campusName ?? '',
         unitName: row.unitName ?? '',
         createdByName: row.createdByName ?? '',
@@ -178,15 +203,62 @@ export function createReportReadQueries(db: Database) {
         .orderBy(asc(reportPics.sortOrder));
     },
 
+    /** The account that submitted each record, for the register's column. */
+    async submitterNames(ids: readonly string[]): Promise<Map<string, string>> {
+      const names = new Map<string, string>();
+      if (ids.length === 0) return names;
+
+      for (const batch of chunks(ids, ID_BATCH)) {
+        const rows = await db
+          .select({ reportId: reports.id, fullName: users.fullName })
+          .from(reports)
+          .leftJoin(users, eq(reports.submittedByUserId, users.id))
+          .where(inArray(reports.id, batch));
+
+        for (const row of rows) {
+          if (row.fullName) names.set(row.reportId, row.fullName);
+        }
+      }
+
+      return names;
+    },
+
     async list(filter: ReportListFilter): Promise<ReportListPage> {
       const conditions: (SQL | undefined)[] = [
-        scope(filter.viewer),
+        filter.archived === 'archived'
+          ? isNotNull(reports.archivedAt)
+          : filter.archived === 'all'
+            ? undefined
+            : isNull(reports.archivedAt),
         TAB_STATUSES[filter.tab],
         filter.type ? eq(reports.type, filter.type as ReportRow['type']) : undefined,
         filter.campus ? eq(reports.campusId, filter.campus) : undefined,
         filter.from ? gte(reports.activityStartDate, filter.from) : undefined,
         filter.to ? lte(reports.activityStartDate, filter.to) : undefined,
       ];
+
+      if (filter.picName) {
+        const term = likePattern(filter.picName);
+        conditions.push(
+          inArray(
+            reports.id,
+            db
+              .select({ id: reportPics.reportId })
+              .from(reportPics)
+              .where(like(reportPics.name, term)),
+          ),
+        );
+      }
+
+      if (filter.submittedBy) {
+        const term = likePattern(filter.submittedBy);
+        conditions.push(
+          inArray(
+            reports.submittedByUserId,
+            db.select({ id: users.id }).from(users).where(like(users.fullName, term)),
+          ),
+        );
+      }
 
       if (filter.q) {
         const term = likePattern(filter.q);
@@ -239,11 +311,11 @@ export function createReportReadQueries(db: Database) {
           .then((result) => Number(result[0]?.value ?? 0)),
       ]);
 
-      return { rows, total };
+      return { rows: rows.map(normalizeStatus), total };
     },
 
     async search(options: ReportSearchOptions): Promise<ReportSearchRow[]> {
-      const conditions: (SQL | undefined)[] = [scope(options.viewer)];
+      const conditions: (SQL | undefined)[] = [];
 
       if (options.q) {
         const term = likePattern(options.q);
@@ -275,7 +347,7 @@ export function createReportReadQueries(db: Database) {
       const pics = await picsByReport(rows.map((row) => row.report.id));
 
       return rows.map((row) => ({
-        ...row.report,
+        ...normalizeStatus(row.report),
         unitName: row.unitName ?? null,
         picNames: (pics.get(row.report.id) ?? []).map((pic) => pic.name).join(', '),
       }));
@@ -286,14 +358,13 @@ export function createReportReadQueries(db: Database) {
      * deduplicated (bug phase 04 §3.1). Free text stays the stored value.
      */
     async locations(
-      viewer: ReportListFilter['viewer'],
+      _viewer: ReportListFilter['viewer'],
       query: string,
       limit: number,
     ): Promise<{ location: string; lastUsedAt: string }[]> {
       const rows = await db
         .select({ location: reports.location, updatedAt: reports.updatedAt })
         .from(reports)
-        .where(scope(viewer))
         .orderBy(desc(reports.updatedAt))
         .limit(500);
 
