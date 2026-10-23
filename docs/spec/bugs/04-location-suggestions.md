@@ -121,11 +121,11 @@ hand on a laptop in the field is the slowest field in the wizard.
       the list.
 - [ ] With the API unreachable, the field degrades to a plain text input with no
       error state and the report can still be submitted.
-- [ ] With `LOCATION_SUGGEST_URL` unset, no external request is made and no error
+- [x] With `LOCATION_SUGGEST_URL` unset, no external request is made and no error
       is shown; the route answers an empty list.
-- [ ] With it set, typing four or more characters returns addresses labelled with
+- [x] With it set, typing four or more characters returns addresses labelled with
       their place name, and picking one fills only the readable address.
-- [ ] No network request leaves the app for a third-party host in the browser or
+- [x] No network request leaves the app for a third-party host in the browser or
       the desktop webview; the CSP file is unchanged.
 - [ ] The field keeps its max length, its required state, its hint, and its
       placement in step 2.
@@ -138,8 +138,10 @@ hand on a laptop in the field is the slowest field in the wizard.
 - Correcting locations on existing reports.
 - Search by location across the repository (it already searches the text).
 
-## 7. Open question
+## 7. Provider (answered 2026-10-23)
 
-Which provider, if any, does the office authorize for 3.2? Until answered, ship
-3.1 alone: it removes the retyping, needs no account, keeps working offline, and
-does not depend on a vendor decision.
+Photon, through OpenStreetMap data, is the configured provider: it needs no
+account or key, and the office can swap or disable it by editing one Worker
+variable (`LOCATION_SUGGEST_URL`, see `docs/runbooks/deploy.md`). Only the text
+typed into the field is sent to it. 3.1 stays the primary source; the address
+half is additive and disappears the moment the variable is unset.

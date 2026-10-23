@@ -146,7 +146,13 @@ Each tab states what will appear there and names the next action:
       status sort correctly; status uses workflow order.
 - [ ] Columns match the table; drafts show `—` for tracking number; dates are
       monospace; updated shows relative time with an exact `title`.
-- [ ] Row click opens the facsimile, except drafts which open the edit page.
+- [ ] Row click opens the facsimile, except drafts which open the edit page. In the
+      PIC register the whole row is the record link (the title link stretches over
+      the row); an approved row with a receipt also offers a **Receipt** action that
+      opens the OVPCASSS-F-013 preview without leaving the row.
+- [ ] The PIC workspace lists every registered activity, not only the ones naming
+      the account (claims the record on submission), and shows an Acknowledgment
+      receipts section listing every receipt issued to the account.
 - [ ] Row menu offers Open/Edit/Delete only where allowed; Delete confirms by
       naming the draft; ⋯ does not trigger row navigation.
 - [ ] Read-only roles see no Edit/Delete actions at all.
