@@ -1,14 +1,16 @@
 <script lang="ts">
   import type { ReportReceipt } from '@par/shared';
-  import { Download } from '@lucide/svelte';
+  import { Download, Eye } from '@lucide/svelte';
 
-  import { apiDownload, saveBlob } from '$lib/api/http';
   import { formatLongDate } from '$lib/format/datetime';
   import { toast } from '$lib/toast/toast.svelte';
 
+  import { downloadReceipt } from '../application/receipt-file';
+  import ReceiptPreview from './ReceiptPreview.svelte';
+
   /**
    * OVPCASSS-F-013 receipts, one per person in charge (spec §10). Issued at
-   * approval, mailed as a PDF, and kept downloadable forever after.
+   * approval, mailed as a PDF, previewable in place, and downloadable forever.
    */
   let {
     reportId,
@@ -19,17 +21,14 @@
   } = $props();
 
   let downloading = $state<string | null>(null);
+  let previewing = $state<ReportReceipt | null>(null);
 
   async function download(receipt: ReportReceipt): Promise<void> {
     if (downloading) return;
     downloading = receipt.id;
 
     try {
-      const blob = await apiDownload(`/reports/${reportId}/receipts/${receipt.id}/file`);
-      saveBlob(
-        blob,
-        `OVPCASSS-F-013-${receipt.recipientName.replaceAll(/[^0-9A-Za-z]+/g, '-')}.pdf`,
-      );
+      await downloadReceipt(reportId, receipt);
     } catch {
       toast.error('The receipt could not be downloaded. Try again.');
     } finally {
@@ -56,18 +55,32 @@
             {/if}
           </p>
         </div>
-        <button
-          class="btn btn-outline btn-sm"
-          type="button"
-          disabled={downloading !== null}
-          onclick={() => void download(receipt)}
-        >
-          <Download size={14} aria-hidden="true" />
-          {downloading === receipt.id ? 'Downloading…' : 'Download PDF'}
-        </button>
+        <div class="receipt-actions">
+          <button
+            class="btn btn-outline btn-sm"
+            type="button"
+            onclick={() => (previewing = receipt)}
+          >
+            <Eye size={14} aria-hidden="true" />
+            Preview
+          </button>
+          <button
+            class="btn btn-outline btn-sm"
+            type="button"
+            disabled={downloading !== null}
+            onclick={() => void download(receipt)}
+          >
+            <Download size={14} aria-hidden="true" />
+            {downloading === receipt.id ? 'Downloading…' : 'Download PDF'}
+          </button>
+        </div>
       </li>
     {/each}
   </ul>
+
+  {#if previewing}
+    <ReceiptPreview {reportId} receipt={previewing} onclose={() => (previewing = null)} />
+  {/if}
 </section>
 
 <style>
@@ -118,6 +131,12 @@
     color: var(--text-secondary);
     font-size: 12px;
     margin: 2px 0 0;
+  }
+
+  .receipt-actions {
+    display: flex;
+    flex: none;
+    gap: 8px;
   }
 
   .btn {
