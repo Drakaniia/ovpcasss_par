@@ -29,8 +29,6 @@ describe('palettePages', () => {
   it('lists the role destinations in nav order, then Profile and Notifications', () => {
     expect(palettePages('PERSONNEL').map((page) => page.label)).toEqual([
       'Home',
-      'Reports',
-      'Repository',
       'Profile',
       'Notifications',
     ]);
@@ -124,11 +122,11 @@ describe('paletteReports', () => {
     expect(paletteReports([item()])[0]).not.toHaveProperty('snippet');
   });
 
-  it('opens a draft on the edit page and keeps its assigned AR No.', () => {
-    const [draft] = paletteReports([item({ status: 'DRAFT' })]);
+  it('opens a pending record on the edit page and keeps its AR No.', () => {
+    const [pending] = paletteReports([item({ status: 'PENDING' })]);
 
-    expect(draft.href).toBe('/reports/r1/edit');
-    expect(draft.referenceNo).toBe('AR No. 0001');
+    expect(pending.href).toBe('/reports/r1/edit');
+    expect(pending.referenceNo).toBe('AR No. 0001');
   });
 
   it('searches reports only from two characters', () => {

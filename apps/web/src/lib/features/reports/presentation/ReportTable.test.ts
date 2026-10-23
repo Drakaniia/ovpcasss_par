@@ -12,7 +12,7 @@ const item = {
   referenceNo: 'AR No. 0001',
   title: 'Coastal cleanup',
   type: 'OFF_CAMPUS' as const,
-  status: 'DRAFT' as const,
+  status: 'PENDING' as const,
   activityStartDate: '2026-10-21',
   activityEndDate: '2026-10-23',
   location: 'Brgy. Poblacion',
@@ -38,6 +38,8 @@ function renderTable(role: 'ADMIN' | 'PERSONNEL', itemOverrides: Partial<ReportL
       onedit: noop,
       ondelete: noop,
       onresend: noop,
+      onarchive: noop,
+      onunarchive: noop,
     },
   }).body;
 }
@@ -60,6 +62,18 @@ describe('ReportTable', () => {
     expect(html).toContain('aria-label="Resend invitation for AR No. 0001"');
     expect(html).toContain('aria-label="Delete AR No. 0001"');
     expect(html).not.toContain('Write narrative');
+  });
+
+  it('offers archiving only on an approved record', () => {
+    const html = renderTable('ADMIN', { status: 'APPROVED', archivedAt: null });
+    expect(html).toContain('aria-label="Archive AR No. 0001"');
+
+    const archived = renderTable('ADMIN', {
+      status: 'APPROVED',
+      archivedAt: '2026-10-22T04:00:00Z',
+    });
+    expect(archived).toContain('Archived');
+    expect(archived).toContain('aria-label="Unarchive AR No. 0001"');
   });
 
   it('offers a personnel row its one next action', () => {

@@ -1,4 +1,5 @@
 import type {
+  ReportArchiveFilter,
   ReportFilterOption,
   ReportListFacets,
   ReportListQuery,
@@ -9,6 +10,7 @@ import type {
   SortDirection,
 } from '@par/shared';
 import {
+  REPORT_ARCHIVE_FILTERS,
   REPORT_LIST_TABS,
   REPORT_PAGE_SIZES,
   REPORT_SORT_FIELDS,
@@ -26,12 +28,17 @@ import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
 
 export type ReportFilters = {
   tab: ReportListTab;
+  /** A filing scope, not a filter chip: archived rows are hidden by default. */
+  archived: ReportArchiveFilter;
   type: ReportType | '';
   campusId: string;
   termId: string;
   from: string;
   to: string;
   q: string;
+  /** Free-text name matches (spec §8.1); never an account picker. */
+  picName: string;
+  submittedBy: string;
   sort: ReportSortField;
   dir: SortDirection;
   page: number;
@@ -45,12 +52,15 @@ export function defaultDirectionFor(sort: ReportSortField): SortDirection {
 
 export const DEFAULT_REPORT_FILTERS: ReportFilters = {
   tab: 'all',
+  archived: 'active',
   type: '',
   campusId: '',
   termId: '',
   from: '',
   to: '',
   q: '',
+  picName: '',
+  submittedBy: '',
   sort: 'updated',
   dir: 'desc',
   page: 1,
@@ -61,6 +71,7 @@ const TAB_SET = new Set<string>(REPORT_LIST_TABS);
 const SORT_SET = new Set<string>(REPORT_SORT_FIELDS);
 const TYPE_SET = new Set<string>(REPORT_TYPES);
 const DIRECTION_SET = new Set<string>(SORT_DIRECTIONS);
+const ARCHIVE_SET = new Set<string>(REPORT_ARCHIVE_FILTERS);
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -97,12 +108,17 @@ export function filtersFromParams(params: URLSearchParams): ReportFilters {
 
   return {
     tab: isTab(params.get('tab')) ? (params.get('tab') as ReportListTab) : 'all',
+    archived: ARCHIVE_SET.has(params.get('archived') ?? '')
+      ? (params.get('archived') as ReportArchiveFilter)
+      : 'active',
     type: isType(params.get('type')) ? (params.get('type') as ReportType) : '',
     campusId: params.get('campus') ?? '',
     termId: params.get('term') ?? '',
     from: isoDate(params.get('from')),
     to: isoDate(params.get('to')),
     q: params.get('q')?.trim().slice(0, 120) ?? '',
+    picName: params.get('picName')?.trim().slice(0, 120) ?? '',
+    submittedBy: params.get('submittedBy')?.trim().slice(0, 120) ?? '',
     sort: sort as ReportSortField,
     dir: isDirection(dirParam) ? dirParam : defaultDirectionFor(sort as ReportSortField),
     page: positiveInt(params.get('page'), 1),
@@ -117,12 +133,15 @@ export function filtersToParams(filters: ReportFilters): string {
   const params = new URLSearchParams();
 
   if (filters.tab !== 'all') params.set('tab', filters.tab);
+  if (filters.archived !== 'active') params.set('archived', filters.archived);
   if (filters.type) params.set('type', filters.type);
   if (filters.campusId) params.set('campus', filters.campusId);
   if (filters.termId) params.set('term', filters.termId);
   if (filters.from) params.set('from', filters.from);
   if (filters.to) params.set('to', filters.to);
   if (filters.q) params.set('q', filters.q);
+  if (filters.picName) params.set('picName', filters.picName);
+  if (filters.submittedBy) params.set('submittedBy', filters.submittedBy);
   if (filters.sort !== 'updated') params.set('sort', filters.sort);
   if (filters.dir !== defaultDirectionFor(filters.sort)) params.set('dir', filters.dir);
   if (filters.page > 1) params.set('page', String(filters.page));
@@ -136,12 +155,15 @@ export function filtersToParams(filters: ReportFilters): string {
 export function filtersToQuery(filters: ReportFilters): ReportListQuery {
   return {
     tab: filters.tab,
+    archived: filters.archived,
     type: filters.type || undefined,
     campus: filters.campusId || undefined,
     term: filters.termId || undefined,
     from: filters.from || undefined,
     to: filters.to || undefined,
     q: filters.q || undefined,
+    picName: filters.picName || undefined,
+    submittedBy: filters.submittedBy || undefined,
     sort: filters.sort,
     dir: filters.dir,
     page: filters.page,
@@ -152,12 +174,15 @@ export function filtersToQuery(filters: ReportFilters): ReportListQuery {
 export function filtersEqual(a: ReportFilters, b: ReportFilters): boolean {
   return (
     a.tab === b.tab &&
+    a.archived === b.archived &&
     a.type === b.type &&
     a.campusId === b.campusId &&
     a.termId === b.termId &&
     a.from === b.from &&
     a.to === b.to &&
     a.q === b.q &&
+    a.picName === b.picName &&
+    a.submittedBy === b.submittedBy &&
     a.sort === b.sort &&
     a.dir === b.dir &&
     a.page === b.page &&
@@ -172,7 +197,19 @@ export function updateFilters(
 ): ReportFilters {
   const next = { ...current, ...patch };
   const rescopes = (
-    ['tab', 'type', 'campusId', 'termId', 'from', 'to', 'q', 'pageSize'] as const
+    [
+      'tab',
+      'archived',
+      'type',
+      'campusId',
+      'termId',
+      'from',
+      'to',
+      'q',
+      'picName',
+      'submittedBy',
+      'pageSize',
+    ] as const
   ).some((key) => key in patch);
 
   if (rescopes && patch.page === undefined) next.page = 1;
@@ -186,22 +223,26 @@ export function hasActiveFilters(filters: ReportFilters): boolean {
     filters.termId !== '' ||
     filters.from !== '' ||
     filters.to !== '' ||
-    filters.q !== ''
+    filters.q !== '' ||
+    filters.picName !== '' ||
+    filters.submittedBy !== ''
   );
 }
 
-/** Clear all keeps the tab, sort, direction, and row count. */
+/** Clear all keeps the tab, archive scope, sort, direction, and row count. */
 export function clearedFilters(filters: ReportFilters): ReportFilters {
   return {
     ...DEFAULT_REPORT_FILTERS,
     tab: filters.tab,
+    archived: filters.archived,
     sort: filters.sort,
     dir: filters.dir,
     pageSize: filters.pageSize,
   };
 }
 
-export type ReportFilterChipId = 'type' | 'campus' | 'term' | 'from' | 'to';
+export type ReportFilterChipId =
+  'type' | 'campus' | 'term' | 'from' | 'to' | 'picName' | 'submittedBy';
 
 export type ReportFilterChip = {
   id: ReportFilterChipId;
@@ -242,6 +283,12 @@ export function activeChips(
 
   if (filters.from) chips.push({ id: 'from', label: `From ${formatDate(filters.from)}` });
   if (filters.to) chips.push({ id: 'to', label: `To ${formatDate(filters.to)}` });
+  if (filters.picName) {
+    chips.push({ id: 'picName', label: `Personnel: ${filters.picName}` });
+  }
+  if (filters.submittedBy) {
+    chips.push({ id: 'submittedBy', label: `Submitted by: ${filters.submittedBy}` });
+  }
 
   return chips;
 }
@@ -252,7 +299,9 @@ export function activeFilterCount(filters: ReportFilters): number {
     (filters.type ? 1 : 0) +
     (filters.campusId ? 1 : 0) +
     (filters.termId ? 1 : 0) +
-    (filters.from || filters.to ? 1 : 0)
+    (filters.from || filters.to ? 1 : 0) +
+    (filters.picName ? 1 : 0) +
+    (filters.submittedBy ? 1 : 0)
   );
 }
 
@@ -268,5 +317,9 @@ export function removedFilter(id: ReportFilterChipId): Partial<ReportFilters> {
       return { from: '' };
     case 'to':
       return { to: '' };
+    case 'picName':
+      return { picName: '' };
+    case 'submittedBy':
+      return { submittedBy: '' };
   }
 }

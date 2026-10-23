@@ -104,13 +104,13 @@ export function matchSegments(text: string, query: string): MatchSegment[] {
 }
 
 /**
- * A draft has no submitted narrative and the facsimile is not useful, so it opens
- * the edit page — the same rule the reports table follows (UI spec §7.4).
+ * A pending record has no submitted narrative and the facsimile is not useful,
+ * so it opens the edit page — the same rule the reports table follows.
  */
 export function paletteReports(items: readonly ReportSearchItem[]): PaletteReport[] {
   return items.map((item) => ({
     id: item.id,
-    href: item.status === 'DRAFT' ? `/reports/${item.id}/edit` : `/reports/${item.id}`,
+    href: item.status === 'PENDING' ? `/reports/${item.id}/edit` : `/reports/${item.id}`,
     referenceNo: item.referenceNo,
     title: item.title,
     status: item.status,

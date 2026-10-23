@@ -32,7 +32,7 @@ describe('repository URL state', () => {
 
   it('ignores values it does not recognise instead of inventing a filter', () => {
     const filters = filtersFromParams(
-      new URLSearchParams('type=NOT_A_TYPE&status=DRAFT&level=PHD&sort=updated&page=0'),
+      new URLSearchParams('type=NOT_A_TYPE&status=PENDING&level=PHD&sort=updated&page=0'),
     );
 
     expect(filters.type).toBe('');

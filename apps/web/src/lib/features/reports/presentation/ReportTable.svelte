@@ -1,6 +1,16 @@
 <script lang="ts">
   import type { ReportSortField, SortDirection } from '@par/shared';
-  import { ArrowDown, ArrowUp, ChevronRight, Pencil, RefreshCw, Trash2 } from '@lucide/svelte';
+  import { goto } from '$app/navigation';
+  import {
+    Archive,
+    ArchiveRestore,
+    ArrowDown,
+    ArrowUp,
+    ChevronRight,
+    Pencil,
+    RefreshCw,
+    Trash2,
+  } from '@lucide/svelte';
 
   import StatusBadge from '$lib/components/StatusBadge.svelte';
   import { updatedLabel, type RegisterRow } from '../application/report-register';
@@ -15,6 +25,8 @@
     onedit,
     ondelete,
     onresend,
+    onarchive,
+    onunarchive,
   }: {
     rows: readonly RegisterRow[];
     sort: ReportSortField;
@@ -25,6 +37,8 @@
     onedit: (row: RegisterRow) => void;
     ondelete: (row: RegisterRow) => void;
     onresend: (row: RegisterRow) => void;
+    onarchive: (row: RegisterRow) => void;
+    onunarchive: (row: RegisterRow) => void;
   } = $props();
 
   const admin = $derived(role === 'ADMIN');
@@ -38,6 +52,19 @@
   function ariaSort(field: ReportSortField): 'ascending' | 'descending' | 'none' {
     if (sort !== field) return 'none';
     return dir === 'asc' ? 'ascending' : 'descending';
+  }
+
+  /**
+   * The whole row opens the record. Links and the row's own buttons keep their
+   * behaviour, and a modified click is left to the browser so "open in new tab"
+   * still works on the cells that hold a link.
+   */
+  function openRow(event: MouseEvent, row: RegisterRow): void {
+    if (event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if ((event.target as Element | null)?.closest('a, button')) return;
+
+    void goto(row.href);
   }
 </script>
 
@@ -61,6 +88,7 @@
         {/each}
         <th scope="col">Activity</th>
         <th scope="col">Personnel in charge</th>
+        <th scope="col">Submitted by</th>
         {#each COLUMNS.slice(1) as column (column.field)}
           <th scope="col" aria-sort={ariaSort(column.field)}>
             <button class="sort" type="button" onclick={() => onsort(column.field)}>
@@ -79,7 +107,7 @@
     </thead>
     <tbody>
       {#each rows as row (row.id)}
-        <tr>
+        <tr class="record-row" onclick={(event) => openRow(event, row)}>
           <td class="reference-cell">
             <a class="reference" href={row.href}>{row.referenceNo}</a>
           </td>
@@ -88,7 +116,11 @@
             <p class="meta">{row.meta}</p>
           </td>
           <td class="pic-cell">{row.picNames}</td>
-          <td><StatusBadge status={row.status} /></td>
+          <td class="pic-cell">{row.submittedByName}</td>
+          <td>
+            <StatusBadge status={row.status} />
+            {#if row.archived}<span class="archived-chip">Archived</span>{/if}
+          </td>
           <td class="updated-cell">{updatedLabel(row.updatedAt, now)}</td>
           <td class="actions-cell">
             {#if admin}
@@ -123,6 +155,27 @@
                     <Trash2 size={15} aria-hidden="true" />
                   </button>
                 {/if}
+                {#if row.canArchive}
+                  {#if row.archived}
+                    <button
+                      class="icon-action"
+                      type="button"
+                      aria-label="Unarchive {row.referenceNo}"
+                      onclick={() => onunarchive(row)}
+                    >
+                      <ArchiveRestore size={15} aria-hidden="true" />
+                    </button>
+                  {:else}
+                    <button
+                      class="icon-action"
+                      type="button"
+                      aria-label="Archive {row.referenceNo}"
+                      onclick={() => onarchive(row)}
+                    >
+                      <Archive size={15} aria-hidden="true" />
+                    </button>
+                  {/if}
+                {/if}
               </div>
             {:else}
               <a class="row-action" href={row.action.href}>
@@ -140,6 +193,10 @@
 <style>
   .register-table {
     width: 100%;
+  }
+
+  .record-row {
+    cursor: pointer;
   }
 
   .sort {
@@ -191,6 +248,18 @@
     color: var(--text-secondary);
     font-size: 12px;
     white-space: nowrap;
+  }
+
+  .archived-chip {
+    background: var(--surface-page);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    display: inline-block;
+    font-size: 10px;
+    margin-left: 6px;
+    padding: 1px 6px;
+    vertical-align: middle;
   }
 
   .actions-cell {
