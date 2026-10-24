@@ -134,9 +134,7 @@ export function validateNarrative(
       .map((attachment) => attachment.fileName)
       .filter((name): name is string => Boolean(name));
     const which =
-      named.length > 0
-        ? ` ${named.length === 1 ? 'It is' : 'They are'} ${named.join(', ')}.`
-        : '';
+      named.length > 0 ? ` ${named.length === 1 ? 'It is' : 'They are'} ${named.join(', ')}.` : '';
 
     issues.push({
       field: 'attachments',

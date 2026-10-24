@@ -10,6 +10,7 @@ export * from './contracts/exports';
 export * from './contracts/locations';
 export * from './contracts/inbox';
 export * from './contracts/notifications';
+export * from './contracts/preferences';
 export * from './contracts/reference-data';
 export * from './contracts/reports';
 export * from './contracts/search';
