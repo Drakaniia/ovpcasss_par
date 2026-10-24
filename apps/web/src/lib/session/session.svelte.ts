@@ -2,6 +2,10 @@ import type { Account, Role, UserStatus } from '@par/shared';
 
 import { api } from '$lib/api/client';
 import { ApiError } from '$lib/api/http';
+import {
+  loadPreferences,
+  resetPreferences,
+} from '$lib/features/preferences/application/preferences.svelte';
 import { forgetSessionToken, restoreSessionToken } from '$lib/platform/session-token';
 
 /**
@@ -57,6 +61,7 @@ export function setSessionUser(account: Account): SessionUser {
 export function clearSession(): void {
   session.user = null;
   loaded = true;
+  resetPreferences();
 }
 
 /**
@@ -73,7 +78,13 @@ export async function loadSession(force = false): Promise<SessionUser | null> {
 
   inflight = api.profile
     .get()
-    .then((account) => setSessionUser(account))
+    // The preferences load before the session resolves, so the first render
+    // already knows the saved zoom and whether onboarding is behind us.
+    .then(async (account) => {
+      const user = setSessionUser(account);
+      await loadPreferences();
+      return user;
+    })
     .catch((error: unknown) => {
       if (isSignedOut(error)) {
         session.user = null;
