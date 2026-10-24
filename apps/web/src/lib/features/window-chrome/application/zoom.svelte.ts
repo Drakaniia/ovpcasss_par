@@ -1,32 +1,25 @@
 /**
  * WebView zoom (desktop window chrome spec §8.4): 50–200 % in 10 % steps,
- * remembered across restarts, with a brief readout. The chrome itself keeps its
- * drawn size by dividing out the scale.
+ * remembered across restarts on the account's preferences record, with a brief
+ * readout. The chrome itself keeps its drawn size by dividing out the scale.
  */
-import { chromeAdapter } from './chrome-adapter';
-import { clampZoom, parseStoredZoom, zoomIn, zoomOut } from './zoom-limits';
+import {
+  loadPreferences,
+  preferencesState,
+  savePreferences,
+} from '$lib/features/preferences/application/preferences.svelte';
 
-export const ZOOM_STORAGE_KEY = 'par.window.zoom';
+import { chromeAdapter } from './chrome-adapter';
+import { clampZoom, zoomIn, zoomOut } from './zoom-limits';
+
 const INDICATOR_MS = 1200;
 
 export const zoomState = $state({ scale: 1, indicator: false });
 
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
-function stored(): string | null {
-  try {
-    return localStorage.getItem(ZOOM_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
 function persist(scale: number): void {
-  try {
-    localStorage.setItem(ZOOM_STORAGE_KEY, String(scale));
-  } catch {
-    // A blocked storage area only costs the preference, never the zoom.
-  }
+  savePreferences({ zoom: scale });
 }
 
 /** The titlebar and menu panel stay their drawn size at any zoom. */
@@ -63,7 +56,9 @@ export async function applyZoom(next: number, remember = true): Promise<void> {
 
 /** Restores the saved scale when the desktop chrome mounts. */
 export async function restoreZoom(): Promise<void> {
-  const scale = parseStoredZoom(stored());
+  await loadPreferences();
+
+  const scale = clampZoom(preferencesState.value.zoom ?? 1);
   await applyZoom(scale, false);
   if (scale !== 1) showIndicator();
 }
