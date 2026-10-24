@@ -193,8 +193,6 @@ website version, deployed on cloudflare pages
 
 why when i log in as PIC in another account, there is "no record in you yet", i thought no assigned feature.. it should see all the activity table records of all the users and all the user can create a narattive report and jsut choose the activity
 
-
-
 all the filter in pic page, did not work
 
 "Reports could not be searched." when i click ctrl + k in PIC and admin
@@ -203,3 +201,63 @@ integrate like geo search in the location input in admin steps, so its not so ha
 
 add delete feature in the archiveed report. to fully delete report (show confirmation modal)
 
+ci failed: https://github.com/Drakaniia/ovpcasss_par/pull/5
+
+run gh to inspect and fix
+
+clicking swwitch button doesnt do anything, when i click add another account-it navigates me back to the signuin page and after i loged in back, there is no existing account
+
+make the narrrative report auto preview.,, when i click like the h1 or h2 or underline etc, it already loads, so i dont have to click the preview (real editor behavior)
+
+completel remove localstorage, all its user or dataa.. make it all online when i run pnpm run dev in local so i can see real errors in production.. so the development is closely identical to the production
+
+
+7 queued
+
+
+
+
+
+
+in the dropdown edit and delete of the lis when creating report in admin page.. make the icon pencil nad trash  align to the right..
+
+
+
+compress and proceed:
+
+in the location input,, add delete button also to the dropdown location history..
+
+
+
+in the total number of PIC step 3. make the count automatic based on how many is the PIC  added, when i click "add persson in charge, it will automatically  incriment"
+
+
+
+compress and proceed: in the website view.. hide the toolbar..  also add padding in the left and right of the header  so the ui can breath
+
+
+
+
+
+
+failed   to preview the signature, when i create a narrative report
+
+
+
+run atomic commits (without coauthor) in a new branch, and push,  read the pr if succes, and merge it and switch to main branch to  update the package versions or the version in the .toml or .json file, create a new tag, and commit without a co-author. Then push to trigger a new release. Review the tag history and use the `ask_user` tool to propose a version tag number.
+
+
+
+```
+
+compact and proceed;
+
+Drop the totalPic field from the wizard form entirely and compute it from the PIC rows on save.
+
+Make the removed location history shared across every account in the office instead of per account.
+
+Seed a reference list with a long name and check the dropdown's right-aligned controls in the browser.
+
+Give the facsimile PDF the same university letterhead and spacing as the new print preview so both artefacts match.
+
+Apply the new preferences migration to the remote D1 and confirm a signed-in preferences read and write works end to end.
