@@ -3,6 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 import SignatureCard from './SignatureCard.svelte';
 
+/** Markup wraps prose across lines, so a sentence is matched on one line. */
+function text(html: string): string {
+  return html.replace(/\s+/g, ' ');
+}
+
 function renderCard(props: { signed: boolean; canEdit: boolean }): string {
   return render(SignatureCard, {
     props: {
@@ -47,7 +52,7 @@ describe('SignatureCard', () => {
   it('names the profile copy as a fallback, never as a button', () => {
     const html = renderCard({ signed: false, canEdit: true });
 
-    expect(html).toContain('A signature saved in Settings is still used');
+    expect(text(html)).toContain('A signature saved in Settings is still used');
     expect(html).not.toContain('fromProfile');
     expect(html).not.toContain('Use my signature on file');
   });
