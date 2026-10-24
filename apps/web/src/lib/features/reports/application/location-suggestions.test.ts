@@ -1,7 +1,12 @@
 import type { LocationSuggestion } from '@par/shared';
 import { describe, expect, it } from 'vitest';
 
-import { mergeSuggestions, normalizeLocation, rankLocations } from './location-suggestions';
+import {
+  mergeSuggestions,
+  normalizeLocation,
+  rankLocations,
+  withoutHiddenLocations,
+} from './location-suggestions';
 
 function office(location: string, lastUsedAt = '2026-03-01T00:00:00.000Z'): LocationLocation {
   return { location, lastUsedAt, source: 'office' };
@@ -33,6 +38,22 @@ describe('rankLocations', () => {
       'Gymnasium, Bukidnon State University',
       'University Gymnasium',
     ]);
+  });
+});
+
+describe('withoutHiddenLocations', () => {
+  it('drops a removed history row and keeps the addresses', () => {
+    const visible = withoutHiddenLocations(
+      [office('Malaybalay City Gymnasium'), address('Casisang, Malaybalay City')],
+      ['malaybalay city gymnasium '],
+    );
+
+    expect(visible.map((item) => item.location)).toEqual(['Casisang, Malaybalay City']);
+  });
+
+  it('leaves the list alone when nothing is hidden', () => {
+    const items = [office('Gymnasium')];
+    expect(withoutHiddenLocations(items, [])).toEqual(items);
   });
 });
 
