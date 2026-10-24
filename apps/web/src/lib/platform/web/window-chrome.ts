@@ -22,6 +22,7 @@ export function createWindowChrome(): WindowChrome {
       return document.fullscreenElement !== null;
     },
     async setZoom() {},
+    async resetSize() {},
     async openDevtools() {},
     async setMaximizeHitRect(_rect: PhysicalRect | null) {},
 

@@ -15,8 +15,8 @@
       {
         "label": "main",
         "title": "OVPCASSS Paperless PAR",
-        "width": 1280,
-        "height": 860,
+        "width": 1024,
+        "height": 768,
         "minWidth": 1024,
         "minHeight": 700,
         "resizable": true,

@@ -7,6 +7,7 @@
   import { STATUS_PRESENTATION } from '$lib/status/report-status';
 
   import SignatureImage from './SignatureImage.svelte';
+  import NarrativeMarkdown from './NarrativeMarkdown.svelte';
 
   /**
    * The filed artefact (spec §14): same sections as the record, on paper.
@@ -99,7 +100,7 @@
   </dl>
 
   <h2>III. Narrative</h2>
-  <p class="narrative">{form.narrative || '—'}</p>
+  <div class="narrative"><NarrativeMarkdown source={form.narrative || '—'} /></div>
 
   {#if detail.attachments.length > 0}
     <h2>Attachments</h2>
@@ -242,10 +243,19 @@
   }
 
   .narrative {
+    margin: 0;
+  }
+
+  .narrative :global(.narrative-markdown) {
     font-size: 10.5px;
     line-height: 1.55;
-    margin: 0;
-    white-space: pre-wrap;
+  }
+
+  .narrative :global(h3),
+  .narrative :global(h4),
+  .narrative :global(h5) {
+    font-size: 11px;
+    margin: 6px 0 3px;
   }
 
   .attachments {

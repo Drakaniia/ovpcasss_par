@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { apiFetch, apiUpload, setSessionToken } from './http';
+import { ApiError, apiFetch, apiUpload, setSessionToken, validationIssues } from './http';
 
 function mockFetch(): ReturnType<typeof vi.fn> {
   const fetch = vi.fn(
@@ -57,6 +57,37 @@ describe('http client desktop session', () => {
     await apiFetch('/me');
 
     expect(headersOf(fetch).has('x-par-client')).toBe(false);
+  });
+
+  it('keeps the field-level details of a validation error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                code: 'VALIDATION_ERROR',
+                message: 'Check the highlighted fields',
+                details: [{ field: 'attachments', message: '1 attachment is still uploading.' }],
+              },
+            }),
+            { status: 400, headers: { 'content-type': 'application/json' } },
+          ),
+      ),
+    );
+
+    const failure = await apiFetch('/reports/1/submit').catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(ApiError);
+    expect(validationIssues(failure)).toEqual([
+      { field: 'attachments', message: '1 attachment is still uploading.' },
+    ]);
+  });
+
+  it('reports no issues when the response carried none', () => {
+    expect(validationIssues(new ApiError(500, 'INTERNAL_ERROR', 'boom'))).toEqual([]);
+    expect(validationIssues(null)).toEqual([]);
   });
 
   it('lets the browser set the multipart boundary', async () => {

@@ -13,15 +13,16 @@ use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 use tokio_util::io::ReaderStream;
 
+mod account_store;
 mod dwm;
 mod startup;
 mod window_bounds;
 mod window_chrome;
 mod window_state;
 
-/// Windows Credential Manager entry for the desktop session (phase 15 §2).
-/// Must stay the bundle identifier: an upgrade finds the stored token under
-/// the same target, and Tauri's identifier charset excludes "@".
+/// Windows Credential Manager entry for the desktop sessions (phase 15 §2,
+/// report 5). Must stay the bundle identifier: an upgrade finds the stored
+/// token under the same target, and Tauri's identifier charset excludes "@".
 const KEYRING_SERVICE: &str = "ph.edu.ovpcasss.par";
 const KEYRING_USER: &str = "session";
 
@@ -31,34 +32,117 @@ const ATTACHMENT_EXTENSIONS: &[&str] = &[
     "xls", "xlsx", "ppt", "pptx", "txt", "csv", "zip", "rar", "7z",
 ];
 
-#[tauri::command]
-fn token_read() -> Result<Option<String>, String> {
-    let entry =
-        keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER).map_err(|error| error.to_string())?;
+/// One account as the webview supplies it at sign-in; the token is added here.
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountInput {
+    id: String,
+    name: String,
+    email: String,
+}
+
+fn keyring_entry() -> Result<keyring::Entry, String> {
+    keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER).map_err(|error| error.to_string())
+}
+
+fn write_accounts(accounts: &account_store::Accounts) -> Result<(), String> {
+    let entry = keyring_entry()?;
+
+    if accounts.accounts.is_empty() {
+        return match entry.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+            Err(error) => Err(error.to_string()),
+        };
+    }
+
+    let text = serde_json::to_string(accounts).map_err(|error| error.to_string())?;
+    entry.set_password(&text).map_err(|error| error.to_string())
+}
+
+/// Reads the collection, upgrading a pre-multi-account token in place.
+fn read_accounts() -> Result<account_store::Accounts, String> {
+    let entry = keyring_entry()?;
 
     match entry.get_password() {
-        Ok(token) => Ok(Some(token)),
-        Err(keyring::Error::NoEntry) => Ok(None),
+        Ok(raw) => {
+            let accounts = account_store::parse(Some(&raw));
+            if serde_json::from_str::<account_store::Accounts>(&raw).is_err() {
+                write_accounts(&accounts)?;
+            }
+            Ok(accounts)
+        }
+        Err(keyring::Error::NoEntry) => Ok(account_store::Accounts::default()),
         Err(error) => Err(error.to_string()),
     }
 }
 
 #[tauri::command]
-fn token_write(token: String) -> Result<(), String> {
-    keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)
-        .and_then(|entry| entry.set_password(&token))
-        .map_err(|error| error.to_string())
+fn token_read() -> Result<Option<String>, String> {
+    Ok(account_store::active_token(&read_accounts()?))
 }
 
+/// Adds or replaces an account and makes it the session this launch uses.
+#[tauri::command]
+fn token_write(token: String, account: Option<AccountInput>) -> Result<(), String> {
+    let saved = account.map_or(
+        account_store::Account {
+            id: "legacy".to_string(),
+            name: "Saved account".to_string(),
+            email: String::new(),
+            token: token.clone(),
+        },
+        |account| account_store::Account {
+            id: account.id,
+            name: account.name,
+            email: account.email,
+            token,
+        },
+    );
+
+    write_accounts(&account_store::upsert(read_accounts()?, saved))
+}
+
+#[tauri::command]
+fn token_accounts() -> Result<Vec<account_store::AccountSummary>, String> {
+    Ok(account_store::summaries(&read_accounts()?))
+}
+
+#[tauri::command]
+fn token_switch(id: String) -> Result<Option<String>, String> {
+    let (next, token) = account_store::switch(read_accounts()?, &id);
+    if token.is_some() {
+        write_accounts(&next)?;
+    }
+
+    Ok(token)
+}
+
+#[tauri::command]
+fn token_forget(id: String) -> Result<(), String> {
+    write_accounts(&account_store::forget(read_accounts()?, &id))
+}
+
+/// Sign-out ends the active account's session; the others stay saved.
 #[tauri::command]
 fn token_clear() -> Result<(), String> {
-    let entry =
-        keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER).map_err(|error| error.to_string())?;
+    let accounts = read_accounts()?;
+    let Some(active) = accounts.active.clone() else {
+        return Ok(());
+    };
 
-    match entry.delete_credential() {
-        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-        Err(error) => Err(error.to_string()),
-    }
+    write_accounts(&account_store::forget(accounts, &active))
+}
+
+#[tauri::command]
+fn token_remember(id: String, name: String, email: String) -> Result<(), String> {
+    write_accounts(&account_store::remember(read_accounts()?, &id, &name, &email))
+}
+
+/// Restores the default window size and position (report 11). A saved rectangle
+/// that came back too small must never leave the window stuck.
+#[tauri::command]
+fn window_reset_size(app: tauri::AppHandle) -> Result<(), String> {
+    window_state::reset(&app).map_err(|error| error.to_string())
 }
 
 /// Opens the folder the webview saved a download into (phase 14 §4). Windows
@@ -155,7 +239,7 @@ async fn google_sign_in(start_url: String, nonce: String) -> Result<String, Stri
         query_param(&request, "error").unwrap_or_else(|| "google_failed".to_string())
     })?;
 
-    token_write(token.clone())?;
+    token_write(token.clone(), None)?;
     Ok(token)
 }
 
@@ -326,6 +410,11 @@ pub fn run() {
             token_read,
             token_write,
             token_clear,
+            token_accounts,
+            token_switch,
+            token_forget,
+            token_remember,
+            window_reset_size,
             google_sign_in,
             google_cancel,
             pick_attachments,

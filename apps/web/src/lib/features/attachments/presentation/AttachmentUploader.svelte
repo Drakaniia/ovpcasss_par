@@ -3,6 +3,7 @@
   import { SvelteMap } from 'svelte/reactivity';
 
   import { api } from '$lib/api/client';
+  import { ApiError } from '$lib/api/http';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import { createPlatform } from '$lib/platform';
   import type { PickedFile, Platform } from '$lib/platform/contracts';
@@ -10,15 +11,16 @@
 
   import {
     fileError,
-    isPreviewable,
     validateFiles,
     type FileRejection,
   } from '../application/attachment-rules';
   import {
+    failedRowKeepsServerCopy,
     newAttachmentKey,
     uploadErrorText,
     type AttachmentItem,
   } from '../application/attachment-items';
+  import { openAttachment } from '../application/attachment-open';
   import { uploadHeaders, uploadToPresignedUrl } from '../application/attachment-upload';
   import AttachmentDropZone from './AttachmentDropZone.svelte';
   import AttachmentList from './AttachmentList.svelte';
@@ -59,6 +61,21 @@
     file?: File;
     path?: string;
   };
+
+  /** Deletes a row's server copy; false means it could not reach the API. */
+  async function dropServerRow(
+    reportId: string | null,
+    attachmentId: string | null,
+  ): Promise<boolean> {
+    if (!reportId || !attachmentId) return true;
+    try {
+      await api.attachments.remove(reportId, attachmentId);
+      return true;
+    } catch (error) {
+      // A row already gone is cleared; anything else keeps the id for Discard.
+      return error instanceof ApiError && error.status === 404;
+    }
+  }
 
   async function currentPlatform(): Promise<Platform | null> {
     if (platform) return platform;
@@ -111,6 +128,8 @@
     };
     upsert(item);
 
+    /** The server row this attempt owns, so a failure can take it back. */
+    let serverRow: { reportId: string; attachmentId: string } | null = null;
     try {
       const id = await resolveReport();
       const presign = await api.attachments.presign(id, {
@@ -118,6 +137,7 @@
         size: source.size,
         mimeType: source.mimeType,
       });
+      serverRow = { reportId: id, attachmentId: presign.attachmentId };
       update(key, { id: presign.attachmentId });
       const headers = uploadHeaders(presign);
 
@@ -156,8 +176,16 @@
         progress: 100,
       });
     } catch (error) {
+      // Presign wrote a pending row. An abandoned one blocks submission and a
+      // retry would add another, so it is dropped; the id stays only when the
+      // drop fails, which is what Discard retries.
+      const cleared = await dropServerRow(
+        serverRow?.reportId ?? null,
+        serverRow?.attachmentId ?? null,
+      );
       update(key, {
         status: 'FAILED',
+        id: cleared ? null : (serverRow?.attachmentId ?? null),
         error: uploadErrorText(error, 'The upload did not complete. Try again.'),
       });
     } finally {
@@ -233,7 +261,7 @@
     }
   }
 
-  function retry(key: string): void {
+  async function retry(key: string): Promise<void> {
     const item = items.find((entry) => entry.key === key);
     if (!item || disabled || (!item.file && !item.path)) return;
 
@@ -241,6 +269,12 @@
       ? { name: item.fileName, size: item.size, mimeType: item.mimeType, file: item.file }
       : { name: item.fileName, size: item.size, mimeType: item.mimeType, path: item.path };
 
+    // A cleanup that could not reach the API leaves one row; clear it before
+    // another presign so retries never stack up.
+    if (failedRowKeepsServerCopy(item) && !(await dropServerRow(localReportId, item.id))) {
+      update(key, { error: 'The previous attempt could not be cleared. Try again.' });
+      return;
+    }
     update(key, { status: 'UPLOADING', progress: 0, error: undefined, id: null });
     void startUpload(source, key, item.label || defaultLabel());
   }
@@ -258,10 +292,16 @@
     void removeNow(item);
   }
 
+  /** A failed row discards at once, after clearing any server row it still owns. */
   async function removeNow(item: AttachmentItem): Promise<void> {
     cancels.get(item.key)?.();
+    const failed = failedRowKeepsServerCopy(item);
+    if (failed && !(await dropServerRow(localReportId, item.id))) {
+      update(item.key, { error: 'The attachment was not discarded. Try again.' });
+      return;
+    }
 
-    if (item.id && localReportId) {
+    if (!failed && item.id && localReportId) {
       try {
         await api.attachments.remove(localReportId, item.id);
       } catch (error) {
@@ -271,7 +311,6 @@
         return;
       }
     }
-
     items = items.filter((entry) => entry.key !== item.key);
   }
 
@@ -302,16 +341,7 @@
     if (!item?.id || !localReportId) return;
 
     try {
-      const { url } = await api.attachments.url(localReportId, item.id);
-      if (isPreviewable(item.fileName)) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      } else {
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = item.fileName;
-        link.rel = 'noopener';
-        link.click();
-      }
+      await openAttachment(localReportId, item.id, item.fileName);
     } catch (error) {
       toast.error(uploadErrorText(error, 'The file could not be opened. Try again.'));
     }
@@ -334,7 +364,7 @@
       {labelOptions}
       {disabled}
       onlabel={(key, label) => void changeLabel(key, label)}
-      onretry={retry}
+      onretry={(key) => void retry(key)}
       onremove={askRemove}
       onpreview={(key) => void preview(key)}
     />

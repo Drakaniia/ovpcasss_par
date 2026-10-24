@@ -68,6 +68,16 @@ describe('validateNarrative', () => {
     );
   });
 
+  it('names the file that is still uploading', () => {
+    const issues = validateNarrative('Text', {
+      attachments: [{ label: '', status: 'PENDING', fileName: 'attendance.pdf' }],
+    });
+
+    expect(issues.find((issue) => issue.field === 'attachments')?.message).toContain(
+      'attendance.pdf',
+    );
+  });
+
   it('names a missing required attachment and blocks a pending upload', () => {
     expect(
       validateNarrative('Text', { attachments: [], requirements: [requirement] }),

@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { LoaderCircle } from '@lucide/svelte';
 
-  import { API_BASE_URL, isDesktopShell } from '$lib/api/http';
+  import { API_BASE_URL, isDesktopShell, setSessionToken } from '$lib/api/http';
   import { destinationAfterSignIn } from '$lib/features/auth/application/post-sign-in';
   import { googleErrorMessage } from '$lib/features/auth/application/google-errors';
   import { createPlatform } from '$lib/platform';
@@ -34,15 +34,20 @@
       const token = await platform.auth.signInWithGoogle(url.toString());
       if (!token) return; // Web: the browser is already leaving for Google.
 
-      await rememberSessionToken(token);
+      // The token is only in memory until `/me` names the account, so the saved
+      // entry carries the real identity rather than a placeholder.
+      setSessionToken(token);
       const user = await loadSession(true);
       const destination = user ? destinationAfterSignIn(user) : null;
 
-      if (!destination) {
+      if (!user || !destination) {
+        setSessionToken(null);
         onError('This account is not active. Contact the OVPCASSS administrator.');
         return;
       }
 
+      const identity = { id: user.id, name: user.fullName, email: user.email };
+      await rememberSessionToken(token, identity);
       await goto(destination, { replaceState: true });
     } catch (error) {
       if (cancelled) return;

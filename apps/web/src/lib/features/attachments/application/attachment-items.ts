@@ -42,6 +42,16 @@ export function uploadErrorText(error: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * A failed row normally drops its server row in the same breath (see the
+ * uploader). When that cleanup could not reach the API, the id stays on the
+ * row so Discard can retry; this is the one case where a failed row still has
+ * something to delete on the server.
+ */
+export function failedRowKeepsServerCopy(item: AttachmentItem): boolean {
+  return item.status === 'FAILED' && item.id !== null;
+}
+
 export function itemFromAttachment(attachment: Attachment, file?: File): AttachmentItem {
   return {
     key: attachment.id,

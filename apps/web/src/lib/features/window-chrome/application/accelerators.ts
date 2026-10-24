@@ -47,6 +47,27 @@ export function acceleratorOf(event: KeyEventLike): string | null {
   return `Ctrl+${key}`;
 }
 
+/**
+ * Chords the platform's own editor owns (report 6). Paste in particular cannot
+ * be run from script — Chromium and WebView2 refuse `execCommand('paste')` — so
+ * claiming Ctrl+V silently swallowed it before the textarea ever saw the key.
+ * These chords always reach the focused field; the Edit menu still acts on the
+ * field when clicked, with Paste shown disabled and its reason written out.
+ */
+const NATIVE_EDIT_ACCELERATORS: ReadonlySet<string> = new Set([
+  'Ctrl+X',
+  'Ctrl+C',
+  'Ctrl+V',
+  'Ctrl+A',
+  'Ctrl+Z',
+  'Ctrl+Y',
+  'Ctrl+Shift+Z',
+]);
+
+export function isNativeEditChord(accelerator: string): boolean {
+  return NATIVE_EDIT_ACCELERATORS.has(accelerator);
+}
+
 export type AcceleratorOptions = {
   /** False in the browser, where desktop-only chords must reach the platform. */
   controllable: () => boolean;
@@ -67,6 +88,9 @@ export function runAccelerator(event: KeyboardEvent, options: AcceleratorOptions
 
   const accelerator = acceleratorOf(event);
   if (!accelerator) return false;
+
+  // Native editing is never the app's chord, even if a menu item names it.
+  if (isNativeEditChord(accelerator)) return false;
 
   const id = commandForAccelerator(accelerator);
   if (!id) return false;

@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { ReportDetail } from '@par/shared';
+  import { validateNarrative, type ReportDetail, type ValidationIssue } from '@par/shared';
   import { Send } from '@lucide/svelte';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
 
   import { api } from '$lib/api/client';
-  import { ApiError } from '$lib/api/http';
+  import { ApiError, validationIssues } from '$lib/api/http';
   import {
     itemFromAttachment,
     type AttachmentItem,
@@ -13,6 +13,9 @@
   import { invalidateInboxAttention } from '$lib/session/inbox-attention.svelte';
   import { toast } from '$lib/toast/toast.svelte';
 
+  import { applyMarkdown, type MarkdownCommand } from '../application/narrative-markdown';
+  import NarrativeMarkdown from './NarrativeMarkdown.svelte';
+  import NarrativeToolbar from './NarrativeToolbar.svelte';
   import SignatureCard from './SignatureCard.svelte';
 
   /**
@@ -20,7 +23,9 @@
    * secondary; Submit narrative is the single filled action on the screen and is
    * available only while the record is PENDING or RETURNED. A local mirror keeps
    * the text through a dropped connection; the server draft always wins until
-   * the writer chooses the device copy.
+   * the writer chooses the device copy. Formatting is the Markdown subset the
+   * parser in `@par/shared` understands (report 7), and a refused submission
+   * names the field it is about (report 8).
    */
   let {
     detail,
@@ -37,8 +42,12 @@
   let saving = $state(false);
   let submitting = $state(false);
   let error = $state<string | null>(null);
+  let issues = $state<ValidationIssue[]>([]);
   let savedAt = $state<string | null>(null);
   let signatureSigned = $state(Boolean(detail.narrativeSignature));
+  let view = $state<'write' | 'preview'>('write');
+  let textarea = $state<HTMLTextAreaElement | null>(null);
+  let attachmentsBlock = $state<HTMLElement | null>(null);
   /** A local copy that disagrees with a later server draft is never auto-applied. */
   let mirrorConflict = $state<string | null>(null);
   const idempotencyKey = crypto.randomUUID();
@@ -46,6 +55,12 @@
 
   const editable = $derived(detail.status === 'PENDING' || detail.status === 'RETURNED');
   const dirty = $derived(narrative !== detail.form.narrative);
+  const narrativeIssue = $derived(
+    issues.find((issue) => issue.field === 'narrative')?.message ?? null,
+  );
+  const attachmentIssue = $derived(
+    issues.find((issue) => issue.field === 'attachments')?.message ?? null,
+  );
 
   type Mirror = { narrative: string; updatedAt: string };
 
@@ -104,6 +119,51 @@
   function updateNarrative(value: string): void {
     narrative = value;
     writeMirror(value);
+
+    // Typing answers the narrative complaint; the attachments one stays.
+    issues = issues.filter((issue) => issue.field !== 'narrative');
+    error = null;
+  }
+
+  async function format(command: MarkdownCommand): Promise<void> {
+    if (!textarea) return;
+
+    view = 'write';
+    const result = applyMarkdown(
+      command,
+      narrative,
+      textarea.selectionStart,
+      textarea.selectionEnd,
+    );
+    updateNarrative(result.value);
+
+    await tick();
+    textarea.focus();
+    textarea.setSelectionRange(result.selectionStart, result.selectionEnd);
+  }
+
+  /** The same rules the API applies, so a doomed submit never leaves the page. */
+  function localIssues(): ValidationIssue[] {
+    return validateNarrative(narrative, {
+      attachments: attachments.map((item) => ({
+        label: item.label,
+        status: item.status === 'CONFIRMED' ? 'CONFIRMED' : 'PENDING',
+        fileName: item.fileName,
+      })),
+    });
+  }
+
+  async function focusIssues(): Promise<void> {
+    await tick();
+
+    if (issues.some((issue) => issue.field === 'narrative')) {
+      view = 'write';
+      await tick();
+      textarea?.focus();
+      return;
+    }
+
+    attachmentsBlock?.focus();
   }
 
   async function saveDraft(): Promise<boolean> {
@@ -126,8 +186,18 @@
 
   async function submit(): Promise<void> {
     if (saving || submitting) return;
+
+    const blocked = localIssues();
+    if (blocked.length > 0) {
+      issues = blocked;
+      error = null;
+      await focusIssues();
+      return;
+    }
+
     submitting = true;
     error = null;
+    issues = [];
 
     try {
       if (dirty) await api.reports.saveNarrative(detail.id, { narrative });
@@ -141,10 +211,17 @@
       toast.success('Narrative submitted. The office will review it.');
       await onreload();
     } catch (failure) {
-      error =
-        failure instanceof ApiError
-          ? failure.message
-          : 'The narrative was not submitted. Try again.';
+      const details = validationIssues(failure);
+
+      if (details.length > 0) {
+        issues = details;
+        await focusIssues();
+      } else {
+        error =
+          failure instanceof ApiError
+            ? failure.message
+            : 'The narrative was not submitted. Try again.';
+      }
     } finally {
       submitting = false;
     }
@@ -164,17 +241,59 @@
       save a draft and come back before submitting.
     </p>
 
-    <label class="field-label" for="narrative">Narrative</label>
-    <textarea
-      id="narrative"
-      class="textarea narrative-input"
-      rows="12"
-      maxlength="50000"
-      placeholder="Write the narrative report."
-      aria-describedby={error ? 'narrative-error' : undefined}
-      aria-invalid={error ? 'true' : undefined}
-      value={narrative}
-      oninput={(event) => updateNarrative(event.currentTarget.value)}></textarea>
+    <div class="field-head">
+      <label class="field-label" for="narrative">Narrative</label>
+      <div class="view-switch" role="tablist" aria-label="Narrative view">
+        <button
+          class="view-tab"
+          class:is-active={view === 'write'}
+          type="button"
+          role="tab"
+          aria-selected={view === 'write'}
+          onclick={() => (view = 'write')}>Write</button
+        >
+        <button
+          class="view-tab"
+          class:is-active={view === 'preview'}
+          type="button"
+          role="tab"
+          aria-selected={view === 'preview'}
+          onclick={() => (view = 'preview')}>Preview</button
+        >
+      </div>
+    </div>
+
+    {#if view === 'write'}
+      <NarrativeToolbar oncommand={(command) => void format(command)} disabled={submitting} />
+      <textarea
+        bind:this={textarea}
+        id="narrative"
+        class="textarea narrative-input"
+        rows="12"
+        maxlength="50000"
+        placeholder="Write the narrative report."
+        aria-describedby={[
+          'narrative-hint',
+          narrativeIssue ? 'narrative-error' : '',
+          error ? 'submit-error' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        aria-invalid={narrativeIssue ? 'true' : undefined}
+        value={narrative}
+        oninput={(event) => updateNarrative(event.currentTarget.value)}></textarea>
+      <p class="hint" id="narrative-hint">
+        Formatting: # Heading 1, ## Heading 2, **bold**, *italic*, __underline__, - list, 1. list.
+      </p>
+    {:else}
+      <div class="preview" role="tabpanel" aria-label="Narrative preview">
+        <NarrativeMarkdown source={narrative} />
+      </div>
+    {/if}
+
+    {#if narrativeIssue}
+      <p class="field-error" id="narrative-error" role="alert">{narrativeIssue}</p>
+    {/if}
 
     {#if mirrorConflict !== null}
       <div class="mirror-notice" role="status">
@@ -193,13 +312,12 @@
       </div>
     {/if}
 
-    {#if error}
-      <p class="field-error" id="narrative-error" role="alert">{error}</p>
-    {/if}
-
-    <div class="attachment-block">
+    <div class="attachment-block" bind:this={attachmentsBlock} tabindex="-1">
       <h3>Attachments</h3>
       <p class="hint">Optional supporting files. Each file is private to the office.</p>
+      {#if attachmentIssue}
+        <p class="field-error" id="attachment-error" role="alert">{attachmentIssue}</p>
+      {/if}
       <AttachmentUploader
         bind:items={attachments}
         reportId={detail.id}
@@ -215,6 +333,10 @@
       canEdit={editable}
       onchanged={onSignature}
     />
+
+    {#if error}
+      <p class="field-error" id="submit-error" role="alert">{error}</p>
+    {/if}
 
     <div class="editor-actions">
       <button
@@ -268,9 +390,39 @@
     margin: 0;
   }
 
+  .field-head {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+  }
+
   .field-label {
     font-size: 13px;
     font-weight: 500;
+  }
+
+  .view-switch {
+    background: var(--surface-page);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    display: inline-flex;
+    padding: 2px;
+  }
+
+  .view-tab {
+    background: transparent;
+    border-radius: 999px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    height: 26px;
+    padding: 0 10px;
+  }
+
+  .view-tab.is-active {
+    background: var(--surface-card);
+    box-shadow: var(--shadow-card);
+    color: var(--text-primary);
   }
 
   .narrative-input {
@@ -278,6 +430,14 @@
     line-height: 1.55;
     min-height: 220px;
     resize: vertical;
+  }
+
+  .preview {
+    background: var(--surface-page);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    min-height: 220px;
+    padding: 12px 14px;
   }
 
   .mirror-notice {

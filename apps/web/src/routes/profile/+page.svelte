@@ -5,8 +5,10 @@
 
   import { destinationAfterSignIn } from '$lib/features/auth/application/post-sign-in';
   import AccountCard from '$lib/features/profile/presentation/AccountCard.svelte';
+  import AccountSwitcher from '$lib/features/profile/presentation/AccountSwitcher.svelte';
   import EmailPreferences from '$lib/features/profile/presentation/EmailPreferences.svelte';
   import PasswordCard from '$lib/features/profile/presentation/PasswordCard.svelte';
+  import ReceiptSignatoryCard from '$lib/features/profile/presentation/ReceiptSignatoryCard.svelte';
   import SignatureUpload from '$lib/features/profile/presentation/SignatureUpload.svelte';
   import UpdateCard from '$lib/features/updater/presentation/UpdateCard.svelte';
   import { loadSession, session, signOut } from '$lib/session/session.svelte';
@@ -84,7 +86,11 @@
   {:else if user}
     <div class="grid">
       <AccountCard {user} />
+      <AccountSwitcher />
       <PasswordCard hasPassword={user.hasPassword ?? true} />
+      {#if user.role === 'ADMIN'}
+        <ReceiptSignatoryCard />
+      {/if}
       <EmailPreferences />
       <UpdateCard />
       <!-- Every account keeps a signature; the personnel in charge may

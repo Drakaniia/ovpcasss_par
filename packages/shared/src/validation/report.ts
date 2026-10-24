@@ -12,6 +12,8 @@ export interface ValidationIssue {
 export interface ValidationAttachment {
   label: string;
   status: AttachmentStatus;
+  /** Named in the submit message so the writer knows which file to finish. */
+  fileName?: string;
 }
 
 export interface ValidationRequirement {
@@ -126,14 +128,22 @@ export function validateNarrative(
   }
 
   const attachments = options.attachments ?? [];
-  const uploading = attachments.filter((attachment) => attachment.status === 'PENDING').length;
-  if (uploading > 0) {
+  const uploading = attachments.filter((attachment) => attachment.status === 'PENDING');
+  if (uploading.length > 0) {
+    const named = uploading
+      .map((attachment) => attachment.fileName)
+      .filter((name): name is string => Boolean(name));
+    const which =
+      named.length > 0
+        ? ` ${named.length === 1 ? 'It is' : 'They are'} ${named.join(', ')}.`
+        : '';
+
     issues.push({
       field: 'attachments',
       message:
-        uploading === 1
-          ? '1 attachment is still uploading. Submit is available once every attachment is confirmed.'
-          : `${uploading} attachments are still uploading. Submit is available once every attachment is confirmed.`,
+        uploading.length === 1
+          ? `1 attachment is still uploading.${which} Submit is available once every attachment is confirmed.`
+          : `${uploading.length} attachments are still uploading.${which} Submit is available once every attachment is confirmed.`,
     });
   }
 

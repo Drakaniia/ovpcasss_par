@@ -135,6 +135,15 @@ export function registerBuiltinCommands(): () => void {
       run: () => toggleMaximize(),
     }),
     registerCommand({
+      id: 'window.reset-size',
+      desktopOnly: true,
+      enabled: () => true,
+      run: async () => {
+        await (await chromeAdapter()).resetSize();
+      },
+    }),
+
+    registerCommand({
       id: 'window.close',
       desktopOnly: true,
       enabled: () => true,

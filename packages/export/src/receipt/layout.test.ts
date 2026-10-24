@@ -2,8 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BODY_BASELINE,
+  COPY_DIVIDER,
+  COPY_OFFSET,
   FOOTER_BASELINE,
   HEADING_BASELINE,
+  PAGE_FOOTER_BASELINE,
+  RECEIPT_PAGE,
   approvalDateLine,
   buildReceipt,
   formatActivityDate,
@@ -120,11 +124,77 @@ describe('buildReceipt', () => {
     expect(runs(ops)).toContain('AR No. 0001');
   });
 
-  it('keeps the seal and emblem of the form', () => {
+  it('keeps the seal and emblem of both copies', () => {
     const images = buildReceipt(data, wide).filter((op) => op.kind === 'image');
     expect(images).toMatchObject([
       { image: 'seal', x: 62.7, top: 7.7, width: 59.3, height: 59.65 },
       { image: 'emblem', x: 481.75, top: 19.5, width: 90.25, height: 48 },
+      { image: 'seal', x: 62.7, top: 7.7 + COPY_OFFSET, width: 59.3, height: 59.65 },
+      { image: 'emblem', x: 481.75, top: 19.5 + COPY_OFFSET, width: 90.25, height: 48 },
     ]);
+  });
+
+  it('prints the letter twice on the one sheet, as the office form does', () => {
+    const ops = buildReceipt(data, wide);
+    const text = runs(ops);
+
+    expect(text.filter((value) => value === 'ACKNOWLEDGMENT RECEIPT')).toHaveLength(2);
+    expect(text.filter((value) => value === 'AR No. 0001')).toHaveLength(2);
+    expect(text.filter((value) => value === 'Dear M. Santos,')).toHaveLength(2);
+    expect(text.filter((value) => value === 'Sincerely,')).toHaveLength(2);
+    expect(text.filter((value) => value === 'DR. LINCOLN V. TAN')).toHaveLength(2);
+    expect(text.filter((value) => value === 'VPCASSS')).toHaveLength(2);
+
+    const headings = ops.filter(
+      (op): op is Extract<ReceiptOp, { kind: 'text' }> =>
+        op.kind === 'text' && op.text === 'ACKNOWLEDGMENT RECEIPT',
+    );
+    expect(headings.map((op) => op.baseline)).toEqual([
+      HEADING_BASELINE,
+      HEADING_BASELINE + COPY_OFFSET,
+    ]);
+
+    const images = ops.filter((op) => op.kind === 'image');
+    expect(images).toHaveLength(4);
+    expect(images.map((op) => op.top)).toEqual([
+      7.7,
+      19.5,
+      7.7 + COPY_OFFSET,
+      19.5 + COPY_OFFSET,
+    ]);
+  });
+
+  it('closes copy 1 with its document-code line and the sheet with the page footer', () => {
+    const ops = buildReceipt(data, wide);
+    const at = (baseline: number) => textAt(ops, baseline)[0];
+
+    expect(at(FOOTER_BASELINE)).toBe('Document Code: OVPCASSS-F-013');
+    expect(at(PAGE_FOOTER_BASELINE)).toBe('Document Code: OVPCASSS-F-013');
+    expect(textAt(ops, COPY_OFFSET + PAGE_FOOTER_BASELINE)).toEqual([]);
+
+    const pageFooters = [FOOTER_BASELINE, PAGE_FOOTER_BASELINE].flatMap((baseline) =>
+      textAt(ops, baseline),
+    );
+    expect(pageFooters).toHaveLength(14);
+
+    const divider = ops.find(
+      (op) => op.kind === 'rule' && Math.abs(op.top + op.height / 2 - COPY_DIVIDER) < 0.5,
+    );
+    expect(divider).toMatchObject({ x: 0, width: RECEIPT_PAGE.width, height: 0.6 });
+  });
+
+  it('keeps every mark inside the A4 sheet', () => {
+    const ops = buildReceipt(data, wide);
+
+    for (const op of ops) {
+      const top = op.kind === 'text' ? op.baseline - op.size : op.top;
+      const bottom = op.kind === 'text' ? op.baseline : op.top + op.height;
+
+      expect(top).toBeGreaterThanOrEqual(0);
+      expect(bottom).toBeLessThanOrEqual(RECEIPT_PAGE.height);
+      if (op.kind !== 'image' || op.image === 'emblem') {
+        expect(op.x + ('width' in op ? op.width : 0)).toBeLessThanOrEqual(RECEIPT_PAGE.width);
+      }
+    }
   });
 });

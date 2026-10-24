@@ -3,14 +3,18 @@
   import { PenLine, Trash2 } from '@lucide/svelte';
 
   import { api } from '$lib/api/client';
+  import { ApiError } from '$lib/api/http';
+  import SignatureCapture from '$lib/features/profile/presentation/SignatureCapture.svelte';
   import { toast } from '$lib/toast/toast.svelte';
 
   import SignatureImage from './SignatureImage.svelte';
 
   /**
-   * The narrative signature (signature spec §4.4). Optional: the printed record
-   * simply keeps its rule blank. Saving in Settings is enough — the API copies
-   * the profile image at submit when this card was never used (phase 05).
+   * The narrative signature (signature spec §4.4, report 3). Optional: the
+   * printed record simply keeps its rule blank. The writer draws or uploads the
+   * image here, as on the Settings page, instead of leaving the record to reuse
+   * the profile copy. The API snapshots the image onto the record, so replacing
+   * the profile later never changes a submitted report.
    */
   let {
     reportId,
@@ -25,16 +29,40 @@
   } = $props();
 
   let busy = $state(false);
+  let error = $state<string | null>(null);
+  /** A drawn or uploaded image that has not been saved to the record yet. */
+  let pending = $state<string | null>(null);
+  /** True while the capture is open; a signed record starts on its preview. */
+  let capturing = $state(!signed);
 
-  async function useProfile(): Promise<void> {
-    if (!canEdit || busy) return;
+  function failureText(failure: unknown, fallback: string): string {
+    return failure instanceof ApiError ? failure.message : fallback;
+  }
+
+  function startReplacing(): void {
+    pending = null;
+    error = null;
+    capturing = true;
+  }
+
+  function cancelReplace(): void {
+    pending = null;
+    error = null;
+    capturing = signed;
+  }
+
+  async function save(): Promise<void> {
+    if (!canEdit || busy || !pending) return;
     busy = true;
+    error = null;
 
     try {
-      onchanged(await api.reports.setSignature(reportId, { fromProfile: true }));
+      onchanged(await api.reports.setSignature(reportId, { image: pending }));
+      pending = null;
+      capturing = false;
       toast.success('Signature added to this record.');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'The signature was not saved.');
+    } catch (failure) {
+      error = failureText(failure, 'The signature was not saved. Try again.');
     } finally {
       busy = false;
     }
@@ -43,12 +71,15 @@
   async function remove(): Promise<void> {
     if (!canEdit || busy) return;
     busy = true;
+    error = null;
 
     try {
       onchanged(await api.reports.removeSignature(reportId));
+      pending = null;
+      capturing = true;
       toast.success('Signature removed from this record.');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'The signature was not removed.');
+    } catch (failure) {
+      error = failureText(failure, 'The signature was not removed. Try again.');
     } finally {
       busy = false;
     }
@@ -59,32 +90,52 @@
   <div class="signature-head">
     <p class="signature-label">Your signature</p>
     <p class="signature-hint">
-      Optional. Your saved signature is copied onto the record when you submit. Removing it here
-      leaves the record unsigned.
+      Optional. Draw or upload it here; the saved image is copied onto the record when you submit.
+      A signature saved in Settings is still used if this card stays empty.
     </p>
   </div>
 
-  {#if signed}
+  {#if error}
+    <p class="field-error" role="alert">{error}</p>
+  {/if}
+
+  {#if signed && !capturing}
     <SignatureImage {reportId} alt="Your saved signature on this record" />
+
     {#if canEdit}
-      <button
-        class="btn btn-ghost btn-sm"
-        type="button"
-        disabled={busy}
-        onclick={() => void remove()}
-      >
-        <Trash2 size={14} aria-hidden="true" /> Remove signature
-      </button>
+      <div class="signature-actions">
+        <button class="btn btn-outline btn-sm" type="button" disabled={busy} onclick={startReplacing}>
+          <PenLine size={14} aria-hidden="true" /> Replace signature
+        </button>
+        <button class="btn btn-ghost btn-sm" type="button" disabled={busy} onclick={() => void remove()}>
+          <Trash2 size={14} aria-hidden="true" /> Remove signature
+        </button>
+      </div>
     {/if}
   {:else if canEdit}
-    <button
-      class="btn btn-outline btn-sm"
-      type="button"
-      disabled={busy}
-      onclick={() => void useProfile()}
-    >
-      <PenLine size={14} aria-hidden="true" /> Use my signature on file
-    </button>
+    <SignatureCapture onchange={(dataUrl) => (pending = dataUrl)} />
+
+    <div class="signature-actions">
+      {#if signed}
+        <button class="btn btn-ghost btn-sm" type="button" disabled={busy} onclick={cancelReplace}>
+          Cancel
+        </button>
+      {/if}
+      <button
+        class="btn btn-outline btn-sm"
+        type="button"
+        disabled={busy || !pending}
+        onclick={() => void save()}
+      >
+        <PenLine size={14} aria-hidden="true" />
+        {busy ? 'Saving…' : 'Save signature'}
+      </button>
+      {#if !pending && !busy}
+        <span class="save-reason">Draw or upload a signature first.</span>
+      {/if}
+    </div>
+  {:else if signed}
+    <SignatureImage {reportId} alt="Signature on this record" />
   {/if}
 </div>
 
@@ -118,9 +169,27 @@
     margin: 0;
   }
 
-  .btn {
+  .field-error {
+    color: var(--status-danger-fg);
+    font-size: 12px;
+    margin: 0;
+  }
+
+  .signature-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .signature-actions .btn {
     align-items: center;
     display: inline-flex;
     gap: 6px;
+  }
+
+  .save-reason {
+    color: var(--text-secondary);
+    font-size: 12px;
   }
 </style>

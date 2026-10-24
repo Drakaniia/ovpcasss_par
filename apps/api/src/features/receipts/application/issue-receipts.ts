@@ -11,6 +11,7 @@ import { enqueueEmail } from '../../../email/outbox';
 import { receiptIssuedTemplate } from '@par/email';
 import type { Env } from '../../../env';
 import { createId } from '../../../lib/ids';
+import { receiptSignatoryFor } from '../../settings/application/receipt-signatory';
 
 /**
  * The receipt bytes for one person in charge. Shared by issuance and by a
@@ -23,6 +24,8 @@ export async function renderReceiptBytes(
 ): Promise<Uint8Array> {
   if (!report.approvedAt) throw new Error('An unapproved record has no receipt');
 
+  const signatory = await receiptSignatoryFor(env);
+
   return renderReceipt({
     referenceNo: report.referenceNo,
     recipientName: pic.name,
@@ -32,8 +35,8 @@ export async function renderReceiptBytes(
     activityEndDate: report.activityEndDate,
     location: report.location,
     approvedAt: report.approvedAt,
-    signatoryName: env.RECEIPT_SIGNATORY_NAME ?? 'DR. LINCOLN V. TAN',
-    signatoryTitle: env.RECEIPT_SIGNATORY_TITLE ?? 'VPCASSS',
+    signatoryName: signatory.name,
+    signatoryTitle: signatory.title,
   });
 }
 
