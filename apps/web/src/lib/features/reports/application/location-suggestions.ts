@@ -43,6 +43,23 @@ export function rankLocations(
   return [...prefixes, ...substrings].slice(0, limit);
 }
 
+/**
+ * Drops the history rows this account removed. Address rows always survive: a
+ * provider result is not ours to forget, and it never appears twice.
+ */
+export function withoutHiddenLocations(
+  items: readonly LocationSuggestion[],
+  hidden: readonly string[],
+): LocationSuggestion[] {
+  if (hidden.length === 0) return [...items];
+
+  const gone = new Set(hidden.map((value) => normalizeLocation(value).toLowerCase()));
+
+  return items.filter(
+    (item) => item.source !== 'office' || !gone.has(normalizeLocation(item.location).toLowerCase()),
+  );
+}
+
 /** Office history leads; an address suggestion never displaces it. */
 export function mergeSuggestions(
   office: readonly LocationSuggestion[],
