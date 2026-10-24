@@ -12,7 +12,9 @@
 </script>
 
 {#snippet inline(spans: NarrativeInline[])}
-  {#each spans as span, index (index)}{#if span.bold}<strong>{span.text}</strong>{:else if span.underline}<u>{span.text}</u>{:else if span.italic}<em>{span.text}</em>{:else}{span.text}{/if}{/each}
+  {#each spans as span, index (index)}{#if span.bold}<strong>{span.text}</strong
+      >{:else if span.underline}<u>{span.text}</u>{:else if span.italic}<em>{span.text}</em
+      >{:else}{span.text}{/if}{/each}
 {/snippet}
 
 <div class="narrative-markdown">
@@ -40,7 +42,9 @@
         {/if}
       {:else}
         <p>
-          {#each block.lines as line, index (index)}{@render inline(line)}{#if index < block.lines.length - 1}<br />{/if}{/each}
+          {#each block.lines as line, index (index)}{@render inline(
+              line,
+            )}{#if index < block.lines.length - 1}<br />{/if}{/each}
         </p>
       {/if}
     {/each}

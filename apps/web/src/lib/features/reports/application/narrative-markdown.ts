@@ -3,8 +3,4 @@
  * @par/shared so the parser is available to both web and desktop.
  */
 
-export {
-  type MarkdownCommand,
-  type MarkdownEdit,
-  applyMarkdown,
-} from '@par/shared';
+export { type MarkdownCommand, type MarkdownEdit, applyMarkdown } from '@par/shared';

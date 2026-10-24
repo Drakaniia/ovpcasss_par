@@ -83,20 +83,27 @@ describe('NarrativeMarkdown', () => {
 });
 
 describe('NarrativeEditor', () => {
-  it('renders the Write/Preview switch and formatting toolbar while editable', () => {
+  it('shows the formatting toolbar and a live preview while editable', () => {
     const { body } = render(NarrativeEditor, {
       props: { detail: detail(), onreload: async () => {} },
     });
 
-    expect(body).toContain('>Write</button>');
-    expect(body).toContain('>Preview</button>');
     expect(body).toContain('aria-label="Narrative formatting"');
+    expect(body).toContain('id="narrative"');
+    // The preview is always on the page, so no mode switch is offered.
+    expect(body).toContain('>Preview</h3>');
+    expect(body).toContain('No narrative text yet.');
+    expect(body).not.toContain('>Preview</button>');
+    expect(body).not.toContain('>Write</button>');
     expect(body).toContain('Submit narrative');
   });
 
   it('holds no editor or submit action on a decided record', () => {
     const { body } = render(NarrativeEditor, {
-      props: { detail: detail({ status: 'APPROVED', canWriteNarrative: false }), onreload: async () => {} },
+      props: {
+        detail: detail({ status: 'APPROVED', canWriteNarrative: false }),
+        onreload: async () => {},
+      },
     });
 
     expect(body).toContain('read-only');
