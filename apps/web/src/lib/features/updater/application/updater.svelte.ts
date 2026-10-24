@@ -1,3 +1,4 @@
+import { loadPreferences } from '$lib/features/preferences/application/preferences.svelte';
 import { createPlatform } from '$lib/platform';
 import type { AvailableUpdate, Updater } from '$lib/platform/contracts';
 
@@ -46,6 +47,7 @@ async function initialise(): Promise<void> {
   const current = await updater().catch(() => null);
   if (!current?.supported) return;
 
+  await loadPreferences();
   updaterState.prefs = loadUpdaterPrefs();
   updaterState.currentVersion = await current.currentVersion().catch(() => '');
   updaterState.supported = true;
