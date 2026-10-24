@@ -11,7 +11,7 @@ to change a contract. Never claim a check passed without running it this session
 
 ```bash
 pnpm install                                        # lockfile is committed; CI uses --frozen-lockfile
-pnpm --filter @par/web --filter @par/api dev        # browser work: web :5173 -> API :8787
+pnpm --filter @par/web --filter @par/api dev        # browser work: web :5173 -> API :8787 (remote bindings)
 pnpm --filter @par/desktop dev                      # desktop; its beforeDevCommand starts web+api
 pnpm build                                          # every package, Tauri included (Windows only)
 pnpm turbo run build --filter=!@par/desktop         # the build CI runs
@@ -77,6 +77,14 @@ desktop → nothing from apps
 - Shell differences (drafts, tokens, file dialogs, downloads, updater) go behind
   `src/lib/platform/contracts.ts`. Tauri adapters are lazily imported — keep them
   out of the browser bundle.
+- The File/Edit/View menu toolbar and the window controls are desktop-shell UI:
+  `TitleBar` asks `isTauri()` until `chromeState.controllable` answers, renders
+  the menus only when true, and the browser bar keeps its own side padding. Do
+  not offer a command the page cannot carry out.
+- No browser storage of any kind: per-account UI state — zoom, updater choices,
+  tour record, removed location history — lives in `/me/preferences` on the users
+  row and is read once per session. Anything that needs to survive a reload goes
+  through that record, not `localStorage`.
 - API routes are `features/<name>/routes.ts`, registered in `app.ts`. Report
   sub-resources (review, approval, attachments, acknowledgement) merge onto
   `/reports` there, not as separate mounts.
@@ -121,6 +129,10 @@ desktop → nothing from apps
 - Secrets come from `apps/api/.dev.vars` (copy `.dev.vars.example`). Set
   `EMAIL_PROVIDER=console` locally to print mail, including verification links.
   Google sign-in only appears when both OAuth values are set.
+- The API dev script runs `wrangler dev --remote`, so local dev uses the deployed
+  D1, R2 and static assets: a record created locally is a real one. Queues are
+  unsupported in remote mode, so outbound mail rows end `FAILED` (visible in the
+  admin email log) instead of sending. It needs `wrangler login` once.
 - The Vite proxy keeps `changeOrigin: false` because the Worker's CSRF guard
   compares `Origin` to `Host`; rewriting the host 403s every write.
 - Desktop builds need an absolute `VITE_API_BASE_URL`, and its host must be in
@@ -156,6 +168,15 @@ brand hex lives only in `tokens.css`.
   rather than forking them into a page. shadcn-svelte primitives are copied into
   the repo, not imported.
 - Svelte 5 runes are the state model (`$props()`, `$state`).
+- The print sheet (`PrintRecord`) copies the acknowledgment receipt's letterhead:
+  centered BSU block, blue rule, heavy form rule, Book Antiqua/Palatino serif at
+  10 pt with 9 pt section headings on plain black hairlines. The downloadable
+  facsimile PDF is a separate renderer in `packages/export`; changing one does not
+  change the other.
+- The narrative editor always shows its formatted preview beneath the textarea.
+  There is no Write/Preview switch — a toolbar command renders immediately.
+- The wizard's "Total number of PIC" is read from the PIC rows, never typed.
+  `totalPic` still travels in the contract; it is only the input that is derived.
 
 ## Commits
 
