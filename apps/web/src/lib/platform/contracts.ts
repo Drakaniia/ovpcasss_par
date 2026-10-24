@@ -1,9 +1,36 @@
 /** Everything that differs between the web build and the Tauri build (spec §3). */
 
+/** One account the shell may switch to, without its token (report 5). */
+export interface SavedAccount {
+  id: string;
+  name: string;
+  email: string;
+  active: boolean;
+}
+
+/** The account facts a sign-in already knows, stored beside its token. */
+export interface SavedAccountIdentity {
+  id: string;
+  name: string;
+  email: string;
+}
+
+/**
+ * The credential store behind sign-in. The desktop shell keeps each account's
+ * token in the OS store so it can switch instantly; the browser keeps only the
+ * names and emails it may prefill, because its session is one HttpOnly cookie.
+ */
 export interface SecureTokenStore {
   read(): Promise<string | null>;
-  write(token: string): Promise<void>;
+  write(token: string, account?: SavedAccountIdentity): Promise<void>;
+  /** Ends the active account's session; other saved accounts stay. */
   clear(): Promise<void>;
+  list(): Promise<SavedAccount[]>;
+  /** Returns the account's token on desktop; null when only the metadata is known. */
+  switchTo(id: string): Promise<string | null>;
+  forget(id: string): Promise<void>;
+  /** Records the signed-in account's name and email, with or without a token. */
+  remember(account: SavedAccountIdentity): Promise<void>;
 }
 
 export interface PickedFile {
@@ -78,6 +105,8 @@ export interface WindowChrome {
   /** Bypasses the close guard; used once the guard has been answered. */
   destroy(): Promise<void>;
   setFullscreen(on: boolean): Promise<void>;
+  /** Restores the default window size and position (report 11). */
+  resetSize(): Promise<void>;
   isFullscreen(): Promise<boolean>;
   setZoom(scale: number): Promise<void>;
   openDevtools(): Promise<void>;
