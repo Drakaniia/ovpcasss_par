@@ -42,18 +42,21 @@
 </script>
 
 <article class="sheet" aria-label="Post-activity report facsimile">
+  <!-- The letterhead follows OVPCASSS-F-013: university block, blue brand rule,
+       office line, then the heavy form rule that closes the head. -->
   <header class="letterhead">
-    <div class="office">
-      <p class="office-name">OVPCASSS</p>
-      <p class="office-line">
-        Office of the Vice President for Culture, Arts, Sports and Student Services
-      </p>
-      <p class="office-line">Bukidnon State University · Malaybalay City, Bukidnon</p>
-    </div>
     <div class="reference">
       <p class="reference-no">{detail.referenceNo}</p>
       <p class="reference-status">{STATUS_PRESENTATION[detail.status].label}</p>
     </div>
+
+    <p class="university">Bukidnon State University</p>
+    <p class="address">Malaybalay City, Bukidnon, 8700</p>
+    <p class="website">www.buksu.edu.ph</p>
+    <span class="brand-rule" aria-hidden="true"></span>
+    <p class="office">
+      Office of the Vice President for Culture, Arts, Sports and Student Services
+    </p>
   </header>
 
   <h1 class="document-title">POST-ACTIVITY REPORT</h1>
@@ -151,90 +154,130 @@
 </article>
 
 <style>
+  /* The sheet mirrors OVPCASSS-F-013: Book Antiqua on A4, 10 pt body, the
+     university letterhead, the ruling of the form, and black type throughout. */
   .sheet {
     background: #fff;
     box-shadow: var(--shadow-raised);
-    color: #171b22;
-    font-family: 'Times New Roman', Times, serif;
+    color: #000;
+    font-family: 'Book Antiqua', 'Palatino Linotype', Palatino, 'Times New Roman', serif;
+    font-size: 10pt;
+    line-height: 1.45;
     margin: 0 auto;
     max-width: 210mm;
     min-height: 297mm;
-    padding: 18mm 18mm 22mm;
+    padding: 14mm 19mm 18mm;
   }
 
   .letterhead {
-    align-items: flex-start;
-    border-bottom: 1.5px solid #1b2a4a;
-    display: flex;
-    gap: 16px;
-    justify-content: space-between;
-    padding-bottom: 10px;
-  }
-
-  .office-name {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    margin: 0;
-  }
-
-  .office-line {
-    font-size: 9px;
-    margin: 2px 0 0;
+    padding-top: 1mm;
+    position: relative;
+    text-align: center;
   }
 
   .reference {
+    position: absolute;
+    right: 0;
     text-align: right;
+    top: 1mm;
   }
 
   .reference-no {
-    font-size: 11px;
+    font-size: 10pt;
     font-weight: 700;
     margin: 0;
   }
 
   .reference-status {
-    font-size: 9px;
-    margin: 2px 0 0;
+    font-size: 8pt;
+    letter-spacing: 0.08em;
+    margin: 1.5pt 0 0;
     text-transform: uppercase;
   }
 
+  .university {
+    font-size: 10pt;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  .address,
+  .website {
+    font-size: 10pt;
+    margin: 1pt 0 0;
+  }
+
+  .website {
+    color: #0563c1;
+  }
+
+  /* The link rule under the university address, as the form prints it. */
+  .brand-rule {
+    background: #0563c1;
+    display: block;
+    height: 0.6pt;
+    margin: 2mm auto 1.5mm;
+    width: 31mm;
+  }
+
+  .office {
+    font-size: 7pt;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    margin: 0 auto;
+    max-width: 150mm;
+    text-transform: uppercase;
+  }
+
+  /* The heavy form rule that closes the letterhead. */
+  .letterhead::after {
+    background: #000;
+    content: '';
+    display: block;
+    height: 3.2pt;
+    margin-top: 2mm;
+  }
+
   .document-title {
-    font-size: 16px;
+    font-size: 12pt;
+    font-weight: 700;
     letter-spacing: 0.08em;
-    margin: 22px 0 4px;
+    margin: 9mm 0 2mm;
     text-align: center;
   }
 
   .activity-title {
-    font-size: 12px;
+    font-size: 10pt;
     font-weight: 700;
-    margin: 0 0 18px;
+    margin: 0 0 7mm;
     text-align: center;
   }
 
   h2 {
-    border-bottom: 0.75px solid #b9a45a;
-    font-size: 9px;
+    border-bottom: 0.75pt solid #000;
+    font-size: 9pt;
+    font-weight: 700;
     letter-spacing: 0.08em;
-    margin: 18px 0 6px;
-    padding-bottom: 3px;
+    margin: 7mm 0 2.5mm;
+    padding-bottom: 1mm;
     text-transform: uppercase;
   }
 
   .facts {
     display: grid;
-    font-size: 10px;
-    gap: 4px 12px;
-    grid-template-columns: 40mm 1fr;
+    font-size: 10pt;
+    gap: 1.5mm 6mm;
+    grid-template-columns: 42mm 1fr;
     margin: 0;
   }
 
   .facts dt {
-    color: #5a6070;
-    font-size: 8px;
+    font-size: 7.5pt;
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
+    padding-top: 0.6mm;
     text-transform: uppercase;
   }
 
@@ -247,50 +290,49 @@
   }
 
   .narrative :global(.narrative-markdown) {
-    font-size: 10.5px;
-    line-height: 1.55;
+    font-size: 10pt;
+    line-height: 1.5;
   }
 
   .narrative :global(h3),
   .narrative :global(h4),
   .narrative :global(h5) {
-    font-size: 11px;
-    margin: 6px 0 3px;
+    font-size: 10pt;
+    margin: 3mm 0 1mm;
   }
 
   .attachments {
-    font-size: 10px;
+    font-size: 10pt;
     margin: 0;
-    padding-left: 16px;
+    padding-left: 5mm;
   }
 
   .signatures {
     display: grid;
-    gap: 18mm;
+    gap: 12mm;
     grid-template-columns: 1fr 1fr;
-    margin-top: 12mm;
+    margin-top: 16mm;
   }
 
   .signature-slot {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1pt;
     min-height: 22mm;
   }
 
   .rule {
-    border-bottom: 0.75px solid #171b22;
+    border-bottom: 0.75pt solid #000;
     display: block;
   }
 
   .signature-label {
-    font-size: 10px;
-    margin: 4px 0 0;
+    font-size: 9pt;
+    margin: 3pt 0 0;
   }
 
   .signature-meta {
-    color: #5a6070;
-    font-size: 8.5px;
+    font-size: 8pt;
     margin: 0;
   }
 
