@@ -13,10 +13,11 @@
   import { onMount } from 'svelte';
 
   import { api } from '$lib/api/client';
-  import { ApiError, apiDownload, saveBlob } from '$lib/api/http';
+  import { ApiError } from '$lib/api/http';
   import ErrorState from '$lib/components/ErrorState.svelte';
   import SkeletonDocument from '$lib/components/SkeletonDocument.svelte';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
+  import RecordAttachments from '$lib/features/attachments/presentation/RecordAttachments.svelte';
   import ReceiptList from '$lib/features/receipts/presentation/ReceiptList.svelte';
   import ReceiptPreview from '$lib/features/receipts/presentation/ReceiptPreview.svelte';
   import { formatDateRange, formatDateTime, formatLongDate } from '$lib/format/datetime';
@@ -26,6 +27,7 @@
 
   import DecisionPanel from './DecisionPanel.svelte';
   import NarrativeEditor from './NarrativeEditor.svelte';
+  import NarrativeMarkdown from './NarrativeMarkdown.svelte';
   import PrintRecord from './PrintRecord.svelte';
   import RecordHistory from './RecordHistory.svelte';
 
@@ -90,15 +92,6 @@
       };
     } catch {
       // Names are supporting text; the ids still identify the record.
-    }
-  }
-
-  async function downloadAttachment(attachmentId: string, fileName: string): Promise<void> {
-    try {
-      const blob = await apiDownload(`/reports/${id}/attachments/${attachmentId}/file`);
-      saveBlob(blob, fileName);
-    } catch {
-      toast.error('The attachment could not be downloaded. Try again.');
     }
   }
 
@@ -337,7 +330,7 @@
       {:else if detail.form.narrative.trim()}
         <section class="panel" aria-labelledby="narrative-heading">
           <h2 id="narrative-heading">Narrative report</h2>
-          <p class="narrative">{detail.form.narrative}</p>
+          <NarrativeMarkdown source={detail.form.narrative} />
           {#if detail.submittedAt}
             <p class="submitted-line">
               Submitted by {detail.submittedByName ?? 'the personnel in charge'} ·
@@ -348,23 +341,9 @@
       {/if}
 
       {#if detail.attachments.length > 0}
-        <section class="panel" aria-labelledby="attachments-title">
-          <h2 id="attachments-title">Attachments</h2>
-          <ul class="attachments">
-            {#each detail.attachments as attachment (attachment.id)}
-              <li>
-                <button
-                  class="attachment-link"
-                  type="button"
-                  onclick={() => void downloadAttachment(attachment.id, attachment.originalName)}
-                >
-                  {attachment.label || 'Attachment'}
-                </button>
-                <span class="attachment-name">{attachment.originalName}</span>
-              </li>
-            {/each}
-          </ul>
-        </section>
+        <div class="panel">
+          <RecordAttachments reportId={detail.id} attachments={detail.attachments} />
+        </div>
       {/if}
 
       {#if admin && detail.status === 'SUBMITTED'}
@@ -591,47 +570,10 @@
     font-size: 12px;
   }
 
-  .narrative {
-    font-size: 13px;
-    line-height: 1.6;
-    margin: 0;
-    white-space: pre-wrap;
-  }
-
   .submitted-line {
     color: var(--text-secondary);
     font-size: 11px;
     margin: 10px 0 0;
-  }
-
-  .attachments {
-    display: flex;
-    flex-direction: column;
-    font-size: 13px;
-    gap: 10px;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  .attachment-link {
-    background: none;
-    border: 0;
-    color: var(--brand-navy-700);
-    cursor: pointer;
-    font: inherit;
-    padding: 0;
-    text-align: left;
-  }
-
-  .attachment-link:hover {
-    text-decoration: underline;
-  }
-
-  .attachment-name {
-    color: var(--text-secondary);
-    display: block;
-    font-size: 12px;
   }
 
   .rail {
