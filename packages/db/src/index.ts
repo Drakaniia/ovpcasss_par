@@ -15,6 +15,7 @@ export * from './queries/report-search';
 export * from './queries/report-write';
 export * from './queries/reports';
 export * from './queries/sessions';
+export * from './queries/settings';
 export * from './queries/users';
 export * as schema from './schema';
 export type {
