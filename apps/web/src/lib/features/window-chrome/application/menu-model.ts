@@ -51,18 +51,18 @@ export const MENUS: readonly MenuDefinition[] = [
     id: 'edit',
     label: 'Edit',
     mnemonic: 'E',
+    /*
+     * No accelerators: undo, cut, copy, paste and select-all belong to the
+     * platform's editor (report 6). The menu still runs them on the focused
+     * field when clicked, and Paste explains that Ctrl+V is the path.
+     */
     items: [
-      { id: 'edit.undo', label: 'Undo', accelerator: 'Ctrl+Z' },
-      { id: 'edit.redo', label: 'Redo', accelerator: 'Ctrl+Y' },
-      { id: 'edit.cut', label: 'Cut', accelerator: 'Ctrl+X', separatorBefore: true },
-      { id: 'edit.copy', label: 'Copy', accelerator: 'Ctrl+C' },
-      { id: 'edit.paste', label: 'Paste', accelerator: 'Ctrl+V' },
-      {
-        id: 'edit.select-all',
-        label: 'Select all',
-        accelerator: 'Ctrl+A',
-        separatorBefore: true,
-      },
+      { id: 'edit.undo', label: 'Undo' },
+      { id: 'edit.redo', label: 'Redo' },
+      { id: 'edit.cut', label: 'Cut', separatorBefore: true },
+      { id: 'edit.copy', label: 'Copy' },
+      { id: 'edit.paste', label: 'Paste' },
+      { id: 'edit.select-all', label: 'Select all', separatorBefore: true },
     ],
   },
   {
@@ -92,6 +92,7 @@ export const MENUS: readonly MenuDefinition[] = [
     items: [
       { id: 'window.minimize', label: 'Minimize' },
       { id: 'window.toggle-maximize', label: 'Maximize' },
+      { id: 'window.reset-size', label: 'Reset size and position', separatorBefore: true },
       { id: 'window.close', label: 'Close', separatorBefore: true },
     ],
   },
