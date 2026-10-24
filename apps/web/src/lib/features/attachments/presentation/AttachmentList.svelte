@@ -132,25 +132,35 @@
 
         {#if item.status === 'FAILED'}
           <button
-            class="icon-action"
+            class="row-text-action"
             type="button"
             {disabled}
             aria-label="Retry {item.fileName}"
             onclick={() => onretry(item.key)}
           >
-            <RotateCw size={16} aria-hidden="true" />
+            <RotateCw size={14} aria-hidden="true" />
+            Retry
+          </button>
+          <button
+            class="row-text-action discard"
+            type="button"
+            {disabled}
+            aria-label="Discard {item.fileName}"
+            onclick={() => onremove(item.key)}
+          >
+            Discard
+          </button>
+        {:else}
+          <button
+            class="icon-action remove"
+            type="button"
+            {disabled}
+            aria-label="Remove {item.fileName}"
+            onclick={() => onremove(item.key)}
+          >
+            <Trash2 size={16} aria-hidden="true" />
           </button>
         {/if}
-
-        <button
-          class="icon-action remove"
-          type="button"
-          {disabled}
-          aria-label="Remove {item.fileName}"
-          onclick={() => onremove(item.key)}
-        >
-          <Trash2 size={16} aria-hidden="true" />
-        </button>
       </div>
     </li>
   {/each}
@@ -260,6 +270,28 @@
   }
 
   .icon-action.remove:hover:not(:disabled) {
+    background: var(--status-danger-bg);
+    color: var(--status-danger-fg);
+  }
+
+  .row-text-action {
+    align-items: center;
+    background: transparent;
+    border-radius: var(--radius-card);
+    color: var(--text-secondary);
+    display: inline-flex;
+    font-size: 12px;
+    gap: 4px;
+    min-height: 28px;
+    padding: 0 6px;
+  }
+
+  .row-text-action:hover:not(:disabled) {
+    background: var(--surface-page);
+    color: var(--text-primary);
+  }
+
+  .row-text-action.discard:hover:not(:disabled) {
     background: var(--status-danger-bg);
     color: var(--status-danger-fg);
   }
