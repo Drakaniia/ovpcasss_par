@@ -36,6 +36,8 @@ export const users = sqliteTable(
     emailWorkflow: integer('email_workflow', { mode: 'boolean' }).notNull().default(true),
     emailReminders: integer('email_reminders', { mode: 'boolean' }).notNull().default(true),
     emailVerifiedAt: text('email_verified_at'),
+    /** JSON of the account's UI preferences; null until the first change. */
+    preferences: text('preferences'),
     lastSignedInAt: text('last_signed_in_at'),
     deletedAt: text('deleted_at'),
     createdAt: text('created_at').notNull(),
