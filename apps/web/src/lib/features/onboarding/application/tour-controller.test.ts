@@ -1,6 +1,11 @@
 import type { Role } from '@par/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { api } from '$lib/api/client';
+import {
+  preferencesState,
+  resetPreferences,
+} from '$lib/features/preferences/application/preferences.svelte';
 import { session } from '$lib/session/session.svelte';
 
 import {
@@ -14,20 +19,7 @@ import {
   startTour,
   tour,
 } from './tour-controller.svelte';
-import { tourKey, type StorageLike } from './tour-storage';
 import type { ResolvedStep } from './tour-steps';
-
-function fakeStorage() {
-  const map = new Map<string, string>();
-  const storage = {
-    map,
-    getItem: (key: string) => map.get(key) ?? null,
-    setItem: (key: string, value: string) => void map.set(key, value),
-    removeItem: (key: string) => void map.delete(key),
-  } satisfies StorageLike & { map: Map<string, string> };
-
-  return storage;
-}
 
 function signIn(id: string, role: Role = 'PERSONNEL') {
   session.user = {
@@ -69,18 +61,17 @@ function startWithSteps() {
   tour.index = 0;
 }
 
-let storage: ReturnType<typeof fakeStorage>;
-
 beforeEach(() => {
-  storage = fakeStorage();
-  vi.stubGlobal('localStorage', storage);
+  resetPreferences();
+  preferencesState.loaded = true;
+  vi.spyOn(api.preferences, 'save').mockResolvedValue({ preferences: {} });
   closeTour(false);
   signIn(`account-${Math.random().toString(36).slice(2)}`);
   maybeAutoStart({ pathname: '/reports', viewportWidth: 1280 });
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   closeTour(false);
 });
 
@@ -104,9 +95,7 @@ describe('step transitions', () => {
 
     expect(tour.status).toBe('idle');
     expect(tour.steps).toEqual([]);
-    expect(JSON.parse(storage.map.get(tourKey(session.user!.id)) ?? '')).toMatchObject({
-      outcome: 'completed',
-    });
+    expect(preferencesState.value.tour).toMatchObject({ outcome: 'completed' });
   });
 
   it('records a skip as an ending, not a pause', () => {
@@ -116,9 +105,7 @@ describe('step transitions', () => {
 
     expect(tour.status).toBe('idle');
     expect(hasCompletedTour()).toBe(true);
-    expect(JSON.parse(storage.map.get(tourKey(session.user!.id)) ?? '')).toMatchObject({
-      outcome: 'skipped',
-    });
+    expect(preferencesState.value.tour).toMatchObject({ outcome: 'skipped' });
   });
 
   it('closes without writing when the surface no longer suits the tour', () => {
@@ -156,25 +143,14 @@ describe('manual entry points', () => {
     const navigate = vi.fn(() => Promise.resolve());
     resetOnboarding({ pathname: '/reports', navigate });
 
-    expect(storage.map.has(tourKey(session.user!.id))).toBe(false);
+    expect(preferencesState.value.tour).toBeUndefined();
     expect(hasCompletedTour()).toBe(false);
     expect(navigate).toHaveBeenCalledTimes(1);
   });
 
-  it('still suppresses the automatic tour when storage refuses writes', () => {
-    const refusing: StorageLike = {
-      getItem: () => {
-        throw new Error('blocked');
-      },
-      setItem: () => {
-        throw new Error('blocked');
-      },
-      removeItem: () => {
-        throw new Error('blocked');
-      },
-    };
-    vi.stubGlobal('localStorage', refusing);
-    signIn('blocked-account');
+  it('still suppresses the automatic tour when the API refuses the write', () => {
+    vi.mocked(api.preferences.save).mockRejectedValue(new Error('offline'));
+    signIn('offline-account');
     maybeAutoStart({ pathname: '/reports', viewportWidth: 1280 });
 
     expect(hasCompletedTour()).toBe(false);

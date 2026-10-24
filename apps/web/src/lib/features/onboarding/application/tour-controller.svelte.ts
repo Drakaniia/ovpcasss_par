@@ -8,6 +8,11 @@
  */
 import { tick } from 'svelte';
 
+import {
+  clearTourRecord,
+  savePreferences,
+  tourRecord,
+} from '$lib/features/preferences/application/preferences.svelte';
 import { session } from '$lib/session/session.svelte';
 import { toast } from '$lib/toast/toast.svelte';
 
@@ -17,13 +22,12 @@ import {
   TOUR_MIN_WIDTH,
   type HomeInboxStatus,
 } from './tour-eligibility';
-import {
-  clearTourRecord,
-  isTourComplete,
-  writeTourOutcome,
-  type TourOutcome,
-} from './tour-storage';
 import { hasSpotlightStep, resolveTourSteps, type ResolvedStep } from './tour-steps';
+
+/** Bumping this re-arms the tour once for everybody after a copy change. */
+const TOUR_VERSION = 1;
+
+type TourOutcome = 'completed' | 'skipped';
 
 export type Navigate = () => void | Promise<void>;
 
@@ -76,7 +80,7 @@ export function hasCompletedTour(): boolean {
 
   if (completion.userId !== id) {
     completion.userId = id;
-    completion.value = id ? isTourComplete(id) : false;
+    completion.value = id ? tourRecord() !== null : false;
   }
 
   return completion.value;
@@ -145,7 +149,7 @@ export function startTour(options: StartOptions): void {
 export function resetOnboarding(options: StartOptions): void {
   const id = session.user?.id;
 
-  if (id) clearTourRecord(id);
+  if (id) clearTourRecord();
   completion.userId = id ?? null;
   completion.value = false;
   startedThisSession = false;
@@ -192,7 +196,9 @@ export function closeTour(markComplete: boolean): void {
 function recordOutcome(outcome: TourOutcome): void {
   const id = session.user?.id;
 
-  if (id) writeTourOutcome(id, outcome);
+  if (id) {
+    savePreferences({ tour: { version: TOUR_VERSION, outcome, at: new Date().toISOString() } });
+  }
   completion.userId = id ?? null;
   completion.value = true;
 }
