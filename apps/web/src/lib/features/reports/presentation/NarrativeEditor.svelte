@@ -1,7 +1,7 @@
 <script lang="ts">
   import { validateNarrative, type ReportDetail, type ValidationIssue } from '@par/shared';
   import { Send } from '@lucide/svelte';
-  import { onMount, tick } from 'svelte';
+  import { tick } from 'svelte';
 
   import { api } from '$lib/api/client';
   import { ApiError, validationIssues } from '$lib/api/http';
@@ -21,11 +21,12 @@
   /**
    * The personnel in charge write the narrative here (spec §8.3). Save draft is
    * secondary; Submit narrative is the single filled action on the screen and is
-   * available only while the record is PENDING or RETURNED. A local mirror keeps
-   * the text through a dropped connection; the server draft always wins until
-   * the writer chooses the device copy. Formatting is the Markdown subset the
-   * parser in `@par/shared` understands (report 7), and a refused submission
-   * names the field it is about (report 8).
+   * available only while the record is PENDING or RETURNED. The draft lives on
+   * the record alone — nothing is written to browser storage. The formatted page
+   * renders below the textarea as it is typed, so a toolbar command shows its
+   * result without a mode switch. Formatting is the Markdown subset the parser in
+   * `@par/shared` understands (report 7), and a refused submission names the
+   * field it is about (report 8).
    */
   let {
     detail,
@@ -45,13 +46,9 @@
   let issues = $state<ValidationIssue[]>([]);
   let savedAt = $state<string | null>(null);
   let signatureSigned = $state(Boolean(detail.narrativeSignature));
-  let view = $state<'write' | 'preview'>('write');
   let textarea = $state<HTMLTextAreaElement | null>(null);
   let attachmentsBlock = $state<HTMLElement | null>(null);
-  /** A local copy that disagrees with a later server draft is never auto-applied. */
-  let mirrorConflict = $state<string | null>(null);
   const idempotencyKey = crypto.randomUUID();
-  const mirrorKey = `par-narrative:${detail.id}`;
 
   const editable = $derived(detail.status === 'PENDING' || detail.status === 'RETURNED');
   const dirty = $derived(narrative !== detail.form.narrative);
@@ -62,63 +59,8 @@
     issues.find((issue) => issue.field === 'attachments')?.message ?? null,
   );
 
-  type Mirror = { narrative: string; updatedAt: string };
-
-  function readMirror(): Mirror | null {
-    try {
-      const raw = localStorage.getItem(mirrorKey);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as Partial<Mirror>;
-      return typeof parsed.narrative === 'string' && typeof parsed.updatedAt === 'string'
-        ? { narrative: parsed.narrative, updatedAt: parsed.updatedAt }
-        : null;
-    } catch {
-      return null;
-    }
-  }
-
-  function writeMirror(value: string): void {
-    try {
-      localStorage.setItem(
-        mirrorKey,
-        JSON.stringify({ narrative: value, updatedAt: detail.updatedAt }),
-      );
-    } catch {
-      // A full or unavailable store only costs the offline copy.
-    }
-  }
-
-  onMount(() => {
-    if (!editable) return;
-    const mirror = readMirror();
-    if (!mirror || mirror.narrative === narrative) return;
-
-    if (!detail.form.narrative.trim()) {
-      narrative = mirror.narrative;
-      return;
-    }
-
-    if (mirror.updatedAt !== detail.updatedAt) mirrorConflict = mirror.narrative;
-  });
-
-  function useMirror(): void {
-    if (mirrorConflict === null) return;
-    narrative = mirrorConflict;
-    mirrorConflict = null;
-  }
-
-  function discardMirror(): void {
-    mirrorConflict = null;
-    try {
-      localStorage.removeItem(mirrorKey);
-    } catch {
-      // Nothing to clear.
-    }
-  }
-
   function updateNarrative(value: string): void {
     narrative = value;
-    writeMirror(value);
 
     // Typing answers the narrative complaint; the attachments one stays.
     issues = issues.filter((issue) => issue.field !== 'narrative');
@@ -128,7 +70,6 @@
   async function format(command: MarkdownCommand): Promise<void> {
     if (!textarea) return;
 
-    view = 'write';
     const result = applyMarkdown(
       command,
       narrative,
@@ -157,8 +98,6 @@
     await tick();
 
     if (issues.some((issue) => issue.field === 'narrative')) {
-      view = 'write';
-      await tick();
       textarea?.focus();
       return;
     }
@@ -202,11 +141,6 @@
     try {
       if (dirty) await api.reports.saveNarrative(detail.id, { narrative });
       await api.reports.submit(detail.id, idempotencyKey);
-      try {
-        localStorage.removeItem(mirrorKey);
-      } catch {
-        // Nothing to clear.
-      }
       invalidateInboxAttention();
       toast.success('Narrative submitted. The office will review it.');
       await onreload();
@@ -243,73 +177,36 @@
 
     <div class="field-head">
       <label class="field-label" for="narrative">Narrative</label>
-      <div class="view-switch" role="tablist" aria-label="Narrative view">
-        <button
-          class="view-tab"
-          class:is-active={view === 'write'}
-          type="button"
-          role="tab"
-          aria-selected={view === 'write'}
-          onclick={() => (view = 'write')}>Write</button
-        >
-        <button
-          class="view-tab"
-          class:is-active={view === 'preview'}
-          type="button"
-          role="tab"
-          aria-selected={view === 'preview'}
-          onclick={() => (view = 'preview')}>Preview</button
-        >
-      </div>
     </div>
 
-    {#if view === 'write'}
-      <NarrativeToolbar oncommand={(command) => void format(command)} disabled={submitting} />
-      <textarea
-        bind:this={textarea}
-        id="narrative"
-        class="textarea narrative-input"
-        rows="12"
-        maxlength="50000"
-        placeholder="Write the narrative report."
-        aria-describedby={[
-          'narrative-hint',
-          narrativeIssue ? 'narrative-error' : '',
-          error ? 'submit-error' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-        aria-invalid={narrativeIssue ? 'true' : undefined}
-        value={narrative}
-        oninput={(event) => updateNarrative(event.currentTarget.value)}></textarea>
-      <p class="hint" id="narrative-hint">
-        Formatting: # Heading 1, ## Heading 2, **bold**, *italic*, __underline__, - list, 1. list.
-      </p>
-    {:else}
-      <div class="preview" role="tabpanel" aria-label="Narrative preview">
+    <NarrativeToolbar oncommand={(command) => void format(command)} disabled={submitting} />
+    <textarea
+      bind:this={textarea}
+      id="narrative"
+      class="textarea narrative-input"
+      rows="12"
+      maxlength="50000"
+      placeholder="Write the narrative report."
+      aria-describedby={['narrative-hint', narrativeIssue ? 'narrative-error' : '', error ? 'submit-error' : '']
+        .filter(Boolean)
+        .join(' ')}
+      aria-invalid={narrativeIssue ? 'true' : undefined}
+      value={narrative}
+      oninput={(event) => updateNarrative(event.currentTarget.value)}></textarea>
+    <p class="hint" id="narrative-hint">
+      Formatting: # Heading 1, ## Heading 2, **bold**, *italic*, __underline__, - list, 1. list.
+    </p>
+
+    <!-- Live preview: the formatted page follows every keystroke and toolbar command. -->
+    <section class="preview-block" aria-labelledby="narrative-preview-title">
+      <h3 id="narrative-preview-title">Preview</h3>
+      <div class="preview">
         <NarrativeMarkdown source={narrative} />
       </div>
-    {/if}
+    </section>
 
     {#if narrativeIssue}
       <p class="field-error" id="narrative-error" role="alert">{narrativeIssue}</p>
-    {/if}
-
-    {#if mirrorConflict !== null}
-      <div class="mirror-notice" role="status">
-        <p>
-          This device holds a copy of the narrative that differs from the draft saved on the record.
-          Choose which text to keep.
-        </p>
-        <div class="mirror-actions">
-          <button class="btn btn-outline btn-sm" type="button" onclick={useMirror}>
-            Use this device's copy
-          </button>
-          <button class="btn btn-ghost btn-sm" type="button" onclick={discardMirror}>
-            Keep the record's draft
-          </button>
-        </div>
-      </div>
     {/if}
 
     <div class="attachment-block" bind:this={attachmentsBlock} tabindex="-1">
@@ -394,35 +291,11 @@
     align-items: center;
     display: flex;
     gap: 12px;
-    justify-content: space-between;
   }
 
   .field-label {
     font-size: 13px;
     font-weight: 500;
-  }
-
-  .view-switch {
-    background: var(--surface-page);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    display: inline-flex;
-    padding: 2px;
-  }
-
-  .view-tab {
-    background: transparent;
-    border-radius: 999px;
-    color: var(--text-secondary);
-    font-size: 12px;
-    height: 26px;
-    padding: 0 10px;
-  }
-
-  .view-tab.is-active {
-    background: var(--surface-card);
-    box-shadow: var(--shadow-card);
-    color: var(--text-primary);
   }
 
   .narrative-input {
@@ -432,34 +305,18 @@
     resize: vertical;
   }
 
+  .preview-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
   .preview {
     background: var(--surface-page);
     border: 1px solid var(--border);
     border-radius: var(--radius-card);
-    min-height: 220px;
+    min-height: 120px;
     padding: 12px 14px;
-  }
-
-  .mirror-notice {
-    background: var(--status-warning-bg);
-    border-radius: var(--radius-card);
-    color: var(--status-warning-fg);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 12px;
-  }
-
-  .mirror-notice p {
-    font-size: 12px;
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  .mirror-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
   }
 
   .field-error {
