@@ -15,7 +15,6 @@ export function googleCallbackUrl(input: {
   return new URL(CALLBACK_PATH, origin).toString();
 }
 
-
 export interface GoogleAuthUrlInput {
   clientId: string;
   redirectUri: string;

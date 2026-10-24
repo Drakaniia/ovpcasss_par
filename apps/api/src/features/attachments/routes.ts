@@ -6,7 +6,7 @@ import {
 import { Hono, type Context } from 'hono';
 
 import type { AppEnv } from '../../env';
-import { appOrigin } from '../../lib/app-origin';
+import { clientOrigin } from '../../lib/app-origin';
 import { recordAudit } from '../../lib/audit';
 import { signedDownloadUrl } from '../../lib/download-url';
 import { toHex } from '../../lib/encoding';
@@ -178,7 +178,7 @@ attachmentRoutes.put(
 function uploadContentUrl(c: Context<AppEnv>, reportId: string, attachmentId: string): string {
   return new URL(
     `/api/v1/reports/${reportId}/attachments/${attachmentId}/content`,
-    appOrigin(c),
+    clientOrigin(c),
   ).toString();
 }
 
