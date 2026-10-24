@@ -10,6 +10,7 @@ import { exportRoutes } from './features/exports/routes';
 import { inboxRoutes } from './features/inbox/routes';
 import { locationRoutes } from './features/locations/routes';
 import { notificationRoutes } from './features/notifications/routes';
+import { preferenceRoutes } from './features/preferences/routes';
 import { profileRoutes } from './features/profile/routes';
 import { receiptRoutes } from './features/receipts/routes';
 import { referenceDataRoutes } from './features/reference-data/routes';
@@ -47,6 +48,7 @@ api.route('/dev', devEmailRoutes);
 api.route('/me', profileRoutes);
 api.route('/me', inboxRoutes);
 api.route('/me', notificationRoutes);
+api.route('/me', preferenceRoutes);
 api.route('/receipts', receiptRoutes);
 api.route('/settings', settingsRoutes);
 
