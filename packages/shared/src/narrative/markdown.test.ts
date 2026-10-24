@@ -47,12 +47,7 @@ describe('parseNarrative', () => {
   it('separates headings, paragraphs, and lists', () => {
     const blocks = parseNarrative('# Title\n\nFirst line\nSecond line\n\n- one\n- two\n\n1. step');
 
-    expect(blocks.map((block) => block.kind)).toEqual([
-      'heading',
-      'paragraph',
-      'list',
-      'list',
-    ]);
+    expect(blocks.map((block) => block.kind)).toEqual(['heading', 'paragraph', 'list', 'list']);
     expect(blocks[0]).toMatchObject({ kind: 'heading', level: 1 });
     expect(blocks[1]).toMatchObject({ kind: 'paragraph' });
     expect(blocks[1]?.kind === 'paragraph' && blocks[1].lines).toHaveLength(2);
@@ -83,7 +78,9 @@ describe('parseNarrative', () => {
 
 describe('narrativeToPlainText', () => {
   it('drops the markers and keeps the reading order', () => {
-    const text = narrativeToPlainText('# Summary\n\n**Bold** and *soft*\n\n- one\n- two\n\n1. first');
+    const text = narrativeToPlainText(
+      '# Summary\n\n**Bold** and *soft*\n\n- one\n- two\n\n1. first',
+    );
 
     expect(text).not.toContain('#');
     expect(text).not.toContain('*');
