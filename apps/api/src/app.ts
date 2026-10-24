@@ -15,6 +15,7 @@ import { receiptRoutes } from './features/receipts/routes';
 import { referenceDataRoutes } from './features/reference-data/routes';
 import { reportRoutes } from './features/reports/routes';
 import { searchRoutes } from './features/search/routes';
+import { settingsRoutes } from './features/settings/routes';
 import { userRoutes } from './features/users/routes';
 import { desktopCors } from './middleware/cors';
 import { requireSameOrigin } from './middleware/csrf';
@@ -47,6 +48,7 @@ api.route('/me', profileRoutes);
 api.route('/me', inboxRoutes);
 api.route('/me', notificationRoutes);
 api.route('/receipts', receiptRoutes);
+api.route('/settings', settingsRoutes);
 
 // Report sub-resources share the /reports base (spec §7.3); Hono merges them.
 api.route('/reports', reportRoutes);
