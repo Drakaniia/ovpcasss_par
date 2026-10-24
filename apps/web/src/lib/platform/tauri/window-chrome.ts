@@ -47,6 +47,11 @@ export function createWindowChrome(): WindowChrome {
       return (await currentWindow()).isFullscreen();
     },
 
+    async resetSize() {
+      const { invoke } = await import('@tauri-apps/api/core');
+      await invoke('window_reset_size');
+    },
+
     async setZoom(scale: number) {
       const { getCurrentWebview } = await webviewModule();
       await getCurrentWebview().setZoom(scale);
