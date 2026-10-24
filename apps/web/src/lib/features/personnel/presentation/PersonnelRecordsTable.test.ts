@@ -27,12 +27,25 @@ const RECEIPT = {
 };
 
 describe('PersonnelRecordsTable', () => {
-  it('makes the whole row a link through the title', () => {
-    const html = render(PersonnelRecordsTable, { props: { rows: [ROW] } }).body;
+  it('opens the preview from the row instead of navigating', () => {
+    const html = render(PersonnelRecordsTable, {
+      props: { rows: [ROW], onopen: () => undefined },
+    }).body;
 
     expect(html).toContain('record-row');
-    expect(html).toContain('href="/reports/report-1"');
+    // The title is the row's preview control, not a link to the record.
     expect(html).toContain('class="title');
+    expect(html).not.toMatch(/<a[^>]*class="title/);
+    // The explicit row action still navigates.
+    expect(html).toContain('href="/reports/report-1"');
+    expect(html).toContain('class="row-action');
+  });
+
+  it('keeps the AR number out of the navigation', () => {
+    const html = render(PersonnelRecordsTable, { props: { rows: [ROW] } }).body;
+
+    expect(html).toContain('<span class="reference');
+    expect(html).not.toMatch(/<a[^>]*class="reference/);
   });
 
   it('offers the receipt action only when the reader holds one', () => {

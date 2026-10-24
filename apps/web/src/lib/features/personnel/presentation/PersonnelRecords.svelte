@@ -13,6 +13,7 @@
     personnelRows,
     type PersonnelFilters,
   } from '../application/personnel-records';
+  import ActivityPreviewDialog from './ActivityPreviewDialog.svelte';
   import PersonnelRecordsTable from './PersonnelRecordsTable.svelte';
 
   let {
@@ -41,6 +42,8 @@
   );
 
   let previewing = $state<MyReceipt | null>(null);
+  /** The activity whose preview dialog is open, if any (report 4). */
+  let previewingActivity = $state<string | null>(null);
 
   const STATUS_OPTIONS = [
     { value: 'all', label: 'All statuses' },
@@ -136,6 +139,7 @@
       {rows}
       receipts={receiptsByReport}
       onreceipt={(receipt) => (previewing = receipt)}
+      onopen={(row) => (previewingActivity = row.id)}
     />
 
     {#if records.total > records.size}
@@ -154,6 +158,13 @@
       reportId={previewing.reportId}
       receipt={previewing}
       onclose={() => (previewing = null)}
+    />
+  {/if}
+
+  {#if previewingActivity}
+    <ActivityPreviewDialog
+      recordId={previewingActivity}
+      onclose={() => (previewingActivity = null)}
     />
   {/if}
 </section>

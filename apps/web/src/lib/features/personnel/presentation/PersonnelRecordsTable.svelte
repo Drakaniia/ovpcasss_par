@@ -10,12 +10,15 @@
     caption = 'Registered activities and their status',
     receipts,
     onreceipt,
+    onopen,
   }: {
     rows: readonly PersonnelRow[];
     caption?: string;
     /** The reader's own receipt for a record, keyed by report id. */
     receipts?: ReadonlyMap<string, MyReceipt>;
     onreceipt?: (receipt: MyReceipt) => void;
+    /** Opens the activity preview; the explicit row action still navigates. */
+    onopen?: (row: PersonnelRow) => void;
   } = $props();
 </script>
 
@@ -37,10 +40,10 @@
         {@const receipt = receipts?.get(row.id)}
         <tr class="record-row">
           <td class="reference-cell">
-            <a class="reference" href={row.href}>{row.referenceNo}</a>
+            <span class="reference">{row.referenceNo}</span>
           </td>
           <td class="activity-cell">
-            <a class="title" href={row.href}>{row.title}</a>
+            <button class="title" type="button" onclick={() => onopen?.(row)}>{row.title}</button>
             <p class="meta">{row.meta}</p>
           </td>
           <td class="dates-cell">{row.dates}</td>
@@ -75,9 +78,9 @@
 
 <style>
   /*
-   * The row is the target, not just the title: the title link's overlay fills
-   * the row, so a click anywhere opens the record with native link behaviour
-   * (keyboard, middle-click, context menu) and one tab stop per row.
+   * The row is the target: the title button's overlay fills the row, so a click
+   * anywhere opens the preview dialog (report 4) and the row keeps one tab stop
+   * for that purpose. The explicit row action stays a real link above it.
    */
   .record-row {
     position: relative;
@@ -87,6 +90,22 @@
     content: '';
     inset: 0;
     position: absolute;
+  }
+
+  .record-row .title {
+    background: none;
+    border: 0;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: inline;
+    font: inherit;
+    font-weight: 500;
+    padding: 0;
+    text-align: left;
+  }
+
+  .record-row .title:hover {
+    text-decoration: underline;
   }
 
   /* The row's own controls sit above the overlay so their own action wins. */
@@ -106,6 +125,7 @@
   }
 
   .reference {
+    color: var(--text-secondary);
     font-family: var(--font-mono);
     font-size: 12px;
     font-variant-numeric: tabular-nums;
@@ -114,11 +134,6 @@
 
   .activity-cell {
     max-width: 380px;
-  }
-
-  .title {
-    color: var(--text-primary);
-    font-weight: 500;
   }
 
   .meta {
