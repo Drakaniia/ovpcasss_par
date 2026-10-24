@@ -13,7 +13,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, WindowEvent};
 
-use crate::window_bounds::{clamp, Bounds, WorkArea};
+use crate::window_bounds::{clamp, default_bounds, usable, Bounds, WorkArea};
 
 /// How long the window must sit still before its bounds are written.
 const SAVE_DELAY: Duration = Duration::from_millis(400);
@@ -126,30 +126,75 @@ fn current_bounds(app: &AppHandle) -> Option<Bounds> {
     })
 }
 
-fn save_now(app: &AppHandle) {
-    let Some(current) = current_bounds(app) else {
-        return;
-    };
-
-    // A run that ends maximized still remembers the size to restore to.
-    let last_normal = LAST_NORMAL.lock().ok().and_then(|last| *last);
-
-    let bounds = if current.maximized {
+/// The rectangle to write, never a too-small one. A run that ends maximized
+/// still remembers the size to restore to; a rectangle below the minimum falls
+/// back to the last healthy size, then to the centred default (report 11).
+fn bounds_to_save(current: Bounds, last_normal: Option<Bounds>, areas: &[WorkArea]) -> Bounds {
+    let normal = if current.maximized {
         last_normal.map_or(
             Bounds {
                 maximized: true,
                 ..current
             },
-            |normal| Bounds {
+            |saved| Bounds {
                 maximized: true,
-                ..normal
+                ..saved
             },
         )
     } else {
         current
     };
 
+    if usable(normal) {
+        return normal;
+    }
+
+    let fallback = last_normal
+        .filter(|saved| usable(*saved))
+        .unwrap_or_else(|| default_bounds(areas.first().copied()));
+
+    Bounds {
+        maximized: normal.maximized,
+        ..fallback
+    }
+}
+
+fn save_now(app: &AppHandle) {
+    let Some(current) = current_bounds(app) else {
+        return;
+    };
+
+    let last_normal = LAST_NORMAL.lock().ok().and_then(|last| *last);
+    save(app, bounds_to_save(current, last_normal, &work_areas(app)));
+}
+
+/// Restores the default size and position (report 11). The Window menu calls
+/// this so a window that came back too small can always be recovered.
+pub fn reset(app: &AppHandle) -> Result<(), String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "The main window is not available".to_string())?;
+
+    let bounds = default_bounds(work_areas(app).first().copied());
+
+    if window.is_maximized().unwrap_or(false) || window.is_fullscreen().unwrap_or(false) {
+        let _ = window.unmaximize();
+        let _ = window.set_fullscreen(false);
+    }
+
+    window
+        .set_size(PhysicalSize::new(bounds.width, bounds.height))
+        .map_err(|error| error.to_string())?;
+    window
+        .set_position(PhysicalPosition::new(bounds.x, bounds.y))
+        .map_err(|error| error.to_string())?;
+
+    if let Ok(mut last) = LAST_NORMAL.lock() {
+        *last = Some(bounds);
+    }
     save(app, bounds);
+
+    Ok(())
 }
 
 /// Applies the remembered bounds before the splash reveals the window.
@@ -239,5 +284,69 @@ mod tests {
     fn corrupt_state_is_rejected() {
         assert!(serde_json::from_str::<Stored>("{").is_err());
         assert!(serde_json::from_str::<Stored>("{\"version\": 2}").is_err());
+    }
+
+    const PRIMARY: WorkArea = WorkArea {
+        x: 0,
+        y: 0,
+        width: 1920,
+        height: 1040,
+    };
+
+    fn bounds(x: i32, y: i32, width: u32, height: u32) -> Bounds {
+        Bounds {
+            x,
+            y,
+            width,
+            height,
+            maximized: false,
+        }
+    }
+
+    #[test]
+    fn a_healthy_rectangle_is_saved_as_it_is() {
+        let current = bounds(100, 80, 1200, 800);
+        assert_eq!(bounds_to_save(current, None, &[PRIMARY]), current);
+    }
+
+    #[test]
+    fn a_too_small_rectangle_falls_back_to_the_last_healthy_one() {
+        let healthy = bounds(100, 80, 1200, 800);
+        let saved = bounds_to_save(bounds(0, 0, 600, 400), Some(healthy), &[PRIMARY]);
+
+        assert_eq!((saved.width, saved.height), (1200, 800));
+    }
+
+    #[test]
+    fn a_too_small_rectangle_without_history_uses_the_default() {
+        let saved = bounds_to_save(bounds(0, 0, 600, 400), None, &[PRIMARY]);
+
+        assert_eq!((saved.width, saved.height), (1024, 768));
+        assert!(!saved.maximized);
+    }
+
+    #[test]
+    fn a_maximized_run_keeps_the_last_normal_size() {
+        let normal = bounds(100, 80, 1100, 780);
+        let saved = bounds_to_save(
+            Bounds {
+                maximized: true,
+                ..bounds(0, 0, 1920, 1040)
+            },
+            Some(normal),
+            &[PRIMARY],
+        );
+
+        assert!(saved.maximized);
+        assert_eq!((saved.width, saved.height), (1100, 780));
+    }
+
+    #[test]
+    fn reset_bounds_are_centred_and_usable() {
+        let reset = default_bounds(Some(PRIMARY));
+
+        assert_eq!((reset.width, reset.height), (1024, 768));
+        assert_eq!(reset.x, (PRIMARY.width - 1024) / 2);
+        assert!(!reset.maximized);
     }
 }

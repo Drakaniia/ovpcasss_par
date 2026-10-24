@@ -7,9 +7,11 @@
 use serde::{Deserialize, Serialize};
 
 pub const MIN_WIDTH: u32 = 1024;
+/// Fits a 768-tall screen with the taskbar still visible.
 pub const MIN_HEIGHT: u32 = 700;
-pub const DEFAULT_WIDTH: u32 = 1280;
-pub const DEFAULT_HEIGHT: u32 = 860;
+/// Kept in step with the `main` window in `tauri.conf.json` (report 11).
+pub const DEFAULT_WIDTH: u32 = 1024;
+pub const DEFAULT_HEIGHT: u32 = 768;
 /// How much of the window must stay reachable on some monitor.
 const MIN_VISIBLE_WIDTH: i32 = 160;
 const MIN_VISIBLE_HEIGHT: i32 = 120;
@@ -67,20 +69,31 @@ fn on_some_monitor(bounds: Bounds, monitors: &[WorkArea]) -> Option<usize> {
     })
 }
 
-/// Clamps saved bounds onto a monitor that still exists. A window that would be
-/// off screen, oversized or below the minimum lands centred and fully visible.
+/// Whether a saved rectangle is big enough to be shown again.
+pub fn usable(bounds: Bounds) -> bool {
+    bounds.width >= MIN_WIDTH && bounds.height >= MIN_HEIGHT
+}
+
+/// Clamps saved bounds onto a monitor that still exists. A rectangle that is
+/// too small or invalid is not nudged up to the minimum — it is replaced by the
+/// centred default, which is always a usable size (report 11). Off-screen and
+/// oversized rectangles keep their previous behaviour.
 pub fn clamp(bounds: Bounds, monitors: &[WorkArea]) -> Bounds {
     let Some(primary) = monitors.first() else {
         return default_bounds(None);
     };
+
+    if !usable(bounds) {
+        return default_bounds(Some(*primary));
+    }
 
     let target = on_some_monitor(bounds, monitors).map_or(*primary, |index| monitors[index]);
 
     // A work area narrower than the minimum still wins: the window must fit.
     let max_width = target.width.max(MIN_WIDTH as i32) as u32;
     let max_height = target.height.max(MIN_HEIGHT as i32) as u32;
-    let width = bounds.width.clamp(MIN_WIDTH, max_width);
-    let height = bounds.height.clamp(MIN_HEIGHT, max_height);
+    let width = bounds.width.min(max_width);
+    let height = bounds.height.min(max_height);
 
     let centre_x = bounds.x + (width as i32) / 2;
     let centre_y = bounds.y + (height as i32) / 2;
@@ -159,10 +172,27 @@ mod tests {
     }
 
     #[test]
-    fn enforces_the_minimum_size() {
+    fn a_saved_size_below_the_minimum_restores_the_default() {
         let clamped = clamp(bounds(100, 100, 640, 480), &[PRIMARY]);
-        assert_eq!(clamped.width, MIN_WIDTH);
-        assert_eq!(clamped.height, MIN_HEIGHT);
+
+        assert_eq!(clamped.width, DEFAULT_WIDTH);
+        assert_eq!(clamped.height, DEFAULT_HEIGHT);
+        assert_eq!(clamped.x, (PRIMARY.width - DEFAULT_WIDTH as i32) / 2);
+        assert_eq!(clamped.y, (PRIMARY.height - DEFAULT_HEIGHT as i32) / 2);
+    }
+
+    #[test]
+    fn an_invalid_size_restores_the_default() {
+        let clamped = clamp(bounds(100, 100, 0, 0), &[PRIMARY]);
+
+        assert_eq!(clamped.width, DEFAULT_WIDTH);
+        assert_eq!(clamped.height, DEFAULT_HEIGHT);
+    }
+
+    #[test]
+    fn the_default_is_itself_usable() {
+        assert!(usable(default_bounds(Some(PRIMARY))));
+        assert!(!usable(bounds(0, 0, MIN_WIDTH - 1, MIN_HEIGHT)));
     }
 
     #[test]
@@ -207,7 +237,8 @@ mod tests {
     #[test]
     fn defaults_centre_on_the_primary_monitor() {
         let default = default_bounds(Some(PRIMARY));
-        assert_eq!(default.width, DEFAULT_WIDTH);
+        assert_eq!(default.width, 1024);
+        assert_eq!(default.height, 768);
         assert_eq!(default.x, (PRIMARY.width - DEFAULT_WIDTH as i32) / 2);
         assert!(!default.maximized);
     }
