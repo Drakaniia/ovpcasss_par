@@ -53,13 +53,13 @@ export async function rememberAccount(account: SavedAccountIdentity): Promise<vo
   }
 }
 
-export async function savedAccounts(): Promise<SavedAccount[]> {
-  try {
-    const current = await platform();
-    return await current.tokens.list();
-  } catch {
-    return [];
-  }
+/**
+ * The saved accounts, or a rejection the card reports. Swallowing the failure
+ * into an empty list told a user with a broken credential store that no account
+ * was ever saved, which is exactly the wrong thing to say (report 5).
+ */
+export function savedAccounts(): Promise<SavedAccount[]> {
+  return platform().then((current) => current.tokens.list());
 }
 
 /**

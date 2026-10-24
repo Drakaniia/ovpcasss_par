@@ -6,11 +6,7 @@
 
   import { setSessionToken } from '$lib/api/http';
   import { isTauri } from '$lib/platform';
-  import {
-    forgetAccount,
-    savedAccounts,
-    switchToAccount,
-  } from '$lib/platform/session-token';
+  import { forgetAccount, savedAccounts, switchToAccount } from '$lib/platform/session-token';
   import { clearSession, loadSession, signOut } from '$lib/session/session.svelte';
   import { toast } from '$lib/toast/toast.svelte';
 
@@ -57,10 +53,14 @@
           return;
         }
 
+        /* A token the API no longer accepts is the one case that cannot switch.
+           Drop it, say why, and hand the address to the sign-in form so the
+           click always leads somewhere. */
         setSessionToken(null);
         await forgetAccount(account.id);
-        toast.error('That saved session has expired. Sign in again.');
         await load();
+        toast.error('That saved session has expired. Sign in again.');
+        await goto(loginHref(account.email));
         return;
       }
 
@@ -72,22 +72,23 @@
 
       setSessionToken(null);
       await forgetAccount(account.id);
-      toast.error('That saved session has expired. Sign in again.');
       await load();
+      toast.error('That saved session has expired. Sign in again.');
+      await goto(loginHref(account.email));
     } finally {
       busy = null;
     }
   }
 
+  /**
+   * Adding an account must not end the current one: signing out first deleted it
+   * from the device, so the second sign-in left the list with one account and
+   * nothing to switch back to (report 5). The session stays open until the new
+   * sign-in replaces it.
+   */
   async function add(): Promise<void> {
     if (busy) return;
-    busy = 'add';
-    try {
-      await signOut();
-      await goto('/login');
-    } finally {
-      busy = null;
-    }
+    await goto('/login?add=1');
   }
 
   async function forget(account: SavedAccount): Promise<void> {
