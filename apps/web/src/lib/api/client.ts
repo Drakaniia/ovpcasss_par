@@ -29,6 +29,8 @@ import type {
   NotificationListResponse,
   NotificationReadAllResponse,
   NotificationReadResponse,
+  Preferences,
+  PreferencesPatch,
   PresignRequest,
   PresignResponse,
   ReferenceEntityKey,
@@ -233,12 +235,20 @@ export const api = {
   },
   /** Office-wide settings; only an administrator may write them (report 9). */
   settings: {
-    receiptSignatory: () =>
-      apiFetch<ReceiptSignatoryResponse>('/settings/receipt-signatory'),
+    receiptSignatory: () => apiFetch<ReceiptSignatoryResponse>('/settings/receipt-signatory'),
     saveReceiptSignatory: (input: ReceiptSignatory) =>
       apiFetch<ReceiptSignatoryResponse>('/settings/receipt-signatory', {
         method: 'PUT',
         body: JSON.stringify(input),
+      }),
+  },
+  /** Per-account UI state; the API is its only store (settings spec §7.14). */
+  preferences: {
+    get: () => apiFetch<{ preferences: Preferences }>('/me/preferences'),
+    save: (patch: PreferencesPatch) =>
+      apiFetch<{ preferences: Preferences }>('/me/preferences', {
+        method: 'PUT',
+        body: JSON.stringify(patch),
       }),
   },
   profile: {
