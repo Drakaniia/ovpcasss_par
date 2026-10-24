@@ -156,12 +156,7 @@ describe('buildReceipt', () => {
 
     const images = ops.filter((op) => op.kind === 'image');
     expect(images).toHaveLength(4);
-    expect(images.map((op) => op.top)).toEqual([
-      7.7,
-      19.5,
-      7.7 + COPY_OFFSET,
-      19.5 + COPY_OFFSET,
-    ]);
+    expect(images.map((op) => op.top)).toEqual([7.7, 19.5, 7.7 + COPY_OFFSET, 19.5 + COPY_OFFSET]);
   });
 
   it('closes copy 1 with its document-code line and the sheet with the page footer', () => {

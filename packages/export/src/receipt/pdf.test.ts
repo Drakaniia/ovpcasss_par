@@ -3,13 +3,7 @@ import { PDFArray, PDFDict, PDFDocument, PDFName } from 'pdf-lib';
 import { describe, expect, it } from 'vitest';
 
 import { PAGELLA_BOLD_OTF_BASE64, PAGELLA_REGULAR_OTF_BASE64 } from './fonts';
-import {
-  CONTENT,
-  COPY_OFFSET,
-  buildReceipt,
-  type ReceiptData,
-  type ReceiptOp,
-} from './layout';
+import { CONTENT, COPY_OFFSET, buildReceipt, type ReceiptData, type ReceiptOp } from './layout';
 import { decodeBase64, pageFontMetrics, renderReceipt } from './pdf';
 
 const data: ReceiptData = {
@@ -140,23 +134,16 @@ describe('the measured form', () => {
     const { ops } = await measuredOps();
     const at = (value: string) =>
       ops.filter(
-        (op): op is Extract<ReceiptOp, { kind: 'text' }> =>
-          op.kind === 'text' && op.text === value,
+        (op): op is Extract<ReceiptOp, { kind: 'text' }> => op.kind === 'text' && op.text === value,
       );
 
     const headings = at('ACKNOWLEDGMENT RECEIPT');
     expect(headings).toHaveLength(2);
-    expect(headings[1]?.baseline).toBeCloseTo(
-      (headings[0]?.baseline ?? 0) + COPY_OFFSET,
-      2,
-    );
+    expect(headings[1]?.baseline).toBeCloseTo((headings[0]?.baseline ?? 0) + COPY_OFFSET, 2);
 
     const references = at('AR No. 0001');
     expect(references).toHaveLength(2);
-    expect(references[1]?.baseline).toBeCloseTo(
-      (references[0]?.baseline ?? 0) + COPY_OFFSET,
-      2,
-    );
+    expect(references[1]?.baseline).toBeCloseTo((references[0]?.baseline ?? 0) + COPY_OFFSET, 2);
 
     expect(at('Document Code: OVPCASSS-F-013')).toHaveLength(2);
   });
