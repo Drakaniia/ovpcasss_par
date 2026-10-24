@@ -97,11 +97,14 @@ export function parseNarrativeInline(line: string): NarrativeInline[] {
          is prose, not an underline spanning the words around it. */
       if (inner !== '' && inner.trim() === inner) {
         flush();
-        pushSpan(spans, span(inner, {
-          bold: Boolean(marker.bold),
-          italic: Boolean(marker.italic),
-          underline: Boolean(marker.underline),
-        }));
+        pushSpan(
+          spans,
+          span(inner, {
+            bold: Boolean(marker.bold),
+            italic: Boolean(marker.italic),
+            underline: Boolean(marker.underline),
+          }),
+        );
         index = end + marker.marker.length;
         continue;
       }
@@ -173,6 +176,131 @@ export function parseNarrative(source: string): NarrativeBlock[] {
   return blocks;
 }
 
+/** The formatting toolbar's commands (report 7). */
+export type MarkdownCommand = 'h1' | 'h2' | 'bold' | 'italic' | 'underline' | 'bullet' | 'number';
+
+/** The text and the selection a command leaves behind. */
+export interface MarkdownEdit {
+  value: string;
+  selectionStart: number;
+  selectionEnd: number;
+}
+
+type InlineCommand = 'bold' | 'italic' | 'underline';
+
+/** Command → the markers it wraps a selection in, and its placeholder. */
+const INLINE: Record<InlineCommand, { marker: string; placeholder: string }> = {
+  bold: { marker: '**', placeholder: 'bold text' },
+  italic: { marker: '*', placeholder: 'italic text' },
+  underline: { marker: '__', placeholder: 'underlined text' },
+};
+
+/** Any prefix a line may already carry, so a command replaces instead of stacks. */
+const LINE_PREFIX = /^\s*(?:#{1,3}\s+|[-*]\s+|\d+[.)]\s+)?/;
+
+function stripPrefix(line: string): string {
+  return line.replace(LINE_PREFIX, '');
+}
+
+function applyInline(
+  command: InlineCommand,
+  value: string,
+  start: number,
+  end: number,
+): MarkdownEdit {
+  const { marker, placeholder } = INLINE[command];
+  const selected = value.slice(start, end);
+
+  /* Already wrapped around the selection, or the selection carries the markers:
+     the same command unwraps, so the button toggles. */
+  const wrappedOutside =
+    value.slice(Math.max(0, start - marker.length), start) === marker &&
+    value.slice(end, end + marker.length) === marker;
+
+  if (wrappedOutside) {
+    return {
+      value: value.slice(0, start - marker.length) + selected + value.slice(end + marker.length),
+      selectionStart: start - marker.length,
+      selectionEnd: end - marker.length,
+    };
+  }
+
+  if (
+    selected.length > marker.length * 2 &&
+    selected.startsWith(marker) &&
+    selected.endsWith(marker)
+  ) {
+    const inner = selected.slice(marker.length, -marker.length);
+    return {
+      value: value.slice(0, start) + inner + value.slice(end),
+      selectionStart: start,
+      selectionEnd: start + inner.length,
+    };
+  }
+
+  const text = selected === '' ? placeholder : selected;
+  const from = start + marker.length;
+
+  return {
+    value: value.slice(0, start) + marker + text + marker + value.slice(end),
+    selectionStart: from,
+    selectionEnd: from + text.length,
+  };
+}
+
+/**
+ * The formatting toolbar's edit arithmetic: given the command, the whole text,
+ * and the textarea's selection, returns the new text and where to put the caret
+ * so the writer can keep typing. Selection order never matters.
+ */
+export function applyMarkdown(
+  command: MarkdownCommand,
+  value: string,
+  selectionStart: number,
+  selectionEnd: number,
+): MarkdownEdit {
+  const start = Math.min(selectionStart, selectionEnd);
+  const end = Math.max(selectionStart, selectionEnd);
+
+  if (command === 'bold' || command === 'italic' || command === 'underline') {
+    return applyInline(command, value, start, end);
+  }
+
+  const lines = value.split('\n');
+  const starts: number[] = [];
+  let offset = 0;
+  for (const line of lines) {
+    starts.push(offset);
+    offset += line.length + 1;
+  }
+
+  // A line the selection touches, including the one the caret sits in.
+  const touched = lines
+    .map((line, index) => ({ index, line, from: starts[index] ?? 0 }))
+    .filter(({ line, from }) => from <= end && from + line.length >= start);
+
+  const heading = command === 'h1' ? '# ' : command === 'h2' ? '## ' : null;
+  let number = 0;
+
+  for (const entry of touched) {
+    const prefix = heading ?? `${command === 'number' ? `${(number += 1)}.` : '-'} `;
+    lines[entry.index] = prefix + stripPrefix(entry.line);
+  }
+
+  const first = touched[0];
+  if (!first) return { value, selectionStart: start, selectionEnd: end };
+
+  // The selection covers the rewritten block so the writer sees the result.
+  const before = starts[first.index] ?? 0;
+  const block = lines.slice(first.index, first.index + touched.length).join('\n').length;
+
+  return {
+    value: lines.join('\n'),
+    selectionStart: before,
+    selectionEnd: before + block,
+  };
+}
+
 /** The Markdown markers removed, for a plain-text surface with its own layout. */
 export function narrativeToPlainText(source: string): string {
   return parseNarrative(source)
@@ -181,8 +309,9 @@ export function narrativeToPlainText(source: string): string {
 
       if (block.kind === 'list') {
         return block.items
-          .map((item, index) =>
-            `${block.ordered ? `${index + 1}.` : '\u2022'} ${item.map((entry) => entry.text).join('')}`,
+          .map(
+            (item, index) =>
+              `${block.ordered ? `${index + 1}.` : '\u2022'} ${item.map((entry) => entry.text).join('')}`,
           )
           .join('\n');
       }
