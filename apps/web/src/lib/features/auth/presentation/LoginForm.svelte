@@ -3,14 +3,15 @@
   import { AlertCircle, ArrowRight, LoaderCircle, Lock, Mail } from '@lucide/svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
-  import { onMount, tick } from 'svelte';
+  import { onMount, tick, untrack } from 'svelte';
 
   import { api } from '$lib/api/client';
   import { ApiError } from '$lib/api/http';
   import FloatingInput from '$lib/components/FloatingInput.svelte';
   import { googleErrorMessage } from '$lib/features/auth/application/google-errors';
   import { destinationAfterSignIn } from '$lib/features/auth/application/post-sign-in';
-  import { rememberSessionToken } from '$lib/platform/session-token';
+  import { prefillEmail } from '$lib/features/profile/application/account-switcher';
+  import { rememberAccount, rememberSessionToken } from '$lib/platform/session-token';
   import { setSessionUser } from '$lib/session/session.svelte';
   import { focusFirstError, parseForm, type FieldErrors } from '$lib/validation/field-errors';
 
@@ -21,7 +22,8 @@
     return code ? googleErrorMessage(code) : null;
   }
 
-  let email = $state('');
+  // A switch on Profile arrives as `?email=`, so the field is ready for the password.
+  let email = $state(untrack(() => prefillEmail(page.url.search)));
   let password = $state('');
   let errors = $state<FieldErrors>({});
   let alert = $state<string | null>(googleError());
@@ -95,8 +97,10 @@
         return;
       }
 
-      // Desktop only: the OS credential store keeps the token across restarts.
-      if (token) await rememberSessionToken(token);
+      // Desktop keeps the token; both shells remember the account for the switcher.
+      const identity = { id: account.id, name: account.fullName, email: account.email };
+      if (token) await rememberSessionToken(token, identity);
+      else await rememberAccount(identity);
 
       setSessionUser(account);
       await goto(destination, { replaceState: true });
