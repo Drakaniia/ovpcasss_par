@@ -167,6 +167,26 @@ describe('accelerators', () => {
     expect(commandForAccelerator('F11')).toBe('view.fullscreen');
   });
 
+  it('does not claim a native editing chord for the menu', () => {
+    for (const chord of ['Ctrl+X', 'Ctrl+C', 'Ctrl+V', 'Ctrl+A', 'Ctrl+Z', 'Ctrl+Y']) {
+      expect(commandForAccelerator(chord)).toBeUndefined();
+    }
+
+    const edit = buildMenus(inputs()).find((menu) => menu.id === 'edit');
+    expect(edit?.items.every((entry) => entry.accelerator === undefined)).toBe(true);
+  });
+
+  it("shows Paste disabled with the platform's reason", () => {
+    const reason = 'Use Ctrl+V to paste; the app cannot read the clipboard.';
+    const menus = buildMenus(
+      inputs({
+        availability: (id) => (id === 'edit.paste' ? { enabled: false, reason } : null),
+      }),
+    );
+
+    expect(item(menus, 'edit', 'edit.paste')).toMatchObject({ enabled: false, reason });
+  });
+
   it('spells symbol chords the way aria-keyshortcuts expects', () => {
     expect(ariaKeyshortcutsFor('Ctrl+S')).toBe('Control+S');
     expect(ariaKeyshortcutsFor('Ctrl++')).toBe('Control+Plus');

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { acceleratorOf, runAccelerator } from './accelerators';
+import { acceleratorOf, isNativeEditChord, runAccelerator } from './accelerators';
 import { registerCommand } from './command-registry.svelte';
 
 const desktop = { controllable: () => true };
@@ -100,6 +100,43 @@ describe('runAccelerator', () => {
     expect(runAccelerator(event, browser)).toBe(false);
     expect((event as unknown as { prevented: boolean }).prevented).toBe(false);
     expect(runAccelerator(event, desktop)).toBe(true);
+  });
+
+  it('leaves the native editing chords to the focused field', () => {
+    const calls = command('file.new-record');
+
+    for (const [keyName, overrides] of [
+      ['v', { ctrlKey: true }],
+      ['c', { ctrlKey: true }],
+      ['x', { ctrlKey: true }],
+      ['a', { ctrlKey: true }],
+      ['z', { ctrlKey: true }],
+      ['y', { ctrlKey: true }],
+      ['z', { ctrlKey: true, shiftKey: true }],
+    ] as const) {
+      const event = key({ key: keyName, ...overrides });
+
+      expect(runAccelerator(event, desktop)).toBe(false);
+      expect((event as unknown as { prevented: boolean }).prevented).toBe(false);
+    }
+
+    expect(calls).toHaveLength(0);
+  });
+
+  it('names every native editing chord, and nothing else', () => {
+    for (const chord of ['Ctrl+X', 'Ctrl+C', 'Ctrl+V', 'Ctrl+A', 'Ctrl+Z', 'Ctrl+Y']) {
+      expect(isNativeEditChord(chord)).toBe(true);
+    }
+
+    expect(isNativeEditChord('Ctrl+K')).toBe(false);
+    expect(isNativeEditChord('Ctrl+S')).toBe(false);
+  });
+
+  it('leaves the palette chord to the shortcut layer', () => {
+    const event = key({ key: 'k', ctrlKey: true });
+
+    expect(runAccelerator(event, desktop)).toBe(false);
+    expect((event as unknown as { prevented: boolean }).prevented).toBe(false);
   });
 
   it('ignores composed, already handled and unbound keys', () => {

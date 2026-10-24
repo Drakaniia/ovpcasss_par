@@ -96,9 +96,12 @@ export function editAvailability(id: EditCommandId): Availability {
         ? { enabled: true }
         : { enabled: false, reason: id === 'undo' ? 'Nothing to undo.' : 'Nothing to redo.' };
     case 'paste':
-      return editable
-        ? { enabled: true }
-        : { enabled: false, reason: 'No editable field is focused.' };
+      // A clipboard read from script is refused, so the menu cannot paste; the
+      // chord reaches the field itself (report 6).
+      return {
+        enabled: false,
+        reason: 'Use Ctrl+V to paste; the app cannot read the clipboard.',
+      };
     case 'select-all':
       return { enabled: true };
   }
@@ -115,6 +118,10 @@ const EXEC: Record<EditCommandId, string> = {
 
 /** Refocuses the remembered field, then runs the WebView2 edit command. */
 export function runEditCommand(id: EditCommandId): void {
+  // Paste is the platform's: the command stays disabled and the chord is not
+  // intercepted, so this line exists only to keep the id exhaustive.
+  if (id === 'paste') return;
+
   const target = editableTarget();
   target?.focus();
 
