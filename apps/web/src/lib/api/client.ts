@@ -35,6 +35,8 @@ import type {
   ReferenceInputMap,
   ReferenceItemMap,
   ReferenceListResponse,
+  ReceiptSignatory,
+  ReceiptSignatoryResponse,
   RegisterInput,
   ReportDecisionInput,
   ReportActivityInput,
@@ -228,6 +230,16 @@ export const api = {
       apiFetch<AttachmentUrlResponse>(`/reports/${reportId}/attachments/${attachmentId}/url`),
     remove: (reportId: string, attachmentId: string) =>
       apiFetch<void>(`/reports/${reportId}/attachments/${attachmentId}`, { method: 'DELETE' }),
+  },
+  /** Office-wide settings; only an administrator may write them (report 9). */
+  settings: {
+    receiptSignatory: () =>
+      apiFetch<ReceiptSignatoryResponse>('/settings/receipt-signatory'),
+    saveReceiptSignatory: (input: ReceiptSignatory) =>
+      apiFetch<ReceiptSignatoryResponse>('/settings/receipt-signatory', {
+        method: 'PUT',
+        body: JSON.stringify(input),
+      }),
   },
   profile: {
     get: () => apiFetch<Account>('/me'),

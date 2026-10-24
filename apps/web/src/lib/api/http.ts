@@ -1,4 +1,4 @@
-import type { ErrorEnvelope } from '@par/shared';
+import type { ErrorEnvelope, ValidationIssue } from '@par/shared';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
 
@@ -42,10 +42,29 @@ export class ApiError extends Error {
     message: string,
     /** Response request id, shown in error states when the API supplies one. */
     readonly requestId?: string,
+    /** `error.details` as the API sent it; a validation error carries its issues. */
+    readonly details?: unknown,
   ) {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+/**
+ * The field-level issues on a 400, when the endpoint sent them. The narrative
+ * editor needs the specific sentence (report 8); the envelope's generic
+ * "Check the highlighted fields" is not enough to act on.
+ */
+export function validationIssues(error: unknown): ValidationIssue[] {
+  if (!(error instanceof ApiError) || !Array.isArray(error.details)) return [];
+
+  return error.details.filter(
+    (issue): issue is ValidationIssue =>
+      typeof issue === 'object' &&
+      issue !== null &&
+      typeof (issue as { field?: unknown }).field === 'string' &&
+      typeof (issue as { message?: unknown }).message === 'string',
+  );
 }
 
 async function errorFrom(response: Response): Promise<ApiError> {
@@ -55,6 +74,7 @@ async function errorFrom(response: Response): Promise<ApiError> {
     envelope?.error.code ?? 'UNKNOWN',
     envelope?.error.message ?? response.statusText,
     response.headers.get('x-request-id') ?? undefined,
+    envelope?.error.details,
   );
 }
 
