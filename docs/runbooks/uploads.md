@@ -103,19 +103,19 @@ error).
 
 ## Local development
 
-`wrangler dev` emulates R2 locally, and a presigned URL would address the real
-S3 endpoint, which the emulated bucket knows nothing about. So presign answers
-with `mode: "proxy"` and a same-origin URL on the Worker whenever the signing
-values are absent or still say `replace-me`; the Worker then stores the bytes in
-the emulated bucket and the whole upload works with no R2 API token. Keep real
-keys out of `.dev.vars` so this stays true.
+`pnpm dev` runs the API with `wrangler dev --remote`, so the bucket is the real
+`par-attachments` and every local upload is a real object. Presign still answers
+with `mode: "proxy"` whenever the signing values are absent or still say
+`replace-me`, and the Worker then writes the bytes itself, so a developer needs
+no R2 API token. Keep real keys out of `.dev.vars` so this stays true.
 
 Downloads already fall back to an authenticated in-app URL on loopback, so a
 local upload can be opened again without leaving the machine.
 
-One shell-specific caveat: the desktop build streams from disk through Rust with
-a bearer token, and the proxy URL expects the session cookie, so a proxy-mode
-upload from the Tauri dev shell fails with `401`. Use the web shell locally.
+The proxy fallback URL is built from the caller, not from `APP_ORIGIN`: a browser
+page gets its own origin back, and a bearer-token client (the desktop shell)
+gets the API's origin. So a proxy-mode upload works from both shells, including
+the Tauri dev build.
 
 ## Troubleshooting
 
@@ -126,3 +126,4 @@ upload from the Tauri dev shell fails with `401`. Use the web shell locally.
 | `UPLOAD_NOT_FOUND` at confirm    | A cancelled or interrupted PUT, or presign against a bucket the Worker cannot read      |
 | `UPLOAD_SIZE_MISMATCH`           | The file changed between presign and upload                                             |
 | `UPLOAD_TYPE_NOT_ALLOWED`        | The stored content type is not on the allowlist                                         |
+| `405` on the upload PUT          | The fallback URL named a host with no API (an `APP_ORIGIN` that is not the app in use)  |
