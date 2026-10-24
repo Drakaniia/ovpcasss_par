@@ -36,7 +36,7 @@
     <WizardField
       id="wiz-total-pic"
       label="Total number of PIC"
-      required
+      hint="Counted from the list below."
       error={state.errors.totalPic}
     >
       {#snippet children({ describedBy, invalid })}
@@ -47,10 +47,11 @@
           min="0"
           step="1"
           inputmode="numeric"
+          readonly
+          aria-readonly="true"
           aria-invalid={invalid ? 'true' : undefined}
           aria-describedby={describedBy}
-          value={state.form.totalPic}
-          oninput={(event) => state.patchForm({ totalPic: event.currentTarget.value })}
+          value={state.form.pics.length}
         />
       {/snippet}
     </WizardField>

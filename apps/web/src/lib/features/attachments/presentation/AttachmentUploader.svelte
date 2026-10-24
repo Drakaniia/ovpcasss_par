@@ -9,11 +9,7 @@
   import type { PickedFile, Platform } from '$lib/platform/contracts';
   import { toast } from '$lib/toast/toast.svelte';
 
-  import {
-    fileError,
-    validateFiles,
-    type FileRejection,
-  } from '../application/attachment-rules';
+  import { fileError, validateFiles, type FileRejection } from '../application/attachment-rules';
   import {
     failedRowKeepsServerCopy,
     newAttachmentKey,

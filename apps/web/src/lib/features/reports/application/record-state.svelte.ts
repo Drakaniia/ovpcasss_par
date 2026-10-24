@@ -223,16 +223,19 @@ export class RecordFormState {
     this.errors = clearErrorsForPatch(this.errors, { pics: this.form.pics }, this.form);
   }
 
+  /** The PIC count is read from the rows, so adding one increments it. */
   addPic(): void {
     const before = this.form;
-    this.form = { ...this.form, pics: [...this.form.pics, newPic()] };
+    const pics = [...this.form.pics, newPic()];
+    this.form = { ...this.form, pics, totalPic: String(pics.length) };
     this.recheckCount(before);
-    this.errors = clearErrorsForPatch(this.errors, { pics: this.form.pics }, this.form);
+    this.errors = clearErrorsForPatch(this.errors, { pics }, this.form);
   }
 
   removePic(id: string): void {
     const before = this.form;
-    this.form = { ...this.form, pics: this.form.pics.filter((pic) => pic.id !== id) };
+    const pics = this.form.pics.filter((pic) => pic.id !== id);
+    this.form = { ...this.form, pics, totalPic: String(pics.length) };
     for (const key of ['name', 'email', 'phone']) {
       this.edited.delete(`pic.${id}.${key}`);
       this.filled.delete(`pic.${id}.${key}`);

@@ -20,9 +20,7 @@ describe('switchStep', () => {
 
 describe('loginHref', () => {
   it('encodes the address into the sign-in link', () => {
-    expect(loginHref(' msantos@buksu.edu.ph ')).toBe(
-      '/login?email=msantos%40buksu.edu.ph',
-    );
+    expect(loginHref(' msantos@buksu.edu.ph ')).toBe('/login?email=msantos%40buksu.edu.ph');
   });
 
   it('falls back to the plain sign-in page', () => {
