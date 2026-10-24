@@ -53,6 +53,14 @@ jobs:
           pnpm --filter @par/api exec wrangler versions upload
           --preview-alias pr-${{ github.event.number }}
 
+      # Pages only runs Functions found inside the uploaded directory, and that
+      # directory is the static build, so the proxy is copied in first. Without
+      # it every `/api/*` path falls through to the SPA shell with a 200.
+      - name: Add the Pages API proxy
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: >-
+          node -e "require('node:fs').cpSync('apps/web/functions','apps/web/build/functions',{recursive:true})"
+
       # The Pages site is what the browser opens; its `/api/*` Function proxies to
       # the Worker. A branch deployment is its preview URL, and the R2 bucket's
       # CORS policy already allows every pages.dev origin.
@@ -100,6 +108,13 @@ jobs:
 
       - name: Deploy Worker
         run: pnpm --filter @par/api exec wrangler deploy
+
+      # Pages only runs Functions found inside the uploaded directory, and that
+      # directory is the static build, so the proxy is copied in first. Without
+      # it every `/api/*` path falls through to the SPA shell with a 200.
+      - name: Add the Pages API proxy
+        run: >-
+          node -e "require('node:fs').cpSync('apps/web/functions','apps/web/build/functions',{recursive:true})"
 
       # The Worker is the API and the rollback copy of the app; Pages is the
       # address in mail and the origin the browser uses (`APP_ORIGIN`).
