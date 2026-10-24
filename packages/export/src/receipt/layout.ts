@@ -2,12 +2,16 @@ import type { ReportType } from '@par/shared';
 
 /**
  * OVPCASSS-F-013 ACKNOWLEDGMENT RECEIPT, measured from the office form
- * (`docs/OVPCASSS-F-013.ACKNOWLEDGMENT RECEIPT.docx`) rendered by Word, one
- * copy per A4 sheet. Every position is in PDF points from the page's top-left
- * corner, taken from that render: page 595.32 x 841.92, seal at (62.7, 7.7),
- * ANNEX I right-aligned to 532.57, the letterhead rule 3.55 pt thick at
- * y 73.69, the heading baseline at 86.66, the letter at 110.9..368.9, and the
- * copy's own footer baseline at 385.85.
+ * (`docs/OVPCASSS-F-013.ACKNOWLEDGMENT RECEIPT.docx`) exported to PDF by Word.
+ *
+ * The form prints the same letter twice on ONE A4 sheet, which is what the
+ * office files: copy 1 under the page header's letterhead, closed by a
+ * document-code line; copy 2 with its own repeated letterhead, closed by the
+ * page footer at the bottom. Every position below is in PDF points from the
+ * page's top-left corner, taken from that export: page 595.32 x 841.92, seal at
+ * (62.7, 7.7), ANNEX I right-aligned to 532.57, the letterhead rule 3.55 pt
+ * thick at y 73.69, heading baseline 86.66, letter from 110.9, copy 1's
+ * document-code baseline 385.85, and copy 2 exactly 393.89 pt lower.
  */
 
 export interface ReceiptData {
@@ -44,7 +48,14 @@ export const DONE_TO_SINCERELY = 37.32;
 export const SINCERELY_TO_NAME = 23.76;
 export const NAME_TO_TITLE = 11.04;
 export const TITLE_TO_REFERENCE = 24.36;
+/** The document-code line that closes copy 1 (form top 378.43). */
 export const FOOTER_BASELINE = 385.85;
+/** Copy 2 is copy 1 moved down this far; measured between the two letterheads. */
+export const COPY_OFFSET = 393.89;
+/** The page footer at the bottom of the sheet (form top 796.34). */
+export const PAGE_FOOTER_BASELINE = 803.76;
+/** The hairline the form leaves between the two copies (form top 393.8). */
+export const COPY_DIVIDER = 393.8;
 
 export interface TextOp {
   kind: 'text';
@@ -279,9 +290,8 @@ function drawParagraph(
   return baseline - BODY_LINE;
 }
 
-function footer(ops: ReceiptOp[]): void {
+function footer(ops: ReceiptOp[], baseline: number): void {
   const size = 8;
-  const baseline = FOOTER_BASELINE;
   ops.push(
     text('Document Code: OVPCASSS-F-013', 39.36, baseline, size, 'regular'),
     text('Revision No: 0', 236.57, baseline, size, 'regular'),
@@ -293,35 +303,60 @@ function footer(ops: ReceiptOp[]): void {
   );
 }
 
-function letterhead(metrics: ReceiptMetrics, ops: ReceiptOp[]): void {
+/** The form's letterhead, repeated for each copy at the caller's offset. */
+function letterhead(metrics: ReceiptMetrics, ops: ReceiptOp[], offset: number): void {
   const center = 297.66;
+  const at = (baseline: number) => baseline + offset;
 
   ops.push(
-    { kind: 'image', image: 'seal', x: 62.7, top: 7.7, width: 59.3, height: 59.65 },
-    { kind: 'image', image: 'emblem', x: 481.75, top: 19.5, width: 90.25, height: 48 },
-    text('ANNEX I', 532.57 - metrics.width('ANNEX I', 'bold', 10), 16.56, 10, 'bold'),
-    centered('BUKIDNON STATE UNIVERSITY', center, 28.56, 10, 'bold', metrics),
-    centered('Malaybalay City, Bukidnon, 8700', center, 40.8, 10, 'regular', metrics),
-    centered('www.buksu.edu.ph', center, 53.28, 10, 'regular', metrics, LINK_BLUE),
-    { kind: 'rule', x: 253.37, top: 54.6, width: 88.7, height: 0.6, color: LINK_BLUE },
+    {
+      kind: 'image',
+      image: 'seal',
+      x: 62.7,
+      top: 7.7 + offset,
+      width: 59.3,
+      height: 59.65,
+    },
+    {
+      kind: 'image',
+      image: 'emblem',
+      x: 481.75,
+      top: 19.5 + offset,
+      width: 90.25,
+      height: 48,
+    },
+    text('ANNEX I', 532.57 - metrics.width('ANNEX I', 'bold', 10), at(16.56), 10, 'bold'),
+    centered('BUKIDNON STATE UNIVERSITY', center, at(28.56), 10, 'bold', metrics),
+    centered('Malaybalay City, Bukidnon, 8700', center, at(40.8), 10, 'regular', metrics),
+    centered('www.buksu.edu.ph', center, at(53.28), 10, 'regular', metrics, LINK_BLUE),
+    {
+      kind: 'rule',
+      x: 253.37,
+      top: 54.6 + offset,
+      width: 88.7,
+      height: 0.6,
+      color: LINK_BLUE,
+    },
     centered(
       'OFFICE OF THE VICE PRESIDENT FOR CULTURE, ARTS, SPORTS AND STUDENT SERVICES',
       297.52,
-      66.48,
+      at(66.48),
       7,
       'bold',
       metrics,
     ),
-    { kind: 'rule', x: 63, top: 73.69, width: 489.7, height: 3.55, color: BLACK },
-    centered('ACKNOWLEDGMENT RECEIPT', 297.67, HEADING_BASELINE, 10, 'bold', metrics),
+    { kind: 'rule', x: 63, top: 73.69 + offset, width: 489.7, height: 3.55, color: BLACK },
+    centered('ACKNOWLEDGMENT RECEIPT', 297.67, at(HEADING_BASELINE), 10, 'bold', metrics),
   );
 }
 
-/** OVPCASSS-F-013: one copy, black type, the docx wording verbatim. */
-export function buildReceipt(data: ReceiptData, metrics: ReceiptMetrics): ReceiptOp[] {
-  const ops: ReceiptOp[] = [];
-  letterhead(metrics, ops);
-
+/** The letter, the signatory block, and the AR No. line for one copy. */
+function letter(
+  data: ReceiptData,
+  metrics: ReceiptMetrics,
+  ops: ReceiptOp[],
+  offset: number,
+): void {
   const kind = data.type === 'IN_CAMPUS' ? 'in-campus' : 'off-campus';
   const paragraphs = [
     `Dear ${data.recipientName},`,
@@ -332,7 +367,7 @@ export function buildReceipt(data: ReceiptData, metrics: ReceiptMetrics): Receip
     approvalDateLine(data.approvedAt),
   ];
 
-  let baseline = BODY_BASELINE;
+  let baseline = BODY_BASELINE + offset;
   for (const paragraph of paragraphs) {
     baseline = drawParagraph(paragraph, baseline, metrics, ops) + PARAGRAPH_GAP;
   }
@@ -348,7 +383,33 @@ export function buildReceipt(data: ReceiptData, metrics: ReceiptMetrics): Receip
     text(data.signatoryTitle, CONTENT.left, title, 9, 'regular'),
     text(data.referenceNo, CONTENT.left, reference, 10, 'regular'),
   );
+}
 
-  footer(ops);
+/**
+ * OVPCASSS-F-013: the same letter twice on one A4 sheet, black type, the docx
+ * wording verbatim. Copy 1 is closed by its document-code line; copy 2 is
+ * closed by the page footer, as the office form prints it.
+ */
+export function buildReceipt(data: ReceiptData, metrics: ReceiptMetrics): ReceiptOp[] {
+  const ops: ReceiptOp[] = [];
+
+  letterhead(metrics, ops, 0);
+  letter(data, metrics, ops, 0);
+  footer(ops, FOOTER_BASELINE);
+
+  // The form's page-break hairline, drawn edge to edge as Word prints it.
+  ops.push({
+    kind: 'rule',
+    x: 0,
+    top: COPY_DIVIDER - 0.3,
+    width: RECEIPT_PAGE.width,
+    height: 0.6,
+    color: BLACK,
+  });
+
+  letterhead(metrics, ops, COPY_OFFSET);
+  letter(data, metrics, ops, COPY_OFFSET);
+
+  footer(ops, PAGE_FOOTER_BASELINE);
   return ops;
 }
