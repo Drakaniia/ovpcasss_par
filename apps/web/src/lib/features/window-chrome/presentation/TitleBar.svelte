@@ -4,6 +4,7 @@
   import AvatarMenu from '$lib/components/AvatarMenu.svelte';
   import BrandSeal from '$lib/components/BrandSeal.svelte';
   import NotificationMenu from '$lib/components/NotificationMenu.svelte';
+  import { isTauri } from '$lib/platform';
   import { session } from '$lib/session/session.svelte';
   import { platformModifierLabel } from '$lib/shortcuts/shortcuts';
 
@@ -15,6 +16,12 @@
 
   const menus = $derived(buildMenus(chromeMenuInputs()));
   const user = $derived(session.user);
+  /**
+   * The File/Edit/View menus belong to the desktop shell: in the browser they
+   * would only offer commands the page cannot carry out. `isTauri()` answers
+   * before the adapter does, so the bar never paints the wrong shape first.
+   */
+  const desktop = $derived(chromeState.ready ? chromeState.controllable : isTauri());
 
   let root = $state<HTMLElement | null>(null);
   /** Full screen hides the chrome until the pointer reaches the top edge. */
@@ -97,14 +104,22 @@
   <div class="reveal-zone" aria-hidden="true" onpointerenter={onPointerMove}></div>
 {/if}
 
-<header class="titlebar" class:is-hidden={hidden} data-chrome bind:this={root}>
+<header
+  class="titlebar"
+  class:is-hidden={hidden}
+  class:is-web={!desktop}
+  data-chrome
+  bind:this={root}
+>
   <span class="seal" data-tauri-drag-region aria-hidden="true">
     <BrandSeal size={22} />
   </span>
 
   <a class="wordmark" href="/">Paperless PAR</a>
 
-  <MenuBar {menus} />
+  {#if desktop}
+    <MenuBar {menus} />
+  {/if}
 
   <div class="spacer" data-tauri-drag-region></div>
 
@@ -146,6 +161,12 @@
     top: 0;
     user-select: none;
     z-index: 30;
+  }
+
+  /* No menus and no window controls: the bar keeps its own margins instead. */
+  .titlebar.is-web {
+    padding-left: 20px;
+    padding-right: 20px;
   }
 
   .titlebar.is-hidden {
