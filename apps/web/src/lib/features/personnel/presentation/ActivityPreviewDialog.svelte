@@ -98,7 +98,7 @@
     if (event.target === event.currentTarget) onclose();
   }}
   onkeydown={(event) => dialog && trapFocus(event, dialog)}
-  onclose={onclose}
+  {onclose}
 >
   <header class="preview-head">
     <div class="identity">

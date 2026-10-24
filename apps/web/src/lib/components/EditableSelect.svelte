@@ -646,7 +646,10 @@
     background: var(--primary-subtle);
   }
 
+  /* The label fills the row so the check and the row controls stay flush right. */
   .option-label {
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

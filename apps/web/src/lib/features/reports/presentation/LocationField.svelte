@@ -1,9 +1,24 @@
 <script lang="ts">
-  import type { LocationSuggestion, LocationSuggestionsResponse } from '@par/shared';
+  import {
+    HIDDEN_LOCATIONS_LIMIT,
+    type LocationSuggestion,
+    type LocationSuggestionsResponse,
+  } from '@par/shared';
+  import { Trash2 } from '@lucide/svelte';
   import { SvelteMap } from 'svelte/reactivity';
 
   import { api } from '$lib/api/client';
-  import { mergeSuggestions, rankLocations } from '../application/location-suggestions';
+  import {
+    loadPreferences,
+    preferencesState,
+    savePreferences,
+  } from '$lib/features/preferences/application/preferences.svelte';
+  import {
+    mergeSuggestions,
+    normalizeLocation,
+    rankLocations,
+    withoutHiddenLocations,
+  } from '../application/location-suggestions';
 
   /**
    * Location field (bug phase 04 §3.1-§3.2): a combobox, not a picker. Free text
@@ -46,8 +61,29 @@
   let timer: ReturnType<typeof setTimeout> | undefined;
   let controller: AbortController | undefined;
 
-  const visible = $derived(open && items.length > 0);
+  /** A row the account removed stays gone on every shell, so it lives on the API. */
+  const hidden = $derived(preferencesState.value.hiddenLocations ?? []);
+  const rows = $derived(withoutHiddenLocations(items, hidden));
+
+  const visible = $derived(open && rows.length > 0);
   const activeId = $derived(active >= 0 ? `${id}-option-${active}` : undefined);
+
+  /**
+   * Forgets one history row; the address rows are the provider's, not ours. The
+   * record is read first so a removal never writes over the rest of the list.
+   */
+  async function hide(location: string): Promise<void> {
+    await loadPreferences();
+
+    const key = normalizeLocation(location).toLowerCase();
+    const current = preferencesState.value.hiddenLocations ?? [];
+    if (current.some((value) => normalizeLocation(value).toLowerCase() === key)) return;
+
+    active = -1;
+    savePreferences({
+      hiddenLocations: [...current, normalizeLocation(location)].slice(-HIDDEN_LOCATIONS_LIMIT),
+    });
+  }
 
   function load(query: string): void {
     clearTimeout(timer);
@@ -139,22 +175,22 @@
   function onKeydown(event: KeyboardEvent): void {
     if (event.key === 'ArrowDown') {
       if (!open) show();
-      if (items.length === 0) return;
+      if (rows.length === 0) return;
       event.preventDefault();
-      active = (active + 1) % items.length;
+      active = (active + 1) % rows.length;
       return;
     }
 
     if (event.key === 'ArrowUp') {
-      if (!open || items.length === 0) return;
+      if (!open || rows.length === 0) return;
       event.preventDefault();
-      active = (active - 1 + items.length) % items.length;
+      active = (active - 1 + rows.length) % rows.length;
       return;
     }
 
     if (event.key === 'Enter') {
       if (!open || active < 0) return;
-      const suggestion = items[active];
+      const suggestion = rows[active];
       if (!suggestion) return;
       event.preventDefault();
       choose(suggestion);
@@ -206,7 +242,7 @@
 
   {#if visible}
     <ul class="suggestions" {id} role="listbox" aria-label="Location suggestions">
-      {#each items as suggestion, index (suggestion.location)}
+      {#each rows as suggestion, index (suggestion.location)}
         <li
           id="{id}-option-{index}"
           class="option"
@@ -219,6 +255,19 @@
           <span class="label">{suggestion.location}</span>
           {#if suggestion.source === 'address'}
             <span class="source">Address</span>
+          {:else}
+            <button
+              class="remove"
+              type="button"
+              tabindex="-1"
+              aria-label="Remove {suggestion.location} from history"
+              onclick={(event) => {
+                event.stopPropagation();
+                void hide(suggestion.location);
+              }}
+            >
+              <Trash2 size={13} aria-hidden="true" />
+            </button>
           {/if}
         </li>
       {/each}
@@ -279,6 +328,27 @@
   .option:hover,
   .option.is-active {
     background: var(--primary-subtle);
+  }
+
+  /* Out of the tab order like the reference lists: the option stays one stop. */
+  .remove {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 5px;
+    color: var(--text-secondary);
+    display: inline-flex;
+    flex: none;
+    height: 22px;
+    justify-content: center;
+    margin: -3px -4px -3px auto;
+    width: 22px;
+  }
+
+  .remove:hover,
+  .remove:focus-visible {
+    background: var(--status-danger-bg);
+    color: var(--status-danger-fg);
   }
 
   .visually-hidden {

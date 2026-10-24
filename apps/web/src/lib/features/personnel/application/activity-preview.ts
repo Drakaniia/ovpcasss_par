@@ -86,7 +86,10 @@ export function previewGroups(detail: ReportDetail, names: PreviewNames): Previe
           label: 'Level',
           value: form.level === 'GRADUATE' ? 'Graduate' : 'Undergraduate',
         },
-        { label: 'Date of activity', value: formatDateRange(form.activityStartDate, form.activityEndDate) },
+        {
+          label: 'Date of activity',
+          value: formatDateRange(form.activityStartDate, form.activityEndDate),
+        },
         { label: 'Location', value: form.location },
         { label: 'Number of activities', value: String(form.activityCount) },
         { label: 'Total students', value: String(form.totalStudents) },

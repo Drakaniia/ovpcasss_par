@@ -113,7 +113,8 @@ export function emptyWizardForm(): WizardForm {
     location: '',
     activityCount: '1',
     totalStudents: '',
-    totalPic: '',
+    /* The PIC count is the row count, never typed: one row starts the form. */
+    totalPic: '1',
     pics: [newPic()],
     sdgIds: [],
   };
@@ -150,7 +151,7 @@ export function formFromRecord(form: ReportFormInput): WizardForm {
     location: form.location,
     activityCount: countText(form.activityCount) || '1',
     totalStudents: countText(form.totalStudents),
-    totalPic: countText(form.totalPic),
+    totalPic: String((pics.length > 0 ? pics : base.pics).length),
     pics: pics.length > 0 ? pics : base.pics,
     sdgIds: [...form.sdgIds],
   };

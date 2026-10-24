@@ -114,8 +114,7 @@
   <div class="card-head">
     <h2 id="signatory-heading">Receipt signatory</h2>
     <p class="card-copy">
-      The name and position printed under “Sincerely” on the OVPCASSS-F-013 acknowledgment
-      receipt.
+      The name and position printed under “Sincerely” on the OVPCASSS-F-013 acknowledgment receipt.
     </p>
   </div>
 
