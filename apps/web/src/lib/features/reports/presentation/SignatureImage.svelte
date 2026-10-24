@@ -37,6 +37,10 @@
           ? `/reports/${reportId}/approval-signature/file`
           : `/reports/${reportId}/signature/file`;
       const blob = await apiDownload(path);
+      // A proxy or asset fallback can answer 200 with a page instead of pixels;
+      // an object URL of that would only paint a broken image.
+      if (!blob.type.startsWith('image/')) return settle();
+
       url = URL.createObjectURL(blob);
     } catch {
       settle();

@@ -90,8 +90,8 @@
   <div class="signature-head">
     <p class="signature-label">Your signature</p>
     <p class="signature-hint">
-      Optional. Draw or upload it here; the saved image is copied onto the record when you submit.
-      A signature saved in Settings is still used if this card stays empty.
+      Optional. Draw or upload it here; the saved image is copied onto the record when you submit. A
+      signature saved in Settings is still used if this card stays empty.
     </p>
   </div>
 
@@ -104,10 +104,20 @@
 
     {#if canEdit}
       <div class="signature-actions">
-        <button class="btn btn-outline btn-sm" type="button" disabled={busy} onclick={startReplacing}>
+        <button
+          class="btn btn-outline btn-sm"
+          type="button"
+          disabled={busy}
+          onclick={startReplacing}
+        >
           <PenLine size={14} aria-hidden="true" /> Replace signature
         </button>
-        <button class="btn btn-ghost btn-sm" type="button" disabled={busy} onclick={() => void remove()}>
+        <button
+          class="btn btn-ghost btn-sm"
+          type="button"
+          disabled={busy}
+          onclick={() => void remove()}
+        >
           <Trash2 size={14} aria-hidden="true" /> Remove signature
         </button>
       </div>
