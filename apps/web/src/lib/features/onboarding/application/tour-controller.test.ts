@@ -118,6 +118,19 @@ describe('step transitions', () => {
   });
 });
 
+describe('preferences load', () => {
+  it('sees a record that arrives after the first eligibility check', () => {
+    signIn('late-preferences');
+    expect(hasCompletedTour()).toBe(false);
+
+    preferencesState.value = {
+      tour: { version: 1, outcome: 'completed', at: new Date().toISOString() },
+    };
+
+    expect(hasCompletedTour()).toBe(true);
+  });
+});
+
 describe('manual entry points', () => {
   it('arms a start and navigates home from another route', () => {
     const navigate = vi.fn(() => Promise.resolve());

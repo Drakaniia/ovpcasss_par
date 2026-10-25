@@ -51,16 +51,6 @@ export const tour = $state<{
 
 export const homeInbox = $state<{ status: HomeInboxStatus }>({ status: 'idle' });
 
-/**
- * The completion mirror. Seeded lazily for whoever is signed in, and written on
- * every outcome so a blocked storage area still suppresses a second auto-start
- * in this document.
- */
-const completion = $state<{ userId: string | null; value: boolean }>({
-  userId: null,
-  value: false,
-});
-
 let startedThisSession = false;
 let pendingManualStart = false;
 let starting = false;
@@ -74,16 +64,12 @@ export function setViewport(width: number): void {
   viewportWidth = width;
 }
 
-/** Reactive: a reset clears the mirror and re-arms the automatic gate. */
+/**
+ * Read live rather than cached: preferences resolve after the account, so a
+ * cached answer taken at first render would miss the record they bring.
+ */
 export function hasCompletedTour(): boolean {
-  const id = session.user?.id ?? null;
-
-  if (completion.userId !== id) {
-    completion.userId = id;
-    completion.value = id ? tourRecord() !== null : false;
-  }
-
-  return completion.value;
+  return tourRecord() !== null;
 }
 
 export function currentStep(): ResolvedStep | null {
@@ -150,8 +136,6 @@ export function resetOnboarding(options: StartOptions): void {
   const id = session.user?.id;
 
   if (id) clearTourRecord();
-  completion.userId = id ?? null;
-  completion.value = false;
   startedThisSession = false;
 
   toast.success('Onboarding reset.');
@@ -199,8 +183,6 @@ function recordOutcome(outcome: TourOutcome): void {
   if (id) {
     savePreferences({ tour: { version: TOUR_VERSION, outcome, at: new Date().toISOString() } });
   }
-  completion.userId = id ?? null;
-  completion.value = true;
 }
 
 async function begin(): Promise<void> {
