@@ -153,8 +153,13 @@
   .auth-card {
     border-radius: var(--radius-card-lg);
     color: var(--text-primary);
+    /* A page may pin a decoration to the card: clip it to the radius and keep
+       it behind the content. */
+    isolation: isolate;
     max-width: 440px;
+    overflow: hidden;
     padding: clamp(22px, 3vw, 32px);
+    position: relative;
     width: 100%;
   }
 
