@@ -1,7 +1,6 @@
 import {
   createDb,
   createReceiptQueries,
-  createUserQueries,
   type ReportPicRow,
   type ReportRow,
 } from '@par/db';
@@ -55,7 +54,6 @@ export async function issueReceipts(
 
   const db = createDb(env.DB);
   const receipts = createReceiptQueries(db);
-  const users = createUserQueries(db);
   const now = new Date().toISOString();
 
   for (const pic of pics) {
@@ -77,31 +75,30 @@ export async function issueReceipts(
         now,
       });
 
-      const recipient = pic.userId ? await users.findById(pic.userId) : null;
-      if (recipient?.status === 'ACTIVE' && recipient.emailVerifiedAt) {
-        const outboxId = await enqueueEmail(env, {
-          kind: 'RECEIPT_ISSUED',
-          to: recipient.email,
-          reportId: report.id,
-          content: receiptIssuedTemplate({
-            referenceNo: report.referenceNo,
-            title: report.title,
-            picName: pic.name,
-            approvedAt: report.approvedAt,
-            origin,
-            hasAttachment: true,
-          }),
-          attachments: [
-            {
-              objectKey,
-              filename: `OVPCASSS-F-013-${report.referenceNo.replaceAll(/[^0-9A-Za-z]+/g, '-')}.pdf`,
-              contentType: 'application/pdf',
-              size: bytes.length,
-            },
-          ],
-        });
-        if (outboxId) await receipts.markEmailed(row.id, now);
-      }
+      // The receipt belongs to the person in charge, so it goes to the address
+      // on their PIC row — not gated on an account they may never have opened.
+      await enqueueEmail(env, {
+        kind: 'RECEIPT_ISSUED',
+        to: pic.email,
+        reportId: report.id,
+        content: receiptIssuedTemplate({
+          referenceNo: report.referenceNo,
+          title: report.title,
+          picName: pic.name,
+          approvedAt: report.approvedAt,
+          origin,
+          hasAttachment: true,
+        }),
+        attachments: [
+          {
+            objectKey,
+            filename: `OVPCASSS-F-013-${report.referenceNo.replaceAll(/[^0-9A-Za-z]+/g, '-')}.pdf`,
+            contentType: 'application/pdf',
+            size: bytes.length,
+          },
+        ],
+      });
+      await receipts.markEmailed(row.id, now);
     } catch (error) {
       console.error(
         JSON.stringify({
