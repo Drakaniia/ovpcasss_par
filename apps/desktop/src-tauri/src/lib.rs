@@ -27,10 +27,7 @@ const KEYRING_SERVICE: &str = "ph.edu.ovpcasss.par";
 const KEYRING_USER: &str = "session";
 
 /// Mirrors the uploader's accepted extensions; the API remains authoritative.
-const ATTACHMENT_EXTENSIONS: &[&str] = &[
-    "pdf", "png", "jpg", "jpeg", "gif", "webp", "heic", "bmp", "tif", "tiff", "doc", "docx",
-    "xls", "xlsx", "ppt", "pptx", "txt", "csv", "zip", "rar", "7z",
-];
+const ATTACHMENT_EXTENSIONS: &[&str] = &["pdf", "png", "jpg", "jpeg", "gif", "webp"];
 
 /// One account as the webview supplies it at sign-in; the token is added here.
 #[derive(serde::Deserialize)]
