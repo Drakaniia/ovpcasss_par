@@ -26,3 +26,29 @@ export const locationQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(8).default(8),
 });
 export type LocationQuery = z.input<typeof locationQuerySchema>;
+
+/**
+ * One activity can happen at several venues, and `report.location` is still a
+ * single text the register, the exports, and the printed form already read. The
+ * venues travel in it separated by this string, oldest reading first.
+ */
+export const LOCATION_SEPARATOR = '; ';
+
+/** Longest `report.location` the contract accepts. */
+export const LOCATION_MAX_LENGTH = 300;
+
+/** Splits a stored location into its venues, trimming and dropping blanks. */
+export function splitLocationList(value: string): string[] {
+  return value
+    .split(';')
+    .map((location) => location.trim())
+    .filter((location) => location !== '');
+}
+
+/** Joins venue rows into the one text a report stores. */
+export function joinLocationList(locations: readonly string[]): string {
+  return locations
+    .map((location) => location.trim())
+    .filter((location) => location !== '')
+    .join(LOCATION_SEPARATOR);
+}

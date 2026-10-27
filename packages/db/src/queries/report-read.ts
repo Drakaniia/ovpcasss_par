@@ -1,3 +1,4 @@
+import { splitLocationList } from '@par/shared';
 import type {
   ReportFilterOption,
   ReportListFacets,
@@ -319,11 +320,19 @@ export function createReportReadQueries(db: Database) {
 
       if (options.q) {
         const term = likePattern(options.q);
+        // The narrative is private to its submitter and the office once
+        // submitted, so its words only match for a reader who may open it.
+        const readableNarrative = options.viewer.isAdmin
+          ? undefined
+          : or(
+              eq(reports.status, 'PENDING'),
+              eq(reports.submittedByUserId, options.viewer.userId),
+            );
         conditions.push(
           or(
             like(reports.referenceNo, term),
             like(reports.title, term),
-            like(reports.narrative, term),
+            and(readableNarrative, like(reports.narrative, term)),
             like(reports.location, term),
             inArray(
               reports.id,
@@ -355,7 +364,8 @@ export function createReportReadQueries(db: Database) {
 
     /**
      * Locations this viewer may read, newest first and case-insensitively
-     * deduplicated (bug phase 04 §3.1). Free text stays the stored value.
+     * deduplicated (bug phase 04 §3.1). A report that names several venues is
+     * split, so history offers each venue on its own, never the joined text.
      */
     async locations(
       _viewer: ReportListFilter['viewer'],
@@ -372,15 +382,14 @@ export function createReportReadQueries(db: Database) {
       const seen = new Map<string, { location: string; lastUsedAt: string }>();
 
       for (const row of rows) {
-        const location = row.location.trim();
-        if (!location) continue;
+        for (const location of splitLocationList(row.location)) {
+          const key = location.toLowerCase();
+          if (seen.has(key)) continue;
+          if (needle && !key.includes(needle)) continue;
 
-        const key = location.toLowerCase();
-        if (seen.has(key)) continue;
-        if (needle && !key.includes(needle)) continue;
-
-        seen.set(key, { location, lastUsedAt: row.updatedAt });
-        if (seen.size === limit) break;
+          seen.set(key, { location, lastUsedAt: row.updatedAt });
+          if (seen.size === limit) return [...seen.values()];
+        }
       }
 
       return [...seen.values()];

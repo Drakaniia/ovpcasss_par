@@ -1,4 +1,4 @@
-import { emailSchema } from '@par/shared';
+import { emailSchema, joinLocationList, LOCATION_MAX_LENGTH, type ValidationIssue } from '@par/shared';
 
 import { WIZARD_STEPS, type WizardForm, type WizardStep } from './record-form';
 
@@ -24,7 +24,7 @@ const FIXED_LABELS: Record<string, string> = {
   title: 'Title of the activity',
   startDate: 'Start date',
   endDate: 'End date',
-  location: 'Location',
+  locations: 'Location',
   activityCount: 'Number of activities',
   totalStudents: 'Total number of students',
   totalPic: 'Total number of PIC',
@@ -41,8 +41,8 @@ const PIC_FIELD_LABELS: Record<string, string> = {
 const PIC_KEYS = ['name', 'email', 'phone'] as const;
 
 const STEP_FIELDS: Record<WizardStep, readonly string[]> = {
-  1: ['type', 'classification', 'campusId', 'unitId', 'level'],
-  2: ['title', 'startDate', 'endDate', 'location', 'activityCount', 'sdgIds'],
+  1: ['type', 'classification', 'level'],
+  2: ['title', 'startDate', 'endDate', 'locations', 'activityCount', 'sdgIds'],
   3: ['totalStudents', 'totalPic', 'pics'],
 };
 
@@ -58,7 +58,7 @@ const DOM_FIELDS: Record<string, string> = {
   'wiz-title': 'title',
   'wiz-start-date': 'startDate',
   'wiz-end-date': 'endDate',
-  'wiz-location': 'location',
+  'wiz-location': 'locations',
   'wiz-activity-count': 'activityCount',
   'wiz-sdgs': 'sdgIds',
   'wiz-total-students': 'totalStudents',
@@ -72,6 +72,8 @@ const FIELD_DOM = Object.fromEntries(
 export function fieldFromDomId(id: string): string | undefined {
   const pic = /^pic-(.+)-(name|email|phone)$/.exec(id);
   if (pic) return `pic.${pic[1]}.${pic[2]}`;
+  /* Every venue row is the same field, numbered `wiz-location-2`, `-3`, … */
+  if (/^wiz-location(-\d+)?$/.test(id)) return 'locations';
   return DOM_FIELDS[id];
 }
 
@@ -108,6 +110,12 @@ function activityCountError(value: string): string | undefined {
   return undefined;
 }
 
+/** The API links one account per PIC, so two rows can never share an address. */
+function duplicateEmail(picId: string, email: string, form: WizardForm): boolean {
+  const key = email.toLowerCase();
+  return form.pics.some((other) => other.id !== picId && other.email.trim().toLowerCase() === key);
+}
+
 /**
  * One field, one message. Blur and step validation share this so a field never
  * reports something different depending on how it was validated.
@@ -118,10 +126,9 @@ export function validateField(field: string, form: WizardForm): string | undefin
       return form.type ? undefined : 'Select the activity type.';
     case 'classification':
       return form.classification ? undefined : 'Select the classification.';
+    /* Campus, college or unit, department, and office are optional. */
     case 'campusId':
-      return form.campusId ? undefined : 'Select the campus.';
     case 'unitId':
-      return form.unitId ? undefined : 'Select the college or unit.';
     case 'department':
     case 'office':
       return undefined;
@@ -138,8 +145,13 @@ export function validateField(field: string, form: WizardForm): string | undefin
         ? 'The end date must be on or after the start date.'
         : undefined;
     }
-    case 'location':
-      return form.location.trim() ? undefined : 'Enter the location.';
+    case 'locations': {
+      const location = joinLocationList(form.locations);
+      if (!location) return 'Enter at least one location.';
+      return location.length > LOCATION_MAX_LENGTH
+        ? `Keep the combined locations within ${LOCATION_MAX_LENGTH} characters.`
+        : undefined;
+    }
     case 'activityCount':
       return activityCountError(form.activityCount);
     case 'totalStudents':
@@ -167,10 +179,12 @@ export function validateField(field: string, form: WizardForm): string | undefin
 
   if (match[2] === 'name') return pic.name.trim() ? undefined : 'Enter the name.';
   if (match[2] === 'email') {
-    if (!pic.email.trim()) return 'Enter the email address.';
-    return emailSchema.safeParse(pic.email.trim()).success
-      ? undefined
-      : 'Enter a valid email address.';
+    const email = pic.email.trim();
+    if (!email) return 'Enter the email address.';
+    if (!emailSchema.safeParse(email).success) return 'Enter a valid email address.';
+    return duplicateEmail(pic.id, email, form)
+      ? 'This email is already used by another person in charge.'
+      : undefined;
   }
   if (!pic.phone.trim()) return undefined;
   return PHONE_PATTERN.test(pic.phone.trim())
@@ -196,11 +210,12 @@ export function isEmptyField(field: string, form: WizardForm): boolean {
     case 'startText':
     case 'endDate':
     case 'endText':
-    case 'location':
     case 'activityCount':
     case 'totalStudents':
     case 'totalPic':
       return String(form[field as keyof WizardForm] ?? '').trim() === '';
+    case 'locations':
+      return joinLocationList(form.locations) === '';
     case 'sdgIds':
       return form.sdgIds.length === 0;
     case 'pics':
@@ -266,6 +281,67 @@ export function firstInvalidStep(
   return null;
 }
 
+/** The step a field belongs to, so a server issue can land on the right pane. */
+function stepForField(field: string): WizardStep | undefined {
+  for (const step of WIZARD_STEPS) {
+    if (STEP_FIELDS[step].includes(field)) return step;
+  }
+  return undefined;
+}
+
+/** The API names the dates after the record; the wizard keeps its shorter keys. */
+const SERVER_FIELD_ALIASES: Record<string, string> = {
+  activityStartDate: 'startDate',
+  activityEndDate: 'endDate',
+  location: 'locations',
+};
+
+const SERVER_PIC_ISSUE = /^pics\.(\d+)\.(name|email|phone)$/;
+
+/**
+ * A rejected save must never be a dead end. The API answers with the field and
+ * the sentence; this puts each one on the control the reporter can see, using
+ * the row ids the wizard holds (the API counts rows by position), and reports
+ * the earliest step so the wizard can move there.
+ */
+export function errorsFromIssues(
+  issues: readonly ValidationIssue[],
+  form: WizardForm,
+): { errors: FieldErrors; step: WizardStep | undefined } {
+  const errors: FieldErrors = {};
+  let step: WizardStep | undefined;
+
+  const put = (field: string, message: string, hinted: number | undefined): void => {
+    if (errors[field]) return;
+    errors[field] = message;
+
+    const own = stepForField(field) ?? (isWizardStepNumber(hinted) ? hinted : undefined);
+    if (own !== undefined && (step === undefined || own < step)) step = own;
+  };
+
+  for (const issue of issues) {
+    const pic = SERVER_PIC_ISSUE.exec(issue.field);
+    if (pic) {
+      const row = form.pics[Number(pic[1])];
+      if (row) {
+        put(`pic.${row.id}.${pic[2]}`, issue.message, issue.step);
+        continue;
+      }
+      put('pics', issue.message, issue.step);
+      continue;
+    }
+
+    const field = SERVER_FIELD_ALIASES[issue.field] ?? issue.field;
+    if (stepForField(field) !== undefined) put(field, issue.message, issue.step);
+  }
+
+  return { errors, step };
+}
+
+function isWizardStepNumber(value: number | undefined): value is WizardStep {
+  return value === 1 || value === 2 || value === 3;
+}
+
 function orderedKeys(form: WizardForm): string[] {
   const picKeys = form.pics.flatMap((pic) => [
     `pic.${pic.id}.name`,
@@ -284,7 +360,7 @@ function orderedKeys(form: WizardForm): string[] {
     'title',
     'startDate',
     'endDate',
-    'location',
+    'locations',
     'activityCount',
     'totalStudents',
     'totalPic',

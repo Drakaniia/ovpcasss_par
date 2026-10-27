@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type { AttachmentStatus, ReportType } from '../domain/enums';
 import { reportActivitySchema } from '../contracts/reports';
 
@@ -62,6 +64,19 @@ function isRealDate(value: string): boolean {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value);
 }
 
+/**
+ * Zod names a problem by path; the client cannot highlight a path. Every 400
+ * detail on this contract names a field, whichever check refused the request.
+ */
+export function issuesFromZodError(error: z.ZodError): ValidationIssue[] {
+  return withStep(
+    error.issues.map((issue) => ({
+      field: issue.path.join('.') || 'form',
+      message: issue.message,
+    })),
+  );
+}
+
 function withStep(issues: ValidationIssue[]): ValidationIssue[] {
   return issues.map((issue) => {
     const step = stepFor(issue.field);
@@ -72,14 +87,7 @@ function withStep(issues: ValidationIssue[]): ValidationIssue[] {
 /** The office's half: every step 1-3 field, checked before a record is created. */
 export function validateActivity(form: unknown): ValidationIssue[] {
   const parsed = reportActivitySchema.safeParse(form);
-  if (!parsed.success) {
-    return withStep(
-      parsed.error.issues.map((issue) => ({
-        field: issue.path.join('.') || 'form',
-        message: issue.message,
-      })),
-    );
-  }
+  if (!parsed.success) return issuesFromZodError(parsed.error);
 
   const value = parsed.data;
   const issues: ValidationIssue[] = [];

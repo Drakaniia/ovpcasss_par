@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ReportActivityInput } from '../contracts/reports';
-import { validateActivity, validateNarrative, validateReport } from './report';
+import { reportActivitySchema, type ReportActivityInput } from '../contracts/reports';
+import { issuesFromZodError, validateActivity, validateNarrative, validateReport } from './report';
 
 const activity: ReportActivityInput = {
   type: 'OFF_CAMPUS',
@@ -53,6 +53,18 @@ describe('validateActivity', () => {
     const pic = { name: 'A', email: 'a@buksu.edu.ph' };
     expect(validateActivity({ ...activity, pics: [pic, pic] })).toContainEqual(
       expect.objectContaining({ field: 'pics', step: 3 }),
+    );
+  });
+
+  it('names the field a schema failure refused, not a Zod path', () => {
+    const parsed = reportActivitySchema.safeParse({
+      ...activity,
+      pics: [{ name: 'A'.repeat(201), email: 'a@buksu.edu.ph' }],
+    });
+    if (parsed.success) throw new Error('the name is too long to parse');
+
+    expect(issuesFromZodError(parsed.error)).toContainEqual(
+      expect.objectContaining({ field: 'pics.0.name', step: 3 }),
     );
   });
 });

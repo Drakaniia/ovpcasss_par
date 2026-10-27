@@ -6,7 +6,14 @@ import type {
   ReportType,
   Unit,
 } from '@par/shared';
-import { CLASSIFICATIONS, LEVELS, REPORT_TYPES } from '@par/shared';
+import {
+  CLASSIFICATIONS,
+  joinLocationList,
+  LEVELS,
+  LOCATION_MAX_LENGTH,
+  REPORT_TYPES,
+  splitLocationList,
+} from '@par/shared';
 
 import { formatDate } from '$lib/format/datetime';
 import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
@@ -36,7 +43,8 @@ export type WizardForm = {
   startText: string;
   endDate: string;
   endText: string;
-  location: string;
+  /** One row per venue; stored in the contract's single `location` text. */
+  locations: string[];
   activityCount: string;
   totalStudents: string;
   totalPic: string;
@@ -110,7 +118,7 @@ export function emptyWizardForm(): WizardForm {
     startText: '',
     endDate: '',
     endText: '',
-    location: '',
+    locations: [''],
     activityCount: '1',
     totalStudents: '',
     /* The PIC count is the row count, never typed: one row starts the form. */
@@ -138,8 +146,8 @@ export function formFromRecord(form: ReportFormInput): WizardForm {
     ...base,
     type: form.type,
     classification: form.classification,
-    campusId: form.campusId,
-    unitId: form.unitId,
+    campusId: form.campusId ?? '',
+    unitId: form.unitId ?? '',
     department: form.department ?? '',
     office: form.office ?? '',
     level: form.level,
@@ -148,7 +156,7 @@ export function formFromRecord(form: ReportFormInput): WizardForm {
     startText: formatDate(form.activityStartDate),
     endDate: form.activityEndDate,
     endText: formatDate(form.activityEndDate),
-    location: form.location,
+    locations: splitLocations(form.location),
     activityCount: countText(form.activityCount) || '1',
     totalStudents: countText(form.totalStudents),
     totalPic: String((pics.length > 0 ? pics : base.pics).length),
@@ -157,12 +165,19 @@ export function formFromRecord(form: ReportFormInput): WizardForm {
   };
 }
 
+/** A stored location with no venue still needs one empty row to type into. */
+function splitLocations(value: string): string[] {
+  const locations = splitLocationList(value);
+  return locations.length > 0 ? locations : [''];
+}
+
 /** Converts to the shared contract; null means the record is not ready to save. */
 export function toRecordInput(form: WizardForm): ReportActivityInput | null {
-  if (!form.type || !form.classification || !form.campusId || !form.unitId || !form.level) {
-    return null;
-  }
-  if (!form.title.trim() || !form.startDate || !form.endDate || !form.location.trim()) return null;
+  const location = joinLocationList(form.locations);
+
+  if (!form.type || !form.classification || !form.level) return null;
+  if (!form.title.trim() || !form.startDate || !form.endDate || !location) return null;
+  if (location.length > LOCATION_MAX_LENGTH) return null;
 
   const activityCount = Number(form.activityCount);
   const totalStudents = Number(form.totalStudents);
@@ -184,15 +199,15 @@ export function toRecordInput(form: WizardForm): ReportActivityInput | null {
   return {
     type: form.type,
     classification: form.classification,
-    campusId: form.campusId,
-    unitId: form.unitId,
+    ...(form.campusId ? { campusId: form.campusId } : {}),
+    ...(form.unitId ? { unitId: form.unitId } : {}),
     ...(form.department.trim() ? { department: form.department.trim() } : {}),
     ...(form.office.trim() ? { office: form.office.trim() } : {}),
     level: form.level,
     title: form.title.trim(),
     activityStartDate: form.startDate,
     activityEndDate: form.endDate,
-    location: form.location.trim(),
+    location,
     activityCount,
     totalStudents,
     totalPic,
@@ -250,9 +265,10 @@ function arrowBelongsElsewhere(event: KeyboardEvent): boolean {
 
 /* ---------- Options ---------- */
 
+/** No campus chosen yet: every unit is offered, since both fields are optional. */
 export function unitsForCampus(units: readonly Unit[], campusId: string): Unit[] {
   return units
-    .filter((unit) => unit.campusId === campusId)
+    .filter((unit) => campusId === '' || unit.campusId === campusId)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
 }
 

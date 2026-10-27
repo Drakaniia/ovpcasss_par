@@ -1,6 +1,7 @@
 <script lang="ts">
   import {
     HIDDEN_LOCATIONS_LIMIT,
+    LOCATION_MAX_LENGTH,
     type LocationSuggestion,
     type LocationSuggestionsResponse,
   } from '@par/shared';
@@ -223,7 +224,7 @@
     type="text"
     autocomplete="off"
     spellcheck="false"
-    maxlength="300"
+    maxlength={LOCATION_MAX_LENGTH}
     placeholder="Barangay, municipality, or venue"
     role="combobox"
     aria-autocomplete="list"

@@ -106,6 +106,20 @@
       "when": 1792842289662,
       "tag": "0014_damp_silver_fox",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1793025468976,
+      "tag": "0015_cynical_steel_serpent",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1793026437120,
+      "tag": "0016_plain_sebastian_shaw",
+      "breakpoints": true
     }
   ]
 }

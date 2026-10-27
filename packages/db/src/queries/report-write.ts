@@ -64,8 +64,8 @@ function projection(form: ReportActivityInput): ActivityProjection {
   return {
     type: form.type,
     classification: form.classification,
-    campusId: form.campusId,
-    unitId: form.unitId,
+    campusId: form.campusId ?? null,
+    unitId: form.unitId ?? null,
     department: form.department ?? null,
     office: form.office ?? null,
     level: form.level,
@@ -307,6 +307,36 @@ export function createReportWriteQueries(db: Database) {
         .update(reports)
         .set({ archivedAt: input.archivedAt, archivedByUserId: input.archivedByUserId })
         .where(and(eq(reports.id, id), eq(reports.status, 'APPROVED')))
+        .returning();
+
+      return rows[0] ?? null;
+    },
+
+    /**
+     * The office's Date Completed (spec §7.13). It never rewrites `approved_at`,
+     * so the F-013 receipt and the facsimile keep the day they were decided.
+     * `null` clears it and the sheet falls back to the approval date.
+     */
+    async setCompletedOn(input: {
+      id: string;
+      completedOn: string | null;
+      now: string;
+      version?: number;
+    }): Promise<ReportRow | null> {
+      const rows = await db
+        .update(reports)
+        .set({
+          completedOn: input.completedOn,
+          version: sql`${reports.version} + 1`,
+          updatedAt: input.now,
+        })
+        .where(
+          and(
+            eq(reports.id, input.id),
+            eq(reports.status, 'APPROVED'),
+            input.version === undefined ? undefined : eq(reports.version, input.version),
+          ),
+        )
         .returning();
 
       return rows[0] ?? null;
