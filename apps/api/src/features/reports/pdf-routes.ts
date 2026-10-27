@@ -3,7 +3,7 @@ import type { Hono, Context } from 'hono';
 import type { AppEnv } from '../../env';
 import { recordAudit } from '../../lib/audit';
 import { signedDownloadUrl } from '../../lib/download-url';
-import { isAdmin } from './domain/report-access';
+import { canViewFacsimile } from './domain/report-access';
 import { reportDependencies, viewerOf } from './application/report-context';
 import {
   FACSIMILE_TYPE,
@@ -18,17 +18,19 @@ async function findVisibleReport(c: Context<AppEnv>, reportId: string) {
   const deps = reportDependencies(c);
   const row = await deps.read.findById(reportId);
   if (!row) return null;
-  // The facsimile is the office's copy of the record (spec §18 A12); the PIC's
-  // document is the acknowledgment receipt, not this internal PDF.
-  if (!isAdmin(viewer)) return null;
+  // The office reads every copy; a PIC reads the copy of the narrative they
+  // submitted, and the acknowledgment receipt stays the separate document.
+  const isPic = await deps.read.isPic(row.id, viewer.userId);
+  if (!canViewFacsimile(viewer, row, isPic)) return null;
   return row;
 }
 
 /**
- * The facsimile PDF (spec §7.8). The JSON endpoint stores a freshly rendered PDF
- * and returns a short-lived presigned URL, which also works from the desktop
- * shell; without storage credentials it falls back to the authenticated file
- * endpoint so local development still downloads.
+ * The facsimile PDF (spec §7.8), readable by the office and by the PIC who
+ * submitted the narrative. The JSON endpoint stores a freshly
+ * rendered PDF and returns a short-lived presigned URL, which also works from
+ * the desktop shell; without storage credentials it falls back to the
+ * authenticated file endpoint so local development still downloads.
  */
 export function registerReportPdfRoutes(router: Hono<AppEnv>): void {
   router.get('/:id/pdf', async (c) => {
