@@ -7,6 +7,7 @@
   const ACTION_LABELS: Record<string, string> = {
     RECORD_CREATED: 'Record created',
     RECORD_UPDATED: 'Details updated',
+    RECORD_COMPLETED_DATE_SET: 'Date completed updated',
     RECORD_DELETED: 'Record deleted',
     NARRATIVE_SAVED: 'Narrative draft saved',
     NARRATIVE_SUBMITTED: 'Narrative submitted',
