@@ -169,6 +169,16 @@ export const api = {
       }),
     /** Admin: a PENDING record only. The AR No. is never reused. */
     remove: (id: string) => apiFetch<void>(`/reports/${id}`, { method: 'DELETE' }),
+    /**
+     * Admin: the office's Date Completed on an approved record. `null` clears it,
+     * and the monitoring sheet falls back to the approval date.
+     */
+    setCompletedDate: (id: string, completedOn: string | null, version?: number) =>
+      apiFetch<ReportHead>(`/reports/${id}/completed-date`, {
+        method: 'PATCH',
+        headers: version === undefined ? undefined : { 'if-match': String(version) },
+        body: JSON.stringify({ completedOn }),
+      }),
     /** Admin: files an approved record away; idempotent (spec §7). */
     archive: (id: string) => apiFetch<ReportHead>(`/reports/${id}/archive`, { method: 'POST' }),
     unarchive: (id: string) => apiFetch<ReportHead>(`/reports/${id}/archive`, { method: 'DELETE' }),
