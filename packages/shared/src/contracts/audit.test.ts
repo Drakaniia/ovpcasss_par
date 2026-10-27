@@ -20,6 +20,7 @@ describe('audit contracts', () => {
     expect(AUDIT_ACTIONS).toContain('NARRATIVE_SUBMITTED');
     expect(AUDIT_ACTIONS).toContain('NARRATIVE_APPROVED');
     expect(AUDIT_ACTIONS).toContain('RECEIPT_ISSUED');
+    expect(AUDIT_ACTIONS).toContain('RECORD_COMPLETED_DATE_SET');
     expect(AUDIT_ACTIONS).not.toContain('ENDORSED');
   });
 

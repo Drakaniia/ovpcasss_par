@@ -55,9 +55,10 @@ export const repositoryItemSchema = z.object({
   classification: z.enum(CLASSIFICATIONS),
   level: z.enum(LEVELS),
   status: z.enum(REPOSITORY_STATUSES),
-  campusId: idSchema,
-  collegeId: idSchema,
-  college: z.string().min(1),
+  /** Null when the record was filed without a campus or college/unit. */
+  campusId: idSchema.nullable(),
+  collegeId: idSchema.nullable(),
+  college: z.string(),
   picNames: z.string(),
   receivedAt: isoDateTimeSchema,
   activityStartDate: isoDateSchema,
