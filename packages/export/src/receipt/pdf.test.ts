@@ -3,7 +3,7 @@ import { PDFArray, PDFDict, PDFDocument, PDFName } from 'pdf-lib';
 import { describe, expect, it } from 'vitest';
 
 import { PAGELLA_BOLD_OTF_BASE64, PAGELLA_REGULAR_OTF_BASE64 } from './fonts';
-import { CONTENT, COPY_OFFSET, buildReceipt, type ReceiptData, type ReceiptOp } from './layout';
+import { CONTENT, buildReceipt, type ReceiptData, type ReceiptOp } from './layout';
 import { decodeBase64, pageFontMetrics, renderReceipt } from './pdf';
 
 const data: ReceiptData = {
@@ -61,14 +61,14 @@ async function measuredOps(): Promise<{
 }
 
 describe('renderReceipt', () => {
-  it('renders one A4 page with the embedded faces and both letterheads', async () => {
+  it('renders one A5 landscape page with the embedded faces and the letterhead', async () => {
     const bytes = await renderReceipt(data);
     const doc = await PDFDocument.load(bytes);
     const page = doc.getPage(0);
 
     expect(doc.getPageCount()).toBe(1);
-    expect(page.getWidth()).toBeCloseTo(595.32, 2);
-    expect(page.getHeight()).toBeCloseTo(841.92, 2);
+    expect(page.getWidth()).toBeCloseTo(595.28, 2);
+    expect(page.getHeight()).toBeCloseTo(419.53, 2);
 
     const faces = embeddedFaces(doc);
     expect(faces.some((face) => face.includes('TeXGyrePagella-Regular'))).toBe(true);
@@ -130,21 +130,16 @@ describe('the measured form', () => {
     onForm(at('Document Code: OVPCASSS-F-013')?.baseline, 385.85);
   });
 
-  it('repeats the whole letter a second time, 393.89 pt lower on the same page', async () => {
+  it('prints the letter once on the trimmed sheet', async () => {
     const { ops } = await measuredOps();
     const at = (value: string) =>
       ops.filter(
         (op): op is Extract<ReceiptOp, { kind: 'text' }> => op.kind === 'text' && op.text === value,
       );
 
-    const headings = at('ACKNOWLEDGMENT RECEIPT');
-    expect(headings).toHaveLength(2);
-    expect(headings[1]?.baseline).toBeCloseTo((headings[0]?.baseline ?? 0) + COPY_OFFSET, 2);
-
-    const references = at('AR No. 0001');
-    expect(references).toHaveLength(2);
-    expect(references[1]?.baseline).toBeCloseTo((references[0]?.baseline ?? 0) + COPY_OFFSET, 2);
-
-    expect(at('Document Code: OVPCASSS-F-013')).toHaveLength(2);
+    expect(at('ACKNOWLEDGMENT RECEIPT')).toHaveLength(1);
+    expect(at('AR No. 0001')).toHaveLength(1);
+    expect(at('Sincerely,')).toHaveLength(1);
+    expect(at('Document Code: OVPCASSS-F-013')).toHaveLength(1);
   });
 });

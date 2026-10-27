@@ -2,11 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BODY_BASELINE,
-  COPY_DIVIDER,
-  COPY_OFFSET,
   FOOTER_BASELINE,
   HEADING_BASELINE,
-  PAGE_FOOTER_BASELINE,
   RECEIPT_PAGE,
   approvalDateLine,
   buildReceipt,
@@ -89,8 +86,11 @@ describe('buildReceipt', () => {
     expect(text).not.toContain('off-campus');
   });
 
-  it('sets the form on A4 with the measured type sizes and baselines', () => {
+  it('sets the form on A5 landscape with the measured type sizes and baselines', () => {
     const ops = buildReceipt(data, wide);
+
+    // Exactly half of the A4 sheet the office form is printed on.
+    expect(RECEIPT_PAGE).toEqual({ width: 595.28, height: 419.53 });
 
     const heading = ops.find(
       (op): op is Extract<ReceiptOp, { kind: 'text' }> =>
@@ -124,61 +124,63 @@ describe('buildReceipt', () => {
     expect(runs(ops)).toContain('AR No. 0001');
   });
 
-  it('keeps the seal and emblem of both copies', () => {
+  it('keeps the seal and emblem once, on the letterhead', () => {
     const images = buildReceipt(data, wide).filter((op) => op.kind === 'image');
     expect(images).toMatchObject([
       { image: 'seal', x: 62.7, top: 7.7, width: 59.3, height: 59.65 },
       { image: 'emblem', x: 481.75, top: 19.5, width: 90.25, height: 48 },
-      { image: 'seal', x: 62.7, top: 7.7 + COPY_OFFSET, width: 59.3, height: 59.65 },
-      { image: 'emblem', x: 481.75, top: 19.5 + COPY_OFFSET, width: 90.25, height: 48 },
     ]);
   });
 
-  it('prints the letter twice on the one sheet, as the office form does', () => {
+  it('prints the letter once, with no repeated copy', () => {
     const ops = buildReceipt(data, wide);
     const text = runs(ops);
 
-    expect(text.filter((value) => value === 'ACKNOWLEDGMENT RECEIPT')).toHaveLength(2);
-    expect(text.filter((value) => value === 'AR No. 0001')).toHaveLength(2);
-    expect(text.filter((value) => value === 'Dear M. Santos,')).toHaveLength(2);
-    expect(text.filter((value) => value === 'Sincerely,')).toHaveLength(2);
-    expect(text.filter((value) => value === 'DR. LINCOLN V. TAN')).toHaveLength(2);
-    expect(text.filter((value) => value === 'VPCASSS')).toHaveLength(2);
+    for (const line of [
+      'ACKNOWLEDGMENT RECEIPT',
+      'AR No. 0001',
+      'Dear M. Santos,',
+      'Sincerely,',
+      'DR. LINCOLN V. TAN',
+      'VPCASSS',
+      'Document Code: OVPCASSS-F-013',
+    ]) {
+      expect(text.filter((value) => value === line)).toHaveLength(1);
+    }
 
     const headings = ops.filter(
       (op): op is Extract<ReceiptOp, { kind: 'text' }> =>
         op.kind === 'text' && op.text === 'ACKNOWLEDGMENT RECEIPT',
     );
-    expect(headings.map((op) => op.baseline)).toEqual([
-      HEADING_BASELINE,
-      HEADING_BASELINE + COPY_OFFSET,
-    ]);
+    expect(headings.map((op) => op.baseline)).toEqual([HEADING_BASELINE]);
 
     const images = ops.filter((op) => op.kind === 'image');
-    expect(images).toHaveLength(4);
-    expect(images.map((op) => op.top)).toEqual([7.7, 19.5, 7.7 + COPY_OFFSET, 19.5 + COPY_OFFSET]);
+    expect(images).toHaveLength(2);
+    expect(images.map((op) => op.top)).toEqual([7.7, 19.5]);
   });
 
-  it('closes copy 1 with its document-code line and the sheet with the page footer', () => {
+  it('closes the copy with its document-code line and draws no cut hairline', () => {
     const ops = buildReceipt(data, wide);
-    const at = (baseline: number) => textAt(ops, baseline)[0];
 
-    expect(at(FOOTER_BASELINE)).toBe('Document Code: OVPCASSS-F-013');
-    expect(at(PAGE_FOOTER_BASELINE)).toBe('Document Code: OVPCASSS-F-013');
-    expect(textAt(ops, COPY_OFFSET + PAGE_FOOTER_BASELINE)).toEqual([]);
+    expect(textAt(ops, FOOTER_BASELINE)).toEqual([
+      'Document Code: OVPCASSS-F-013',
+      'Revision No: 0',
+      'Issue Date: March 18, 2025',
+      'Page',
+      '1',
+      'of',
+      '1',
+    ]);
 
-    const pageFooters = [FOOTER_BASELINE, PAGE_FOOTER_BASELINE].flatMap((baseline) =>
-      textAt(ops, baseline),
+    // Only the letterhead's two rules remain, both above the letter.
+    const rules = ops.filter(
+      (op): op is Extract<ReceiptOp, { kind: 'rule' }> => op.kind === 'rule',
     );
-    expect(pageFooters).toHaveLength(14);
-
-    const divider = ops.find(
-      (op) => op.kind === 'rule' && Math.abs(op.top + op.height / 2 - COPY_DIVIDER) < 0.5,
-    );
-    expect(divider).toMatchObject({ x: 0, width: RECEIPT_PAGE.width, height: 0.6 });
+    expect(rules).toHaveLength(2);
+    expect(rules.every((rule) => rule.top < FOOTER_BASELINE)).toBe(true);
   });
 
-  it('keeps every mark inside the A4 sheet', () => {
+  it('keeps every mark inside the A5 sheet, nothing stranded below the footer', () => {
     const ops = buildReceipt(data, wide);
 
     for (const op of ops) {
@@ -191,5 +193,8 @@ describe('buildReceipt', () => {
         expect(op.x + ('width' in op ? op.width : 0)).toBeLessThanOrEqual(RECEIPT_PAGE.width);
       }
     }
+
+    // Footer to sheet edge is blank paper for the printer, not a lost second copy.
+    expect(RECEIPT_PAGE.height - FOOTER_BASELINE).toBeLessThan(36);
   });
 });
