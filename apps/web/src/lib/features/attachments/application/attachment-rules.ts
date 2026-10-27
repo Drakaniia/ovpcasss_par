@@ -1,9 +1,9 @@
 import { MAX_ATTACHMENT_BYTES } from '@par/shared';
 
 /**
- * Uploader rules (UI spec §8.5). The server allowlist is authoritative; this
- * pre-check mirrors the documented categories so a rejection names the file and
- * the limit before a pointless upload starts.
+ * Uploader rules (UI spec §8.5). The server allowlist is authoritative: PDFs and
+ * images only. This pre-check mirrors it so a rejection names the file and the
+ * limit before a pointless upload starts.
  */
 
 export type AttachmentUiStatus = 'UPLOADING' | 'PENDING' | 'CONFIRMED' | 'FAILED';
@@ -15,30 +15,9 @@ export type FileRejection = { name: string; message: string };
 export type AttachmentKind =
   'pdf' | 'image' | 'word' | 'excel' | 'powerpoint' | 'archive' | 'text' | 'other';
 
-const ALLOWED_EXTENSIONS = new Set([
-  'pdf',
-  'png',
-  'jpg',
-  'jpeg',
-  'gif',
-  'webp',
-  'heic',
-  'bmp',
-  'tif',
-  'tiff',
-  'doc',
-  'docx',
-  'xls',
-  'xlsx',
-  'ppt',
-  'pptx',
-  'txt',
-  'csv',
-  'zip',
-  'rar',
-  '7z',
-]);
+const ALLOWED_EXTENSIONS = new Set(['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp']);
 
+/** Stays wider than the allowlist: records uploaded earlier still show their kind. */
 const KIND_BY_EXTENSION: Record<string, AttachmentKind> = {
   pdf: 'pdf',
   png: 'image',

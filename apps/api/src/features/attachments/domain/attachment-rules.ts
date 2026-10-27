@@ -1,28 +1,13 @@
 import { MAX_ATTACHMENT_BYTES } from '@par/shared';
 
 /**
- * Upload allowlist (spec §7.8). Executables, scripts, and anything the office
- * cannot open are refused before a presigned URL is ever minted. The extension
- * and the declared type must both be known; `application/octet-stream` is
- * accepted only because some office clients send it for a known extension.
+ * Upload allowlist (spec §7.8, amended 2026-10-26): PDFs and images only.
+ * Executables, scripts, Office documents, and anything the office cannot open
+ * are refused before a presigned URL is ever minted. The extension and the
+ * declared type must both be known; `application/octet-stream` is accepted only
+ * because some browsers send it for a known extension.
  */
-const ALLOWED_EXTENSIONS = new Set([
-  'pdf',
-  'jpg',
-  'jpeg',
-  'png',
-  'webp',
-  'gif',
-  'doc',
-  'docx',
-  'xls',
-  'xlsx',
-  'ppt',
-  'pptx',
-  'txt',
-  'csv',
-  'zip',
-]);
+const ALLOWED_EXTENSIONS = new Set(['pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif']);
 
 const ALLOWED_MIME_TYPES = new Set([
   'application/pdf',
@@ -30,16 +15,6 @@ const ALLOWED_MIME_TYPES = new Set([
   'image/png',
   'image/webp',
   'image/gif',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'text/plain',
-  'text/csv',
-  'application/zip',
-  'application/x-zip-compressed',
   'application/octet-stream',
 ]);
 
