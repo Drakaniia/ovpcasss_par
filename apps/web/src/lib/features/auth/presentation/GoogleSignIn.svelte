@@ -5,6 +5,7 @@
   import { API_BASE_URL, isDesktopShell, setSessionToken } from '$lib/api/http';
   import { destinationAfterSignIn } from '$lib/features/auth/application/post-sign-in';
   import { googleErrorMessage } from '$lib/features/auth/application/google-errors';
+  import { resetPreferences } from '$lib/features/preferences/application/preferences.svelte';
   import { createPlatform } from '$lib/platform';
   import { rememberSessionToken } from '$lib/platform/session-token';
   import { loadSession } from '$lib/session/session.svelte';
@@ -37,6 +38,8 @@
       // The token is only in memory until `/me` names the account, so the saved
       // entry carries the real identity rather than a placeholder.
       setSessionToken(token);
+      // A sign-in from the profile card replaces a running account's settings.
+      resetPreferences();
       const user = await loadSession(true);
       const destination = user ? destinationAfterSignIn(user) : null;
 

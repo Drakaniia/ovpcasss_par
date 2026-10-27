@@ -1,5 +1,6 @@
 <script lang="ts">
   import { loginSchema, emailSchema } from '@par/shared';
+  import type { Account } from '@par/shared';
   import { AlertCircle, ArrowRight, LoaderCircle, Lock, Mail } from '@lucide/svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -17,13 +18,23 @@
 
   import GoogleSignIn from './GoogleSignIn.svelte';
 
+  let {
+    initialEmail,
+    onsignedin,
+  }: {
+    /** Seeds the address — the profile's account switcher reuses this form. */
+    initialEmail?: string;
+    /** Keeps the sign-in in place; without it the form navigates on success. */
+    onsignedin?: (account: Account) => void | Promise<void>;
+  } = $props();
+
   function googleError(): string | null {
     const code = page.url.searchParams.get('error');
     return code ? googleErrorMessage(code) : null;
   }
 
   // A switch on Profile arrives as `?email=`, so the field is ready for the password.
-  let email = $state(untrack(() => prefillEmail(page.url.search)));
+  let email = $state(untrack(() => initialEmail?.trim() || prefillEmail(page.url.search)));
   let password = $state('');
   let errors = $state<FieldErrors>({});
   let alert = $state<string | null>(googleError());
@@ -103,6 +114,12 @@
       else await rememberAccount(identity);
 
       setSessionUser(account);
+
+      if (onsignedin) {
+        await onsignedin(account);
+        return;
+      }
+
       await goto(destination, { replaceState: true });
     } catch (error) {
       if (error instanceof ApiError && error.code === 'EMAIL_NOT_VERIFIED') {
