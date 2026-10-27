@@ -4,6 +4,7 @@ import { CLASSIFICATIONS, LEVELS, REPORT_STATUSES, REPORT_TYPES, ROLES } from '.
 import { attachmentSchema } from './attachments';
 import { emailSchema, signatureUploadSchema } from './auth';
 import { idSchema, isoDateTimeSchema } from './common';
+import { LOCATION_MAX_LENGTH } from './locations';
 
 /** Every listed PIC needs an email: that address is the account and the mailbox. */
 export const reportPicSchema = z.object({
@@ -20,15 +21,16 @@ export type ReportPic = z.infer<typeof reportPicSchema>;
 export const reportActivitySchema = z.object({
   type: z.enum(REPORT_TYPES),
   classification: z.enum(CLASSIFICATIONS),
-  campusId: idSchema,
-  unitId: idSchema,
+  /** Campus and college/unit are optional: the office fills them in when known. */
+  campusId: idSchema.optional(),
+  unitId: idSchema.optional(),
   department: z.string().max(120).optional(),
   office: z.string().max(120).optional(),
   level: z.enum(LEVELS),
   title: z.string().min(1).max(300),
   activityStartDate: z.string().min(1),
   activityEndDate: z.string().min(1),
-  location: z.string().min(1).max(300),
+  location: z.string().min(1).max(LOCATION_MAX_LENGTH),
   activityCount: z.number().int().min(1),
   totalStudents: z.number().int().min(0),
   totalPic: z.number().int().min(0),
@@ -51,6 +53,20 @@ export const reportUpdateSchema = reportActivitySchema.extend({
   reason: z.string().trim().max(500).optional(),
 });
 export type ReportUpdateInput = z.infer<typeof reportUpdateSchema>;
+
+/**
+ * The office's Date Completed (spec §7.13), a Manila calendar date. It is what
+ * the monitoring sheet prints; the approval timestamp still records when the
+ * decision was made, so an issued receipt never changes.
+ */
+export const reportCompletedDateSchema = z.object({
+  /** `null` clears it, and the sheet falls back to the approval date. */
+  completedOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a date in YYYY-MM-DD form')
+    .nullable(),
+});
+export type ReportCompletedDateInput = z.infer<typeof reportCompletedDateSchema>;
 
 /** The whole record as the facsimile and the detail page read it. */
 export const reportFormSchema = reportActivitySchema.extend({
@@ -301,15 +317,24 @@ export const reportDetailSchema = z.object({
   submittedAt: isoDateTimeSchema.optional(),
   submittedByName: z.string().optional(),
   approvedAt: isoDateTimeSchema.optional(),
+  /** The office's Date Completed, when it is not the approval date. */
+  completedOn: z.string().optional(),
   people: reportPeopleSchema.optional(),
   history: z.array(reportHistoryEventSchema).optional(),
   narrativeSignature: reportSubmitterSignatureSchema.nullable().optional(),
   /** The caller is a listed PIC: the client shows the narrative editor. */
   canWriteNarrative: z.boolean().optional(),
+  /**
+   * Another PIC submitted this narrative: its words, files, and signature are
+   * withheld from this caller, who may still read the activity itself.
+   */
+  narrativePrivate: z.boolean().optional(),
   /** The caller may edit activity details, assign PICs, or delete a draft. */
   canManage: z.boolean().optional(),
   /** The caller (the office) may archive or unarchive this approved record. */
   canArchive: z.boolean().optional(),
+  /** The caller may record this approved record's Date Completed. */
+  canSetCompletedDate: z.boolean().optional(),
   archivedAt: isoDateTimeSchema.optional(),
   archivedByName: z.string().optional(),
 });

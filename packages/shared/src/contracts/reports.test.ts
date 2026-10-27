@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   reportActivitySchema,
+  reportCompletedDateSchema,
   reportDetailSchema,
   reportListQuerySchema,
   reportPdfResponseSchema,
@@ -61,6 +62,14 @@ const detail = {
 } as const;
 
 describe('record contracts', () => {
+  it('accepts an activity with no campus or college/unit', () => {
+    const form: Record<string, unknown> = { ...detail.form };
+    delete form.campusId;
+    delete form.unitId;
+
+    expect(reportActivitySchema.safeParse(form).success).toBe(true);
+  });
+
   it('accepts the full detail and a spare one', () => {
     expect(reportDetailSchema.parse(detail).referenceNo).toBe('AR No. 0001');
     const sparse = reportDetailSchema.parse({
@@ -87,6 +96,22 @@ describe('record contracts', () => {
         pics: [{ name: 'M. Santos', email: 'santos@buksu.edu.ph' }],
       }).success,
     ).toBe(true);
+  });
+});
+
+describe('date completed', () => {
+  it('accepts a Manila calendar date and the empty value that clears it', () => {
+    expect(reportCompletedDateSchema.parse({ completedOn: '2026-03-18' }).completedOn).toBe(
+      '2026-03-18',
+    );
+    expect(reportCompletedDateSchema.parse({ completedOn: null }).completedOn).toBeNull();
+  });
+
+  it('rejects a timestamp or a partial date', () => {
+    expect(reportCompletedDateSchema.safeParse({ completedOn: '2026-03-18T00:00:00Z' }).success).toBe(
+      false,
+    );
+    expect(reportCompletedDateSchema.safeParse({ completedOn: '2026-03' }).success).toBe(false);
   });
 });
 

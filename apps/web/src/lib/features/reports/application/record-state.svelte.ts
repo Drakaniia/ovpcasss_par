@@ -3,7 +3,7 @@ import { tick } from 'svelte';
 import { SvelteSet } from 'svelte/reactivity';
 
 import { api } from '$lib/api/client';
-import { ApiError } from '$lib/api/http';
+import { ApiError, validationIssues } from '$lib/api/http';
 
 import {
   emptyWizardForm,
@@ -18,6 +18,7 @@ import {
 import {
   clearErrorsForPatch,
   domIdForError,
+  errorsFromIssues,
   fieldFromDomId,
   firstInvalidStep,
   hasErrors,
@@ -57,7 +58,9 @@ function authed(error: unknown): boolean {
 }
 
 function isEmptyValue(value: unknown): boolean {
-  if (Array.isArray(value)) return value.length === 0;
+  if (Array.isArray(value)) {
+    return value.every((entry) => String(entry ?? '').trim() === '');
+  }
   return String(value ?? '').trim() === '';
 }
 
@@ -174,7 +177,7 @@ export class RecordFormState {
       'title',
       'startDate',
       'endDate',
-      'location',
+      'locations',
       'activityCount',
       'totalStudents',
       'totalPic',
@@ -221,6 +224,7 @@ export class RecordFormState {
     }
     this.recheckCount(before);
     this.errors = clearErrorsForPatch(this.errors, { pics: this.form.pics }, this.form);
+    this.clearResolvedRowErrors();
   }
 
   /** The PIC count is read from the rows, so adding one increments it. */
@@ -242,6 +246,24 @@ export class RecordFormState {
     }
     this.recheckCount(before);
     this.errors = clearErrorsForPatch(this.errors, { pics: this.form.pics }, this.form);
+    this.clearResolvedRowErrors();
+  }
+
+  /**
+   * A row message goes away the moment the row stops producing it — fixing a
+   * repeated address must not leave the other row flagged.
+   */
+  private clearResolvedRowErrors(): void {
+    const next = { ...this.errors };
+
+    for (const pic of this.form.pics) {
+      for (const key of ['name', 'email', 'phone'] as const) {
+        const field = `pic.${pic.id}.${key}`;
+        if (next[field] && validateField(field, this.form) === undefined) delete next[field];
+      }
+    }
+
+    this.errors = next;
   }
 
   private markEdited(patch: Partial<WizardForm>, before: WizardForm): void {
@@ -371,6 +393,22 @@ export class RecordFormState {
     await this.setStep(target);
   }
 
+  /** Puts the API's field-level issues on the wizard's own controls. */
+  private async showIssues(error: unknown): Promise<boolean> {
+    const issues = validationIssues(error);
+    if (issues.length === 0) return false;
+
+    const { errors, step } = errorsFromIssues(issues, this.form);
+    if (step === undefined || !hasErrors(errors)) return false;
+
+    this.attempted = new SvelteSet([...this.attempted, step]);
+    this.errors = errors;
+    this.saveError = null;
+    await this.setStep(step);
+    await this.focusFirstError();
+    return true;
+  }
+
   private async focusFirstError(): Promise<void> {
     await tick();
     const id = domIdForError(this.errors, this.form);
@@ -429,6 +467,10 @@ export class RecordFormState {
         this.auth = 'denied';
         return false;
       }
+
+      // A rejected save names the field it refused; show that instead of a
+      // banner that points at nothing (a repeated PIC email arrives this way).
+      if (await this.showIssues(error)) return false;
 
       this.saveError = {
         message: error instanceof ApiError ? error.message : 'The record was not saved. Try again.',

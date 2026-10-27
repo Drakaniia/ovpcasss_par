@@ -37,7 +37,7 @@ const validForm = (overrides: Partial<WizardForm> = {}): WizardForm => ({
   startText: '12 Mar 2026',
   endDate: '2026-03-13',
   endText: '13 Mar 2026',
-  location: 'Brgy. Poblacion',
+  locations: ['Brgy. Poblacion'],
   activityCount: '2',
   totalStudents: '42',
   totalPic: '2',
@@ -89,6 +89,37 @@ describe('formFromRecord', () => {
   });
 });
 
+describe('location rows', () => {
+  it('restores a stored list into one row per venue', () => {
+    const form = formFromRecord({ ...record, location: 'Brgy. Casisang; Malaybalay City' });
+
+    expect(form.locations).toEqual(['Brgy. Casisang', 'Malaybalay City']);
+  });
+
+  it('opens one empty row when the record has no location yet', () => {
+    expect(emptyWizardForm().locations).toEqual(['']);
+    expect(formFromRecord({ ...record, location: '  ' }).locations).toEqual(['']);
+  });
+
+  it('joins the filled rows into the single stored location', () => {
+    const input = toRecordInput(
+      validForm({ locations: ['Brgy. Casisang', '   ', ' Malaybalay City '] }),
+    );
+
+    expect(input?.location).toBe('Brgy. Casisang; Malaybalay City');
+  });
+
+  it('refuses a record with no venue at all', () => {
+    expect(toRecordInput(validForm({ locations: ['', '  '] }))).toBeNull();
+  });
+
+  it('refuses a combined list past the contract limit', () => {
+    const venue = 'a'.repeat(151);
+
+    expect(toRecordInput(validForm({ locations: [venue, venue] }))).toBeNull();
+  });
+});
+
 describe('toRecordInput', () => {
   it('builds the shared contract once the record is complete', () => {
     const input = toRecordInput(validForm({ department: 'Academic Affairs' }));
@@ -115,6 +146,14 @@ describe('toRecordInput', () => {
     expect(
       toRecordInput(validForm({ pics: [{ id: 'p1', name: 'A. Cruz', email: '', phone: '' }] })),
     ).toBeNull();
+  });
+
+  it('leaves campus and college out of the request when they were not chosen', () => {
+    const input = toRecordInput(validForm({ campusId: '', unitId: '' }));
+
+    expect(input).not.toBeNull();
+    expect(input).not.toHaveProperty('campusId');
+    expect(input).not.toHaveProperty('unitId');
   });
 
   it('requires an email for every personnel in charge', () => {
@@ -155,6 +194,16 @@ describe('options', () => {
 
     expect(unitsForCampus(units, 'c1').map((entry) => entry.id)).toEqual(['u1', 'u2']);
     expect(unitsForCampus(units, 'c2').map((entry) => entry.id)).toEqual(['u3']);
+  });
+
+  it('offers every unit before a campus is chosen', () => {
+    const units = [
+      unit({ id: 'u2', name: 'College of Nursing', sortOrder: 2 }),
+      unit({ id: 'u3', name: 'Other campus unit', campusId: 'c2' }),
+      unit({ id: 'u1', name: 'College of Arts and Sciences', sortOrder: 1 }),
+    ];
+
+    expect(unitsForCampus(units, '').map((entry) => entry.id)).toEqual(['u1', 'u3', 'u2']);
   });
 });
 

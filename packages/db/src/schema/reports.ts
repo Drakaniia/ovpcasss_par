@@ -41,8 +41,9 @@ export const reports = sqliteTable(
     classification: text('classification', { enum: CLASSIFICATIONS })
       .$type<Classification>()
       .notNull(),
-    campusId: text('campus_id').notNull(),
-    unitId: text('unit_id').notNull(),
+    /** Optional classification facts: the office may leave them unset. */
+    campusId: text('campus_id'),
+    unitId: text('unit_id'),
     department: text('department'),
     office: text('office'),
     level: text('level', { enum: LEVELS }).$type<Level>().notNull(),
@@ -74,6 +75,12 @@ export const reports = sqliteTable(
     submittedAt: text('submitted_at'),
     approvedAt: text('approved_at'),
     approvedByUserId: text('approved_by_user_id'),
+    /**
+     * The office's own Date Completed (`YYYY-MM-DD`, Manila). The monitoring
+     * sheet prints it instead of the approval date when it is set; the approval
+     * timestamp is never rewritten, so an issued receipt keeps its date.
+     */
+    completedOn: text('completed_on'),
     /** Filing flag (spec §7): an approved record leaves the working register. */
     archivedAt: text('archived_at'),
     archivedByUserId: text('archived_by_user_id'),

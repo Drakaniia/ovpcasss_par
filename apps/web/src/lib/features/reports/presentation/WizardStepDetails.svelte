@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { RecordFormState } from '../application/record-state.svelte';
-  import LocationField from './LocationField.svelte';
+  import LocationRows from './LocationRows.svelte';
   import SdgPicker from './SdgPicker.svelte';
   import WizardDateField from './WizardDateField.svelte';
   import WizardField from './WizardField.svelte';
@@ -51,15 +51,24 @@
   </div>
 
   <div class="two-col">
-    <WizardField id="wiz-location" label="Location" required error={state.errors.location}>
+    <WizardField id="wiz-location" label="Location" required error={state.errors.locations}>
       {#snippet children({ describedBy, invalid })}
-        <LocationField
+        <LocationRows
           id="wiz-location"
           label="Location"
-          value={state.form.location}
+          locations={state.form.locations}
           {invalid}
           {describedBy}
-          onchange={(value) => state.patchForm({ location: value })}
+          onchange={(index, value) => {
+            const next = [...state.form.locations];
+            next[index] = value;
+            state.patchForm({ locations: next });
+          }}
+          onadd={() => state.patchForm({ locations: [...state.form.locations, ''] })}
+          onremove={(index) =>
+            state.patchForm({
+              locations: state.form.locations.filter((_, at) => at !== index),
+            })}
         />
       {/snippet}
     </WizardField>
