@@ -25,6 +25,7 @@ function record(overrides: Partial<MonitoringReportRecord>): MonitoringReportRec
     createdAt: '2026-03-10T08:00:00.000Z',
     submittedAt: '2026-03-14T08:00:00.000Z',
     approvedAt: '2026-03-20T08:00:00.000Z',
+    completedOn: null,
     narrative: '',
     sdgNumbers: [4, 10],
     pics: [{ name: 'Maria Santos', email: 'maria.santos@example.edu', phone: null }],
@@ -106,6 +107,23 @@ describe('monitoring sheet', () => {
       dateReceived: '2026-10-22',
       dateCompleted: '2026-10-22',
     });
+  });
+
+  it("prints the office's Date Completed, falling back to the approval day", () => {
+    const { sheet } = buildMonitoringSheet(
+      [
+        record({ completedOn: '2026-03-18' }),
+        record({
+          id: 'rep_2',
+          referenceNo: 'AR No. 0043',
+          completedOn: null,
+          approvedAt: '2026-03-22T23:30:00.000Z',
+        }),
+      ],
+      REQUEST,
+    );
+
+    expect(sheet.rows.map((row) => row.dateCompleted)).toEqual(['2026-03-18', '2026-03-23']);
   });
 
   it('counts approved and in-progress rows', () => {

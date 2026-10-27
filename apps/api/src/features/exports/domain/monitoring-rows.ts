@@ -48,7 +48,8 @@ export function toMonitoringRow(report: MonitoringReportRecord, index: number): 
       .flatMap((pic) => [pic.email, pic.phone])
       .filter((value): value is string => Boolean(value))
       .join('; '),
-    dateCompleted: manilaDate(report.approvedAt),
+    /** The office's own date wins; a record without one prints its approval day. */
+    dateCompleted: report.completedOn ?? manilaDate(report.approvedAt),
     dateRequested: manilaDate(report.createdAt),
   };
 }
