@@ -16,7 +16,7 @@ pnpm --filter @par/desktop dev                      # desktop; its beforeDevComm
 pnpm build                                          # every package, Tauri included (Windows only)
 pnpm turbo run build --filter=!@par/desktop         # the build CI runs
 pnpm verify                                         # lint -> typecheck -> test
-pnpm --filter @par/web exec vitest run <path>       # one test file, no full turbo pass
+pnpm --filter @par/web exec vitest run <path>       # one test file, no ful l turbo pass
 pnpm db:generate                                    # drizzle-kit generate into packages/db/migrations
 pnpm db:migrate                                     # wrangler d1 migrations apply --local
 ```
@@ -173,8 +173,10 @@ brand hex lives only in `tokens.css`.
   10 pt with 9 pt section headings on plain black hairlines. The downloadable
   facsimile PDF is a separate renderer in `packages/export`; changing one does not
   change the other.
-- The narrative editor always shows its formatted preview beneath the textarea.
-  There is no Write/Preview switch — a toolbar command renders immediately.
+- The narrative editor is one formatted surface: what is typed is already the
+  report, with no separate preview and no Markdown typed or shown. The toolbar
+  formats the selection in place; the record stores the Markdown subset the
+  parser in `@par/shared` reads, and `narrative-editor.ts` serializes back to it.
 - The wizard's "Total number of PIC" is read from the PIC rows, never typed.
   `totalPic` still travels in the contract; it is only the input that is derived.
 
