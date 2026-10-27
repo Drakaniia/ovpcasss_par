@@ -3,13 +3,16 @@ SESSION_SECRET=replace-me
 R2_ACCOUNT_ID=replace-me
 R2_ACCESS_KEY_ID=replace-me
 R2_SECRET_ACCESS_KEY=replace-me
-# Resend API key; EMAIL_PROVIDER in wrangler.toml selects the adapter (spec §7.9).
-# Set EMAIL_PROVIDER=console in .dev.vars to print outbound mail (including
+# Mail key for the adapter EMAIL_PROVIDER selects in wrangler.toml (spec §7.9):
+# the Brevo API key for "brevo", the Resend key for "resend". Set
+# EMAIL_PROVIDER=console in .dev.vars to print outbound mail (including
 # verification links) to the `wrangler dev` console instead of sending it.
 EMAIL_API_KEY=replace-me
-# Verified sender. Resend's onboarding@resend.dev only delivers to the account
-# owner's own address, so use it for local tests and the domain address for real.
-EMAIL_FROM="OVPCASSS PAR <onboarding@resend.dev>"
+# Sender. Brevo delivers to any recipient once this address is confirmed under
+# Senders in the Brevo dashboard, so no domain or DNS records are needed.
+EMAIL_FROM="OVPCASSS PAR <you@gmail.com>"
+# Replies reach the office even though the sender is a personal address.
+EMAIL_REPLY_TO="ovpcasss@buksu.edu.ph"
 # Renders every template with sample data (nothing is sent):
 #   http://localhost:8787/api/v1/dev/emails
 # The console adapter prints attachments as name and size, then the text body.

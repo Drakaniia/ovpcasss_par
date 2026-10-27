@@ -1,3 +1,4 @@
+export { createBrevoProvider } from './adapters/brevo';
 export { createCloudflareEmailProvider } from './adapters/cloudflare-email';
 export { createConsoleProvider } from './adapters/console';
 export { createResendProvider } from './adapters/resend';
