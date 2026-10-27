@@ -4,8 +4,8 @@
     Archive,
     ArchiveRestore,
     ArrowLeft,
-    Download,
     Eye,
+    FileText,
     Pencil,
     Printer,
   } from '@lucide/svelte';
@@ -25,11 +25,13 @@
   import { session } from '$lib/session/session.svelte';
   import { toast } from '$lib/toast/toast.svelte';
 
+  import CompletedDateField from './CompletedDateField.svelte';
   import DecisionPanel from './DecisionPanel.svelte';
   import NarrativeEditor from './NarrativeEditor.svelte';
   import NarrativeMarkdown from './NarrativeMarkdown.svelte';
   import PrintRecord from './PrintRecord.svelte';
   import RecordHistory from './RecordHistory.svelte';
+  import RecordPdfPreview from './RecordPdfPreview.svelte';
 
   let { id }: { id: string } = $props();
 
@@ -47,6 +49,8 @@
   let printing = $state(false);
   /** The receipt the acknowledgment dialog is showing, if any. */
   let receiptPreview = $state<ReportReceipt | null>(null);
+  /** The facsimile PDF is previewed in a dialog before it is downloaded. */
+  let pdfPreview = $state(false);
   /** The sheet holds every signature image before the print dialog opens. */
   let printReady = $state(false);
   let filing = $state(false);
@@ -54,6 +58,20 @@
   const role = $derived(session.user?.role ?? null);
   const admin = $derived(role === 'ADMIN');
   const printMode = $derived(admin && page.url.searchParams.get('print') === '1');
+
+  const viewerId = $derived(session.user?.id ?? null);
+  const viewerIsPic = $derived(
+    Boolean(viewerId && detail?.pics.some((pic) => pic.userId === viewerId)),
+  );
+  /**
+   * The API hands the facsimile only to the office and to the PIC who submitted
+   * the narrative; another PIC on the record never receives it.
+   */
+  const canPreviewPdf = $derived(
+    Boolean(
+      detail && !detail.narrativePrivate && (admin || (viewerIsPic && detail.submittedAt)),
+    ),
+  );
 
   const canEditHeader = $derived(Boolean(admin && detail && detail.status !== 'APPROVED'));
   const approvedReceipt = $derived(
@@ -109,15 +127,6 @@
       toast.error('That record was not filed. Try again.');
     } finally {
       filing = false;
-    }
-  }
-
-  async function downloadPdf(): Promise<void> {
-    try {
-      const { url } = await api.reports.pdf(id);
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch {
-      toast.error('The PDF could not be prepared. Try again.');
     }
   }
 
@@ -214,10 +223,12 @@
     </div>
 
     <div class="head-actions">
-      {#if admin}
-        <button class="btn btn-outline btn-sm" type="button" onclick={() => void downloadPdf()}>
-          <Download size={15} aria-hidden="true" /> PDF
+      {#if canPreviewPdf}
+        <button class="btn btn-outline btn-sm" type="button" onclick={() => (pdfPreview = true)}>
+          <FileText size={15} aria-hidden="true" /> PDF
         </button>
+      {/if}
+      {#if admin}
         <a class="btn btn-outline btn-sm" href="/reports/{detail.id}?print=1">
           <Printer size={15} aria-hidden="true" /> Print
         </a>
@@ -320,6 +331,14 @@
         <section class="panel">
           <NarrativeEditor {detail} onreload={load} />
         </section>
+      {:else if detail.narrativePrivate}
+        <section class="panel" aria-labelledby="narrative-heading">
+          <h2 id="narrative-heading">Narrative report</h2>
+          <p class="narrative-placeholder">
+            This narrative and its attachments are visible only to the personnel in charge who
+            submitted them and to the OVPCASSS office.
+          </p>
+        </section>
       {:else if detail.status === 'PENDING'}
         <section class="panel" aria-labelledby="narrative-heading">
           <h2 id="narrative-heading">Narrative report</h2>
@@ -336,6 +355,11 @@
               Submitted by {detail.submittedByName ?? 'the personnel in charge'} ·
               {formatDateTime(detail.submittedAt)}
             </p>
+            {#if viewerIsPic && !admin}
+              <p class="privacy-line">
+                Only you and the OVPCASSS office can read this narrative and its attachments.
+              </p>
+            {/if}
           {/if}
         </section>
       {/if}
@@ -379,6 +403,10 @@
             </dd>
           {/if}
         </dl>
+
+        {#if detail.canSetCompletedDate}
+          <CompletedDateField {detail} onchanged={load} />
+        {/if}
       </section>
 
       {#if detail.history && detail.history.length > 0}
@@ -392,6 +420,14 @@
       reportId={detail.id}
       receipt={receiptPreview}
       onclose={() => (receiptPreview = null)}
+    />
+  {/if}
+
+  {#if pdfPreview}
+    <RecordPdfPreview
+      reportId={detail.id}
+      referenceNo={detail.referenceNo}
+      onclose={() => (pdfPreview = false)}
     />
   {/if}
 {/if}
@@ -574,6 +610,12 @@
     color: var(--text-secondary);
     font-size: 11px;
     margin: 10px 0 0;
+  }
+
+  .privacy-line {
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin: 4px 0 0;
   }
 
   .rail {
