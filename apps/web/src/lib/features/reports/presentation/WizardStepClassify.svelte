@@ -206,7 +206,7 @@
       {/snippet}
     </WizardField>
 
-    <WizardField id="wiz-campus" label="Campus" required error={state.errors.campusId}>
+    <WizardField id="wiz-campus" label="Campus" optional error={state.errors.campusId}>
       {#snippet children({ describedBy, invalid })}
         <EditableSelect
           id="wiz-campus"
@@ -223,18 +223,15 @@
       {/snippet}
     </WizardField>
 
-    <WizardField id="wiz-unit" label="College or unit" required error={state.errors.unitId}>
+    <WizardField id="wiz-unit" label="College or unit" optional error={state.errors.unitId}>
       {#snippet children({ describedBy, invalid })}
         <EditableSelect
           id="wiz-unit"
           label="College or unit"
           value={state.form.unitId}
           options={unitOptions}
-          placeholder={state.form.campusId
-            ? 'Select the college or unit'
-            : 'Select the campus first'}
-          emptyMessage="No units are configured for this campus. Type a name to add one."
-          disabled={!state.form.campusId}
+          placeholder="Select the college or unit"
+          emptyMessage="No units are configured yet. Type a name to add one."
           {invalid}
           {describedBy}
           manage={unitManage}
