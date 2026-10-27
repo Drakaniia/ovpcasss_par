@@ -61,6 +61,13 @@ export const SEED_UNITS: SeedUnit[] = [
   { code: 'CON', name: 'COLLEGE OF NURSING', kind: 'COLLEGE', campusCode: 'MAIN', sortOrder: 6 },
   { code: 'COL', name: 'COLLEGE OF LAW', kind: 'COLLEGE', campusCode: 'MAIN', sortOrder: 7 },
   {
+    code: 'COM',
+    name: 'COLLEGE OF MEDICINE',
+    kind: 'COLLEGE',
+    campusCode: 'MAIN',
+    sortOrder: 8,
+  },
+  {
     code: 'DOCTORATE',
     name: 'DOCTORATE',
     kind: 'GRADUATE_SCHOOL_GROUP',
@@ -512,7 +519,7 @@ export const SEED_PROGRAMS: SeedProgram[] = [
 /**
  * Departments and offices have no source list of their own (spec §8; the
  * workbook's units table is the only input). Departments are the academic units
- * — the seven colleges and the two graduate-school groups — and offices are the
+ * — the eight colleges and the two graduate-school groups — and offices are the
  * support units — the satellite campuses and the three other units. Deriving
  * both here keeps a unit rename from drifting between the three lists.
  */
