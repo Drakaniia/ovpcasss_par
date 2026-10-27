@@ -1,8 +1,8 @@
 /**
  * The account switcher's decisions, kept out of the component so the browser
- * and desktop paths can be checked without a DOM (report 5). A browser session
- * is one HttpOnly cookie: switching there signs out and prefills the address.
- * The desktop shell holds one token per saved account and swaps it directly.
+ * and desktop paths can be checked without a DOM (report 5). The desktop shell
+ * holds one token per saved account and swaps it directly; the browser has one
+ * HttpOnly cookie, so it signs the other account in from the profile card.
  */
 
 export type SwitchOutcome = 'switched' | 'sign-in' | 'failed';
