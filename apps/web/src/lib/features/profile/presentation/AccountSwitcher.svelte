@@ -1,13 +1,21 @@
 <script lang="ts">
+  import type { Account } from '@par/shared';
   import type { SavedAccount } from '$lib/platform/contracts';
   import { LogIn, LoaderCircle, UserRoundPlus } from '@lucide/svelte';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
 
   import { setSessionToken } from '$lib/api/http';
+  import SideDrawer from '$lib/components/SideDrawer.svelte';
+  import { destinationAfterSignIn } from '$lib/features/auth/application/post-sign-in';
+  import LoginForm from '$lib/features/auth/presentation/LoginForm.svelte';
+  import {
+    loadPreferences,
+    resetPreferences,
+  } from '$lib/features/preferences/application/preferences.svelte';
   import { isTauri } from '$lib/platform';
   import { forgetAccount, savedAccounts, switchToAccount } from '$lib/platform/session-token';
-  import { clearSession, loadSession, signOut } from '$lib/session/session.svelte';
+  import { loadSession, session } from '$lib/session/session.svelte';
   import { toast } from '$lib/toast/toast.svelte';
 
   import { loginHref, switchStep } from '../application/account-switcher';
@@ -15,13 +23,15 @@
   /**
    * Saved accounts on this device (report 5). The desktop shell holds one token
    * per account in the OS credential store, so switching is instant. The browser
-   * has one HttpOnly cookie, so switching signs out and carries the address to
-   * the sign-in form instead of pretending a second session exists.
+   * has one HttpOnly cookie, so another account signs in here, in this card;
+   * nothing is signed out first and no one is sent back to the sign-in page.
    */
   let accounts = $state<SavedAccount[]>([]);
   let loading = $state(true);
   let failed = $state(false);
   let busy = $state<string | null>(null);
+  let signInOpen = $state(false);
+  let signInEmail = $state('');
 
   const desktop = isTauri();
 
@@ -46,16 +56,14 @@
       const step = switchStep(desktop ? 'desktop' : 'web', outcome);
 
       if (step === 'restore') {
-        clearSession();
+        // The profile page is keyed by account, so the new identity re-renders
+        // the cards in place instead of leaving the page.
+        resetPreferences();
         const user = await loadSession(true);
-        if (user) {
-          await goto('/');
-          return;
-        }
+        if (user) return;
 
-        /* A token the API no longer accepts is the one case that cannot switch.
-           Drop it, say why, and hand the address to the sign-in form so the
-           click always leads somewhere. */
+        /* A token the API no longer accepts is the one case that cannot switch:
+           the session is gone, so drop the entry and ask for the password. */
         setSessionToken(null);
         await forgetAccount(account.id);
         await load();
@@ -64,31 +72,41 @@
         return;
       }
 
-      if (step === 'sign-in') {
-        await signOut();
-        await goto(loginHref(account.email));
-        return;
+      if (step === 'expired') {
+        // The stored entry is unusable; the session still running stays signed in.
+        await forgetAccount(account.id);
+        await load();
+        toast.error('That saved session has expired. Sign in again.');
       }
 
-      setSessionToken(null);
-      await forgetAccount(account.id);
-      await load();
-      toast.error('That saved session has expired. Sign in again.');
-      await goto(loginHref(account.email));
+      openSignIn(account.email);
     } finally {
       busy = null;
     }
   }
 
   /**
-   * Adding an account must not end the current one: signing out first deleted it
-   * from the device, so the second sign-in left the list with one account and
-   * nothing to switch back to (report 5). The session stays open until the new
-   * sign-in replaces it.
+   * Adding or switching an account must not end the current one: the sign-in
+   * happens here and only replaces the session once it succeeds (report 5), so a
+   * cancelled or failed attempt leaves the current account signed in.
    */
-  async function add(): Promise<void> {
-    if (busy) return;
-    await goto('/login?add=1');
+  function openSignIn(email: string): void {
+    signInEmail = email;
+    signInOpen = true;
+  }
+
+  /** The new account takes over in place; a pending one still needs its screen. */
+  async function signedIn(account: Account): Promise<void> {
+    signInOpen = false;
+
+    // The old account's saved settings must not carry over.
+    resetPreferences();
+    await loadPreferences();
+
+    const destination = destinationAfterSignIn(account);
+    if (destination && destination !== '/') {
+      await goto(destination, { replaceState: true });
+    }
   }
 
   async function forget(account: SavedAccount): Promise<void> {
@@ -115,8 +133,8 @@
       {#if desktop}
         Accounts saved on this device. Choosing one signs in without a password.
       {:else}
-        A browser session is one account at a time. Switching returns you to sign in with the
-        address ready.
+        A browser session is one account at a time. Signing in with another address replaces this
+        one without signing you out first.
       {/if}
     </p>
   </div>
@@ -188,12 +206,22 @@
         class="btn btn-outline btn-sm"
         type="button"
         disabled={busy !== null}
-        onclick={() => void add()}
+        onclick={() => openSignIn('')}
       >
         <UserRoundPlus size={15} aria-hidden="true" />
         Add another account
       </button>
     </div>
+  {/if}
+
+  {#if signInOpen}
+    <SideDrawer
+      bind:open={signInOpen}
+      title={signInEmail ? 'Switch account' : 'Add another account'}
+      subtitle={`Signed in as ${session.user?.email ?? 'this account'} until the new sign-in succeeds.`}
+    >
+      <LoginForm initialEmail={signInEmail} onsignedin={signedIn} />
+    </SideDrawer>
   {/if}
 </section>
 

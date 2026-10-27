@@ -84,21 +84,24 @@
       <button class="btn btn-primary" type="button" onclick={() => void load(true)}>Retry</button>
     </div>
   {:else if user}
-    <div class="grid">
-      <AccountCard {user} />
-      <AccountSwitcher />
-      <PasswordCard hasPassword={user.hasPassword ?? true} />
-      {#if user.role === 'ADMIN'}
-        <ReceiptSignatoryCard />
-      {/if}
-      <EmailPreferences />
-      <UpdateCard />
-      <!-- Every account keeps a signature; the personnel in charge may
-           snapshot it onto a narrative before submitting. -->
-      <div class="signature-slot">
-        <SignatureUpload />
+    <!-- An in-place account change re-renders every card for the new account. -->
+    {#key user.id}
+      <div class="grid">
+        <AccountCard {user} />
+        <AccountSwitcher />
+        <PasswordCard hasPassword={user.hasPassword ?? true} />
+        {#if user.role === 'ADMIN'}
+          <ReceiptSignatoryCard />
+        {/if}
+        <EmailPreferences />
+        <UpdateCard />
+        <!-- Every account keeps a signature; the personnel in charge may
+             snapshot it onto a narrative before submitting. -->
+        <div class="signature-slot">
+          <SignatureUpload />
+        </div>
       </div>
-    </div>
+    {/key}
   {/if}
 </div>
 
