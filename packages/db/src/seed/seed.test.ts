@@ -21,7 +21,7 @@ describe('seed reference data', () => {
   });
 
   it('partitions units by kind', () => {
-    expect(unitsOf('COLLEGE')).toHaveLength(7);
+    expect(unitsOf('COLLEGE')).toHaveLength(8);
     expect(unitsOf('GRADUATE_SCHOOL_GROUP')).toHaveLength(2);
     expect(unitsOf('SATELLITE_CAMPUS')).toHaveLength(15);
     expect(unitsOf('OTHER_UNIT')).toHaveLength(3);
@@ -34,15 +34,15 @@ describe('seed reference data', () => {
     }
   });
 
-  it('derives nine academic departments from the units', () => {
-    expect(SEED_DEPARTMENTS).toHaveLength(9);
+  it('derives ten academic departments from the units', () => {
+    expect(SEED_DEPARTMENTS).toHaveLength(10);
 
     const academic = SEED_UNITS.filter(
       (unit) => unit.kind === 'COLLEGE' || unit.kind === 'GRADUATE_SCHOOL_GROUP',
     ).map((unit) => unit.name);
     expect(SEED_DEPARTMENTS.map((entry) => entry.name)).toEqual(academic);
     expect(SEED_DEPARTMENTS.map((entry) => entry.sortOrder)).toEqual(
-      Array.from({ length: 9 }, (_, index) => index + 1),
+      Array.from({ length: 10 }, (_, index) => index + 1),
     );
   });
 
