@@ -10,6 +10,11 @@ export interface Env {
   EMAIL_PROVIDER: EmailProviderKind;
   /** Verified sender for outbound mail; the sending domain is spec §14 Q15. */
   EMAIL_FROM: string;
+  /**
+   * The office mailbox replies are routed to. Set because the sending address
+   * may be a test address nobody reads; unset means no `Reply-To` header.
+   */
+  EMAIL_REPLY_TO?: string;
   SESSION_SECRET: string;
   R2_ACCOUNT_ID: string;
   R2_ACCESS_KEY_ID: string;

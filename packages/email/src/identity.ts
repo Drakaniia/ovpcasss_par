@@ -1,3 +1,5 @@
+import { OFFICE_EMAIL_ADDRESS } from '@par/shared';
+
 /**
  * The office's identity lives in `@par/shared` so the PDFs and the mail shell
  * read the same lines; this module re-exports it for the mail package and adds
@@ -15,8 +17,12 @@ export {
 
 export const EMAIL_SUBJECT_TAG = '[OVPCASSS PAR]';
 
-export const REPLY_NOTICE =
-  'This message was sent by the OVPCASSS Paperless PAR system. Please do not reply.';
+/**
+ * Every message carries a `Reply-To` at the office mailbox (the sending address
+ * is often a test address), so the footer says where a reply lands instead of
+ * asking the reader not to send one.
+ */
+export const REPLY_NOTICE = `This message was sent by the OVPCASSS Paperless PAR system. Replies reach the OVPCASSS office at ${OFFICE_EMAIL_ADDRESS}.`;
 
 /**
  * Mail clients cannot resolve the app's CSS custom properties (email spec §6.2),

@@ -63,10 +63,14 @@ APP_ORIGIN = "https://ovpcasss-par.pages.dev"
 # history. Only the typed text leaves the Worker.
 LOCATION_SUGGEST_URL = "https://photon.komoot.io/api/?q={q}&limit=6&lang=en&lat=8.1575&lon=125.1286"
 EMAIL_MAX_ATTACHMENT_BYTES = "8388608"
-EMAIL_PROVIDER = "resend"
-# Sender for outbound mail: an address at the domain verified in Resend
-# (`send.buksu.edu.ph`, spec §14 Q15). Resend rejects every message with a 403
-# until that domain's DNS records are verified, so this address must sit on the
-# verified domain — a root-domain sender is refused even though the subdomain is
-# verified. Replies are not read; the shell prints a do-not-reply notice (D3).
-EMAIL_FROM = "OVPCASSS PAR <no-reply@send.buksu.edu.ph>"
+# Brevo, not Resend: send.buksu.edu.ph is still unverified at Resend, which
+# refuses every recipient but the account owner. Brevo verifies one sender
+# address instead of a domain, so a PIC, a submitter and the office each get
+# their own copy with no DNS (runbook email-delivery.md). Every message goes to
+# the address on its own outbox row; nothing is redirected.
+EMAIL_PROVIDER = "brevo"
+# A mailbox confirmed under Senders in the Brevo dashboard. Restore
+# no-reply@send.buksu.edu.ph once that domain verifies at Resend.
+EMAIL_FROM = "OVPCASSS PAR <floresaybaez574@gmail.com>"
+# Replies reach the office; the sending address above is never read.
+EMAIL_REPLY_TO = "ovpcasss@buksu.edu.ph"

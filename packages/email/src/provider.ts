@@ -38,4 +38,4 @@ export interface EmailProvider {
   send(message: EmailMessage): Promise<void>;
 }
 
-export type EmailProviderKind = 'resend' | 'cloudflare' | 'console';
+export type EmailProviderKind = 'brevo' | 'resend' | 'cloudflare' | 'console';

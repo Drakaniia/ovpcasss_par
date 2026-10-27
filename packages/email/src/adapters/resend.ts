@@ -1,17 +1,14 @@
 import type { EmailMessage, EmailProvider } from '../provider';
+import { toBase64 } from './base64';
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
-/** Workers and Node both expose `btoa`; a chunk keeps the argument list sane. */
-function toBase64(bytes: Uint8Array): string {
-  let binary = '';
-  const chunk = 0x8000;
-
-  for (let index = 0; index < bytes.length; index += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(index, index + chunk));
-  }
-
-  return btoa(binary);
+export interface ResendOptions {
+  /**
+   * Replies are routed here, so the sending address is never read. The office
+   * mailbox stays reachable even while the sender sits on a test address.
+   */
+  replyTo?: string | undefined;
 }
 
 /**
@@ -19,7 +16,13 @@ function toBase64(bytes: Uint8Array): string {
  * `EMAIL_API_KEY` and `from` is the verified sender in `EMAIL_FROM`; both are
  * read in the queue consumer, never in the browser bundle.
  */
-export function createResendProvider(apiKey: string, from: string): EmailProvider {
+export function createResendProvider(
+  apiKey: string,
+  from: string,
+  options: ResendOptions = {},
+): EmailProvider {
+  const replyTo = options.replyTo?.trim();
+
   return {
     async send(message: EmailMessage): Promise<void> {
       const attachments = message.attachments?.map((attachment) => ({
@@ -40,6 +43,7 @@ export function createResendProvider(apiKey: string, from: string): EmailProvide
           subject: message.subject,
           html: message.html,
           text: message.text,
+          ...(replyTo ? { reply_to: replyTo } : {}),
           ...(attachments && attachments.length > 0 ? { attachments } : {}),
           ...(message.idempotencyKey
             ? { headers: { 'Idempotency-Key': message.idempotencyKey } }

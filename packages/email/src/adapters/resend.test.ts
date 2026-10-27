@@ -59,7 +59,18 @@ describe('createResendProvider', () => {
     });
   });
 
-  it('omits both fields when a message has neither', async () => {
+  it('routes replies to the configured address', async () => {
+    const fetchMock = stubFetch(new Response('{}', { status: 200 }));
+
+    await createResendProvider('key-123', FROM, { replyTo: 'ovpcasss@buksu.edu.ph' }).send(
+      message,
+    );
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toMatchObject({ reply_to: 'ovpcasss@buksu.edu.ph' });
+  });
+
+  it('omits the optional fields when the message has none', async () => {
     const fetchMock = stubFetch(new Response('{}', { status: 200 }));
 
     await createResendProvider('key-123', FROM).send(message);
@@ -68,6 +79,7 @@ describe('createResendProvider', () => {
     const body = JSON.parse(String(init.body)) as Record<string, unknown>;
     expect(body.attachments).toBeUndefined();
     expect(body.headers).toBeUndefined();
+    expect(body.reply_to).toBeUndefined();
   });
 
   it('rejects with the status and the reason Resend gave', async () => {
