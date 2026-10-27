@@ -17,8 +17,8 @@ function formOf(row: ReportRow, pics: readonly ReportPicRow[], sdgIds: readonly 
   return {
     type: row.type,
     classification: row.classification,
-    campusId: row.campusId,
-    unitId: row.unitId,
+    ...(row.campusId ? { campusId: row.campusId } : {}),
+    ...(row.unitId ? { unitId: row.unitId } : {}),
     ...(row.department ? { department: row.department } : {}),
     ...(row.office ? { office: row.office } : {}),
     level: row.level,
@@ -49,8 +49,12 @@ export async function buildReportDetail(
     canWriteNarrative: boolean;
     canManage: boolean;
     canArchive: boolean;
-    /** The office never reads a narrative draft before it is submitted. */
-    concealUnsubmitted: boolean;
+    canSetCompletedDate: boolean;
+    /**
+     * This caller may not read the narrative: another PIC after submission, or
+     * the office before submission. Everything written about it is withheld.
+     */
+    concealNarrative: boolean;
     /** Set for a non-admin reader: only their own receipt is disclosed. */
     receiptsForUserId?: string;
   },
@@ -103,7 +107,7 @@ export async function buildReportDetail(
       ? { fromStatus: event.fromStatus as ReportHistoryEvent['fromStatus'] }
       : {}),
     ...(event.toStatus ? { toStatus: event.toStatus as ReportHistoryEvent['toStatus'] } : {}),
-    ...(event.comment ? { comment: event.comment } : {}),
+    ...(event.comment && !options.concealNarrative ? { comment: event.comment } : {}),
   }));
 
   return {
@@ -116,8 +120,9 @@ export async function buildReportDetail(
     updatedAt: row.updatedAt,
     form: {
       ...formOf(row, pics, sdgIds),
-      narrative: options.concealUnsubmitted ? '' : row.narrative,
+      narrative: options.concealNarrative ? '' : row.narrative,
     },
+    narrativePrivate: options.concealNarrative,
     pics: pics.map((pic) => ({
       id: pic.id,
       name: pic.name,
@@ -125,14 +130,14 @@ export async function buildReportDetail(
       ...(pic.phone ? { phone: pic.phone } : {}),
       ...(pic.userId ? { userId: pic.userId } : {}),
     })),
-    attachments: options.concealUnsubmitted ? [] : attachments.map(toAttachment),
+    attachments: options.concealNarrative ? [] : attachments.map(toAttachment),
     receipts: visibleReceipts.map((receipt) => ({
       id: receipt.id,
       recipientName: receipt.recipientName,
       generatedAt: receipt.generatedAt,
       ...(receipt.emailedAt ? { emailedAt: receipt.emailedAt } : {}),
     })),
-    ...(latestReturn
+    ...(latestReturn && !options.concealNarrative
       ? {
           returnEvent: {
             comments: latestReturn.body,
@@ -145,6 +150,7 @@ export async function buildReportDetail(
     ...(row.submittedAt ? { submittedAt: row.submittedAt } : {}),
     ...(submittedBy ? { submittedByName: submittedBy.fullName } : {}),
     ...(row.approvedAt ? { approvedAt: row.approvedAt } : {}),
+    ...(row.completedOn ? { completedOn: row.completedOn } : {}),
     people: {
       createdBy: {
         userId: row.createdByUserId,
@@ -168,7 +174,7 @@ export async function buildReportDetail(
         : {}),
     },
     history: events,
-    ...(row.narrativeSignatureKey && row.narrativeSignedAt
+    ...(!options.concealNarrative && row.narrativeSignatureKey && row.narrativeSignedAt
       ? {
           narrativeSignature: {
             signerName: submittedBy?.fullName ?? 'Personnel in charge',
@@ -181,6 +187,7 @@ export async function buildReportDetail(
     canWriteNarrative: options.canWriteNarrative,
     canManage: options.canManage,
     canArchive: options.canArchive,
+    canSetCompletedDate: options.canSetCompletedDate,
     ...(row.archivedAt ? { archivedAt: row.archivedAt } : {}),
     ...(archivedBy ? { archivedByName: archivedBy.fullName } : {}),
   };

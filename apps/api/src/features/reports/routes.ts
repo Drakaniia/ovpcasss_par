@@ -12,12 +12,14 @@ import {
 import {
   formatReferenceNo,
   reportActivitySchema,
+  reportCompletedDateSchema,
   reportDecisionSchema,
   reportListQuerySchema,
   reportNarrativeSchema,
   reportSearchQuerySchema,
   reportUpdateSchema,
   sourcesFor,
+  issuesFromZodError,
   validateActivity,
   validateNarrative,
   type ReportListItem,
@@ -44,6 +46,8 @@ import {
   canDecide,
   canDeleteRecord,
   canManageRecord,
+  canReadNarrative,
+  canSetCompletedDate,
   canWriteNarrative,
   isAdmin,
   type Viewer,
@@ -132,10 +136,11 @@ async function detailOf(
   const read = stack(c).read;
   const isPic = await read.isPic(row.id, viewer.userId);
   return buildReportDetail(c.env, row, {
-    canWriteNarrative: canWriteNarrative(viewer, row.status),
+    canWriteNarrative: canWriteNarrative(viewer, row),
     canManage: canManageRecord(viewer, row.status),
     canArchive: canArchive(viewer, row.status),
-    concealUnsubmitted: isAdmin(viewer) && !isPic && row.status === 'PENDING',
+    canSetCompletedDate: canSetCompletedDate(viewer, row.status),
+    concealNarrative: !canReadNarrative(viewer, row, isPic),
     ...(isAdmin(viewer) ? {} : { receiptsForUserId: viewer.userId }),
   });
 }
@@ -161,13 +166,22 @@ reportRoutes.get('/search', async (c) => {
   if (!parsed.success) return invalid(c, parsed.error.issues, 'That search is not valid');
 
   const term = parsed.data.q ?? '';
+  const admin = isAdmin(viewer);
   const rows = await stack(c).read.search({
-    viewer: { userId: viewer.userId, isAdmin: isAdmin(viewer) },
+    viewer: { userId: viewer.userId, isAdmin: admin },
     ...(term ? { q: term } : {}),
     limit: parsed.data.limit,
   });
 
-  return c.json({ items: rows.map((row) => toReportSearchItem(row, term)) });
+  return c.json({
+    items: rows.map((row) =>
+      toReportSearchItem(
+        row,
+        term,
+        admin || row.status === 'PENDING' || row.submittedByUserId === viewer.userId,
+      ),
+    ),
+  });
 });
 
 /* ---------- Register ---------- */
@@ -220,7 +234,7 @@ reportRoutes.post('/', requireRole('ADMIN'), async (c) => {
 
   const body = await c.req.json().catch(() => null);
   const parsed = reportActivitySchema.safeParse(body);
-  if (!parsed.success) return invalid(c, parsed.error.issues);
+  if (!parsed.success) return invalid(c, issuesFromZodError(parsed.error));
   const issues = validateActivity(parsed.data);
   if (issues.length > 0) return invalid(c, issues);
 
@@ -320,7 +334,7 @@ reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
   }
 
   const parsed = reportUpdateSchema.safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return invalid(c, parsed.error.issues);
+  if (!parsed.success) return invalid(c, issuesFromZodError(parsed.error));
   const { reason, ...form } = parsed.data;
   const issues = validateActivity(form);
   if (issues.length > 0) return invalid(c, issues);
@@ -545,6 +559,48 @@ reportRoutes.delete('/:id/archive', requireRole('ADMIN'), async (c) => {
   return c.json(toReportHead(archived));
 });
 
+/* ---------- Date Completed (the sheet's date, not the decision's) ---------- */
+
+reportRoutes.patch('/:id/completed-date', requireRole('ADMIN'), async (c) => {
+  const viewer = viewerOf(c);
+  if (!viewer) return unauthorized(c);
+
+  const store = stack(c);
+  const row = await store.read.findById(c.req.param('id') ?? '');
+  if (!row) return notFound(c);
+  if (!canSetCompletedDate(viewer, row.status)) {
+    return forbidden(c, 'Only an approved record carries a completion date.');
+  }
+
+  const parsed = reportCompletedDateSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return invalid(c, issuesFromZodError(parsed.error));
+
+  const version = versionFrom(c);
+  if (version === null) return conflict(c, 'The record version is not valid.');
+
+  const completedOn = parsed.data.completedOn;
+  if (row.completedOn === completedOn) return c.json(toReportHead(row));
+
+  const updated = await store.write.setCompletedOn({
+    id: row.id,
+    completedOn,
+    now: new Date().toISOString(),
+    ...(version === undefined ? {} : { version }),
+  });
+  if (!updated) return conflict(c, 'This record changed on the server. Reload it and try again.');
+
+  await recordAudit(c, {
+    actorUserId: viewer.userId,
+    actorRole: viewer.role,
+    action: 'RECORD_COMPLETED_DATE_SET',
+    entityType: 'report',
+    entityId: row.id,
+    comment: `Date Completed: ${row.completedOn ?? 'approval date'} → ${completedOn ?? 'approval date'}`,
+  });
+
+  return c.json(toReportHead(updated));
+});
+
 reportRoutes.get('/:id', async (c) => {
   const viewer = viewerOf(c);
   if (!viewer) return unauthorized(c);
@@ -565,12 +621,12 @@ reportRoutes.put('/:id/narrative', async (c) => {
   const store = stack(c);
   const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
-  if (!canWriteNarrative(viewer, row.status)) {
+  if (!canWriteNarrative(viewer, row)) {
     return forbidden(c, 'This record is not open for a narrative edit.');
   }
 
   const parsed = reportNarrativeSchema.safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return invalid(c, parsed.error.issues);
+  if (!parsed.success) return invalid(c, issuesFromZodError(parsed.error));
 
   const version = versionFrom(c);
   if (version === null) return conflict(c, 'The record version is not valid.');
@@ -620,6 +676,12 @@ reportRoutes.post('/:id/submit', async (c) => {
 
   if (row.status !== 'PENDING' && row.status !== 'RETURNED') {
     return conflict(c, 'This narrative has already been submitted.');
+  }
+
+  // A returned narrative is private to the PIC who submitted it: another PIC
+  // never sees the words, so the same account resubmits them.
+  if (!canWriteNarrative(viewer, row)) {
+    return forbidden(c, 'Only the personnel in charge who submitted this narrative may resubmit it.');
   }
 
   const attachments = await store.read.listAttachments(row.id);
@@ -741,7 +803,7 @@ reportRoutes.post('/:id/decision', requireRole('ADMIN'), async (c) => {
   }
 
   const parsed = reportDecisionSchema.safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return invalid(c, parsed.error.issues);
+  if (!parsed.success) return invalid(c, issuesFromZodError(parsed.error));
   if (parsed.data.decision === 'RETURN' && !parsed.data.comments?.trim()) {
     return invalid(c, [{ field: 'comments', message: 'Write what the PIC should change.' }]);
   }
@@ -791,6 +853,9 @@ reportRoutes.post('/:id/decision', requireRole('ADMIN'), async (c) => {
 
   for (const [index, pic] of pics.entries()) {
     if (!pic.userId) continue;
+    // A returned narrative is private to its submitter, so the office's note
+    // travels only to them; an approval is still news for every PIC.
+    if (!approving && row.submittedByUserId && pic.userId !== row.submittedByUserId) continue;
     await notify(c.env, {
       userId: pic.userId,
       kind: approving ? 'APPROVED' : 'RETURNED',
