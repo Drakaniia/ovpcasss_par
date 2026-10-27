@@ -37,6 +37,7 @@ function row(overrides: Partial<ReportSearchRow> = {}): ReportSearchRow {
     submittedAt: '2026-03-14T01:12:00.000Z',
     approvedAt: null,
     approvedByUserId: null,
+    completedOn: null,
     archivedAt: null,
     archivedByUserId: null,
     createdAt: '2026-03-10T02:00:00.000Z',
@@ -65,6 +66,12 @@ describe('matchOf', () => {
     expect(matchOf(row(), '')).toBeUndefined();
     expect(matchOf(row(), '   ')).toBeUndefined();
     expect(matchOf(row(), 'volleyball')).toBeUndefined();
+  });
+
+  it('never names or quotes a narrative private to another PIC', () => {
+    expect(matchOf(row(), 'breakwater', false)).toBeUndefined();
+    // Another field still explains the row; the prose stays hidden.
+    expect(matchOf(row(), 'cleanup', false)).toBe('title');
   });
 });
 
@@ -109,5 +116,12 @@ describe('toReportSearchItem', () => {
     const title = toReportSearchItem(row(), 'cleanup');
     expect(title.matched).toBe('title');
     expect(title.snippet).toBeUndefined();
+  });
+
+  it('withholds the snippet when the narrative is private', () => {
+    const item = toReportSearchItem(row(), 'breakwater', false);
+
+    expect(item.matched).toBeUndefined();
+    expect(item.snippet).toBeUndefined();
   });
 });

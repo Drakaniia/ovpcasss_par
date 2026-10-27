@@ -37,8 +37,13 @@ function contains(value: string | null | undefined, needle: string): boolean {
  * Which field caused the row to be returned, in the order a reader would
  * recognize it: the number, then the title, then the prose around it. An
  * undefined answer means the row was not matched at all (the recent group).
+ * `readNarrative` is false when the prose is private to another PIC.
  */
-export function matchOf(row: ReportSearchRow, term: string): ReportSearchMatch | undefined {
+export function matchOf(
+  row: ReportSearchRow,
+  term: string,
+  readNarrative = true,
+): ReportSearchMatch | undefined {
   const needle = term.trim().toLowerCase();
   if (!needle) return undefined;
 
@@ -49,7 +54,7 @@ export function matchOf(row: ReportSearchRow, term: string): ReportSearchMatch |
     return 'reference';
   }
   if (contains(row.title, needle)) return 'title';
-  if (contains(row.narrative, needle)) return 'narrative';
+  if (readNarrative && contains(row.narrative, needle)) return 'narrative';
   if (contains(row.location, needle)) return 'location';
   if (contains(row.picNames, needle)) return 'pic';
 
@@ -57,8 +62,12 @@ export function matchOf(row: ReportSearchRow, term: string): ReportSearchMatch |
 }
 
 /** The stored row as the palette contract, preview context included. */
-export function toReportSearchItem(row: ReportSearchRow, term: string): ReportSearchItem {
-  const matched = matchOf(row, term);
+export function toReportSearchItem(
+  row: ReportSearchRow,
+  term: string,
+  readNarrative = true,
+): ReportSearchItem {
+  const matched = matchOf(row, term, readNarrative);
   const snippet = matched === 'narrative' ? snippetAround(row.narrative, term) : undefined;
 
   return {
