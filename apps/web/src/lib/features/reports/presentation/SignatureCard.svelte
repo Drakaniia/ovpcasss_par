@@ -51,8 +51,8 @@
     capturing = signed;
   }
 
-  async function save(): Promise<void> {
-    if (!canEdit || busy || !pending) return;
+  async function save(options: { quiet?: boolean } = {}): Promise<boolean> {
+    if (!canEdit || busy || !pending) return false;
     busy = true;
     error = null;
 
@@ -60,12 +60,25 @@
       onchanged(await api.reports.setSignature(reportId, { image: pending }));
       pending = null;
       capturing = false;
-      toast.success('Signature added to this record.');
+      if (!options.quiet) toast.success('Signature added to this record.');
+      return true;
     } catch (failure) {
       error = failureText(failure, 'The signature was not saved. Try again.');
+      return false;
     } finally {
       busy = false;
     }
+  }
+
+  /**
+   * Saves an image that was drawn or uploaded but not saved yet. The narrative
+   * editor asks for this before submitting, so writing and signing stay one
+   * action; the writer no longer has to save the signature first. A `false`
+   * answer stops the submission and the card names what went wrong.
+   */
+  export async function savePending(): Promise<boolean> {
+    if (!pending) return true;
+    return save({ quiet: true });
   }
 
   async function remove(): Promise<void> {
@@ -90,8 +103,8 @@
   <div class="signature-head">
     <p class="signature-label">Your signature</p>
     <p class="signature-hint">
-      Optional. Draw or upload it here; the saved image is copied onto the record when you submit. A
-      signature saved in Settings is still used if this card stays empty.
+      Optional. Draw or upload it here; it is saved with the draft or the submission, or use Save
+      signature to keep it now. A signature saved in Settings is still used if this card stays empty.
     </p>
   </div>
 
