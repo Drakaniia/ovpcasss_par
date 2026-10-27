@@ -4,6 +4,45 @@ Owner: OVPCASSS system administrator. Scope: outbound mail from the `par`
 Worker — the Resend sender domain, how to tell whether it is working, and how to
 finish it once DNS lands.
 
+## Interim sender: Brevo (since 2026-10-26)
+
+Resend only accepts a sender on a verified domain, so while `send.buksu.edu.ph`
+waits on DNS the Worker sends through **Brevo** instead. Brevo verifies a single
+*sender address* rather than a domain, so mail reaches every real recipient with
+no DNS records at all:
+
+| Var              | Value                                  | Effect                                                                |
+| ---------------- | -------------------------------------- | --------------------------------------------------------------------- |
+| `EMAIL_PROVIDER` | `brevo`                                | Selects the adapter in `apps/api/src/email/provider.ts`.               |
+| `EMAIL_FROM`     | a mailbox confirmed in Brevo → Senders | Brevo refuses the send if this address is not verified there.          |
+| `EMAIL_REPLY_TO` | `ovpcasss@buksu.edu.ph`                | Replies reach the office; the sending address above is never read.     |
+
+Setup, once per environment:
+
+1. Brevo → Senders & IP → **Senders**: add the address used in `EMAIL_FROM` and
+   click the confirmation link that mailbox receives. No domain, no DKIM/SPF.
+2. Brevo → SMTP & API → **API Keys**: create a key.
+3. `cd apps/api && npx wrangler secret put EMAIL_API_KEY`, pasting that key — it
+   replaces the Resend key in the same secret slot.
+4. `npx wrangler deploy`, then send one message and confirm it arrives at the
+   recipient itself, not at the sender's mailbox.
+
+There is no redirect switch any more. `EMAIL_REDIRECT_TO` was removed on
+2026-10-26: it addressed every message — including each PIC's receipt and every
+password-reset link — to one Gmail instead of the person the outbox row named.
+
+**Deliverability.** A verified free mailbox (`gmail.com`) is accepted but is not
+authenticated for the university, so some receivers may file it as bulk. Move to
+the university address as soon as Resend verifies the domain.
+
+## Acknowledgment receipts to the PIC
+
+Approval renders one OVPCASSS-F-013 per person in charge, stores it in R2, and
+mails it to the address on that PIC row (`report_pics.email`) with the PDF
+attached. It is no longer gated on the person holding a verified account: a PIC
+who never signed in still receives the receipt. A message over the 8 MiB
+attachment budget goes out without the file, and its copy says so.
+
 ## State as of 2026-10-22
 
 `EMAIL_API_KEY`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set on the
@@ -20,10 +59,14 @@ been published. Until they are, every send fails:
 Resend rejected the message (403): The send.buksu.edu.ph domain is not verified.
 ```
 
-Consequences: email/password registration and password reset cannot complete.
-Sign-in, reports, reviews, approvals, exports, downloads and notifications are
+Consequences: email/password registration and password reset cannot complete
+with the domain sender. Sign-in, reports, reviews, approvals, exports, downloads
+and notifications are
 unaffected. Google sign-in creates the account already verified, with a
 `SUBMITTER` role, so it sidesteps the mail path entirely.
+
+Since 2026-10-26 the Worker sends through Brevo (above) instead of Resend, so
+these paths work again and each message reaches its own recipient.
 
 ## The records
 
@@ -77,9 +120,18 @@ the zone under this team's control.
    Resend → Emails shows the message with `delivered`, or
    `GET https://api.resend.com/emails/{id}` returns `"last_event":"delivered"`.
 
-## Changing the sending domain
+## Returning to the university domain
 
-`EMAIL_FROM` lives in `apps/api/wrangler.toml` and only needs to sit on a domain
-verified in Resend; it does not need to exist as a mailbox. Verification links are
-built from the request origin, so they keep pointing at the deployed host, not the
-sender. Re-run the check in "Verify" after changing it.
+Once `send.buksu.edu.ph` verifies at Resend, edit `apps/api/wrangler.toml`:
+
+```toml
+EMAIL_PROVIDER = "resend"
+EMAIL_FROM = "OVPCASSS PAR <no-reply@send.buksu.edu.ph>"
+EMAIL_REPLY_TO = "ovpcasss@buksu.edu.ph"
+```
+
+Then `npx wrangler secret put EMAIL_API_KEY` with the Resend key again, and
+redeploy. `EMAIL_FROM` only needs to sit on a domain verified in Resend; it does
+not need to exist as a mailbox. Verification links are built from the request
+origin, so they keep pointing at the deployed host, not the sender. Re-run the
+check in "Verify" after changing it.
