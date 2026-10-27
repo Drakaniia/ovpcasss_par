@@ -68,11 +68,11 @@ function sanitize(value: string): string {
 }
 
 /**
- * OVPCASSS-F-013 ACKNOWLEDGMENT RECEIPT (spec §10). One A4 sheet carrying the
- * form's letter twice, measured from the office form: each letterhead's seal and
- * emblem, the ruled ANNEX I, the justified 10 pt letter, the signatory block, the
- * document-code line, and the page footer. `buildReceipt` owns every position;
- * this only paints it on the single page.
+ * OVPCASSS-F-013 ACKNOWLEDGMENT RECEIPT (spec §10). One A5 landscape sheet
+ * carrying the form's letter once, measured from the office form: the
+ * letterhead's seal and emblem, the ruled ANNEX I, the justified 10 pt letter,
+ * the signatory block, and the document-code line. `buildReceipt` owns every
+ * position; this only paints it on the single page.
  */
 export async function renderReceipt(data: ReceiptData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
