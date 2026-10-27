@@ -1,22 +1,22 @@
 <script lang="ts">
   import { Bold, Heading1, Heading2, Italic, List, ListOrdered, Underline } from '@lucide/svelte';
 
-  import type { MarkdownCommand } from '../application/narrative-markdown';
+  import type { NarrativeCommand } from '../application/narrative-editor';
 
   /**
-   * The formatting toolbar (report 7). Each button edits the textarea through
-   * the pure helper in `narrative-markdown.ts`; the toolbar never owns text of
-   * its own, so undo and the draft mirror keep working.
+   * The formatting toolbar (report 7). Each button formats the selected text
+   * directly on the narrative surface, so the page shows the result at once and
+   * no Markdown marker is ever typed.
    */
   let {
     oncommand,
     disabled = false,
   }: {
-    oncommand: (command: MarkdownCommand) => void;
+    oncommand: (command: NarrativeCommand) => void;
     disabled?: boolean;
   } = $props();
 
-  const COMMANDS: readonly { id: MarkdownCommand; label: string; icon: typeof Bold }[] = [
+  const COMMANDS: readonly { id: NarrativeCommand; label: string; icon: typeof Bold }[] = [
     { id: 'h1', label: 'Heading 1', icon: Heading1 },
     { id: 'h2', label: 'Heading 2', icon: Heading2 },
     { id: 'bold', label: 'Bold', icon: Bold },
@@ -47,7 +47,6 @@
       <Icon size={15} aria-hidden="true" />
     </button>
   {/each}
-  <p class="hint">Markdown: # heading, **bold**, *italic*, __underline__</p>
 </div>
 
 <style>
@@ -76,11 +75,5 @@
 
   .tool:disabled {
     opacity: 0.45;
-  }
-
-  .hint {
-    color: var(--text-secondary);
-    font-size: 11px;
-    margin: 0 0 0 auto;
   }
 </style>

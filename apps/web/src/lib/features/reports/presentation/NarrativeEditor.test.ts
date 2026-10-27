@@ -83,16 +83,19 @@ describe('NarrativeMarkdown', () => {
 });
 
 describe('NarrativeEditor', () => {
-  it('shows the formatting toolbar and a live preview while editable', () => {
+  it('offers one formatted surface while editable', () => {
     const { body } = render(NarrativeEditor, {
       props: { detail: detail(), onreload: async () => {} },
     });
 
     expect(body).toContain('aria-label="Narrative formatting"');
     expect(body).toContain('id="narrative"');
-    // The preview is always on the page, so no mode switch is offered.
-    expect(body).toContain('>Preview</h3>');
-    expect(body).toContain('No narrative text yet.');
+    expect(body).toContain('contenteditable="true"');
+    expect(body).toContain('role="textbox"');
+    expect(body).toContain('data-placeholder="Write the narrative report."');
+    // The surface is the preview, so neither a second pane nor a mode switch exists.
+    expect(body).not.toContain('<textarea');
+    expect(body).not.toContain('>Preview</h3>');
     expect(body).not.toContain('>Preview</button>');
     expect(body).not.toContain('>Write</button>');
     expect(body).toContain('Submit narrative');
