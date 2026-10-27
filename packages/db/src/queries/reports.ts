@@ -26,6 +26,8 @@ export interface MonitoringReportRecord {
   createdAt: string;
   submittedAt: string | null;
   approvedAt: string | null;
+  /** The office's Date Completed (`YYYY-MM-DD`); falls back to `approvedAt`. */
+  completedOn: string | null;
   narrative: string;
   sdgNumbers: number[];
   pics: { name: string; email: string; phone: string | null }[];
@@ -152,6 +154,7 @@ export function createMonitoringQueries(db: Database) {
           createdAt: reports.createdAt,
           submittedAt: reports.submittedAt,
           approvedAt: reports.approvedAt,
+          completedOn: reports.completedOn,
           narrative: reports.narrative,
         })
         .from(reports)

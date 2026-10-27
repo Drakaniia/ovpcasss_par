@@ -6,17 +6,44 @@ export interface Viewer {
   role: Role | undefined;
 }
 
+/** The report columns the privacy rules read. */
+export interface NarrativeRecord {
+  status: ReportStatus;
+  /** The PIC whose submission claimed the narrative; null before submission. */
+  submittedByUserId: string | null;
+}
+
 export function isAdmin(viewer: Viewer): boolean {
   return viewer.role === 'ADMIN';
 }
 
 /**
- * The register is open to every signed-in account (spec §5): a PIC browses all
- * activities and claims one by writing its narrative, rather than waiting to be
- * named. A receipt is still only ever disclosed to its own recipient.
+ * The narrative and its attachments belong to the submitter and the office.
+ * Before submission the draft stays open — any PIC may pick it up, and the
+ * office still does not read it — but once it is submitted, another PIC named
+ * on the record no longer reads the words or the files.
  */
-export function canViewReport(_viewer: Viewer): boolean {
-  return true;
+export function canReadNarrative(
+  viewer: Viewer,
+  row: NarrativeRecord,
+  isPic: boolean,
+): boolean {
+  if (row.status === 'PENDING') return !isAdmin(viewer) || isPic;
+  return isAdmin(viewer) || row.submittedByUserId === viewer.userId;
+}
+
+/**
+ * The facsimile carries the submitted narrative, so it follows the narrative:
+ * the office reads every copy (watermarked before approval, spec §7.8), and a
+ * PIC reads the copy of the narrative they submitted, never another's.
+ */
+export function canViewFacsimile(
+  viewer: Viewer,
+  row: NarrativeRecord,
+  isPic: boolean,
+): boolean {
+  if (isAdmin(viewer)) return true;
+  return isPic && row.status !== 'PENDING' && row.submittedByUserId === viewer.userId;
 }
 
 /** The office owns the activity fields and the PIC list until approval. */
@@ -26,12 +53,16 @@ export function canManageRecord(viewer: Viewer, status: ReportStatus): boolean {
 
 /**
  * Any PIC may write an open narrative; submitting claims the record for that
- * account (spec §5). The office stands in for every role (spec §9).
+ * account (spec §5). A returned narrative stays with the PIC who submitted it,
+ * so another PIC cannot edit or resubmit words that are private to them. The
+ * office stands in for every role (spec §9).
  */
-export function canWriteNarrative(viewer: Viewer, status: ReportStatus): boolean {
+export function canWriteNarrative(viewer: Viewer, row: NarrativeRecord): boolean {
+  if (viewer.role !== 'PERSONNEL' && !isAdmin(viewer)) return false;
+  if (row.status === 'PENDING') return true;
+  if (row.status !== 'RETURNED') return false;
   return (
-    (viewer.role === 'PERSONNEL' || isAdmin(viewer)) &&
-    (status === 'PENDING' || status === 'RETURNED')
+    isAdmin(viewer) || row.submittedByUserId === null || row.submittedByUserId === viewer.userId
   );
 }
 
@@ -47,5 +78,14 @@ export function canDeleteRecord(viewer: Viewer, status: ReportStatus): boolean {
 
 /** Filing is a separate action on an approved record, never a transition. */
 export function canArchive(viewer: Viewer, status: ReportStatus): boolean {
+  return isAdmin(viewer) && status === 'APPROVED';
+}
+
+/**
+ * The office records the completion date on an approved record. It is not an
+ * activity edit, so it is allowed after `canManageRecord` has closed: the sheet
+ * date and the decision timestamp are separate facts.
+ */
+export function canSetCompletedDate(viewer: Viewer, status: ReportStatus): boolean {
   return isAdmin(viewer) && status === 'APPROVED';
 }
