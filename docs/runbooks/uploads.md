@@ -69,11 +69,12 @@ These need a browser at a vendor; the script prints them at the end.
    above 10 instead of replacing it.
 
    `EMAIL_FROM` in `apps/api/wrangler.toml` must then use that domain
-   (`OVPCASSS PAR <no-reply@send.buksu.edu.ph>`). A sender on `buksu.edu.ph`
-   itself is refused with `403 The buksu.edu.ph domain is not verified` even
-   while the subdomain is verified, and the message ends up `FAILED` in the
-   outbox after six attempts. Until a domain is verified, send from
-   `onboarding@resend.dev`, which reaches only the Resend account owner.
+   (`OVPCASSS PAR <no-reply@send.buksu.edu.ph>`) and `EMAIL_PROVIDER` goes back to
+   `resend`. A sender on `buksu.edu.ph` itself is refused with
+   `403 The buksu.edu.ph domain is not verified` even while the subdomain is
+   verified, and the message ends up `FAILED` in the outbox after six attempts.
+   Until a domain is verified, the Worker sends through Brevo, which verifies the
+   sender address rather than a domain (`email-delivery.md`).
 
 3. **Google OAuth client**, optional. Credentials → OAuth client (Web) with the
    JavaScript origin and redirect URI for each environment; both values are

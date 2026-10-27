@@ -20,6 +20,7 @@
 - DOCTORATE
 - MASTERS
 - COLLEGE OF LAW
+- COLLEGE OF MEDICINE
 
 ### Satellite Campuses
 

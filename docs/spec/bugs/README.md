@@ -1,6 +1,6 @@
 # Bug phase specs: runbook
 
-Nine reports from the office, each one a small, runnable phase. They are **fixes
+Ten reports from the office, each one a small, runnable phase. They are **fixes
 to behaviour that already ships**, not new features; each file states the defect,
 the verified cause in the current tree, the behaviour contract, and an acceptance
 checklist. Nothing here overrides
@@ -40,11 +40,12 @@ surface.
 | 07  | [`07-exports-reference-data-link.md`](./07-exports-reference-data-link.md)       | The "no terms" action lands on Campuses instead of Terms                                       | `/exports`, `/admin/reference-data`   | low      | `apps/web`                                                   |
 | 08  | [`08-tab-attention-dot.md`](./08-tab-attention-dot.md)                           | Nothing on the section tabs says an item is waiting for you                                    | Section tabs (Reports, Admin)         | medium   | `apps/web`                                                   |
 | 09  | [`09-export-request-columns.md`](./09-export-request-columns.md)                 | The monitoring workbook has no receipt-number heading and no date the request started          | Monitoring workbook + preview         | medium   | `packages/export`, `packages/shared`, `apps/api`, `apps/web` |
+| 10  | [`10-multiple-pic-rows.md`](./10-multiple-pic-rows.md)                           | A second person in charge is rejected with "Check the highlighted fields" and no field marked  | Report form, step 3                   | high     | `apps/web`                                                   |
 
 Suggested order: **02 → 03** (one mechanism, two phases) → **05** → **09** →
-**01** → **04** → **06** → **07** → **08**. 01, 04, 06, 07, 08 are independent and
-can run in separate worktrees; 02 and 03 touch the same three files and must run
-in order.
+**01** → **04** → **06** → **07** → **08**. 01, 04, 06, 07, 08, and 10 are
+independent and can run in separate worktrees; 02 and 03 touch the same three
+files and must run in order.
 
 ## Rules that hold for every phase
 

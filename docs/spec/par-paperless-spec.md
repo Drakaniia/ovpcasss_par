@@ -203,7 +203,7 @@ Separate D1/R2/Queue resources for **staging** and **production**. Preview deplo
 | Auth           | `POST /auth/register`, `POST /auth/verify-email`, `POST /auth/login`, `POST /auth/logout`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `GET /me`                                     |
 | Users (admin)  | `GET /users`, `PATCH /users/:id/role`, `POST /users/:id/approve`, `POST /users/:id/disable`                                                                                                         |
 | Reference data | `GET /ref/*` (all authenticated), `POST/PATCH/DELETE /ref/*` (admin)                                                                                                                                |
-| Reports        | `POST /reports` (admin creates, mints AR No.), `GET /reports`, `GET /reports/:id`, `PATCH /reports/:id` (admin, until approved), `DELETE /reports/:id` (DRAFT only), `POST /reports/:id/invitation` |
+| Reports        | `POST /reports` (admin creates, mints AR No.), `GET /reports`, `GET /reports/:id`, `PATCH /reports/:id` (admin, until approved), `PATCH /reports/:id/completed-date` (admin, approved), `DELETE /reports/:id` (DRAFT only), `POST /reports/:id/invitation` |
 | Narrative      | `PUT /reports/:id/narrative` (PIC draft), `POST /reports/:id/submit` (PIC, idempotent)                                                                                                              |
 | Decision       | `POST /reports/:id/decision` (admin: `APPROVE` or `RETURN` with comments)                                                                                                                           |
 | Attachments    | `POST /reports/:id/attachments/presign`, `POST /reports/:id/attachments/:aid/confirm`, `GET /reports/:id/attachments/:aid/url`, `DELETE ...` (PIC while the narrative is open)                      |
@@ -268,7 +268,7 @@ Rules:
 ### 7.8 Attachments
 
 - Flow: client requests presign (filename, size, MIME) → API checks role, report state, size ≤ 25 MB, extension/MIME allowlist → returns presigned PUT URL (R2 S3-compatible API) with a server-chosen key like `reports/<reportId>/<uuid>` → client uploads directly to R2 → client calls `confirm` → API HEADs the object, verifies size/type, records checksum, marks `CONFIRMED`.
-- "Any common type" is implemented as an **allowlist** (PDF, images, Word/Excel/PowerPoint, plain text/CSV, common archives if desired, optionally video). Executables and scripts are blocked.
+- "Any common type" is implemented as an **allowlist** of **PDFs and images** (JPEG, PNG, WebP, GIF). Office documents, plain text, CSV, archives, executables, and scripts are blocked. _Amended 2026-10-26: Word `.docx`/`.doc` and every other Office or archive type were removed at the office's request._
 - Downloads: API checks the caller's access, then returns a short-lived presigned GET URL (minutes). Bucket is never public.
 - Orphan cleanup: uploads never confirmed within 24 hours are deleted by a cron job.
 - Attachments may contain student names (attendance sheets, photos), so they get the same access control as the report and are never exposed through public URLs.
@@ -311,6 +311,7 @@ Rules:
 
 - Three exports matching the source workbook sheets: **Off-Campus**, **Educational Tour**, **In-Campus**, with the 18 columns in the same order and the title line "… MONITORING `<n>` SEMESTER, SY `<yyyy-yyyy>`".
 - Export parameters: type, semester, school year. Includes approved reports (and optionally in-progress ones with "Date Completed" blank), a choice to confirm with the office.
+- "Date Completed" is the office's own `completed_on` date when it has set one on the approved record, otherwise the approval date. Correcting it never rewrites `approved_at`, so the F-013 receipt and the facsimile keep the day they were decided.
 - Library choice must work in Workers (e.g. SheetJS Community Edition or a lightweight writer); verify before committing. Alternative: generate in the browser from API JSON.
 
 ---
@@ -339,7 +340,7 @@ All tables: `id` (ULID/UUID text), `created_at`, `updated_at` (UTC ISO text). So
 
 - `reports`: id, reference_no (unique, formatted `AR No. 0001`), sequence (integer for ordering), status, version, created_by_user_id, plus the monitoring-sheet fields:
   - `type` (`OFF_CAMPUS|EDUCATIONAL_TOUR|IN_CAMPUS`), classification (`CURRICULAR|NON_CURRICULAR`), campus_id, college/unit_id, department, office, level (`GRADUATE|UNDERGRADUATE`), title, activity dates (start/end), location, activity_count (number of activities), total_students, total_pic
-  - narrative, date_received (= first submitted_at), date_completed (= approved_at)
+  - narrative, date_received (= first submitted_at), date_completed (= completed_on, the office's own date, falling back to approved_at)
   - submitted_at, submitted_by_user_id, narrative_signature_key, narrative_signed_at, approved_at, approved_by_user_id, approval_signature_key, approval_signed_at
 - `report_sdgs`: report_id, sdg_id (many-to-many, since a record can touch several SDGs)
 - `report_pics`: report_id, user_id (linked account, nullable), name, email (both required), phone, sort_order, invited_at (more than one PIC per record; the sheet columns export as joined text)

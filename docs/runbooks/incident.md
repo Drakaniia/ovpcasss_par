@@ -35,8 +35,9 @@ done.
 5. Verify the provider key and sender domain (`key-rotation.md`, `uploads.md`).
    `403 The <domain> domain is not verified` on every row is a DNS problem, not a
    key problem: resending will fail the same way until the domain is verified in
-   Resend and `EMAIL_FROM` uses it. The default `onboarding@resend.dev` sender
-   only delivers to the account owner.
+   Resend and `EMAIL_FROM` uses it. While `EMAIL_PROVIDER=brevo`, a 4xx on every
+   row means the address in `EMAIL_FROM` is not confirmed under Senders in Brevo
+   (`email-delivery.md`).
 6. **View** the failed row: it opens the stored copy with its links, so a
    verification or reset link can be sent to its owner by hand while delivery is
    broken. Read-only, no delivery, nothing recorded in the audit trail.
