@@ -58,7 +58,7 @@
   <div class="drop-copy">
     <p class="drop-title">Drop files here or choose files.</p>
     <p class="drop-hint">
-      PDF, images, Word, Excel, PowerPoint, text, CSV, and archives. {MAX_FILE_SIZE_LABEL} per file.
+      PDF or image. {MAX_FILE_SIZE_LABEL} per file.
     </p>
   </div>
   <button

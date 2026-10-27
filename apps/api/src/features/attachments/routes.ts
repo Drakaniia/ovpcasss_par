@@ -12,7 +12,7 @@ import { signedDownloadUrl } from '../../lib/download-url';
 import { toHex } from '../../lib/encoding';
 import { requireSession } from '../../middleware/auth';
 import { rateLimit } from '../../middleware/rate-limit';
-import { canViewReport, canWriteNarrative } from '../reports/domain/report-access';
+import { canReadNarrative, canWriteNarrative } from '../reports/domain/report-access';
 import { toAttachment } from '../reports/application/record-shape';
 import {
   attachmentObjectKey,
@@ -66,7 +66,7 @@ attachmentRoutes.post(
     const stack = reportDependencies(c);
     const report = await stack.read.findById(c.req.param('id') ?? '');
     if (!report) return notFound(c);
-    if (!canWriteNarrative(viewer, report.status)) {
+    if (!canWriteNarrative(viewer, report)) {
       return c.json(
         { error: { code: 'FORBIDDEN', message: 'This report cannot accept new files.' } },
         403,
@@ -79,7 +79,7 @@ attachmentRoutes.post(
     const sizeProblem = attachmentSizeProblem(parsed.data.size);
     if (sizeProblem) return invalid(c, sizeProblem);
     if (!isAllowedAttachment(parsed.data.fileName, parsed.data.mimeType)) {
-      return invalid(c, 'That file type is not accepted. Upload a PDF, image, or Office document.');
+      return invalid(c, 'That file type is not accepted. Upload a PDF or an image.');
     }
 
     const key = attachmentObjectKey(report.id);
@@ -135,7 +135,7 @@ attachmentRoutes.put(
     const stack = reportDependencies(c);
     const report = await stack.read.findById(c.req.param('id') ?? '');
     if (!report) return notFound(c);
-    if (!canWriteNarrative(viewer, report.status)) {
+    if (!canWriteNarrative(viewer, report)) {
       return c.json(
         { error: { code: 'FORBIDDEN', message: 'This report cannot accept new files.' } },
         403,
@@ -189,7 +189,7 @@ attachmentRoutes.post('/:id/attachments/:attachmentId/confirm', async (c) => {
   const stack = reportDependencies(c);
   const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report) return notFound(c);
-  if (!canWriteNarrative(viewer, report.status)) {
+  if (!canWriteNarrative(viewer, report)) {
     return c.json(
       { error: { code: 'FORBIDDEN', message: 'This report is not open for edits.' } },
       403,
@@ -229,7 +229,7 @@ attachmentRoutes.post('/:id/attachments/:attachmentId/confirm', async (c) => {
     return conflict(
       c,
       'UPLOAD_TYPE_NOT_ALLOWED',
-      'That file type is not accepted. Upload a PDF, image, or Office document.',
+      'That file type is not accepted. Upload a PDF or an image.',
     );
   }
 
@@ -267,7 +267,8 @@ attachmentRoutes.get('/:id/attachments/:attachmentId/url', async (c) => {
   const stack = reportDependencies(c);
   const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report) return notFound(c);
-  if (!canViewReport(viewer)) return notFound(c);
+  const isPic = await stack.read.isPic(report.id, viewer.userId);
+  if (!canReadNarrative(viewer, report, isPic)) return notFound(c);
 
   const attachment = await stack.attachments.findById(report.id, c.req.param('attachmentId') ?? '');
   if (!attachment || attachment.status !== 'CONFIRMED') return notFound(c);
@@ -291,7 +292,8 @@ attachmentRoutes.get('/:id/attachments/:attachmentId/file', async (c) => {
   const stack = reportDependencies(c);
   const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report) return notFound(c);
-  if (!canViewReport(viewer)) return notFound(c);
+  const isPic = await stack.read.isPic(report.id, viewer.userId);
+  if (!canReadNarrative(viewer, report, isPic)) return notFound(c);
 
   const attachment = await stack.attachments.findById(report.id, c.req.param('attachmentId') ?? '');
   if (!attachment || attachment.status !== 'CONFIRMED') return notFound(c);
@@ -325,7 +327,7 @@ attachmentRoutes.delete('/:id/attachments/:attachmentId', async (c) => {
   const stack = reportDependencies(c);
   const report = await stack.read.findById(c.req.param('id') ?? '');
   if (!report) return notFound(c);
-  if (!canWriteNarrative(viewer, report.status)) {
+  if (!canWriteNarrative(viewer, report)) {
     return c.json(
       { error: { code: 'FORBIDDEN', message: 'This report is not open for edits.' } },
       403,

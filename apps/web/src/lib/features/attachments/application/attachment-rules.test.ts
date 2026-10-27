@@ -20,11 +20,19 @@ describe('file validation', () => {
     );
   });
 
+  it('refuses Office documents and archives', () => {
+    expect(fileError({ name: 'Summary.docx', size: 1024 })).toBe(
+      'Summary.docx is not an accepted file type.',
+    );
+    expect(fileError({ name: 'Budget.xlsx', size: 1024 })).not.toBeNull();
+    expect(fileError({ name: 'Photos.zip', size: 1024 })).not.toBeNull();
+  });
+
   it('names the file and the limit when it is too large', () => {
     expect(fileError({ name: 'Attendance.pdf', size: 31 * 1024 * 1024 })).toBe(
       'Attendance.pdf is 31 MB; the limit is 25 MB.',
     );
-    expect(fileError({ name: 'Notes.txt', size: MAX_ATTACHMENT_BYTES })).toBeNull();
+    expect(fileError({ name: 'Photo.png', size: MAX_ATTACHMENT_BYTES })).toBeNull();
   });
 
   it('rejects an empty file', () => {
@@ -34,13 +42,14 @@ describe('file validation', () => {
   it('splits accepted files from rejections', () => {
     const { accepted, rejected } = validateFiles([
       { name: 'Attendance.pdf', size: 2048 },
-      { name: 'Photos.zip', size: 4096 },
+      { name: 'Photo.png', size: 4096 },
       { name: 'setup.exe', size: 1024 },
+      { name: 'Summary.docx', size: 1024 },
       { name: 'Big.pdf', size: 31 * 1024 * 1024 },
     ]);
 
-    expect(accepted.map((file) => file.name)).toEqual(['Attendance.pdf', 'Photos.zip']);
-    expect(rejected.map((file) => file.name)).toEqual(['setup.exe', 'Big.pdf']);
+    expect(accepted.map((file) => file.name)).toEqual(['Attendance.pdf', 'Photo.png']);
+    expect(rejected.map((file) => file.name)).toEqual(['setup.exe', 'Summary.docx', 'Big.pdf']);
   });
 });
 

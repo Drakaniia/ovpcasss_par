@@ -8,15 +8,24 @@ import {
 } from './attachment-rules';
 
 describe('attachment rules', () => {
-  it('accepts the office file types', () => {
+  it('accepts PDFs and images', () => {
     expect(isAllowedAttachment('attendance.pdf', 'application/pdf')).toBe(true);
     expect(isAllowedAttachment('photo.JPG', 'image/jpeg')).toBe(true);
+    expect(isAllowedAttachment('scan.png', 'image/png')).toBe(true);
+    expect(isAllowedAttachment('scan.webp', 'image/webp')).toBe(true);
+    expect(isAllowedAttachment('scan.gif', 'image/gif')).toBe(true);
+  });
+
+  it('rejects Office documents, archives, and text', () => {
     expect(
       isAllowedAttachment(
         'summary.docx',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       ),
-    ).toBe(true);
+    ).toBe(false);
+    expect(isAllowedAttachment('budget.xlsx', 'application/vnd.ms-excel')).toBe(false);
+    expect(isAllowedAttachment('notes.txt', 'text/plain')).toBe(false);
+    expect(isAllowedAttachment('photos.zip', 'application/zip')).toBe(false);
   });
 
   it('rejects executables and scripts by extension or type', () => {
