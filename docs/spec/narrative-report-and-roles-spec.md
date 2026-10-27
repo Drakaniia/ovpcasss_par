@@ -38,6 +38,7 @@ W1 and W2 are foundational; W3, W4, W5 and W7 can follow in any order; W6 depend
 | Who creates a record         | **The office only.** The three-step wizard, the AR No., and the PIC naming are unchanged.                                                                    |
 | Several PICs                 | **One shared narrative.** Any listed PIC may edit and submit it; the first submission records that person as the submitter. Every PIC still gets an F-013.   |
 | Narrative draft              | **Saved to the record, shared, invisible to the office until submission.** No new drafts table; the existing `reports.narrative` field is the draft.         |
+| Submitted narrative          | **Private to the PIC who submitted it and the office.** Another PIC named on the record reads the activity facts and status, never the narrative, its attachments, signature, or the office's return note. |
 | Signature                    | **Optional**, drawn or uploaded; snapshotted at submission as today.                                                                                         |
 | Statuses                     | **`PENDING`, `SUBMITTED`, `RETURNED`, `APPROVED`.** `DRAFT` is renamed to `PENDING` and nothing else changes in the state machine.                           |
 | PENDING meaning              | **The office has created the record and no PIC has submitted the narrative yet.** A half-typed narrative does not create another state.                      |
@@ -578,7 +579,7 @@ Assumptions where the request did not decide:
 - **A6.** `picName` and `submittedBy` are free-text name matches (case-insensitive contains), not account pickers; no new endpoint is added for them.
 - **A7.** The personnel Home filters are status + activity date range, and the list pages at 25.
 - **A8.** The PIC signature stays optional; a missing signature leaves the printed line blank.
-- **A9.** Attachment rules are unchanged: the server allowlist in `attachment-rules.ts` (PDF, JPEG, PNG, WebP, GIF, Word, Excel, PowerPoint, TXT, CSV, ZIP), 25 MB per file, several per record, private R2. The broader client pre-check is narrowed to match (see §2).
+- **A9.** Attachment rules: the server allowlist in `attachment-rules.ts` is **PDF and images only** (JPEG, PNG, WebP, GIF), 25 MB per file, several per record, private R2. The client pre-check, the drop-zone copy, and the desktop file dialog mirror it exactly. _Amended 2026-10-26 at the office's request: Word, Excel, PowerPoint, TXT, CSV, and the archives are no longer accepted._
 - **A10.** Reminders keep 7 days / weekly / maximum three and simply select `PENDING` instead of `DRAFT`.
 - **A11.** Deleting a `PENDING` record that already holds a saved draft is allowed; the confirmation names the draft explicitly.
 - **A12.** The working tree's read-only revision is withdrawn; its UI changes are reverted or adapted as listed in §2, and the committed `personnel-narrative-flow-spec.md` gets a one-line pointer to this document rather than a rewrite.
