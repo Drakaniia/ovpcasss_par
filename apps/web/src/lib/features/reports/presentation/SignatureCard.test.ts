@@ -49,6 +49,12 @@ describe('SignatureCard', () => {
     expect(unsigned).not.toContain('Save signature');
   });
 
+  it('says the drawn signature is saved with the draft or the submission', () => {
+    const html = renderCard({ signed: false, canEdit: true });
+
+    expect(text(html)).toContain('it is saved with the draft or the submission');
+  });
+
   it('names the profile copy as a fallback, never as a button', () => {
     const html = renderCard({ signed: false, canEdit: true });
 
