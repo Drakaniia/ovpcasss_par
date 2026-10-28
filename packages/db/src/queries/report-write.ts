@@ -1,5 +1,5 @@
-import type { ReportActivityInput, ReportStatus } from '@par/shared';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { formatReferenceNo, type ReportActivityInput, type ReportStatus } from '@par/shared';
+import { and, asc, eq, gt, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from '../client';
 import {
@@ -351,15 +351,24 @@ export function createReportWriteQueries(db: Database) {
       return Number(rows[0]?.value ?? 0);
     },
 
-    /** Only an unsubmitted record is deletable; its AR No. is retired. */
-    async deleteRecord(id: string): Promise<string | null> {
+    /**
+     * A `PENDING` record, or a filed (archived) approved one — the archive rule
+     * was amended on 2026-10-27 to let the office remove what it filed. The
+     * sequence comes back so the caller can close the gap the deletion leaves.
+     */
+    async deleteRecord(id: string): Promise<{ sequence: number } | null> {
       const rows = await db
-        .select({ id: reports.id })
+        .select({ sequence: reports.sequence, status: reports.status, archivedAt: reports.archivedAt })
         .from(reports)
-        .where(and(eq(reports.id, id), inArray(reports.status, statusWhere(['PENDING']))))
+        .where(eq(reports.id, id))
         .limit(1);
 
-      if (!rows[0]) return null;
+      const row = rows[0];
+      if (!row) return null;
+
+      const pending = statusWhere(['PENDING']).includes(row.status);
+      const filed = row.status === 'APPROVED' && row.archivedAt !== null;
+      if (!pending && !filed) return null;
 
       await db.delete(reportSdgs).where(eq(reportSdgs.reportId, id));
       await db.delete(reportPics).where(eq(reportPics.reportId, id));
@@ -368,7 +377,38 @@ export function createReportWriteQueries(db: Database) {
       await db.delete(receipts).where(eq(receipts.reportId, id));
       await db.delete(reports).where(eq(reports.id, id));
 
-      return id;
+      return { sequence: row.sequence };
+    },
+
+    /**
+     * Closes the gap a filed deletion leaves (2026-10-27 decision): every later
+     * record moves down one number and the counter follows the highest remaining
+     * one, so the next record takes the number the deletion freed. Ascending
+     * order keeps the unique index on `reference_no` happy.
+     */
+    async renumberAfter(
+      sequence: number,
+    ): Promise<{ reportId: string; from: number; to: number }[]> {
+      const later = await db
+        .select({ id: reports.id, sequence: reports.sequence })
+        .from(reports)
+        .where(gt(reports.sequence, sequence))
+        .orderBy(asc(reports.sequence));
+
+      for (const row of later) {
+        await db
+          .update(reports)
+          .set({ sequence: row.sequence - 1, referenceNo: formatReferenceNo(row.sequence - 1) })
+          .where(eq(reports.id, row.id));
+      }
+
+      const highest = later.at(-1)?.sequence ?? sequence;
+      await db
+        .update(referenceCounters)
+        .set({ lastSeq: highest - 1 })
+        .where(eq(referenceCounters.name, 'AR'));
+
+      return later.map((row) => ({ reportId: row.id, from: row.sequence, to: row.sequence - 1 }));
     },
   };
 }
