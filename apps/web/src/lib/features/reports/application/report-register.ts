@@ -53,7 +53,8 @@ export function registerRow(item: ReportListItem, options: { role: Role | null }
           }
         : { label: 'View', href: `/reports/${item.id}` },
     canEdit: admin && item.status !== 'APPROVED',
-    canDelete: admin && item.status === 'PENDING',
+    /** A draft, or a filed record the office has decided to remove (2026-10-27). */
+    canDelete: admin && (item.status === 'PENDING' || (item.status === 'APPROVED' && archived)),
     canResend: admin && (item.status === 'PENDING' || item.status === 'RETURNED'),
     canArchive: admin && item.status === 'APPROVED',
   };
