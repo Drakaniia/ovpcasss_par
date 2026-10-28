@@ -70,7 +70,12 @@ export function clearSession(): void {
  * the standard error state with Retry.
  */
 export async function loadSession(force = false): Promise<SessionUser | null> {
-  if (loaded && !force) return session.user;
+  if (loaded && !force) {
+    // A sign-in form sets the account before the shell loads, so the fast path
+    // must still read the preferences the onboarding gate depends on.
+    if (session.user) await loadPreferences();
+    return session.user;
+  }
   if (inflight) return inflight;
 
   // Desktop reads its credential-store token before the first authenticated call.

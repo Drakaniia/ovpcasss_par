@@ -12,6 +12,7 @@ import {
   clearTourRecord,
   savePreferences,
   tourRecord,
+  tourRecordKnown,
 } from '$lib/features/preferences/application/preferences.svelte';
 import { session } from '$lib/session/session.svelte';
 import { toast } from '$lib/toast/toast.svelte';
@@ -90,6 +91,7 @@ export function maybeAutoStart(input: { pathname: string; viewportWidth: number 
     accountStatus: session.user?.status ?? null,
     homeStatus: homeInbox.status,
     viewportWidth: input.viewportWidth,
+    preferencesKnown: tourRecordKnown(),
     completed: hasCompletedTour(),
     startedThisSession,
     pendingManualStart,

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
+
   import { trapFocus } from '$lib/a11y/focus-trap';
 
   let {
@@ -8,6 +10,7 @@
     confirmLabel = 'Confirm',
     cancelLabel = 'Cancel',
     tone = 'default',
+    children,
     onconfirm,
     oncancel,
   }: {
@@ -17,6 +20,8 @@
     confirmLabel?: string;
     cancelLabel?: string;
     tone?: 'default' | 'destructive';
+    /** Extra choices a confirmation needs, rendered above the actions. */
+    children?: Snippet;
     onconfirm?: () => void;
     oncancel?: () => void;
   } = $props();
@@ -63,6 +68,10 @@
     <p class="dialog-body">{description}</p>
   {/if}
 
+  {#if children}
+    <div class="dialog-extra">{@render children()}</div>
+  {/if}
+
   <div class="dialog-actions">
     <button class="btn btn-outline" type="button" bind:this={cancelButton} onclick={cancel}>
       {cancelLabel}
@@ -85,6 +94,10 @@
   .dialog-body {
     color: var(--text-secondary);
     margin: 8px 0 0;
+  }
+
+  .dialog-extra {
+    margin-top: 16px;
   }
 
   .dialog-actions {
