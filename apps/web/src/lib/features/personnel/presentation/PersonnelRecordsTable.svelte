@@ -9,6 +9,7 @@
     rows,
     caption = 'Registered activities and their status',
     receipts,
+    flush = false,
     onreceipt,
     onopen,
   }: {
@@ -16,13 +17,15 @@
     caption?: string;
     /** The reader's own receipt for a record, keyed by report id. */
     receipts?: ReadonlyMap<string, MyReceipt>;
+    /** Set when the table sits inside its own panel, which already draws the border. */
+    flush?: boolean;
     onreceipt?: (receipt: MyReceipt) => void;
     /** Opens the activity preview; the explicit row action still navigates. */
     onopen?: (row: PersonnelRow) => void;
   } = $props();
 </script>
 
-<div class="table-scroll">
+<div class="table-scroll" class:flush>
   <table class="data-table">
     <caption class="visually-hidden">{caption}</caption>
     <thead>
@@ -77,6 +80,12 @@
 </div>
 
 <style>
+  /* Inside a panel the panel draws the edge; the table stops competing with it. */
+  .flush {
+    border: 0;
+    border-radius: 0;
+  }
+
   /*
    * The row is the target: the title button's overlay fills the row, so a click
    * anywhere opens the preview dialog (report 4) and the row keeps one tab stop

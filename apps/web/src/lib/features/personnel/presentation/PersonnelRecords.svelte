@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { MyReceipt, ReportListResponse, ReportPageSize } from '@par/shared';
-
-  import EmptyState from '$lib/components/EmptyState.svelte';
-  import EditableSelect from '$lib/components/EditableSelect.svelte';
-  import DatePicker from '$lib/components/DatePicker.svelte';
   import { Search } from '@lucide/svelte';
+
+  import DatePicker from '$lib/components/DatePicker.svelte';
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
+  import EmptyState from '$lib/components/EmptyState.svelte';
   import ReceiptPreview from '$lib/features/receipts/presentation/ReceiptPreview.svelte';
   import ReportsPagination from '$lib/features/reports/presentation/ReportsPagination.svelte';
 
@@ -54,8 +54,8 @@
   ] as const;
 </script>
 
-<section class="records" aria-labelledby="records-head">
-  <header class="section-head">
+<section class="card records" aria-labelledby="records-head">
+  <header class="panel-head">
     <h2 id="records-head">Records</h2>
     <p class="count">
       {records.total}
@@ -63,12 +63,7 @@
     </p>
   </header>
 
-  <p class="note">
-    The office registers each activity and owns its details. Open any activity that is still pending
-    or returned to write its narrative report; submitting names you as its personnel in charge.
-  </p>
-
-  <div class="filter-bar" role="search" aria-label="Filter your records">
+  <div class="toolbar" role="search" aria-label="Filter your records">
     <label class="search">
       <Search size={15} aria-hidden="true" />
       <span class="visually-hidden">Search records</span>
@@ -137,19 +132,22 @@
   {:else}
     <PersonnelRecordsTable
       {rows}
+      flush
       receipts={receiptsByReport}
       onreceipt={(receipt) => (previewing = receipt)}
       onopen={(row) => (previewingActivity = row.id)}
     />
 
     {#if records.total > records.size}
-      <ReportsPagination
-        total={records.total}
-        page={records.page}
-        pageSize={records.size}
-        {onpage}
-        {onpagesize}
-      />
+      <div class="panel-foot">
+        <ReportsPagination
+          total={records.total}
+          page={records.page}
+          pageSize={records.size}
+          {onpage}
+          {onpagesize}
+        />
+      </div>
     {/if}
   {/if}
 
@@ -171,24 +169,22 @@
 
 <style>
   .records {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    overflow: hidden;
   }
 
-  .section-head {
+  .panel-head {
     align-items: baseline;
     display: flex;
-    gap: 16px;
+    gap: 12px;
     justify-content: space-between;
+    padding: 14px 18px;
   }
 
   h2 {
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     margin: 0;
-    text-transform: uppercase;
   }
 
   .count {
@@ -198,20 +194,16 @@
     margin: 0;
   }
 
-  .note {
-    color: var(--text-secondary);
-    font-size: 13px;
-    line-height: 1.5;
-    margin: 0;
-    max-width: 68ch;
-  }
-
-  .filter-bar {
+  /* The filters sit on paper stock so the register below stays the white surface. */
+  .toolbar {
     align-items: flex-end;
+    background: var(--surface-paper);
+    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
     display: flex;
     flex-wrap: wrap;
     gap: 10px 14px;
-    margin: 2px 0 2px;
+    padding: 12px 18px;
   }
 
   .search {
@@ -221,10 +213,18 @@
     border-radius: var(--radius-card);
     color: var(--text-secondary);
     display: flex;
-    flex: 1 1 260px;
+    flex: 1 1 240px;
     gap: 8px;
     min-height: 34px;
     padding: 0 10px;
+    transition:
+      border-color var(--duration-fast) ease,
+      box-shadow var(--duration-base) ease;
+  }
+
+  .search:focus-within {
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 16%, transparent);
   }
 
   .search-input {
@@ -259,15 +259,12 @@
     font-size: 11px;
   }
 
-  .select,
-  .date {
-    font-size: 13px;
-    min-height: 34px;
-    min-width: 132px;
-    padding: 0 8px;
-  }
-
   .clear {
     margin-bottom: 1px;
+  }
+
+  .panel-foot {
+    border-top: 1px solid var(--border);
+    padding: 0 18px 10px;
   }
 </style>

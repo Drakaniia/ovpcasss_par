@@ -76,6 +76,18 @@ describe('ReportTable', () => {
     expect(archived).toContain('aria-label="Unarchive AR No. 0001"');
   });
 
+  it('offers deletion on a filed record, and not on an approved one still in the register', () => {
+    const filed = renderTable('ADMIN', {
+      status: 'APPROVED',
+      archivedAt: '2026-10-22T04:00:00Z',
+    });
+    expect(filed).toContain('aria-label="Delete AR No. 0001"');
+    expect(filed).toContain('aria-label="Unarchive AR No. 0001"');
+
+    const approved = renderTable('ADMIN', { status: 'APPROVED', archivedAt: null });
+    expect(approved).not.toContain('aria-label="Delete AR No. 0001"');
+  });
+
   it('offers a personnel row its one next action', () => {
     expect(renderTable('PERSONNEL')).toContain('Write narrative');
     expect(renderTable('PERSONNEL', { status: 'RETURNED' })).toContain('Revise and resubmit');

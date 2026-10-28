@@ -38,6 +38,11 @@
   const user = $derived(session.user);
   const roles = $derived(user?.role ? [user.role] : []);
   const personnel = $derived(user?.role === 'PERSONNEL');
+  const lede = $derived(
+    personnel
+      ? 'The office registers each activity and owns its details. Open one to write its narrative report; the acknowledgment receipt arrives here once the office approves it.'
+      : "Narratives awaiting the office's decision, records still with their personnel in charge, and the work already decided.",
+  );
 
   /** The server already scoped the register to this account's membership. */
   async function fetchRecords(target: PersonnelFilters): Promise<ReportListResponse> {
@@ -159,7 +164,7 @@
 
 {#if failure}
   {#if user}
-    <InboxPageHeader {user} {roles} showPrimary={false} />
+    <InboxPageHeader {user} {roles} {lede} showPrimary={false} />
   {/if}
   <ErrorState
     title="We could not load your home"
@@ -168,33 +173,68 @@
     onretry={() => void load()}
   />
 {:else if loaded && user && personnel && records}
-  <InboxPageHeader {user} {roles} />
+  <InboxPageHeader {user} {roles} {lede} />
   <div class="personnel-home">
-    <PersonnelRecords
-      {records}
-      {filters}
-      {receipts}
-      onchange={(patch) => void applyFilters(patch)}
-      onpage={(next) => void applyFilters({ page: next })}
-      onpagesize={(size: ReportPageSize) => void applyFilters({ pageSize: size })}
-      onclear={clearFilters}
-    />
-    <ReceiptHistory {receipts} />
+    <div class="personnel-main">
+      <PersonnelRecords
+        {records}
+        {filters}
+        {receipts}
+        onchange={(patch) => void applyFilters(patch)}
+        onpage={(next) => void applyFilters({ page: next })}
+        onpagesize={(size: ReportPageSize) => void applyFilters({ pageSize: size })}
+        onclear={clearFilters}
+      />
+    </div>
+    <aside class="personnel-rail">
+      <ReceiptHistory {receipts} />
+    </aside>
   </div>
 {:else if loaded && inbox && user}
-  <InboxPageHeader {user} {roles} />
+  <InboxPageHeader {user} {roles} {lede} />
   <WorkInbox {inbox} {roles} onrefresh={() => void load()} />
 {:else}
   {#if user}
-    <InboxPageHeader {user} {roles} />
+    <InboxPageHeader {user} {roles} {lede} />
   {/if}
   <InboxSkeleton showHead={!user} />
 {/if}
 
 <style>
+  /*
+   * The records are the page; the receipts are a quiet rail beside them once
+   * there is room. Below 1280 px the rail falls under the register instead of
+   * narrowing the table.
+   */
   .personnel-home {
-    display: flex;
-    flex-direction: column;
+    align-items: start;
+    animation: settle var(--duration-slow) var(--ease-standard) both;
+    display: grid;
     gap: 28px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @keyframes settle {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .personnel-home {
+      animation: none;
+    }
+  }
+
+  .personnel-main,
+  .personnel-rail {
+    min-width: 0;
+  }
+
+  @media (min-width: 1280px) {
+    .personnel-home {
+      grid-template-columns: minmax(0, 1fr) 320px;
+    }
   }
 </style>
