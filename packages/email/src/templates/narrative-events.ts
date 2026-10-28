@@ -106,6 +106,31 @@ export function returnedTemplate(data: NarrativeEventData): EmailContent {
   });
 }
 
+/**
+ * The approval itself, before and apart from the receipt mail (spec §11). The
+ * receipt is issued by its own message, so this one never claims an attachment.
+ */
+export function approvedTemplate(data: NarrativeEventData): EmailContent {
+  const link = action(data, 'Open your dashboard', '/');
+
+  return renderShell({
+    subject: `${data.referenceNo} — narrative report approved`,
+    heading: 'Your narrative report was approved',
+    intro: [
+      `The office approved the narrative report for ${data.referenceNo}.`,
+      'The acknowledgment receipt (OVPCASSS-F-013) is issued as a separate document and stays available in the app.',
+    ],
+    facts: facts(
+      fact('Reference', data.referenceNo),
+      fact('Activity', data.title),
+      fact('Personnel in charge', data.picName),
+      fact('Approved', data.approvedAt ? manilaDate(data.approvedAt) : undefined),
+    ),
+    ...(link ? { action: link } : {}),
+    reference: data.referenceNo,
+  });
+}
+
 export function receiptIssuedTemplate(data: NarrativeEventData): EmailContent {
   const link = action(data, 'Download the receipt', '/');
 

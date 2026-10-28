@@ -1,4 +1,5 @@
 import {
+  approvedTemplate,
   assignedTemplate,
   picRemovedTemplate,
   receiptIssuedTemplate,
@@ -76,6 +77,8 @@ export function emailForNotification(
       return narrative ? submittedTemplate(narrative) : null;
     case 'RETURNED':
       return narrative ? returnedTemplate(narrative) : null;
+    case 'APPROVED':
+      return narrative ? approvedTemplate(narrative) : null;
     case 'RECEIPT_ISSUED':
       return narrative ? receiptIssuedTemplate(narrative) : null;
     case 'RECORD_EDITED':

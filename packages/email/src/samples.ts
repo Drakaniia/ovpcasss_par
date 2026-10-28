@@ -9,6 +9,7 @@ import {
   verifyEmailTemplate,
 } from './templates/account-events';
 import {
+  approvedTemplate,
   assignedTemplate,
   picRemovedTemplate,
   receiptIssuedTemplate,
@@ -59,6 +60,11 @@ export function emailSamples(): EmailSample[] {
       kind: 'RETURNED',
       audience: 'Every personnel in charge named on the record',
       content: returnedTemplate({ ...RECORD, comments: COMMENTS }),
+    },
+    {
+      kind: 'APPROVED',
+      audience: 'Every personnel in charge named on the record',
+      content: approvedTemplate(RECORD),
     },
     {
       kind: 'RECEIPT_ISSUED',

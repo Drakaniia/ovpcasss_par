@@ -40,6 +40,20 @@ describe('emailForNotification', () => {
     expect(content?.text).toContain('> Add the attendance sheet');
   });
 
+  it('announces the approval without claiming the receipt is attached', () => {
+    const content = emailForNotification('APPROVED', {
+      ...record,
+      picName: 'M. Santos',
+      approvedAt: '2026-10-22T06:05:00.000Z',
+      hasAttachment: true,
+    });
+
+    expect(content?.subject).toBe('[OVPCASSS PAR] AR No. 0014 — narrative report approved');
+    expect(content?.text).toContain('approved the narrative report for AR No. 0014');
+    expect(content?.text).toContain('stays available in the app');
+    expect(content?.text).not.toContain('attached');
+  });
+
   it('claims a receipt only when the attachment is carried', () => {
     expect(emailForNotification('RECEIPT_ISSUED', record)?.text).toContain(
       'Download the receipt from the app.',
