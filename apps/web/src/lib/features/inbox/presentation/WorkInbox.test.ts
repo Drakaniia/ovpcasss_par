@@ -54,10 +54,10 @@ describe('WorkInbox', () => {
 
     expect(html).toContain('Awaiting your decision');
     expect(html).toContain('With personnel in charge');
-    expect(html).toContain('(4)');
+    expect(html).toContain('data-count="4"');
     expect(html).toContain('href="/reports?tab=submitted"');
     expect(html).not.toContain('Your assignments');
-    expect(html).not.toContain('(0)');
+    expect(html).not.toContain('data-count="0"');
   });
 
   it('marks an overdue record and offers a resend', () => {
@@ -118,6 +118,64 @@ describe('WorkInbox', () => {
 
     expect(html).not.toContain('unread notification');
     expect(html).not.toContain('href="/notifications"');
+  });
+
+  it('leads with the work card and keeps the record of work in a rail', () => {
+    const html = renderInbox(
+      inbox({
+        awaitingReview: section({ total: 2 }),
+        withPic: section({ total: 1 }),
+        activity: [
+          {
+            id: 'event-1',
+            reportId: 'report-1',
+            referenceNo: 'AR No. 0014',
+            title: 'Coastal cleanup',
+            kind: 'SUBMITTED',
+            occurredAt: '2026-03-19T08:00:00Z',
+          },
+        ],
+      }),
+      ['ADMIN'],
+    );
+
+    expect(html).toMatch(/action-card[^"]* lead/);
+    expect(html).toMatch(/class="rail[ "]/);
+    expect(html.indexOf('Awaiting your decision')).toBeLessThan(
+      html.indexOf('With personnel in charge'),
+    );
+  });
+
+  it('gives each activity heading its own id', () => {
+    const html = renderInbox(
+      inbox({
+        awaitingReview: section({ total: 1 }),
+        activity: [
+          {
+            id: 'event-1',
+            reportId: 'report-1',
+            referenceNo: 'AR No. 0014',
+            title: 'Coastal cleanup',
+            kind: 'SUBMITTED',
+            occurredAt: '2026-03-19T08:00:00Z',
+          },
+        ],
+        recentlyDecided: [
+          {
+            id: 'event-2',
+            reportId: 'report-9',
+            referenceNo: 'AR No. 0009',
+            title: 'Outreach program',
+            kind: 'RETURNED',
+            occurredAt: '2026-03-19T08:00:00Z',
+          },
+        ],
+      }),
+      ['ADMIN'],
+    );
+
+    expect(html).toContain('id="inbox-activity-recently-decided-by-you"');
+    expect(html).toContain('id="inbox-activity-recent-activity"');
   });
 
   it('sends an empty office inbox to the shared records message', () => {

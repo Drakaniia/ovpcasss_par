@@ -48,19 +48,23 @@
     display: flex;
     gap: 12px;
     min-height: 40px;
-    padding-right: 16px;
+    padding-right: 18px;
+  }
+
+  .row-item:first-child .row {
+    border-top: 0;
   }
 
   .row-link {
-    align-items: center;
+    align-items: baseline;
     color: var(--text-primary);
     display: grid;
     flex: 1;
     gap: 16px;
-    grid-template-columns: 128px minmax(0, 1fr) minmax(0, auto);
+    grid-template-columns: 112px minmax(0, 1fr) minmax(0, auto);
     min-height: 40px;
     min-width: 0;
-    padding: 6px 0 6px 16px;
+    padding: 6px 0 6px 18px;
   }
 
   .row-link:hover {
@@ -76,8 +80,9 @@
   .reference {
     color: var(--text-secondary);
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 11.5px;
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -93,15 +98,16 @@
 
   .meta {
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 11.5px;
     max-width: 460px;
     text-align: right;
   }
 
+  /* Attention, not alarm: gold is the office's "look here" accent. */
   .overdue {
-    background: var(--status-warning-bg);
+    background: var(--status-gold-bg);
     border-radius: var(--radius-badge);
-    color: var(--status-warning-fg);
+    color: var(--status-gold-fg);
     flex: none;
     font-size: 11px;
     font-weight: 500;
@@ -120,10 +126,14 @@
     gap: 5px;
     min-height: 26px;
     padding: 0 8px;
+    transition:
+      background-color var(--duration-fast) ease,
+      color var(--duration-fast) ease;
   }
 
   .resend:hover {
     background: var(--surface-page);
+    border-color: color-mix(in srgb, var(--text-primary) 22%, var(--border));
     color: var(--text-primary);
   }
 

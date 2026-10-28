@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { InboxResponse, Role } from '@par/shared';
+  import { ArrowRight, Bell } from '@lucide/svelte';
 
   import { api } from '$lib/api/client';
   import { toast } from '$lib/toast/toast.svelte';
@@ -56,6 +57,10 @@
   const returned = $derived(returnedRows(inbox.returned, now));
   const approved = $derived(approvedRows(inbox.approved, now));
 
+  const hasActivity = $derived(inbox.activity.length > 0 || (caps.admin && adminAudit.length > 0));
+  /** The quiet record of work is a rail only when it has something to hold. */
+  const hasRail = $derived(decided.length > 0 || hasActivity);
+
   async function resend(row: InboxRow): Promise<void> {
     try {
       const result = await api.reports.resendInvitation(row.id);
@@ -69,12 +74,15 @@
   }
 
   const hasNothing = $derived(sections.length === 0);
+  const leadIsReview = $derived(sections[0] === 'awaitingReview');
 </script>
 
 {#if unread > 0}
-  <p class="digest">
-    <a href="/notifications">{digest}</a>
-  </p>
+  <a class="digest" href="/notifications">
+    <Bell size={14} aria-hidden="true" />
+    {digest}
+    <ArrowRight size={13} aria-hidden="true" />
+  </a>
 {/if}
 
 {#if hasNothing}
@@ -94,160 +102,229 @@
     />
   {/if}
 {:else}
-  <div class="inbox">
-    {#if stats.length > 0}
-      <section class="stat-row" aria-label="At a glance">
-        {#each stats as stat (stat.id)}
-          <a class="stat" href={stat.href}>
-            <span class="stat-count">{stat.count}</span>
-            <span class="stat-label">{stat.label}</span>
-          </a>
+  <div class="desk">
+    <div class="main">
+      {#if stats.length > 0}
+        <section class="brief" aria-label="At a glance">
+          <p class="eyebrow">At a glance</p>
+          <div class="brief-grid">
+            {#each stats as stat (stat.id)}
+              <a class="stat" href={stat.href}>
+                <span class="stat-count">{stat.count}</span>
+                <span class="stat-label">{stat.label}</span>
+              </a>
+            {/each}
+          </div>
+        </section>
+      {/if}
+
+      <div class="cards">
+        {#if sections.includes('awaitingReview')}
+          <InboxActionCard
+            id="awaiting-review"
+            title="Awaiting your decision"
+            count={inbox.awaitingReview.total}
+            href="/reports?tab=submitted"
+            linkLabel="Open the register"
+            rows={awaitingReview}
+            lead={leadIsReview}
+          />
+        {/if}
+
+        {#if sections.includes('withPic')}
+          <InboxActionCard
+            id="with-pic"
+            title="With personnel in charge"
+            count={inbox.withPic.total}
+            href="/reports?tab=pending"
+            linkLabel="Open the register"
+            rows={withPic}
+            lead={!leadIsReview && sections[0] === 'withPic'}
+            onresend={(row) => void resend(row)}
+          />
+        {/if}
+
+        {#if sections.includes('returned')}
+          <InboxActionCard
+            id="returned"
+            title="Returned for revision"
+            count={inbox.returned.total}
+            href="/reports?tab=returned"
+            linkLabel="Open the register"
+            rows={returned}
+            lead={sections[0] === 'returned'}
+          />
+        {/if}
+
+        {#if sections.includes('approved')}
+          <InboxActionCard
+            id="approved"
+            title="Recently approved"
+            count={inbox.approved.total}
+            href="/reports?tab=approved"
+            linkLabel="Open the register"
+            rows={approved}
+            lead={sections[0] === 'approved'}
+          />
+        {/if}
+
+        {#each adminActions as action (action.id)}
+          <InboxActionCard
+            id={action.id}
+            title={action.title}
+            count={action.count}
+            href={action.href}
+            linkLabel={action.linkLabel}
+          />
         {/each}
-      </section>
-    {/if}
-
-    <div class="cards">
-      {#if sections.includes('awaitingReview')}
-        <InboxActionCard
-          id="awaiting-review"
-          title="Awaiting your decision"
-          count={inbox.awaitingReview.total}
-          href="/reports?tab=submitted"
-          linkLabel="Open the register"
-          rows={awaitingReview}
-        />
-      {/if}
-
-      {#if sections.includes('withPic')}
-        <InboxActionCard
-          id="with-pic"
-          title="With personnel in charge"
-          count={inbox.withPic.total}
-          href="/reports?tab=pending"
-          linkLabel="Open the register"
-          rows={withPic}
-          onresend={(row) => void resend(row)}
-        />
-      {/if}
-
-      {#if sections.includes('returned')}
-        <InboxActionCard
-          id="returned"
-          title="Returned for revision"
-          count={inbox.returned.total}
-          href="/reports?tab=returned"
-          linkLabel="Open the register"
-          rows={returned}
-        />
-      {/if}
-
-      {#if sections.includes('approved')}
-        <InboxActionCard
-          id="approved"
-          title="Recently approved"
-          count={inbox.approved.total}
-          href="/reports?tab=approved"
-          linkLabel="Open the register"
-          rows={approved}
-        />
-      {/if}
-
-      {#each adminActions as action (action.id)}
-        <InboxActionCard
-          id={action.id}
-          title={action.title}
-          count={action.count}
-          href={action.href}
-          linkLabel={action.linkLabel}
-        />
-      {/each}
+      </div>
     </div>
 
-    {#if decided.length > 0}
-      <InboxActivitySection title="Recently decided by you" rows={decided} />
-    {/if}
+    {#if hasRail}
+      <aside class="rail" aria-label="Your record of work">
+        {#if decided.length > 0}
+          <InboxActivitySection title="Recently decided by you" rows={decided} />
+        {/if}
 
-    {#if inbox.activity.length > 0 || (caps.admin && adminAudit.length > 0)}
-      <InboxActivitySection
-        title={showingAudit ? 'Recent audit activity' : 'Recent activity'}
-        rows={activityRows}
-        href={showingAudit ? '/admin/audit' : undefined}
-        linkLabel={showingAudit ? 'Open audit log' : undefined}
-      />
+        {#if hasActivity}
+          <InboxActivitySection
+            title={showingAudit ? 'Recent audit activity' : 'Recent activity'}
+            rows={activityRows}
+            href={showingAudit ? '/admin/audit' : undefined}
+            linkLabel={showingAudit ? 'Open audit log' : undefined}
+          />
+        {/if}
+      </aside>
     {/if}
   </div>
 {/if}
 
 <style>
-  .inbox {
+  /*
+   * The desk: the work that needs a decision holds the wide column, the record
+   * of what already happened sits in the narrow one. Below 1280 px the rail
+   * falls under the work rather than shrinking both.
+   */
+  .desk {
+    align-items: start;
+    animation: settle var(--duration-slow) var(--ease-standard) both;
+    display: grid;
+    gap: 32px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The content arrives once, after the skeleton: a short rise, no stagger. */
+  @keyframes settle {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .desk {
+      animation: none;
+    }
+  }
+
+  .main {
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 20px;
+    min-width: 0;
   }
 
   .cards {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+  }
+
+  .rail {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
   }
 
   .digest {
-    font-size: 13px;
-    margin: 0 0 16px;
-  }
-
-  .stat-row {
-    display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
-
-  .stat {
+    align-items: center;
     background: var(--surface-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow-card);
     color: var(--text-primary);
+    display: inline-flex;
+    font-size: 12.5px;
+    gap: 8px;
+    margin-bottom: 16px;
+    min-height: 32px;
+    padding: 0 12px;
+    transition: background-color var(--duration-fast) ease;
+  }
+
+  .digest:hover {
+    background: var(--row-hover);
+    text-decoration: none;
+  }
+
+  .brief {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 10px 14px;
-    transition:
-      box-shadow var(--duration-fast) var(--ease-standard),
-      transform var(--duration-fast) var(--ease-standard);
+    gap: 8px;
+  }
+
+  .eyebrow {
+    color: var(--text-secondary);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  /* One instrument, not three floating tiles: the hairline gaps are the dividers. */
+  .brief-grid {
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    display: grid;
+    gap: 1px;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    overflow: hidden;
+  }
+
+  .stat {
+    align-items: center;
+    background: var(--surface-card);
+    color: var(--text-primary);
+    display: flex;
+    gap: 12px;
+    padding: 14px 18px;
+    transition: background-color var(--duration-fast) ease;
   }
 
   .stat:hover {
-    box-shadow: var(--shadow-raised);
+    background: var(--row-hover);
     text-decoration: none;
-    transform: translateY(-1px);
-  }
-
-  .stat:active {
-    transform: scale(0.985);
   }
 
   .stat-count {
-    font-size: 22px;
+    font-size: 26px;
     font-variant-numeric: tabular-nums;
     font-weight: 500;
-    letter-spacing: -0.01em;
-    line-height: 1.15;
+    letter-spacing: -0.02em;
+    line-height: 1;
   }
 
   .stat-label {
     color: var(--text-secondary);
     font-size: 12px;
+    line-height: 1.35;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .stat {
-      transition: none;
-    }
-
-    .stat:hover,
-    .stat:active {
-      transform: none;
+  @media (min-width: 1280px) {
+    .desk {
+      grid-template-columns: minmax(0, 1fr) 320px;
     }
   }
 </style>
