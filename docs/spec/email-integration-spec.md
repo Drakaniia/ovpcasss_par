@@ -253,6 +253,9 @@ button, the signature block, and a footer line with the tracking number and a
 - **RETURNED:** "The office returned the narrative report for {AR No.} with
   comments." The full comment in a quoted block, verbatim. Facts: reference,
   activity. Action: `Revise the narrative` → `/`.
+- **APPROVED:** "The office approved the narrative report for {AR No}." Facts:
+  reference, activity, personnel in charge, approval date. No attachment: the
+  receipt travels in its own message. Action: `Open your dashboard` → `/`.
 - **RECEIPT_ISSUED:** "The office approved the narrative report for {AR No.}, and
   the acknowledgment receipt is attached." Facts: reference, activity, personnel
   in charge, approval date. Attachment: the OVPCASSS-F-013 PDF, queued by

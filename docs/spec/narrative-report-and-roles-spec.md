@@ -167,6 +167,7 @@ Rules that the diagram depends on:
 | Create a record (mint AR No.)                          |   ✓   |                        |                        |
 | Edit activity fields and the PIC list (until APPROVED) |   ✓   |                        |                        |
 | Delete a `PENDING` record                              |   ✓   |                        |                        |
+| Delete an archived approved record                     |   ✓   |                        |                        |
 | View a record                                          |   ✓   |       own only ✓       |                        |
 | Read a submitted narrative                             |   ✓   |       own only ✓       |                        |
 | Write the narrative draft / upload attachments / sign  |       |           ✓            |                        |
@@ -194,6 +195,7 @@ Unchanged from `personnel-narrative-flow-spec.md` §5, restated so no reader has
 - Format `AR No. ` + a zero-padded global sequence, minimum four digits: `AR No. 0001` … `AR No. 9999`, `AR No. 10000`.
 - Minted atomically with the record insert from `reference_counters` (`name = 'AR'`), in the same D1 batch; unique index on `reports.reference_no`.
 - Gaps are allowed and expected. A deleted `PENDING` record retires its number permanently.
+- _Amended 2026-10-27: deleting a filed (archived) approved record closes its gap instead. Every later record moves down one number, `reference_counters.last_seq` follows the highest remaining number, and the next record takes the freed one. AR Nos. already printed on a mailed receipt are superseded, and the audit log records each move as `RECORD_RENUMBERED` with `AR No. 0008 → AR No. 0007`._
 - Never manual, never editable, never reformatted. Search matches `0001`, `AR No. 0001`, and case-insensitive `ar no 0001`.
 - The interview's alternative shapes (`NR-YYYYMMDD-XXXX`, UUID, office override) are rejected; nothing in this change touches minting.
 
@@ -247,7 +249,7 @@ Archive is a **filing action**, not a workflow state:
 - `reports.archived_at` (text, UTC ISO, nullable) and `reports.archived_by_user_id` (text, nullable), set together.
 - Only an `APPROVED` record can be archived. The status column stays `APPROVED`; `isTerminal()` and the state machine are untouched.
 - Any ADMIN may archive or unarchive. Unarchiving clears both columns.
-- Audit: `RECORD_ARCHIVED` / `RECORD_UNARCHIVED`, with the AR No. as the comment.
+- Audit: `RECORD_ARCHIVED` / `RECORD_UNARCHIVED`, with the AR No. as the comment. _Amended 2026-10-27: a filed deletion also writes `RECORD_DELETED` for the record and one `RECORD_RENUMBERED` for each record that moves._
 
 ### 7.2 Behaviour
 
@@ -256,7 +258,7 @@ Archive is a **filing action**, not a workflow state:
 | Register `/reports`       | Hidden by default; visible under the **Archived** tab (`archived=archived`); `archived=all` shows both. |
 | Admin Home queues         | Hidden (the queues only ever show `PENDING`, `SUBMITTED`, `RETURNED`, recent `APPROVED`).               |
 | Personnel Home            | Shown with an **Archived** chip; still openable; never a work item.                                     |
-| Record detail             | Readable by the office and its PICs; "Archived on <date> by <name>"; **Unarchive** is the only action.  |
+| Record detail             | Readable by the office and its PICs; "Archived on <date> by <name>"; **Unarchive** and **Delete record** (with confirmation) are the actions.  |
 | Receipts                  | Downloadable by the PIC and the office, exactly as before.                                              |
 | Single-record PDF / print | Available; the printed sheet gains the line "Archived <date>" only when archived.                       |
 | Monitoring `.xlsx`        | Excluded by default; the export dialog gains an "Include archived" checkbox.                            |
@@ -266,7 +268,7 @@ Archive is a **filing action**, not a workflow state:
 ### 7.3 Rules
 
 - Archiving is refused before `APPROVED` (`409`), and refused twice idempotently (second archive is a no-op, not an error).
-- An archived record cannot be edited, deleted, returned, or re-decided; it is already `APPROVED`.
+- An archived record cannot be edited, returned, or re-decided; it is already `APPROVED`. _Amended 2026-10-27: it can be deleted, which is permanent — the row, its PIC rows, comments, attachments and their R2 objects, and its receipt rows all go. The confirmation asks the office whether the issued receipt PDFs stay in storage (the default) or are deleted too. Because a filed record is approved, the deletion closes its AR No. gap as described in §5._
 - Unarchiving makes it appear in the register again; nothing is regenerated.
 - No retention job deletes anything in this change.
 
@@ -296,7 +298,7 @@ Filter panel (collapsible, beside the tabs):
 
 - The two new filters are deliberately text, not a picker: there is no account picker on the register, and a free-text name matches how the office already searches. A datalist may suggest names already present in the current result set; it is a convenience, not a source of truth.
 - Filters are shareable: every filter lives in the URL query, so a filtered register can be linked or printed and the PDF export uses the same query.
-- Row actions: Open, Edit details (until `APPROVED`), Delete (`PENDING` only), Resend invitation (`PENDING`/`RETURNED`), Archive/Unarchive (`APPROVED`), Download receipt (when one exists).
+- Row actions: Open, Edit details (until `APPROVED`), Delete (`PENDING`, or an archived record), Resend invitation (`PENDING`/`RETURNED`), Archive/Unarchive (`APPROVED`), Download receipt (when one exists).
 - Empty states distinguish "no records yet" from "no records match these filters" and offer "Clear filters".
 
 ### 8.2 Personnel Home `/`
@@ -405,6 +407,7 @@ No change to generation or appearance; the rules are restated because the interv
 | `SUBMITTED`        | A PIC submits or resubmits                        | All admins                | `AR No. 0001 — narrative report ready for review`      | Unchanged                                         |
 | `RETURNED`         | Office returns with comments                      | Every PIC                 | `AR No. 0001 — narrative report returned for revision` | Comments verbatim                                 |
 | `RECORD_EDITED`    | Office changes an activity field after submission | Every retained PIC        | `AR No. 0001 — activity details corrected`             | **New**: changed fields + reason; mail and in-app |
+| `APPROVED`         | Office approves                                   | Every PIC                 | `AR No. 0001 — narrative report approved`              | No attachment; the receipt is its own message      |
 | `RECEIPT_ISSUED`   | Office approves                                   | Each PIC                  | `AR No. 0001 — acknowledgment receipt`                 | PDF attached                                      |
 | `REMINDER`         | 7 days after creation, weekly, max three          | PICs without a submission | `AR No. 0001 — narrative report still pending`         | Now selects `PENDING` records                     |
 | `PIC_REMOVED`      | PIC removed before approval                       | Removed PIC               | `AR No. 0001 — removed as personnel in charge`         | No change summary                                 |
