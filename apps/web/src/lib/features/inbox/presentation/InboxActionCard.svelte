@@ -11,6 +11,7 @@
     href,
     linkLabel,
     rows = [],
+    lead = false,
     onresend,
   }: {
     id: string;
@@ -19,16 +20,18 @@
     href: string;
     linkLabel: string;
     rows?: InboxRowModel[];
+    /** The first card on the page carries the work; the rest stay quiet. */
+    lead?: boolean;
     onresend?: (row: InboxRowModel) => void;
   } = $props();
 </script>
 
-<section class="card action-card" aria-labelledby={`inbox-${id}`}>
+<section class="card action-card" class:lead aria-labelledby={`inbox-${id}`}>
   <header class="head" class:with-rows={rows.length > 0}>
-    <h3 id={`inbox-${id}`}>
-      {title}
-      <span class="count">({count})</span>
-    </h3>
+    <div class="title-group">
+      <h3 id={`inbox-${id}`}>{title}</h3>
+      <span class="count" data-count={count}>{count}</span>
+    </div>
     <a class="link" {href}>
       {linkLabel}
       <ArrowRight size={14} aria-hidden="true" />
@@ -49,35 +52,57 @@
     overflow: hidden;
   }
 
+  /* The work card reads as paper stock; the supporting cards stay plain white. */
+  .lead .head {
+    background: var(--surface-paper);
+  }
+
   .head {
     align-items: center;
     display: flex;
     gap: 16px;
     justify-content: space-between;
-    padding: 10px 16px;
+    min-height: 48px;
+    padding: 8px 18px;
   }
 
   .head.with-rows {
     border-bottom: 1px solid var(--border);
   }
 
+  .title-group {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    min-width: 0;
+  }
+
   h3 {
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     margin: 0;
   }
 
   .count {
-    color: var(--text-secondary);
+    background: var(--primary-subtle);
+    border-radius: 999px;
+    color: var(--primary);
+    flex: none;
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
-    font-weight: 400;
+    font-weight: 500;
+    min-width: 24px;
+    padding: 1px 8px;
+    text-align: center;
   }
 
   .link {
     align-items: center;
     display: inline-flex;
     flex: none;
-    font-size: 13px;
-    gap: 6px;
+    font-size: 12.5px;
+    gap: 5px;
     min-height: 32px;
   }
 

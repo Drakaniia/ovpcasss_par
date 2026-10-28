@@ -32,8 +32,8 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    max-width: 640px;
-    padding: 32px;
+    max-width: 620px;
+    padding: 28px 30px;
   }
 
   .icon {
@@ -49,6 +49,8 @@
   }
 
   h2 {
+    font-size: 18px;
+    letter-spacing: -0.01em;
     margin: 0;
   }
 

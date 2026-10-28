@@ -14,11 +14,14 @@
     href?: string;
     linkLabel?: string;
   } = $props();
+
+  /** Two of these can share the page, so each heading gets its own id. */
+  const panelId = $derived(`inbox-activity-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`);
 </script>
 
-<section class="group" aria-labelledby="inbox-activity">
+<section class="card group" aria-labelledby={panelId}>
   <header class="head">
-    <h2 id="inbox-activity">{title}</h2>
+    <h2 id={panelId}>{title}</h2>
     {#if href && linkLabel}
       <a class="link" {href}>
         {linkLabel}
@@ -43,59 +46,62 @@
 
 <style>
   .group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    overflow: hidden;
   }
 
   .head {
-    align-items: baseline;
+    align-items: center;
     display: flex;
     gap: 16px;
     justify-content: space-between;
+    min-height: 44px;
+    padding: 8px 18px;
   }
 
   h2 {
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
     margin: 0;
-    text-transform: uppercase;
   }
 
   .link {
     align-items: center;
     display: inline-flex;
-    font-size: 13px;
-    gap: 6px;
+    flex: none;
+    font-size: 12.5px;
+    gap: 5px;
     min-height: 32px;
   }
 
   .activity-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 0 18px 12px;
   }
 
   .activity-item {
     align-items: baseline;
+    border-top: 1px solid var(--border);
     display: flex;
-    gap: 16px;
+    gap: 12px;
     justify-content: space-between;
-    min-height: 24px;
+    padding: 8px 0;
   }
 
   .activity-text {
-    font-size: 13px;
+    font-size: 12.5px;
+    line-height: 1.45;
     margin: 0;
+    min-width: 0;
   }
 
   .activity-time {
     color: var(--text-secondary);
     flex: none;
-    font-size: 12px;
+    font-size: 11.5px;
+    white-space: nowrap;
   }
 </style>
