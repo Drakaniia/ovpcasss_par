@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canArchive,
   canDecide,
+  canDeleteArchivedRecord,
   canDeleteRecord,
   canManageRecord,
   canReadNarrative,
@@ -88,6 +89,15 @@ describe('report access', () => {
     expect(canDeleteRecord(admin, 'PENDING')).toBe(true);
     expect(canDeleteRecord(admin, 'RETURNED')).toBe(false);
     expect(canDeleteRecord(personnel, 'PENDING')).toBe(false);
+  });
+
+  it('deletes a filed record, and only one that is already archived', () => {
+    const filed = { status: 'APPROVED' as const, archivedAt: '2026-10-27T02:00:00Z' };
+
+    expect(canDeleteArchivedRecord(admin, filed)).toBe(true);
+    expect(canDeleteArchivedRecord(admin, { ...filed, archivedAt: null })).toBe(false);
+    expect(canDeleteArchivedRecord(admin, { ...filed, status: 'SUBMITTED' })).toBe(false);
+    expect(canDeleteArchivedRecord(personnel, filed)).toBe(false);
   });
 
   it('archives an approved record only, and only for the office', () => {

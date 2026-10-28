@@ -76,6 +76,18 @@ export function canDeleteRecord(viewer: Viewer, status: ReportStatus): boolean {
   return isAdmin(viewer) && status === 'PENDING';
 }
 
+/**
+ * Filing may end in removal (2026-10-27): an approved record the office has
+ * archived can be deleted. An approved record that is still in the register is
+ * refused, so archiving stays the deliberate step before a permanent delete.
+ */
+export function canDeleteArchivedRecord(
+  viewer: Viewer,
+  record: { status: ReportStatus; archivedAt: string | null },
+): boolean {
+  return isAdmin(viewer) && record.status === 'APPROVED' && record.archivedAt !== null;
+}
+
 /** Filing is a separate action on an approved record, never a transition. */
 export function canArchive(viewer: Viewer, status: ReportStatus): boolean {
   return isAdmin(viewer) && status === 'APPROVED';
