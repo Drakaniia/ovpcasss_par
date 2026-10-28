@@ -9,6 +9,7 @@
     RECORD_UPDATED: 'Details updated',
     RECORD_COMPLETED_DATE_SET: 'Date completed updated',
     RECORD_DELETED: 'Record deleted',
+    RECORD_RENUMBERED: 'AR No. renumbered',
     NARRATIVE_SAVED: 'Narrative draft saved',
     NARRATIVE_SUBMITTED: 'Narrative submitted',
     NARRATIVE_RETURNED: 'Returned for revision',

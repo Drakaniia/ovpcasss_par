@@ -1,5 +1,9 @@
 <script lang="ts">
-  import type { ReportListResponse, ReportSortField } from '@par/shared';
+  import type {
+    ReportDeleteReceiptPolicy,
+    ReportListResponse,
+    ReportSortField,
+  } from '@par/shared';
   import { Download } from '@lucide/svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -22,6 +26,7 @@
     updateFilters,
     type ReportFilters,
   } from '$lib/features/reports/application/report-filters';
+  import { deletionMessage } from '$lib/features/reports/application/report-delete';
   import {
     emptyStateFor,
     registerRow,
@@ -45,6 +50,8 @@
   let failure = $state<{ requestId?: string } | null>(null);
   let now = $state(new Date());
   let pendingDelete = $state<RegisterRow | null>(null);
+  /** A filed record was approved, so its issued receipts are the office's choice. */
+  let receiptPolicy = $state<ReportDeleteReceiptPolicy>('keep');
   let confirmOpen = $state(false);
   let deleting = $state(false);
   let exporting = $state(false);
@@ -183,6 +190,7 @@
 
   function askDelete(row: RegisterRow): void {
     pendingDelete = row;
+    receiptPolicy = 'keep';
     confirmOpen = true;
   }
 
@@ -192,8 +200,8 @@
 
     deleting = true;
     try {
-      await api.reports.remove(row.id);
-      toast.success('Record deleted.');
+      const result = await api.reports.remove(row.id, row.archived ? receiptPolicy : undefined);
+      toast.success(row.archived ? deletionMessage(result) : 'Record deleted.');
       await loadReports(filters);
     } catch {
       toast.error('The record was not deleted. Try again.');
@@ -318,15 +326,58 @@
   <ConfirmDialog
     bind:open={confirmOpen}
     title="Delete {pendingDelete.referenceNo}?"
-    description="No narrative has been submitted, so the record can be deleted. A saved narrative draft is deleted with it. The AR No. is retired and never reused, and the deletion is recorded in the audit log."
+    description={pendingDelete.archived
+      ? 'The record is removed permanently: the activity, its narrative, the attachments and their files, and the receipt records are all removed. Records numbered after it move down one so the register stays unbroken, and the next record takes the freed number. A number already printed on a mailed receipt is superseded. The deletion stays in the audit log.'
+      : 'No narrative has been submitted, so the record can be deleted. A saved narrative draft is deleted with it. The AR No. is retired and never reused, and the deletion is recorded in the audit log.'}
     confirmLabel={deleting ? 'Deleting…' : 'Delete record'}
     tone="destructive"
     onconfirm={() => void confirmDelete()}
     oncancel={() => (pendingDelete = null)}
-  />
+  >
+    {#if pendingDelete.archived}
+      <fieldset class="receipt-choice">
+        <legend class="field-label">Acknowledgment receipts already issued</legend>
+        <label class="radio-choice">
+          <input type="radio" bind:group={receiptPolicy} value="keep" />
+          Keep the PDFs in storage
+        </label>
+        <p class="field-hint">
+          The copies mailed to the PICs stay in storage as the office copy. They are no longer
+          listed in the app.
+        </p>
+        <label class="radio-choice">
+          <input type="radio" bind:group={receiptPolicy} value="void" />
+          Delete the PDFs
+        </label>
+        <p class="field-hint">The receipt PDFs are removed, and copies already with the PICs are void.</p>
+      </fieldset>
+    {/if}
+  </ConfirmDialog>
 {/if}
 
 <style>
+  .receipt-choice {
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .receipt-choice .field-label {
+    padding: 0;
+  }
+
+  .radio-choice {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    font-size: 13px;
+    margin-top: 8px;
+  }
+
+  .receipt-choice .field-hint {
+    margin: 2px 0 0 24px;
+  }
+
   .register-tools {
     display: flex;
     justify-content: flex-end;

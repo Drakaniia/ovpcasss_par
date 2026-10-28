@@ -32,11 +32,11 @@
   }
 </script>
 
-<section class="receipts" aria-labelledby="receipt-history-title">
-  <div class="receipts-head">
+<section class="card receipts" aria-labelledby="receipt-history-title">
+  <header class="receipts-head">
     <h2 id="receipt-history-title">Acknowledgment receipts</h2>
     <p class="lede">OVPCASSS-F-013, one for each approved activity you reported on.</p>
-  </div>
+  </header>
 
   {#if receipts.length === 0}
     <p class="empty">
@@ -46,18 +46,16 @@
     <ul class="receipt-list">
       {#each receipts as receipt (receipt.id)}
         <li class="receipt-row">
-          <div class="receipt-body">
-            <p class="receipt-title">
-              <span class="reference">{receipt.referenceNo}</span>
-              {receipt.title}
-            </p>
-            <p class="receipt-meta">
-              Issued {formatLongDate(receipt.generatedAt)}
-              {#if receipt.emailedAt}
-                · mailed {formatLongDate(receipt.emailedAt)}
-              {/if}
-            </p>
-          </div>
+          <p class="receipt-title">
+            <span class="reference">{receipt.referenceNo}</span>
+            {receipt.title}
+          </p>
+          <p class="receipt-meta">
+            Issued {formatLongDate(receipt.generatedAt)}
+            {#if receipt.emailedAt}
+              · mailed {formatLongDate(receipt.emailedAt)}
+            {/if}
+          </p>
           <div class="receipt-actions">
             <button
               class="btn btn-outline btn-sm"
@@ -93,84 +91,79 @@
 
 <style>
   .receipts {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    overflow: hidden;
   }
 
   .receipts-head {
-    align-items: baseline;
-    display: flex;
-    gap: 16px;
-    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px 12px;
   }
 
   h2 {
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     margin: 0;
-    text-transform: uppercase;
   }
 
   .lede {
     color: var(--text-secondary);
     font-size: 12px;
-    margin: 0;
-    text-align: right;
+    line-height: 1.45;
+    margin: 4px 0 0;
   }
 
   .empty {
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: 12.5px;
+    line-height: 1.5;
     margin: 0;
+    padding: 14px 16px;
   }
 
   .receipt-list {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-card);
     list-style: none;
     margin: 0;
     padding: 0;
   }
 
   .receipt-row {
-    align-items: center;
-    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
     display: flex;
-    gap: 16px;
-    justify-content: space-between;
-    padding: 10px 12px;
+    flex-direction: column;
+    gap: 3px;
+    padding: 12px 16px;
   }
 
-  .receipt-row:last-child {
-    border-bottom: 0;
+  .receipt-row:first-child {
+    border-top: 0;
   }
 
   .receipt-title {
     font-size: 13px;
-    font-weight: 500;
+    line-height: 1.4;
     margin: 0;
   }
 
   .reference {
     color: var(--text-secondary);
+    display: block;
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 11px;
     font-variant-numeric: tabular-nums;
-    margin-right: 8px;
   }
 
   .receipt-meta {
     color: var(--text-secondary);
-    font-size: 12px;
-    margin: 2px 0 0;
+    font-size: 11.5px;
+    margin: 0;
   }
 
   .receipt-actions {
     display: flex;
-    flex: none;
+    flex-wrap: wrap;
     gap: 8px;
+    margin-top: 6px;
   }
 
   .btn {
