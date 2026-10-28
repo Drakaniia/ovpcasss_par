@@ -224,6 +224,32 @@ export const submitNarrativeResponseSchema = reportHeadSchema.extend({
 });
 export type SubmitNarrativeResponse = z.infer<typeof submitNarrativeResponseSchema>;
 
+/* ---------- Deleting ---------- */
+
+/**
+ * Filing may end in removal (2026-10-27): the office archives an approved
+ * record, then deletes it. Acknowledgment receipts may already be with the
+ * PICs, so the caller says whether those PDFs are kept in storage.
+ */
+export const REPORT_DELETE_RECEIPT_POLICIES = ['keep', 'void'] as const;
+export type ReportDeleteReceiptPolicy = (typeof REPORT_DELETE_RECEIPT_POLICIES)[number];
+
+export const reportDeleteQuerySchema = z.object({
+  receipts: z.enum(REPORT_DELETE_RECEIPT_POLICIES).default('keep'),
+});
+export type ReportDeleteQuery = z.infer<typeof reportDeleteQuerySchema>;
+
+/** What the office is told afterwards: the number gone and the register after it. */
+export const reportDeleteResponseSchema = z.object({
+  referenceNo: z.string().min(1),
+  /** Records after the deleted one that moved down one number. */
+  renumbered: z.number().int().min(0),
+  /** The number the next created record will receive. */
+  nextReferenceNo: z.string().min(1),
+  receiptsVoided: z.number().int().min(0),
+});
+export type ReportDeleteResponse = z.infer<typeof reportDeleteResponseSchema>;
+
 export const REPORT_DECISIONS = ['APPROVE', 'RETURN'] as const;
 export type ReportDecision = (typeof REPORT_DECISIONS)[number];
 
