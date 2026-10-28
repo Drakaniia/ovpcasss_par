@@ -13,6 +13,8 @@ export type TourEligibilityInput = {
   accountStatus: UserStatus | null;
   homeStatus: HomeInboxStatus;
   viewportWidth: number;
+  /** The account's preferences were read; an empty record is known, not assumed. */
+  preferencesKnown: boolean;
   completed: boolean;
   /** An automatic start has already been attempted in this document. */
   startedThisSession: boolean;
@@ -36,7 +38,8 @@ export function shouldAutoStart(input: TourEligibilityInput): boolean {
     input.accountStatus === 'ACTIVE' &&
     input.homeStatus === 'ready' &&
     input.viewportWidth >= TOUR_MIN_WIDTH &&
-    !input.modalOpen
+    !input.modalOpen &&
+    input.preferencesKnown
   );
 }
 

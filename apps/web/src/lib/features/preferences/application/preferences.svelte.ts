@@ -8,8 +8,9 @@ import { api } from '$lib/api/client';
  * when the session resolves and written back on every change, so nothing is
  * kept in browser storage and the same account looks the same in every shell.
  */
-export const preferencesState = $state<{ loaded: boolean; value: Preferences }>({
+export const preferencesState = $state<{ loaded: boolean; failed: boolean; value: Preferences }>({
   loaded: false,
+  failed: false,
   value: {},
 });
 
@@ -24,8 +25,13 @@ export async function loadPreferences(): Promise<void> {
     .get()
     .then(({ preferences }) => {
       preferencesState.value = preferences;
+      preferencesState.failed = false;
     })
-    .catch(() => undefined)
+    .catch(() => {
+      // A failed read is not an empty record: the account may still have
+      // finished onboarding, so callers that gate on it must know the difference.
+      preferencesState.failed = true;
+    })
     .finally(() => {
       preferencesState.loaded = true;
       inflight = null;
@@ -38,11 +44,17 @@ export async function loadPreferences(): Promise<void> {
 export function resetPreferences(): void {
   preferencesState.value = {};
   preferencesState.loaded = false;
+  preferencesState.failed = false;
   inflight = null;
 }
 
 export function tourRecord(): TourRecord | null {
   return preferencesState.value.tour ?? null;
+}
+
+/** True once the account's record has been read; a failed read knows nothing. */
+export function tourRecordKnown(): boolean {
+  return preferencesState.loaded && !preferencesState.failed;
 }
 
 /** Writes a patch: the local copy moves first, the API catches up. */

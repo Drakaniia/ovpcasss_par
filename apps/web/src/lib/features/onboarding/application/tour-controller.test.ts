@@ -15,6 +15,7 @@ import {
   maybeAutoStart,
   nextStep,
   resetOnboarding,
+  setHomeInboxStatus,
   skipTour,
   startTour,
   tour,
@@ -64,6 +65,7 @@ function startWithSteps() {
 beforeEach(() => {
   resetPreferences();
   preferencesState.loaded = true;
+  setHomeInboxStatus('idle');
   vi.spyOn(api.preferences, 'save').mockResolvedValue({ preferences: {} });
   closeTour(false);
   signIn(`account-${Math.random().toString(36).slice(2)}`);
@@ -128,6 +130,29 @@ describe('preferences load', () => {
     };
 
     expect(hasCompletedTour()).toBe(true);
+  });
+
+  it('does not auto-start before the account record is read', () => {
+    setHomeInboxStatus('ready');
+    signIn('unread-record');
+    preferencesState.value = {};
+    preferencesState.loaded = false;
+
+    maybeAutoStart({ pathname: '/', viewportWidth: 1280 });
+
+    expect(tour.status).toBe('idle');
+  });
+
+  it('does not auto-start when the record could not be read', () => {
+    setHomeInboxStatus('ready');
+    signIn('failed-read');
+    preferencesState.value = {};
+    preferencesState.loaded = true;
+    preferencesState.failed = true;
+
+    maybeAutoStart({ pathname: '/', viewportWidth: 1280 });
+
+    expect(tour.status).toBe('idle');
   });
 });
 
