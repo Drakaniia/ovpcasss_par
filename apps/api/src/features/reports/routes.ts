@@ -14,6 +14,7 @@ import {
   reportActivitySchema,
   reportCompletedDateSchema,
   reportDecisionSchema,
+  reportDeleteQuerySchema,
   reportListQuerySchema,
   reportNarrativeSchema,
   reportSearchQuerySchema,
@@ -44,6 +45,7 @@ import { issueReceipts, renderReceiptBytes } from '../receipts/application/issue
 import {
   canArchive,
   canDecide,
+  canDeleteArchivedRecord,
   canDeleteRecord,
   canManageRecord,
   canReadNarrative,
@@ -473,13 +475,33 @@ reportRoutes.delete('/:id', requireRole('ADMIN'), async (c) => {
   const store = stack(c);
   const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
-  if (!canDeleteRecord(viewer, row.status)) {
-    return forbidden(c, 'Only a record with no submitted narrative can be deleted.');
+
+  const parsed = reportDeleteQuerySchema.safeParse(c.req.query());
+  if (!parsed.success) return invalid(c, issuesFromZodError(parsed.error));
+
+  // Two deletion paths: a record with no narrative, and a filed one (2026-10-27).
+  const pending = canDeleteRecord(viewer, row.status);
+  const filed = canDeleteArchivedRecord(viewer, row);
+  if (!pending && !filed) {
+    return forbidden(
+      c,
+      row.status === 'APPROVED'
+        ? 'Archive the record before deleting it.'
+        : 'Only a record with no submitted narrative can be deleted.',
+    );
   }
 
   const attachments = await store.read.listAttachments(row.id);
   for (const attachment of attachments) {
     await c.env.BUCKET.delete(attachment.objectKey).catch(() => undefined);
+  }
+
+  // A filed record was approved, so a receipt may already be in a PIC's hands.
+  const issued = filed ? await store.receipts.listForReport(row.id) : [];
+  if (parsed.data.receipts === 'void') {
+    for (const receipt of issued) {
+      await c.env.BUCKET.delete(receipt.objectKey).catch(() => undefined);
+    }
   }
 
   const deleted = await store.write.deleteRecord(row.id);
@@ -495,7 +517,26 @@ reportRoutes.delete('/:id', requireRole('ADMIN'), async (c) => {
     comment: row.referenceNo,
   });
 
-  return c.body(null, 204);
+  // A filed deletion closes its gap: later records move down one, so the next
+  // record takes the number the deletion freed (2026-10-27 decision).
+  const shifts = filed ? await store.write.renumberAfter(deleted.sequence) : [];
+  for (const shift of shifts) {
+    await recordAudit(c, {
+      actorUserId: viewer.userId,
+      actorRole: viewer.role,
+      action: 'RECORD_RENUMBERED',
+      entityType: 'report',
+      entityId: shift.reportId,
+      comment: `${formatReferenceNo(shift.from)} → ${formatReferenceNo(shift.to)}`,
+    });
+  }
+
+  return c.json({
+    referenceNo: row.referenceNo,
+    renumbered: shifts.length,
+    nextReferenceNo: formatReferenceNo(deleted.sequence + shifts.length),
+    receiptsVoided: parsed.data.receipts === 'void' ? issued.length : 0,
+  });
 });
 
 /* ---------- Archive (a filing flag, never a transition) ---------- */
@@ -864,6 +905,21 @@ reportRoutes.post('/:id/decision', requireRole('ADMIN'), async (c) => {
         : `${row.referenceNo} was returned for revision`,
       ...(approving ? {} : { comment: parsed.data.comments ?? null }),
       target: { kind: 'report', reportId: row.id },
+      // The approval is its own message; the receipt follows as a separate one
+      // with the PDF attached, so neither has to carry the other's news.
+      ...(approving
+        ? {
+            email: {
+              kind: 'APPROVED',
+              to: pic.email,
+              referenceNo: row.referenceNo,
+              title: row.title,
+              picName: pic.name,
+              approvedAt: now,
+              origin,
+            },
+          }
+        : {}),
     });
 
     const recipient = recipients[index];
