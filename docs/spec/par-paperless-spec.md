@@ -203,7 +203,7 @@ Separate D1/R2/Queue resources for **staging** and **production**. Preview deplo
 | Auth           | `POST /auth/register`, `POST /auth/verify-email`, `POST /auth/login`, `POST /auth/logout`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `GET /me`                                     |
 | Users (admin)  | `GET /users`, `PATCH /users/:id/role`, `POST /users/:id/approve`, `POST /users/:id/disable`                                                                                                         |
 | Reference data | `GET /ref/*` (all authenticated), `POST/PATCH/DELETE /ref/*` (admin)                                                                                                                                |
-| Reports        | `POST /reports` (admin creates, mints AR No.), `GET /reports`, `GET /reports/:id`, `PATCH /reports/:id` (admin, until approved), `PATCH /reports/:id/completed-date` (admin, approved), `DELETE /reports/:id` (DRAFT only), `POST /reports/:id/invitation` |
+| Reports        | `POST /reports` (admin creates, mints AR No.), `GET /reports`, `GET /reports/:id`, `PATCH /reports/:id` (admin, until approved), `PATCH /reports/:id/completed-date` (admin, approved), `DELETE /reports/:id` (PENDING, or an archived record), `POST /reports/:id/invitation` |
 | Narrative      | `PUT /reports/:id/narrative` (PIC draft), `POST /reports/:id/submit` (PIC, idempotent)                                                                                                              |
 | Decision       | `POST /reports/:id/decision` (admin: `APPROVE` or `RETURN` with comments)                                                                                                                           |
 | Attachments    | `POST /reports/:id/attachments/presign`, `POST /reports/:id/attachments/:aid/confirm`, `GET /reports/:id/attachments/:aid/url`, `DELETE ...` (PIC while the narrative is open)                      |
@@ -246,7 +246,7 @@ Rules:
 
 - The admin registers the activity and may edit its details and PIC list until `APPROVED`; an activity edit never touches the narrative or its attachments.
 - Any PIC writes the narrative of a `PENDING` or `RETURNED` record; every signed-in account reads the register. Submitting a record the account was not listed on appends it to that record's PIC list, so approval issues its OVPCASSS-F-013. The office stands in for every role (spec §9).
-- Deletion is allowed in `DRAFT` only, and retires the AR No. without renumbering the register.
+- Deletion is allowed in `PENDING` only, and retires the AR No. without renumbering the register. _Amended 2026-10-27: the office may also delete an **archived** approved record. That deletion closes its gap — every later record moves down one number and the next record takes the freed one — and the confirmation asks whether the issued receipt PDFs are kept in storage or deleted with the record._
 - A user cannot decide a narrative they submitted themselves. An ADMIN is the one exception: it stands in for the office and may decide its own record, which is recorded in the audit trail like any other decision.
 - The PIC may attach a signature to a `DRAFT` or `RETURNED` record. It is optional, snapshotted at submission, and printed in the facsimile's "Submitted by" slot; later changes to the profile signature never alter a submitted record.
 - Every transition writes an audit event and bumps `version`.
@@ -262,6 +262,7 @@ Rules:
 
 - Format: `AR No. ` followed by a zero-padded sequence of at least four digits — `AR No. 0001` … `AR No. 9999`, `AR No. 10000`. The full formatted string is stored on the record, so lists, detail, search, mail, PDFs, and exports never reformat it.
 - One global sequence for the life of the system: no type prefix, no year component, never reset and never reused. A deleted draft leaves a permanent gap.
+- _Amended 2026-10-27: deleting an archived record renumbers the records after it down one, and the counter follows the highest remaining number, so that deletion leaves no gap. AR Nos. already printed on a mailed receipt are superseded; the audit log keeps the old and new number for each moved record._
 - Issued **at admin creation**, atomically with the counter increment, with a unique index on `reference_no`; `sequence` is stored beside it for ordering.
 - Search accepts `0001`, `AR No. 0001`, and the punctuation-free `ar no 0001`.
 

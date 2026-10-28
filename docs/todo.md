@@ -40,3 +40,15 @@ make the field input "campus, college, department, office" optional so i can sti
 2. Your local  apps/api/.dev.vars  still has  EMAIL_FROM="OVPCASSS PAR <onboarding@resend.dev>" , which overrides  wrangler.toml  under  wrangler dev ; Brevo will refuse that sender. Change it to the verified address, or set  EMAIL_PROVIDER=console  locally.
 
 Until that secret is set on the Worker, sends fail with a Brevo auth error — so set it before  wrangler deploy . One caveat worth knowing: a verified Gmail sender is accepted but isn't authenticated for the university, so some receivers may file it as bulk; switch back to  resend  with  no-reply@send.buksu.edu.ph  once the domain verifies.
+
+
+
+is there email send verified when the record or the narrative report is been approved?, all email feature? 
+
+when archived an report.. it should be able to delete a report with a confirmation modal.. and the ar number should decrement each (show message that the ar number)
+
+apple-design. redesign all home pge for admin and PIC, use all design skills
+
+full email integration audit.  if it can actually send email to the PIC for all cases
+
+the admin page should be able to preview the submitted attachment by the pic. eithter pdf or images or all
