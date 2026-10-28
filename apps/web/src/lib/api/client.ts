@@ -41,6 +41,8 @@ import type {
   ReceiptSignatoryResponse,
   RegisterInput,
   ReportDecisionInput,
+  ReportDeleteReceiptPolicy,
+  ReportDeleteResponse,
   ReportActivityInput,
   ReportUpdateInput,
   ReportDetail,
@@ -167,8 +169,12 @@ export const api = {
         headers: version === undefined ? undefined : { 'if-match': String(version) },
         body: JSON.stringify(input),
       }),
-    /** Admin: a PENDING record only. The AR No. is never reused. */
-    remove: (id: string) => apiFetch<void>(`/reports/${id}`, { method: 'DELETE' }),
+    /**
+     * Admin: a PENDING record, or an archived approved one (2026-10-27). The
+     * receipt policy says whether the PDFs already issued stay in storage.
+     */
+    remove: (id: string, receipts: ReportDeleteReceiptPolicy = 'keep') =>
+      apiFetch<ReportDeleteResponse>(`/reports/${id}?receipts=${receipts}`, { method: 'DELETE' }),
     /**
      * Admin: the office's Date Completed on an approved record. `null` clears it,
      * and the monitoring sheet falls back to the approval date.
