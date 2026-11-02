@@ -11,8 +11,9 @@ to change a contract. Never claim a check passed without running it this session
 
 ```bash
 pnpm install                                        # lockfile is committed; CI uses --frozen-lockfile
-pnpm --filter @par/web --filter @par/api dev        # browser work: web :5173 -> API :8787 (remote bindings)
-pnpm --filter @par/desktop dev                      # desktop; its beforeDevCommand starts web+api
+pnpm dev                                            # web + API + desktop shell, in one command
+pnpm --filter @par/web --filter @par/api dev        # browser work only: web :5173 -> API :8787 (remote bindings)
+pnpm --filter @par/desktop dev                      # desktop; reuses a running web+api, else starts it
 pnpm build                                          # every package, Tauri included (Windows only)
 pnpm turbo run build --filter=!@par/desktop         # the build CI runs
 pnpm verify                                         # lint -> typecheck -> test
@@ -21,8 +22,14 @@ pnpm db:generate                                    # drizzle-kit generate into 
 pnpm db:migrate                                     # wrangler d1 migrations apply --local
 ```
 
-`pnpm dev` runs every package's `dev`, so it also launches Tauri, whose
-`beforeDevCommand` starts web and API again — use the filtered commands above.
+The shell's `beforeDevCommand` is `apps/desktop/scripts/dev-servers.mjs`: it
+probes :5173 and :8787, reuses whichever is already listening, and starts only
+the missing half, so `pnpm dev` and the desktop line above can run side by side.
+Under `turbo run dev` the tasks start together and the shell's cargo build lands
+between Vite binding and Wrangler binding, so seeing one half up means a launcher
+is mid-flight — the hook waits up to 60 s for the pair rather than claiming a
+session. Never let two `wrangler dev --remote` sessions reach one Worker: they
+race its asset upload and preview token, which is the timeout this avoids.
 
 Turbo quirk: `lint`, `typecheck`, and `test` all `dependsOn: ["^build"]`, so a
 dependency's build failure surfaces as a lint/typecheck failure. Read the actual
@@ -159,8 +166,13 @@ brand hex lives only in `tokens.css`.
   button. Maroon means "sent back" in workflow contexts.
 - Keyboard is a shortcut, never a requirement; single-letter shortcuts stay
   suppressed while typing. WCAG 2.2 AA, visible focus, skip link first.
-- Desktop widths only: below 1024 px show the foundation notice; auth pages are
-  exempt.
+- Wider viewports are the default: below 1024 px the shell shows the foundation
+  notice, except the personnel-in-charge surface, which reflows and is meant to
+  be used on a phone. That surface is `/` for a PERSONNEL account,
+  `/reports/[id]`, `/reports/new`, and `/reports/[id]/edit`; auth pages are
+  exempt as always. `lib/navigation/mobile-routes.ts` decides, and a route joins
+  it only when the shell chrome, the page padding, and every panel on it reflow.
+  Every other route, the office register included, stays desktop-only.
 - English, formal institutional voice, office terms verbatim. No exclamation
   marks.
 - Shared primitives (`StatusBadge`, `EmptyState`, `ErrorState`, `ConfirmDialog`,
