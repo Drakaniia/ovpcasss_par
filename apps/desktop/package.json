@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
+    "dev:servers": "node scripts/dev-servers.mjs",
     "build": "tauri build"
   },
   "devDependencies": {

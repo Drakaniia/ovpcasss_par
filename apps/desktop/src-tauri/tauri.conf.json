@@ -6,7 +6,7 @@
   "build": {
     "frontendDist": "../../web/build",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "pnpm --filter @par/web --filter @par/api dev",
+    "beforeDevCommand": "pnpm --filter @par/desktop dev:servers",
     "beforeBuildCommand": "pnpm --filter @par/web build"
   },
   "app": {
