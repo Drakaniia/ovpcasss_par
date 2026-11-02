@@ -117,8 +117,17 @@ describe('renderFacsimilePdf', () => {
   it('prints the office line from the source email', async () => {
     const text = drawnText(await renderFacsimilePdf(facsimile));
 
-    expect(text).toContain(OFFICE_NAME);
+    expect(text).toContain(OFFICE_NAME.toUpperCase());
     expect(text).not.toContain('Campus Affairs');
+  });
+
+  it('prints the university letterhead above the document', async () => {
+    const text = drawnText(await renderFacsimilePdf(facsimile));
+
+    expect(text).toContain('BUKIDNON STATE UNIVERSITY');
+    expect(text).toContain('Malaybalay City, Bukidnon, 8700');
+    expect(text).toContain('www.buksu.edu.ph');
+    expect(text).toContain('POST-ACTIVITY REPORT');
   });
 
   it('still produces a page when the narrative is empty', async () => {
@@ -126,7 +135,11 @@ describe('renderFacsimilePdf', () => {
     expect(await pageCount(bytes)).toBe(1);
   });
 
-  it('embeds one image per signature slot', async () => {
+  it('embeds the seal and the emblem on the letterhead', async () => {
+    expect(await drawnImages(await renderFacsimilePdf(facsimile))).toBe(2);
+  });
+
+  it('embeds one image per signature slot over the letterhead', async () => {
     const plain = await renderFacsimilePdf(facsimile);
     const signed = await renderFacsimilePdf({
       ...facsimile,
@@ -134,12 +147,8 @@ describe('renderFacsimilePdf', () => {
       approverSignature: PNG,
     });
 
-    expect(await drawnImages(signed)).toBe(2);
+    expect(await drawnImages(signed)).toBe(4);
     expect(signed.byteLength).toBeGreaterThan(plain.byteLength);
-  });
-
-  it('embeds no image when no signature is on file', async () => {
-    expect(await drawnImages(await renderFacsimilePdf(facsimile))).toBe(0);
   });
 
   it('still renders when the stored image is corrupt', async () => {
@@ -149,6 +158,7 @@ describe('renderFacsimilePdf', () => {
     });
 
     expect(await pageCount(bytes)).toBe(1);
-    expect(await drawnImages(bytes)).toBe(0);
+    // Only the letterhead's two images: the broken signature draws no picture.
+    expect(await drawnImages(bytes)).toBe(2);
   });
 });

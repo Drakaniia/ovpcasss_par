@@ -14,6 +14,8 @@ export const INK = rgb(0.11, 0.13, 0.17);
 export const MUTED = rgb(0.42, 0.45, 0.5);
 const NAVY = rgb(0.09, 0.16, 0.29);
 const GOLD = rgb(0.72, 0.58, 0.2);
+/** The docx hyperlink blue the office letterhead rules in. */
+const LINK_BLUE = rgb(5 / 255, 99 / 255, 193 / 255);
 
 /** Curly punctuation is not in Times' WinAnsi set; fold it to ASCII. */
 export function clean(value: string): string {
@@ -212,52 +214,92 @@ export class Writer {
   }
 }
 
-export function drawLetterhead(writer: Writer, data: FacsimilePdfData): void {
+function centered(
+  page: PDFPage,
+  value: string,
+  y: number,
+  size: number,
+  font: PDFFont,
+  color: typeof INK,
+): void {
+  const text = clean(value);
+  page.drawText(text, {
+    x: A4_WIDTH / 2 - font.widthOfTextAtSize(text, size) / 2,
+    y,
+    size,
+    font,
+    color,
+  });
+}
+
+function rightAligned(
+  page: PDFPage,
+  value: string,
+  y: number,
+  size: number,
+  font: PDFFont,
+  color: typeof INK,
+): void {
+  const text = clean(value);
+  page.drawText(text, {
+    x: A4_WIDTH - MARGIN - font.widthOfTextAtSize(text, size),
+    y,
+    size,
+    font,
+    color,
+  });
+}
+
+/**
+ * The head is OVPCASSS-F-013's, so the facsimile reads as an office form: the
+ * seal at the left, the university block between the corners, the blue rule,
+ * the office line, and the heavy form rule that closes the head. The tracking
+ * number and status take the corner the form gives its annex mark.
+ */
+export function drawLetterhead(
+  writer: Writer,
+  data: FacsimilePdfData,
+  images: { seal: PDFImage | null; emblem: PDFImage | null } = { seal: null, emblem: null },
+): void {
   const { page, bold, body } = writer;
   const top = A4_HEIGHT - MARGIN;
+  const right = A4_WIDTH - MARGIN;
 
-  page.drawText('OVPCASSS', {
-    x: MARGIN,
-    y: top - 6,
-    size: 13,
-    font: bold,
-    color: NAVY,
+  if (images.seal) {
+    page.drawImage(images.seal, { x: MARGIN, y: top - 44.25, width: 42, height: 42.25 });
+  }
+
+  if (images.emblem) {
+    page.drawImage(images.emblem, { x: right - 68, y: top - 66, width: 68, height: 36.2 });
+  }
+
+  rightAligned(page, data.referenceNo, top - 10, 10, bold, INK);
+  rightAligned(page, data.statusLabel, top - 24, 8, body, MUTED);
+
+  centered(page, 'BUKIDNON STATE UNIVERSITY', top - 24, 12, bold, INK);
+  centered(page, 'Malaybalay City, Bukidnon, 8700', top - 37, 9, body, INK);
+  centered(page, 'www.buksu.edu.ph', top - 49, 9, body, LINK_BLUE);
+
+  page.drawRectangle({
+    x: A4_WIDTH / 2 - 40,
+    y: top - 56,
+    width: 80,
+    height: 0.7,
+    color: LINK_BLUE,
   });
 
-  page.drawText(OFFICE_NAME, {
-    x: MARGIN,
-    y: top - 20,
-    size: 7,
-    font: body,
-    color: MUTED,
-  });
+  centered(page, OFFICE_NAME.toUpperCase(), top - 68, 7, bold, INK);
 
-  const reference = data.referenceNo;
-  page.drawText(reference, {
-    x: A4_WIDTH - MARGIN - textWidth(bold, reference, 10),
-    y: top - 6,
-    size: 10,
-    font: bold,
-    color: INK,
-  });
-
-  page.drawText(data.statusLabel, {
-    x: A4_WIDTH - MARGIN - textWidth(body, data.statusLabel, 8),
-    y: top - 20,
-    size: 8,
-    font: body,
-    color: MUTED,
-  });
-
-  writer.y = top - 40;
+  writer.y = top - 76;
   writer.page.drawLine({
     start: { x: MARGIN, y: writer.y },
-    end: { x: A4_WIDTH - MARGIN, y: writer.y },
-    thickness: 1.2,
-    color: GOLD,
+    end: { x: right, y: writer.y },
+    thickness: 2.5,
+    color: INK,
   });
   writer.y -= 30;
 
+  writer.y += 2;
   const heading = 'POST-ACTIVITY REPORT';
   writer.page.drawText(heading, {
     x: A4_WIDTH / 2 - textWidth(bold, heading, 16) / 2,
@@ -296,7 +338,7 @@ export function drawActivity(writer: Writer, data: FacsimilePdfData): void {
       : `${formatDate(data.activityStartDate)} to ${formatDate(data.activityEndDate)}`,
   );
   writer.field('Location', data.location);
-  writer.field('Number of activities', String(data.activityCount));
+  writer.field('Number of days', String(data.activityCount));
   writer.field(
     'SDGs',
     data.sdgNumbers.length > 0 ? data.sdgNumbers.map((number) => `SDG ${number}`).join(', ') : '-',
