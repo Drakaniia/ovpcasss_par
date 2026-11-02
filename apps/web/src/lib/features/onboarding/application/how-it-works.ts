@@ -34,7 +34,7 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
     summary:
       'OVPCASSS records the activity and assigns the personnel in charge before anyone writes a word.',
     points: [
-      'The administrator captures the activity type, classification, campus, title, dates, location, number of activities, and the people in charge.',
+      'The administrator captures the activity type, classification, campus, title, dates, location, and the people in charge.',
       'Saving issues the AR No. — a global sequence starting at 0001 that never resets or repeats.',
       'Each person in charge is emailed the reference, and an account is created or linked for them.',
     ],

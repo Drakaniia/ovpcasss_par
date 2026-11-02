@@ -74,7 +74,7 @@ describe('NavigationRow attention dots', () => {
     const { body } = render(NavigationRow, { props: {} });
     const emailLog = tab(body, '/admin/emails');
 
-    expect(emailLog).toContain('aria-label="Email log, 1 item needs attention"');
+    expect(emailLog).toContain('aria-label="Email, 1 item needs attention"');
     expect(emailLog).toContain('tab-dot');
     expect(emailLog).toContain('is-warning');
   });

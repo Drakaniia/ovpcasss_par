@@ -213,4 +213,40 @@
       animation: none;
     }
   }
+
+  /*
+   * Phone widths (2026-11-01). Two rows of chrome do not fit above a 390 px
+   * screen, so the section tabs give way entirely and the primary navigation
+   * scrolls sideways instead of wrapping into a second row.
+   */
+  @media (max-width: 1023px) {
+    .nav-row {
+      height: 48px;
+    }
+
+    .nav-inner {
+      gap: 0;
+      padding-inline: 8px;
+    }
+
+    .primary {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .primary::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-link {
+      min-height: 44px;
+      padding-inline: 12px;
+    }
+
+    .sections {
+      display: none;
+    }
+  }
 </style>

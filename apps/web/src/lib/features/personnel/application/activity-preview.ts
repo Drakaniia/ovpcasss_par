@@ -91,7 +91,7 @@ export function previewGroups(detail: ReportDetail, names: PreviewNames): Previe
           value: formatDateRange(form.activityStartDate, form.activityEndDate),
         },
         { label: 'Location', value: form.location },
-        { label: 'Number of activities', value: String(form.activityCount) },
+        { label: 'Number of days', value: String(form.activityCount) },
         { label: 'Total students', value: String(form.totalStudents) },
         {
           label: 'Personnel in charge',

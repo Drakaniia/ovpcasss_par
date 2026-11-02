@@ -238,6 +238,7 @@
     height: calc(28px * var(--chrome-inverse));
     min-width: 0;
     padding: 0 calc(10px * var(--chrome-inverse));
+    position: relative;
   }
 
   .search span {
@@ -272,6 +273,40 @@
   @media (max-width: 1180px) {
     .search .hint {
       display: none;
+    }
+  }
+
+  /*
+   * Phone widths (2026-11-01): the bar keeps its 44 px height, and the search
+   * control becomes a square whose hit area still reaches 44 px without growing
+   * the chrome over the page.
+   */
+  @media (max-width: 1023px) {
+    .titlebar.is-web {
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+
+    .titlebar {
+      gap: 8px;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .search {
+      justify-content: center;
+      padding: 0;
+      width: 34px;
+    }
+
+    .search span {
+      display: none;
+    }
+
+    .search::after {
+      content: '';
+      inset: -5px;
+      position: absolute;
     }
   }
 </style>

@@ -51,7 +51,7 @@
           </td>
           <td class="dates-cell">{row.dates}</td>
           <td class="location-cell table-col-secondary">{row.location}</td>
-          <td>
+          <td class="status-cell">
             <StatusBadge status={row.status} />
             {#if row.archived}<span class="archived-chip">Archived</span>{/if}
           </td>
@@ -198,5 +198,143 @@
     position: absolute;
     white-space: nowrap;
     width: 1px;
+  }
+
+  /*
+   * Below 1024 px (2026-11-01) six columns cannot be read at any width a phone
+   * has, so each row restacks into the card it already is: reference and status
+   * on the leading line, the activity next, the dates and place under it, and
+   * the row's own controls at the end. The header row stays in the document for
+   * a screen reader and leaves the view with the clip technique, so the table
+   * keeps the column headers that give each cell its name.
+   */
+  @media (max-width: 1023px) {
+    .table-scroll,
+    .table-scroll.flush {
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      overflow: visible;
+    }
+
+    .data-table,
+    .data-table tbody {
+      display: block;
+    }
+
+    /* The cards carry the edge; the list keeps its distance from the panel. */
+    .data-table {
+      padding: 10px;
+    }
+
+    .data-table thead {
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      height: 1px;
+      overflow: hidden;
+      position: absolute;
+      white-space: nowrap;
+      width: 1px;
+    }
+
+    .data-table tbody tr {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      column-gap: 12px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      margin: 0 0 10px;
+      padding: 12px 14px;
+      row-gap: 2px;
+    }
+
+    .data-table tbody tr:last-child {
+      margin-bottom: 0;
+    }
+
+    .data-table tbody td {
+      border-bottom: 0;
+      height: auto;
+      min-width: 0;
+      padding: 0;
+    }
+
+    .reference-cell {
+      align-self: center;
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .status-cell {
+      align-self: center;
+      grid-column: 2;
+      grid-row: 1;
+      text-align: right;
+    }
+
+    .activity-cell {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      max-width: none;
+      padding-top: 4px;
+    }
+
+    .dates-cell {
+      grid-column: 1;
+      grid-row: 3;
+      white-space: normal;
+    }
+
+    /* The office list drops Location below 1280 px; a card has the room. */
+    .data-table tbody td.table-col-secondary {
+      display: block;
+    }
+
+    .location-cell {
+      grid-column: 2;
+      grid-row: 3;
+      max-width: 46vw;
+      overflow: visible;
+      text-align: right;
+      white-space: normal;
+    }
+
+    .actions-cell {
+      grid-column: 1 / -1;
+      grid-row: 4;
+      justify-self: start;
+      padding-top: 8px;
+      text-align: left;
+      width: auto;
+    }
+
+    .actions-head {
+      display: none;
+    }
+
+    .row-end {
+      gap: 8px;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .data-table tbody tr {
+      padding: 10px 12px;
+    }
+
+    .activity-cell .title {
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .location-cell {
+      max-width: 40vw;
+    }
+
+    .row-end {
+      flex-wrap: wrap;
+      row-gap: 6px;
+    }
   }
 </style>
