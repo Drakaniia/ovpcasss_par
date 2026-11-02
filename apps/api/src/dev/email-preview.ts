@@ -1,5 +1,5 @@
 import { EMAIL_KIND_LABELS, EMAIL_KINDS, type EmailKind } from '@par/shared';
-import { emailSamples, escapeHtml, sampleFor } from '@par/email';
+import { emailSamples, EMAIL_LOGO_PATH, escapeHtml, SAMPLE_ORIGIN, sampleFor } from '@par/email';
 import { Hono } from 'hono';
 
 import type { AppEnv } from '../env';
@@ -66,7 +66,16 @@ devEmailRoutes.get('/emails/:kind', (c) => {
     });
   }
 
-  return new Response(sample.content.html, {
+  // The sample dataset names a public example origin, which does not host the
+  // build. This page comes from the Worker, which serves the web build too, so
+  // the header logo loads from here while the rest of the sample stays as drawn.
+  const origin = new URL(c.req.url).origin;
+  const html = sample.content.html.replaceAll(
+    `${SAMPLE_ORIGIN}${EMAIL_LOGO_PATH}`,
+    `${origin}${EMAIL_LOGO_PATH}`,
+  );
+
+  return new Response(html, {
     headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
   });
 });

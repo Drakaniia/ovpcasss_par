@@ -1,41 +1,27 @@
 # Copy to .dev.vars for `wrangler dev`. Never commit real values (spec §10).
 SESSION_SECRET=replace-me
+
+# Mail. EMAIL_PROVIDER is the adapter (brevo | resend | cloudflare | console);
+# console prints each message to the wrangler log and sends nothing. EMAIL_FROM
+# must be an address verified in the provider's dashboard.
+EMAIL_PROVIDER=brevo
+EMAIL_FROM="OVPCASSS PAR <you@gmail.com>"
+EMAIL_REPLY_TO="ovpcasss@buksu.edu.ph"
+EMAIL_API_KEY=replace-me
+
+# R2 file storage. All three or none: while they are placeholders, presign
+# answers 503 STORAGE_UNAVAILABLE and the uploader falls back to proxy mode
+# through the Worker's R2 binding, so local development needs no R2 API token.
 R2_ACCOUNT_ID=replace-me
 R2_ACCESS_KEY_ID=replace-me
 R2_SECRET_ACCESS_KEY=replace-me
-# Mail key for the adapter EMAIL_PROVIDER selects in wrangler.toml (spec §7.9):
-# the Brevo API key for "brevo", the Resend key for "resend". Set
-# EMAIL_PROVIDER=console in .dev.vars to print outbound mail (including
-# verification links) to the `wrangler dev` console instead of sending it.
-EMAIL_API_KEY=replace-me
-# Sender. Brevo delivers to any recipient once this address is confirmed under
-# Senders in the Brevo dashboard, so no domain or DNS records are needed.
-EMAIL_FROM="OVPCASSS PAR <you@gmail.com>"
-# Replies reach the office even though the sender is a personal address.
-EMAIL_REPLY_TO="ovpcasss@buksu.edu.ph"
-# Renders every template with sample data (nothing is sent):
-#   http://localhost:8787/api/v1/dev/emails
-# The console adapter prints attachments as name and size, then the text body.
-DEV_EMAIL_PREVIEW=true
-# Cron-composed mail (reminders, failure digest) needs an absolute app origin.
-# The deployed value lives in wrangler.toml [vars]; this one overrides it here,
-# so keep it pointing at the local web build.
-APP_ORIGIN=http://localhost:5173
-# Bootstrap admins live in wrangler.toml [vars] (BOOTSTRAP_ADMIN_EMAILS); list one
-# address per line here only to override them locally.
-# BOOTSTRAP_ADMIN_EMAILS="ovpcasss@buksu.edu.ph"
-# Google OAuth client (optional; the login button appears when both are set).
-# In the Google console use JavaScript origin http://localhost:5173 and
-# redirect URI http://localhost:5173/api/v1/auth/google/callback.
+
+# Google sign-in: set both or neither. In the Google console use JavaScript
+# origin http://localhost:5173 and redirect URI
+# http://localhost:5173/api/v1/auth/google/callback.
 GOOGLE_CLIENT_ID=replace-me
 GOOGLE_CLIENT_SECRET=replace-me
-# Address suggestions in the location field are on by default through
-# LOCATION_SUGGEST_URL in wrangler.toml [vars] (Photon, no account needed). Set
-# the template here to override it locally, and LOCATION_SUGGEST_KEY only for a
-# keyed provider: `{q}` is the query and `{key}` the secret.
-# LOCATION_SUGGEST_URL=https://photon.komoot.io/api/?q={q}&limit=6&lang=en
-# LOCATION_SUGGEST_KEY=replace-me
-# The Pages proxy (apps/web/functions) is the only caller that may claim a
-# browser address or a same-origin write. Leave PROXY_TOKEN unset locally: the
-# API then treats requests as direct and builds links from APP_ORIGIN above.
-# PROXY_TOKEN=replace-me
+
+# Absolute app URL for links in mail and receipts; wrangler.toml carries the
+# deployed value, this one overrides it locally.
+APP_ORIGIN=http://localhost:5173

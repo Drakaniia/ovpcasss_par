@@ -33,7 +33,7 @@ export async function sendFailureDigest(env: Env, now = new Date()): Promise<num
     ...(env.APP_ORIGIN ? { origin: env.APP_ORIGIN } : {}),
   });
 
-  const provider = createEmailProvider(env);
+  const provider = await createEmailProvider(env);
   const day = now.toISOString().slice(0, 10);
 
   for (const admin of admins) {

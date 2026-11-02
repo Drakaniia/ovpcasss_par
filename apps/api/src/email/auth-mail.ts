@@ -36,6 +36,7 @@ export async function sendVerificationEmail(env: Env, mail: AccountMail): Promis
     to: mail.to,
     content: verifyEmailTemplate({
       fullName: mail.fullName,
+      origin: mail.origin,
       actionUrl: link(mail, '/verify-email', { email: mail.to }),
     }),
   });
@@ -47,6 +48,7 @@ export async function sendPasswordResetEmail(env: Env, mail: AccountMail): Promi
     to: mail.to,
     content: resetPasswordTemplate({
       fullName: mail.fullName,
+      origin: mail.origin,
       actionUrl: link(mail, '/reset-password'),
     }),
   });
@@ -59,6 +61,7 @@ export async function sendRoleAssignedEmail(env: Env, notice: AccountNotice): Pr
     to: notice.to,
     content: roleAssignedTemplate({
       fullName: notice.fullName,
+      origin: notice.origin,
       ...(notice.roleLabel === undefined ? {} : { roleLabel: notice.roleLabel }),
       ...(notice.roleDescription === undefined ? {} : { roleDescription: notice.roleDescription }),
       ...(notice.origin === undefined ? {} : { actionUrl: `${notice.origin}/login` }),
@@ -72,6 +75,7 @@ export async function sendAccountActivatedEmail(env: Env, notice: AccountNotice)
     to: notice.to,
     content: accountActivatedTemplate({
       fullName: notice.fullName,
+      origin: notice.origin,
       ...(notice.origin === undefined ? {} : { actionUrl: `${notice.origin}/login` }),
     }),
   });
@@ -83,6 +87,7 @@ export async function sendAccountDisabledEmail(env: Env, notice: AccountNotice):
     to: notice.to,
     content: accountDisabledTemplate({
       fullName: notice.fullName,
+      origin: notice.origin,
       ...(env.OFFICE_EMAIL ? { officeEmail: env.OFFICE_EMAIL } : {}),
     }),
   });

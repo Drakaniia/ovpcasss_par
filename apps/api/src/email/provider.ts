@@ -7,10 +7,12 @@ import {
 } from '@par/email';
 
 import type { Env } from '../env';
+import { emailSenderFor } from './sender';
 
 /**
- * Picks the adapter from `EMAIL_PROVIDER` (spec §7.9). The key is the Worker
- * secret `EMAIL_API_KEY` and the sender is `EMAIL_FROM`; neither leaves the
+ * Picks the adapter from `EMAIL_PROVIDER` (spec §7.9). The sender and key are
+ * the administrator's saved row when there is one, and the Worker's
+ * `EMAIL_FROM` / `EMAIL_API_KEY` otherwise (`sender.ts`). Neither leaves the
  * Worker, and the Tauri bundle never sees them.
  *
  * Brevo is the interim provider: it verifies one sender address rather than a
@@ -18,20 +20,23 @@ import type { Env } from '../env';
  * waits on university DNS (runbook `email-delivery.md`). Every message goes to
  * the address on its own outbox row — nothing is redirected.
  */
-export function createEmailProvider(env: Env): EmailProvider {
+export async function createEmailProvider(env: Env): Promise<EmailProvider> {
   const replyTo = env.EMAIL_REPLY_TO || undefined;
 
-  if (env.EMAIL_PROVIDER === 'brevo') {
-    return createBrevoProvider(env.EMAIL_API_KEY, env.EMAIL_FROM, { replyTo });
-  }
-
-  if (env.EMAIL_PROVIDER === 'cloudflare') {
-    return createCloudflareEmailProvider(env.EMAIL_API_KEY);
-  }
-
+  // The console adapter prints and sends nothing, so it needs no key or DB read.
   if (env.EMAIL_PROVIDER === 'console') {
     return createConsoleProvider();
   }
 
-  return createResendProvider(env.EMAIL_API_KEY, env.EMAIL_FROM, { replyTo });
+  const sender = await emailSenderFor(env);
+
+  if (env.EMAIL_PROVIDER === 'brevo') {
+    return createBrevoProvider(sender.apiKey, sender.from, { replyTo });
+  }
+
+  if (env.EMAIL_PROVIDER === 'cloudflare') {
+    return createCloudflareEmailProvider(sender.apiKey);
+  }
+
+  return createResendProvider(sender.apiKey, sender.from, { replyTo });
 }

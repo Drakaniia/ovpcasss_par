@@ -42,7 +42,7 @@ function reasonOf(error: unknown): string {
  * the DLQ already has a visible `FAILED` row with its last error.
  */
 export async function emailQueueHandler(batch: MessageBatch<unknown>, env: Env): Promise<void> {
-  const provider = createEmailProvider(env);
+  const provider = await createEmailProvider(env);
   const outbox = createEmailOutboxQueries(createDb(env.DB));
 
   for (const message of batch.messages) {
