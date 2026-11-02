@@ -16,7 +16,9 @@
         --gold-600: #b8862b;
         --gold-400: #d3a44f;
         --gold-100: #f6efdd;
-        --page: #f5f4f1;
+        --surface-blueprint: #f8f6f1;
+        --blueprint-line: #b4b1a8;
+        --page: #f8f6f1;
         --card: #ffffff;
         --ink: #14203c;
         --muted: #55617c;
@@ -49,8 +51,10 @@
         box-shadow: 0 18px 40px -24px rgba(15, 26, 51, 0.35);
         max-width: 460px;
         overflow: hidden;
+        position: relative;
         text-align: center;
         width: 100%;
+        z-index: 1;
       }
 
       /* The mark sits on a navy band so the page opens with the office's colour. */
@@ -150,6 +154,75 @@
         width: 100%;
       }
 
+      /* The sign-in screen's blueprint linework, drawn in the page: this file is
+         served by the shell's loopback listener and fetches nothing. */
+      .bp-bg {
+        background: var(--blueprint-surface);
+        color: var(--blueprint-line);
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        position: fixed;
+        z-index: 0;
+      }
+
+      .bp-bg > svg {
+        height: auto;
+        overflow: visible;
+        position: absolute;
+      }
+
+      .bp-tl {
+        left: 0;
+        top: 0;
+        width: 22.7%;
+      }
+      .bp-tc {
+        left: 37.8%;
+        top: 0;
+        width: 14.5%;
+      }
+      .bp-tr {
+        right: 0;
+        top: 0;
+        width: 21.8%;
+      }
+      .bp-bl {
+        bottom: 0;
+        left: 0;
+        width: 34.4%;
+      }
+      .bp-br {
+        bottom: 0;
+        right: 0;
+        width: 37%;
+      }
+
+      .bp-bg .line {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1;
+      }
+      .bp-bg .line.thin {
+        stroke-width: 0.8;
+      }
+      .bp-bg .line.dim {
+        opacity: 0.9;
+      }
+      .bp-bg .dot {
+        fill: currentColor;
+        stroke: none;
+      }
+      .bp-bg .dot.dim {
+        opacity: 0.8;
+      }
+
+      @media (max-width: 640px) {
+        .bp-tc {
+          display: none;
+        }
+      }
+
       @keyframes settle {
         from {
           opacity: 0;
@@ -175,6 +248,285 @@
     </style>
   </head>
   <body>
+    <div class="bp-bg" aria-hidden="true">
+      <svg class="bp-tl" viewBox="0 0 360 330">
+        <g class="line">
+          <path d="M112 0A162 162 0 0 1 0 155" />
+          <path d="M168 0A219.7 219.7 0 0 1 0 187" />
+          <path d="M0 15L183 185" />
+          <path d="M152 67H313" />
+          <path d="M313 0V67" stroke-dasharray="4 3" />
+          <path d="M313 67H356" stroke-dasharray="4 3" />
+          <path d="M52 100V320" />
+          <path d="M0 125H72" stroke-dasharray="4 3" />
+        </g>
+        <g class="dot">
+          <circle cx="68" cy="67" r="2" />
+          <circle cx="140" cy="92" r="2" />
+          <circle cx="112" cy="126" r="2" />
+          <circle cx="82" cy="154" r="2" />
+          <circle cx="313" cy="67" r="2.5" />
+          <circle cx="52" cy="272" r="2" />
+          <path d="M52 98l-3 7h6zM52 322l-3-7h6zM357 67l-7-3v6zM72 125l-7-3v6z" />
+        </g>
+        <g class="line thin"><path d="M20 95h14M27 88v14" /></g>
+        <g class="line thin"><path d="M171 228h14M178 221v14" /></g>
+      </svg>
+
+      <svg class="bp-tc" viewBox="600 0 230 175">
+        <g class="line">
+          <path d="M619 0A98 100 0 0 0 717 100A98 100 0 0 0 815 0" />
+          <path d="M699 0V167" />
+          <path d="M606 28Q620 108 700 112L818 115" stroke-dasharray="4 3" />
+        </g>
+        <g class="dot"><path d="M604 24l-3 8l6-1zM819 115l-7-3v6z" /></g>
+        <g class="line thin"><path d="M661 41h10M666 36v10" /></g>
+      </svg>
+
+      <svg class="bp-tr" viewBox="1240 0 346 335">
+        <g class="dot dim">
+          <circle cx="1278" cy="31" r="1.1" />
+          <circle cx="1299.5" cy="31" r="1.1" />
+          <circle cx="1321" cy="31" r="1.1" />
+          <circle cx="1342.5" cy="31" r="1.1" />
+          <circle cx="1364" cy="31" r="1.1" />
+          <circle cx="1385.5" cy="31" r="1.1" />
+          <circle cx="1407" cy="31" r="1.1" />
+          <circle cx="1428.5" cy="31" r="1.1" />
+          <circle cx="1450" cy="31" r="1.1" />
+          <circle cx="1471.5" cy="31" r="1.1" />
+          <circle cx="1493" cy="31" r="1.1" />
+          <circle cx="1514.5" cy="31" r="1.1" />
+          <circle cx="1536" cy="31" r="1.1" />
+          <circle cx="1557.5" cy="31" r="1.1" />
+          <circle cx="1278" cy="53.5" r="1.1" />
+          <circle cx="1299.5" cy="53.5" r="1.1" />
+          <circle cx="1321" cy="53.5" r="1.1" />
+          <circle cx="1342.5" cy="53.5" r="1.1" />
+          <circle cx="1364" cy="53.5" r="1.1" />
+          <circle cx="1385.5" cy="53.5" r="1.1" />
+          <circle cx="1407" cy="53.5" r="1.1" />
+          <circle cx="1428.5" cy="53.5" r="1.1" />
+          <circle cx="1450" cy="53.5" r="1.1" />
+          <circle cx="1471.5" cy="53.5" r="1.1" />
+          <circle cx="1493" cy="53.5" r="1.1" />
+          <circle cx="1514.5" cy="53.5" r="1.1" />
+          <circle cx="1536" cy="53.5" r="1.1" />
+          <circle cx="1557.5" cy="53.5" r="1.1" />
+          <circle cx="1278" cy="76" r="1.1" />
+          <circle cx="1299.5" cy="76" r="1.1" />
+          <circle cx="1321" cy="76" r="1.1" />
+          <circle cx="1342.5" cy="76" r="1.1" />
+          <circle cx="1364" cy="76" r="1.1" />
+          <circle cx="1385.5" cy="76" r="1.1" />
+          <circle cx="1407" cy="76" r="1.1" />
+          <circle cx="1428.5" cy="76" r="1.1" />
+          <circle cx="1450" cy="76" r="1.1" />
+          <circle cx="1471.5" cy="76" r="1.1" />
+          <circle cx="1493" cy="76" r="1.1" />
+          <circle cx="1514.5" cy="76" r="1.1" />
+          <circle cx="1536" cy="76" r="1.1" />
+          <circle cx="1557.5" cy="76" r="1.1" />
+          <circle cx="1278" cy="98.5" r="1.1" />
+          <circle cx="1299.5" cy="98.5" r="1.1" />
+          <circle cx="1321" cy="98.5" r="1.1" />
+          <circle cx="1342.5" cy="98.5" r="1.1" />
+          <circle cx="1364" cy="98.5" r="1.1" />
+          <circle cx="1385.5" cy="98.5" r="1.1" />
+          <circle cx="1407" cy="98.5" r="1.1" />
+          <circle cx="1428.5" cy="98.5" r="1.1" />
+          <circle cx="1450" cy="98.5" r="1.1" />
+          <circle cx="1471.5" cy="98.5" r="1.1" />
+          <circle cx="1493" cy="98.5" r="1.1" />
+          <circle cx="1514.5" cy="98.5" r="1.1" />
+          <circle cx="1536" cy="98.5" r="1.1" />
+          <circle cx="1557.5" cy="98.5" r="1.1" />
+          <circle cx="1278" cy="121" r="1.1" />
+          <circle cx="1299.5" cy="121" r="1.1" />
+          <circle cx="1321" cy="121" r="1.1" />
+          <circle cx="1342.5" cy="121" r="1.1" />
+          <circle cx="1364" cy="121" r="1.1" />
+          <circle cx="1385.5" cy="121" r="1.1" />
+          <circle cx="1407" cy="121" r="1.1" />
+          <circle cx="1428.5" cy="121" r="1.1" />
+          <circle cx="1450" cy="121" r="1.1" />
+          <circle cx="1471.5" cy="121" r="1.1" />
+          <circle cx="1493" cy="121" r="1.1" />
+          <circle cx="1514.5" cy="121" r="1.1" />
+          <circle cx="1536" cy="121" r="1.1" />
+          <circle cx="1557.5" cy="121" r="1.1" />
+          <circle cx="1278" cy="143.5" r="1.1" />
+          <circle cx="1299.5" cy="143.5" r="1.1" />
+          <circle cx="1321" cy="143.5" r="1.1" />
+          <circle cx="1342.5" cy="143.5" r="1.1" />
+          <circle cx="1364" cy="143.5" r="1.1" />
+          <circle cx="1385.5" cy="143.5" r="1.1" />
+          <circle cx="1407" cy="143.5" r="1.1" />
+          <circle cx="1428.5" cy="143.5" r="1.1" />
+          <circle cx="1450" cy="143.5" r="1.1" />
+          <circle cx="1471.5" cy="143.5" r="1.1" />
+          <circle cx="1493" cy="143.5" r="1.1" />
+          <circle cx="1514.5" cy="143.5" r="1.1" />
+          <circle cx="1536" cy="143.5" r="1.1" />
+          <circle cx="1557.5" cy="143.5" r="1.1" />
+          <circle cx="1407" cy="163" r="1.1" />
+          <circle cx="1428.5" cy="163" r="1.1" />
+          <circle cx="1450" cy="163" r="1.1" />
+          <circle cx="1471.5" cy="163" r="1.1" />
+          <circle cx="1493" cy="163" r="1.1" />
+          <circle cx="1514.5" cy="163" r="1.1" />
+          <circle cx="1536" cy="163" r="1.1" />
+          <circle cx="1557.5" cy="163" r="1.1" />
+          <circle cx="1407" cy="186" r="1.1" />
+          <circle cx="1428.5" cy="186" r="1.1" />
+          <circle cx="1450" cy="186" r="1.1" />
+          <circle cx="1471.5" cy="186" r="1.1" />
+          <circle cx="1493" cy="186" r="1.1" />
+          <circle cx="1514.5" cy="186" r="1.1" />
+          <circle cx="1536" cy="186" r="1.1" />
+          <circle cx="1557.5" cy="186" r="1.1" />
+        </g>
+        <g class="line">
+          <path d="M1438 190l9 -18" />
+          <path d="M1444 190l9 -18" />
+          <path d="M1450 190l9 -18" />
+          <path d="M1456 190l9 -18" />
+          <path d="M1462 190l9 -18" />
+          <path d="M1468 190l9 -18" />
+          <path d="M1474 190l9 -18" />
+          <path d="M1480 190l9 -18" />
+          <path d="M1486 190l9 -18" />
+          <path d="M1492 190l9 -18" />
+          <path d="M1498 190l9 -18" />
+          <path d="M1504 190l9 -18" />
+          <path d="M1510 190l9 -18" />
+          <path d="M1516 190l9 -18" />
+        </g>
+        <g class="line thin"><path d="M1243 185h16M1251 177v16" /></g>
+        <g class="line">
+          <path d="M1407 247H1527" />
+          <path d="M1368 262H1526" />
+          <path d="M1557 222V325" />
+          <path d="M1538 247H1573" />
+        </g>
+        <g class="dot">
+          <circle cx="1407" cy="247" r="2" />
+          <circle cx="1557" cy="247" r="2" />
+          <path d="M1367 262l7-3v6z" />
+        </g>
+      </svg>
+
+      <svg class="bp-bl" viewBox="0 620 545 372">
+        <g class="line dim">
+          <path
+            d="M0.0,645.0C50.0,650.0 100.0,710.0 140.0,770.0C175.0,822.0 218.0,830.0 226.0,885.0C233.0,945.0 120.0,1090.0 0.0,1130.0"
+          />
+          <path
+            d="M0.0,669.6C45.8,674.2 91.5,729.1 128.1,784.0C160.1,831.6 199.5,838.9 206.8,889.3C213.2,944.1 109.8,1076.8 0.0,1113.4"
+          />
+          <path
+            d="M0.0,694.3C41.5,698.5 83.0,748.3 116.2,798.0C145.3,841.2 180.9,847.9 187.6,893.5C193.4,943.3 99.6,1063.7 0.0,1096.8"
+          />
+          <path
+            d="M0.0,719.0C37.3,722.7 74.5,767.4 104.3,812.1C130.4,850.8 162.4,856.8 168.4,897.8C173.6,942.5 89.4,1050.5 0.0,1080.3"
+          />
+          <path
+            d="M0.0,743.6C33.0,746.9 66.0,786.5 92.4,826.1C115.5,860.4 143.9,865.7 149.2,902.0C153.8,941.6 79.2,1037.3 0.0,1063.7"
+          />
+          <path
+            d="M0.0,768.3C28.7,771.1 57.5,805.6 80.5,840.1C100.6,870.0 125.3,874.6 129.9,906.3C134.0,940.8 69.0,1024.1 0.0,1047.1"
+          />
+          <path
+            d="M0.0,792.9C24.5,795.4 49.0,824.8 68.6,854.1C85.8,879.6 106.8,883.5 110.7,910.5C114.2,939.9 58.8,1011.0 0.0,1030.5"
+          />
+          <path
+            d="M0.0,817.6C20.2,819.6 40.5,843.9 56.7,868.2C70.9,889.2 88.3,892.5 91.5,914.8C94.4,939.0 48.6,997.8 0.0,1014.0"
+          />
+          <path
+            d="M0.0,842.2C16.0,843.8 32.0,863.0 44.8,882.2C56.0,898.8 69.8,901.4 72.3,919.0C74.6,938.2 38.4,984.6 0.0,997.4"
+          />
+          <path
+            d="M0.0,866.9C11.8,868.0 23.5,882.1 32.9,896.2C41.1,908.4 51.2,910.3 53.1,923.3C54.8,937.4 28.2,971.4 0.0,980.8"
+          />
+        </g>
+        <g class="line dim">
+          <path d="M256 827H452" />
+          <path d="M271 812V958" />
+          <path d="M303 812V958" />
+          <path d="M334 812V958" />
+          <path d="M366 812V958" />
+          <path d="M397 812V958" />
+          <path d="M429 812V958" />
+          <path d="M256 861H445" />
+          <path d="M256 899H445" />
+          <path d="M256 937H445" />
+          <path d="M429 803V958" />
+          <path class="thin" d="M421 829l3 6M431 829l3 6" />
+          <path d="M430 861H540" stroke-dasharray="4 3" />
+        </g>
+        <g class="dot dim">
+          <circle cx="271" cy="861" r="2.2" />
+          <circle cx="271" cy="899" r="2.2" />
+          <circle cx="271" cy="937" r="2.2" />
+          <circle cx="303" cy="861" r="2.2" />
+          <circle cx="303" cy="899" r="2.2" />
+          <circle cx="303" cy="937" r="2.2" />
+          <circle cx="334" cy="861" r="2.2" />
+          <circle cx="334" cy="899" r="2.2" />
+          <circle cx="334" cy="937" r="2.2" />
+          <circle cx="366" cy="861" r="2.2" />
+          <circle cx="366" cy="899" r="2.2" />
+          <circle cx="366" cy="937" r="2.2" />
+          <circle cx="397" cy="861" r="2.2" />
+          <circle cx="397" cy="899" r="2.2" />
+          <circle cx="397" cy="937" r="2.2" />
+          <circle cx="429" cy="861" r="2.2" />
+          <circle cx="429" cy="899" r="2.2" />
+          <circle cx="429" cy="937" r="2.2" />
+        </g>
+        <g class="line thin"><path d="M69 630h16M77 622v16" /></g>
+        <g class="line thin"><path d="M150 710h16M158 702v16" /></g>
+        <g class="line thin"><path d="M221 962h14M228 955v14" /></g>
+      </svg>
+
+      <svg class="bp-br" viewBox="1000 470 586 522">
+        <g class="line">
+          <path d="M1552 482V788" />
+          <path d="M1408 563H1552" />
+          <path d="M1552 770V788" stroke-dasharray="3 3" />
+          <circle cx="1255" cy="935" r="158" stroke-dasharray="5 4" />
+          <path d="M1277 770V992" />
+          <path d="M1015 932H1586" />
+          <path d="M1252 871H1428" />
+          <path d="M1417 814V992" />
+        </g>
+        <g class="dot">
+          <circle cx="1552" cy="563" r="2.5" />
+          <path
+            d="M1552 480l-3 8h6zM1552 790l-3-8h6zM1407 563l7-3v6zM1015 932l7-3v6zM1417 812l-3 8h6z"
+          />
+        </g>
+        <g class="line">
+          <path d="M1438 895l21.5 -43" />
+          <path d="M1444 895l21.5 -43" />
+          <path d="M1450 895l21.5 -43" />
+          <path d="M1456 895l21.5 -43" />
+          <path d="M1462 895l21.5 -43" />
+          <path d="M1468 895l21.5 -43" />
+          <path d="M1474 895l21.5 -43" />
+          <path d="M1480 895l21.5 -43" />
+          <path d="M1486 895l21.5 -43" />
+          <path d="M1492 895l21.5 -43" />
+          <path d="M1498 895l21.5 -43" />
+          <path d="M1504 895l21.5 -43" />
+          <path d="M1510 895l21.5 -43" />
+          <path d="M1516 895l21.5 -43" />
+          <path d="M1522 895l21.5 -43" />
+          <path d="M1528 895l21.5 -43" />
+        </g>
+      </svg>
+    </div>
+
     <main class="sheet">
       <div class="band">
         <svg class="seal" viewBox="0 0 64 64" aria-hidden="true">
