@@ -76,4 +76,28 @@
   .tool:disabled {
     opacity: 0.45;
   }
+
+  /*
+   * On a phone the seven buttons keep one row and scroll if they must, rather
+   * than wrapping into a block that pushes the narrative down. Each keeps a
+   * 44 px target so a thumb picks the one it aimed at.
+   */
+  @media (max-width: 639px) {
+    .toolbar {
+      flex-wrap: nowrap;
+      gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .toolbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tool {
+      flex: none;
+      height: 44px;
+      width: 44px;
+    }
+  }
 </style>

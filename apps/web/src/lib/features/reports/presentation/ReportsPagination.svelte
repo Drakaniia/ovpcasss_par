@@ -95,11 +95,6 @@
     gap: 6px;
   }
 
-  .size .select {
-    font-size: 12px;
-    min-height: 28px;
-  }
-
   .icon-action {
     align-items: center;
     background: var(--surface-card);
@@ -125,5 +120,22 @@
     color: var(--text-secondary);
     font-size: 12px;
     font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 639px) {
+    .pagination {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .controls {
+      justify-content: space-between;
+    }
+
+    .icon-action {
+      height: 44px;
+      width: 44px;
+    }
   }
 </style>

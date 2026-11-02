@@ -98,4 +98,10 @@
     white-space: nowrap;
     width: 1px;
   }
+
+  @media (max-width: 1023px) {
+    .two-col {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
 </style>

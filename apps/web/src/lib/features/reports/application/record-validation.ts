@@ -1,4 +1,9 @@
-import { emailSchema, joinLocationList, LOCATION_MAX_LENGTH, type ValidationIssue } from '@par/shared';
+import {
+  emailSchema,
+  joinLocationList,
+  LOCATION_MAX_LENGTH,
+  type ValidationIssue,
+} from '@par/shared';
 
 import { WIZARD_STEPS, type WizardForm, type WizardStep } from './record-form';
 
@@ -25,7 +30,7 @@ const FIXED_LABELS: Record<string, string> = {
   startDate: 'Start date',
   endDate: 'End date',
   locations: 'Location',
-  activityCount: 'Number of activities',
+  activityCount: 'Number of days',
   totalStudents: 'Total number of students',
   totalPic: 'Total number of PIC',
   pics: 'People in charge',
@@ -104,7 +109,7 @@ function picCountError(value: string): string | undefined {
 }
 
 function activityCountError(value: string): string | undefined {
-  if (value.trim() === '') return 'Enter the number of activities.';
+  if (value.trim() === '') return 'Enter the number of days.';
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 1) return 'Use a whole number of 1 or greater.';
   return undefined;
@@ -179,8 +184,9 @@ export function validateField(field: string, form: WizardForm): string | undefin
 
   if (match[2] === 'name') return pic.name.trim() ? undefined : 'Enter the name.';
   if (match[2] === 'email') {
+    /* Optional (2026-11-01): a blank address is valid, a malformed one is not. */
     const email = pic.email.trim();
-    if (!email) return 'Enter the email address.';
+    if (!email) return undefined;
     if (!emailSchema.safeParse(email).success) return 'Enter a valid email address.';
     return duplicateEmail(pic.id, email, form)
       ? 'This email is already used by another person in charge.'

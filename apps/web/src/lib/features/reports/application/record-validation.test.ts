@@ -35,6 +35,13 @@ describe('optional classification fields', () => {
 });
 
 describe('PIC email rules', () => {
+  it('accepts a row the office left without an address', () => {
+    const value = form(['', 'b@univ.edu']);
+
+    expect(validateField('pic.p1.email', value)).toBeUndefined();
+    expect(validateStep(3, value)).not.toHaveProperty('pic.p1.email');
+  });
+
   it('accepts two different addresses', () => {
     const value = form(['a@univ.edu', 'b@univ.edu']);
 

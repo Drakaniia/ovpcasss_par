@@ -45,6 +45,7 @@ export type WizardForm = {
   endText: string;
   /** One row per venue; stored in the contract's single `location` text. */
   locations: string[];
+  /** Number of days, counted from the dates; displayed, never typed. */
   activityCount: string;
   totalStudents: string;
   totalPic: string;
@@ -132,15 +133,41 @@ function countText(value: number | undefined): string {
   return value === undefined || value === null ? '' : String(value);
 }
 
+const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DAY_MS = 86_400_000;
+
+function isoDay(value: string): number | null {
+  const match = ISO_DAY.exec(value);
+  if (!match) return null;
+
+  const time = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return Number.isNaN(time) ? null : time;
+}
+
+/**
+ * Days the record covers, both dates included, read from the activity dates
+ * (2026-11-01). The wizard never types this count; it is derived on every date
+ * change and again when the payload is built.
+ */
+export function activityDays(startDate: string, endDate: string): number | null {
+  const start = isoDay(startDate);
+  const end = isoDay(endDate);
+  if (start === null || end === null) return null;
+
+  const days = Math.round((end - start) / DAY_MS) + 1;
+  return days >= 1 ? days : null;
+}
+
 /** Loads a stored record into editable form state, keeping typed dates readable. */
 export function formFromRecord(form: ReportFormInput): WizardForm {
   const base = emptyWizardForm();
   const pics = (form.pics ?? []).map((pic) => ({
     id: newId('pic'),
     name: pic.name,
-    email: pic.email,
+    email: pic.email ?? '',
     phone: pic.phone ?? '',
   }));
+  const days = activityDays(form.activityStartDate, form.activityEndDate);
 
   return {
     ...base,
@@ -157,7 +184,7 @@ export function formFromRecord(form: ReportFormInput): WizardForm {
     endDate: form.activityEndDate,
     endText: formatDate(form.activityEndDate),
     locations: splitLocations(form.location),
-    activityCount: countText(form.activityCount) || '1',
+    activityCount: days === null ? countText(form.activityCount) || '1' : String(days),
     totalStudents: countText(form.totalStudents),
     totalPic: String((pics.length > 0 ? pics : base.pics).length),
     pics: pics.length > 0 ? pics : base.pics,
@@ -179,19 +206,20 @@ export function toRecordInput(form: WizardForm): ReportActivityInput | null {
   if (!form.title.trim() || !form.startDate || !form.endDate || !location) return null;
   if (location.length > LOCATION_MAX_LENGTH) return null;
 
-  const activityCount = Number(form.activityCount);
+  const activityCount = activityDays(form.startDate, form.endDate);
   const totalStudents = Number(form.totalStudents);
   const totalPic = Number(form.totalPic);
-  if (!Number.isInteger(activityCount) || activityCount < 1) return null;
+  if (activityCount === null) return null;
   if (!Number.isInteger(totalStudents) || totalStudents < 0) return null;
   if (!Number.isInteger(totalPic) || totalPic < 0) return null;
   if (form.sdgIds.length === 0) return null;
 
+  /* A named person without an address is still a person in charge (2026-11-01). */
   const pics = form.pics
-    .filter((pic) => pic.name.trim() !== '' && pic.email.trim() !== '')
+    .filter((pic) => pic.name.trim() !== '')
     .map((pic) => ({
       name: pic.name.trim(),
-      email: pic.email.trim().toLowerCase(),
+      ...(pic.email.trim() ? { email: pic.email.trim().toLowerCase() } : {}),
       ...(pic.phone.trim() ? { phone: pic.phone.trim() } : {}),
     }));
   if (pics.length === 0) return null;

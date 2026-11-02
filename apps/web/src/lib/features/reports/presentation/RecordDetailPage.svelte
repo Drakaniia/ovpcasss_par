@@ -68,9 +68,7 @@
    * the narrative; another PIC on the record never receives it.
    */
   const canPreviewPdf = $derived(
-    Boolean(
-      detail && !detail.narrativePrivate && (admin || (viewerIsPic && detail.submittedAt)),
-    ),
+    Boolean(detail && !detail.narrativePrivate && (admin || (viewerIsPic && detail.submittedAt))),
   );
 
   const canEditHeader = $derived(Boolean(admin && detail && detail.status !== 'APPROVED'));
@@ -299,7 +297,7 @@
           <dd>{formatDateRange(detail.form.activityStartDate, detail.form.activityEndDate)}</dd>
           <dt>Location</dt>
           <dd>{detail.form.location}</dd>
-          <dt>Number of activities</dt>
+          <dt>Number of days</dt>
           <dd>{detail.form.activityCount}</dd>
           <dt>SDGs</dt>
           <dd>
@@ -318,10 +316,11 @@
           {#each detail.pics as pic (pic.id ?? pic.email)}
             <li class="person">
               <span class="person-name">{pic.name}</span>
-              <span class="person-contact">
-                {pic.email}{#if pic.phone}
-                  · {pic.phone}{/if}
-              </span>
+              {#if pic.email || pic.phone}
+                <span class="person-contact">
+                  {[pic.email, pic.phone].filter(Boolean).join(' · ')}
+                </span>
+              {/if}
             </li>
           {/each}
         </ul>
@@ -660,6 +659,69 @@
     align-items: center;
     display: inline-flex;
     gap: 6px;
+  }
+
+  /*
+   * Narrow widths (2026-11-01). The PIC opens this page on a phone: the header
+   * stacks, the rail falls under the record instead of narrowing it, and the
+   * facts list stops reserving a 140 px gutter for its labels.
+   */
+  @media (max-width: 1023px) {
+    .record-head {
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .head-actions {
+      justify-content: flex-start;
+      width: 100%;
+    }
+
+    .layout {
+      gap: 20px;
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 639px) {
+    .reference-row {
+      flex-wrap: wrap;
+    }
+
+    .meta {
+      overflow-wrap: anywhere;
+    }
+
+    .head-actions .btn {
+      flex: 1 1 auto;
+    }
+
+    .panel {
+      padding: 12px 14px;
+    }
+
+    .facts {
+      gap: 2px;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .facts dt {
+      margin-top: 8px;
+    }
+
+    .facts dt:first-of-type {
+      margin-top: 0;
+    }
+
+    /* Back to the register is a navigation target, so it keeps a thumb's height. */
+    .back {
+      min-height: 44px;
+    }
+
+    .person-name,
+    .person-contact {
+      overflow-wrap: anywhere;
+    }
   }
 
   @media print {

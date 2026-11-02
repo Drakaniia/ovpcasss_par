@@ -76,6 +76,21 @@ describe('RecordFormState PIC count', () => {
   });
 });
 
+describe('RecordFormState day count', () => {
+  it('counts the days the range covers as the dates change', () => {
+    const state = new RecordFormState({ mode: 'create' });
+
+    state.patchForm({ startDate: '2026-03-12', endDate: '2026-03-13' });
+    expect(state.form.activityCount).toBe('2');
+
+    state.patchForm({ endDate: '2026-03-16' });
+    expect(state.form.activityCount).toBe('5');
+
+    state.patchForm({ endDate: '2026-03-12' });
+    expect(state.form.activityCount).toBe('1');
+  });
+});
+
 describe('RecordFormState with more than one person in charge', () => {
   it('sends every filled row', async () => {
     mocks.create.mockResolvedValue({
@@ -152,5 +167,73 @@ describe('RecordFormState with more than one person in charge', () => {
     expect(await state.save()).toBe(false);
 
     expect(state.saveError?.message).toBe('This record changed on the server. Reload it.');
+  });
+});
+
+describe('RecordFormState review before sending', () => {
+  it('opens the review sheet without sending the record', async () => {
+    const state = readyState();
+
+    expect(await state.review()).toBe(true);
+    expect(state.reviewOpen).toBe(true);
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it('sends only from the review sheet', async () => {
+    mocks.create.mockResolvedValue({
+      id: 'r1',
+      version: 0,
+      status: 'PENDING',
+      referenceNo: 'AR No. 0001',
+      sentTo: 2,
+    });
+
+    const state = readyState();
+    await state.review();
+
+    expect(await state.save()).toBe(true);
+    expect(mocks.create).toHaveBeenCalledTimes(1);
+    expect(state.reviewOpen).toBe(false);
+    expect(state.created?.referenceNo).toBe('AR No. 0001');
+  });
+
+  it('never opens the sheet for an incomplete record: it lands on the first step', async () => {
+    const state = new RecordFormState({ mode: 'create' });
+
+    expect(await state.review()).toBe(false);
+    expect(state.reviewOpen).toBe(false);
+    expect(state.step).toBe(1);
+    expect(state.errors.type).toBeTruthy();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it('closes the sheet and marks the step its pencil chose', async () => {
+    const state = readyState();
+    await state.review();
+
+    await state.editFromReview(2);
+
+    expect(state.reviewOpen).toBe(false);
+    expect(state.step).toBe(2);
+    expect(state.reviewEditStep).toBe(2);
+  });
+
+  it('returns to the sheet with the correction mark cleared', async () => {
+    const state = readyState();
+    await state.review();
+    await state.editFromReview(2);
+
+    expect(await state.backToReview()).toBe(true);
+    expect(state.reviewOpen).toBe(true);
+    expect(state.reviewEditStep).toBeNull();
+  });
+
+  it('drops the edit mark once the reporter moves on their own', async () => {
+    const state = readyState();
+    await state.editFromReview(1);
+
+    await state.goTo(2);
+
+    expect(state.reviewEditStep).toBeNull();
   });
 });

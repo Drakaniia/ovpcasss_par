@@ -80,7 +80,7 @@
     <dd>{formatDateRange(form.activityStartDate, form.activityEndDate)}</dd>
     <dt>Location</dt>
     <dd>{form.location}</dd>
-    <dt>Number of activities</dt>
+    <dt>Number of days</dt>
     <dd>{form.activityCount}</dd>
   </dl>
 

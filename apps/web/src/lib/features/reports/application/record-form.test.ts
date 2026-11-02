@@ -2,6 +2,7 @@ import type { ReportFormInput, Unit } from '@par/shared';
 import { describe, expect, it } from 'vitest';
 
 import {
+  activityDays,
   emptyWizardForm,
   formFromRecord,
   stepFromParams,
@@ -78,14 +79,42 @@ describe('emptyWizardForm', () => {
   });
 });
 
+describe('activityDays', () => {
+  it('counts both ends of the range', () => {
+    expect(activityDays('2026-03-12', '2026-03-12')).toBe(1);
+    expect(activityDays('2026-03-12', '2026-03-13')).toBe(2);
+    expect(activityDays('2026-02-27', '2026-03-02')).toBe(4);
+  });
+
+  it('answers nothing until both dates are real', () => {
+    expect(activityDays('', '2026-03-13')).toBeNull();
+    expect(activityDays('2026-03-12', '')).toBeNull();
+    expect(activityDays('12 Mar 2026', '2026-03-13')).toBeNull();
+  });
+
+  it('answers nothing when the range runs backwards', () => {
+    expect(activityDays('2026-03-13', '2026-03-12')).toBeNull();
+  });
+});
+
 describe('formFromRecord', () => {
-  it('restores typed dates, counts, and PIC rows', () => {
+  it('restores typed dates, the day count, and PIC rows', () => {
     const form = formFromRecord(record);
 
     expect(form.startText).toBe('12 Mar 2026');
     expect(form.activityCount).toBe('2');
     expect(form.totalStudents).toBe('42');
     expect(form.pics[0]).toMatchObject({ name: 'A. Cruz', email: 'a@univ.edu', phone: '' });
+  });
+
+  it('reads the day count from the dates, not the stored count', () => {
+    const form = formFromRecord({
+      ...record,
+      activityCount: 9,
+      activityEndDate: '2026-03-15',
+    });
+
+    expect(form.activityCount).toBe('4');
   });
 });
 
@@ -138,13 +167,18 @@ describe('toRecordInput', () => {
     });
   });
 
+  it('sends the days the dates cover, ignoring a typed count', () => {
+    expect(toRecordInput(validForm({ activityCount: '0' }))?.activityCount).toBe(2);
+    expect(toRecordInput(validForm({ endDate: '2026-03-16' }))?.activityCount).toBe(5);
+    expect(toRecordInput(validForm({ endDate: '' }))).toBeNull();
+  });
+
   it('refuses an incomplete record instead of inventing values', () => {
     expect(toRecordInput(emptyWizardForm())).toBeNull();
-    expect(toRecordInput(validForm({ activityCount: '0' }))).toBeNull();
     expect(toRecordInput(validForm({ totalStudents: 'many' }))).toBeNull();
     expect(toRecordInput(validForm({ sdgIds: [] }))).toBeNull();
     expect(
-      toRecordInput(validForm({ pics: [{ id: 'p1', name: 'A. Cruz', email: '', phone: '' }] })),
+      toRecordInput(validForm({ pics: [{ id: 'p1', name: '', email: '', phone: '' }] })),
     ).toBeNull();
   });
 
@@ -156,7 +190,7 @@ describe('toRecordInput', () => {
     expect(input).not.toHaveProperty('unitId');
   });
 
-  it('requires an email for every personnel in charge', () => {
+  it('keeps a person in charge the office named without an email', () => {
     const input = toRecordInput(
       validForm({
         pics: [
@@ -167,7 +201,8 @@ describe('toRecordInput', () => {
       }),
     );
 
-    expect(input?.pics).toHaveLength(1);
+    expect(input?.pics).toHaveLength(2);
+    expect(input?.pics[1]).toEqual({ name: 'B. Reyes' });
   });
 });
 

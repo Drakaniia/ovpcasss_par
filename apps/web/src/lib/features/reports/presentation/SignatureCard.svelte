@@ -104,7 +104,8 @@
     <p class="signature-label">Your signature</p>
     <p class="signature-hint">
       Optional. Draw or upload it here; it is saved with the draft or the submission, or use Save
-      signature to keep it now. A signature saved in Settings is still used if this card stays empty.
+      signature to keep it now. A signature saved in Settings is still used if this card stays
+      empty.
     </p>
   </div>
 
@@ -214,5 +215,22 @@
   .save-reason {
     color: var(--text-secondary);
     font-size: 12px;
+  }
+
+  /* Two actions side by side do not fit a 390 px panel: each takes its own row. */
+  @media (max-width: 639px) {
+    .signature-card {
+      padding: 10px;
+    }
+
+    .signature-actions {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .signature-actions .btn {
+      justify-content: center;
+      width: 100%;
+    }
   }
 </style>
