@@ -20,8 +20,10 @@
 
   const first = $derived(step.position === 1);
   const progress = $derived(`${(step.position / step.total) * 100}%`);
+  /* The label names what the press does: the first step starts the tour, the
+     last one ends it. "Next" stays for the steps in between. */
   const primaryLabel = $derived(
-    step.id === 'welcome' ? 'Get started' : step.final ? 'Start exploring' : 'Next',
+    step.id === 'welcome' ? 'Start the tour' : step.final ? 'Finish the tour' : 'Next',
   );
 </script>
 

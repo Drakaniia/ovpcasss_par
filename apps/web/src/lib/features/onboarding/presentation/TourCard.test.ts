@@ -37,10 +37,10 @@ describe('TourCard', () => {
     expect(html).toMatch(/width:\s*42\.8571/);
   });
 
-  it('opens with Get started and Skip tour, and no Back', () => {
+  it('opens with Start the tour and Skip tour, and no Back', () => {
     const html = renderCard({ id: 'welcome', anchor: null, position: 1, total: 8, final: false });
 
-    expect(html).toContain('Get started');
+    expect(html).toContain('Start the tour');
     expect(html).toContain('Skip tour');
     expect(html).not.toContain('>Back<');
   });
@@ -53,10 +53,10 @@ describe('TourCard', () => {
     expect(html).toContain('Skip tour');
   });
 
-  it('ends with Start exploring and no Skip tour or Next', () => {
+  it('ends with Finish the tour and no Skip tour or Next', () => {
     const html = renderCard({ id: 'finish', anchor: null, position: 7, total: 7, final: true });
 
-    expect(html).toContain('Start exploring');
+    expect(html).toContain('Finish the tour');
     expect(html).toContain('>Back<');
     expect(html).not.toContain('Skip tour');
     expect(html).not.toContain('>Next<');

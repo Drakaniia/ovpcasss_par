@@ -221,7 +221,7 @@
 
   function dismiss(): void {
     if (step?.final) {
-      // Escape on the summary is the same ending as Start exploring.
+      // Escape on the summary is the same ending as Finish the tour.
       finishTour();
       return;
     }
