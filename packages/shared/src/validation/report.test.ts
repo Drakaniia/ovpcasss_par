@@ -56,6 +56,15 @@ describe('validateActivity', () => {
     );
   });
 
+  it('accepts people in charge who have no email, in any number', () => {
+    expect(
+      validateActivity({
+        ...activity,
+        pics: [{ name: 'A' }, { name: 'B', email: 'b@buksu.edu.ph' }],
+      }),
+    ).toEqual([]);
+  });
+
   it('names the field a schema failure refused, not a Zod path', () => {
     const parsed = reportActivitySchema.safeParse({
       ...activity,

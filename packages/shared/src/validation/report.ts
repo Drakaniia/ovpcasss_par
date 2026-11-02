@@ -110,7 +110,10 @@ export function validateActivity(form: unknown): ValidationIssue[] {
     });
   }
 
-  const emails = value.pics.map((pic) => pic.email.toLowerCase());
+  /* A row may have no email; the addresses that are there must still differ. */
+  const emails = value.pics
+    .map((pic) => (pic.email ?? '').trim().toLowerCase())
+    .filter((email) => email !== '');
   if (new Set(emails).size !== emails.length) {
     issues.push({
       field: 'pics',

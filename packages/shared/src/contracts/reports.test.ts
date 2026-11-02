@@ -85,11 +85,15 @@ describe('record contracts', () => {
     expect(reportDetailSchema.safeParse({ ...detail, status: 'ENDORSED' }).success).toBe(false);
   });
 
-  it('requires an email for every listed person in charge', () => {
+  it('accepts a person in charge with no email, but never a malformed one', () => {
     const { pics: _pics, ...rest } = detail.form;
     expect(reportActivitySchema.safeParse({ ...rest, pics: [{ name: 'M. Santos' }] }).success).toBe(
-      false,
+      true,
     );
+    expect(
+      reportActivitySchema.safeParse({ ...rest, pics: [{ name: 'M. Santos', email: 'nope' }] })
+        .success,
+    ).toBe(false);
     expect(
       reportActivitySchema.safeParse({
         ...rest,
@@ -108,9 +112,9 @@ describe('date completed', () => {
   });
 
   it('rejects a timestamp or a partial date', () => {
-    expect(reportCompletedDateSchema.safeParse({ completedOn: '2026-03-18T00:00:00Z' }).success).toBe(
-      false,
-    );
+    expect(
+      reportCompletedDateSchema.safeParse({ completedOn: '2026-03-18T00:00:00Z' }).success,
+    ).toBe(false);
     expect(reportCompletedDateSchema.safeParse({ completedOn: '2026-03' }).success).toBe(false);
   });
 });
