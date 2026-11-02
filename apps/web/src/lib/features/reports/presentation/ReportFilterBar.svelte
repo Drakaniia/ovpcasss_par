@@ -212,8 +212,6 @@
     font-size: 11px;
   }
 
-  .select,
-  .date,
   .name {
     font-size: 13px;
     min-height: 34px;
@@ -228,10 +226,6 @@
   .dates {
     display: flex;
     gap: 8px;
-  }
-
-  .date {
-    min-width: 132px;
   }
 
   .clear {

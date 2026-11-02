@@ -5,8 +5,10 @@
   import type { FieldErrors } from '../application/record-validation';
 
   /**
-   * Personnel-in-charge rows (spec §12.1 step 3). Name and email are required —
-   * the email is the account and the mailbox — while phone stays optional.
+   * Personnel-in-charge rows (spec §12.1 step 3). Only the name is required. The
+   * email is optional (2026-11-01): when given it is the person's account and
+   * mailbox, and phone is optional too. Neither is labelled "Optional", so the
+   * step reads as one plain row per person.
    */
   let {
     pics,
@@ -62,9 +64,7 @@
         </div>
 
         <div class="field" class:has-error={Boolean(errorText(pic.id, 'email'))}>
-          <label class="field-label" for="pic-{pic.id}-email">
-            {label(index, 'Email')}<span class="required" aria-hidden="true"> *</span>
-          </label>
+          <label class="field-label" for="pic-{pic.id}-email">{label(index, 'Email')}</label>
           <input
             id="pic-{pic.id}-email"
             class="input"
@@ -85,10 +85,7 @@
         </div>
 
         <div class="field" class:has-error={Boolean(errorText(pic.id, 'phone'))}>
-          <label class="field-label" for="pic-{pic.id}-phone">
-            {label(index, 'Phone')}
-            <span class="field-optional">Optional</span>
-          </label>
+          <label class="field-label" for="pic-{pic.id}-phone">{label(index, 'Phone')}</label>
           <input
             id="pic-{pic.id}-phone"
             class="input"
@@ -115,6 +112,7 @@
           onclick={() => onremove(pic.id)}
         >
           <Trash2 size={16} aria-hidden="true" />
+          <span class="remove-label">Remove person in charge {index + 1}</span>
         </button>
       </div>
     </fieldset>
@@ -173,11 +171,6 @@
     color: var(--status-danger-fg);
   }
 
-  .field-optional {
-    color: var(--text-secondary);
-    font-size: 11px;
-  }
-
   .field-error {
     color: var(--status-danger-fg);
     font-size: 12px;
@@ -201,6 +194,11 @@
     color: var(--status-danger-fg);
   }
 
+  /* The row names what the icon removes only where the icon is not enough. */
+  .remove-label {
+    display: none;
+  }
+
   .add {
     align-self: flex-start;
     display: inline-flex;
@@ -214,6 +212,57 @@
 
     .pic-grid > .field:nth-child(3) {
       grid-column: 1 / 3;
+    }
+  }
+
+  /* Tablet and phone: the name and the email share a line, the phone gets its own. */
+  @media (max-width: 1023px) {
+    .pic-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+    }
+
+    .pic-grid > .field:nth-child(3) {
+      grid-column: 1 / 3;
+    }
+
+    .icon-action {
+      align-self: end;
+      height: 44px;
+      margin-top: 0;
+      width: 44px;
+    }
+  }
+
+  /* Phone: one field per line, and the row is removed by a named button. */
+  @media (max-width: 639px) {
+    .pic-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .pic-grid > .field:nth-child(3) {
+      grid-column: auto;
+    }
+
+    .icon-action.remove {
+      border: 1px solid var(--border);
+      color: var(--status-danger-fg);
+      gap: 6px;
+      height: 44px;
+      margin-top: 2px;
+      padding-inline: 14px;
+      width: 100%;
+    }
+
+    .icon-action.remove :global(svg) {
+      display: none;
+    }
+
+    .remove-label {
+      display: inline;
+    }
+
+    .add {
+      align-self: stretch;
     }
   }
 </style>

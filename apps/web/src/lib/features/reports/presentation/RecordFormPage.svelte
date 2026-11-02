@@ -63,6 +63,19 @@
     }
   }
 
+  /**
+   * A new record is read before it is sent: the final action opens the review
+   * sheet, and only that sheet's confirm reaches `save` (2026-11-01).
+   */
+  async function finalAction(): Promise<void> {
+    if (mode === 'create') {
+      await form.review();
+      return;
+    }
+
+    await save();
+  }
+
   async function createAnother(): Promise<void> {
     form = new RecordFormState({ mode: 'create' });
     await form.boot();
@@ -75,7 +88,7 @@
     event.preventDefault();
     if (action.step < form.step) void form.setStep(action.step);
     else if (form.step < 3) void form.continue();
-    else void save();
+    else void finalAction();
   }
 
   function focusField(id: string | undefined): void {
@@ -146,7 +159,8 @@
     heading={form.heading}
     onstep={(step: WizardStep) => void form.goTo(step)}
     oncontinue={() => void form.continue()}
-    onsave={() => void save()}
+    onsave={() => void finalAction()}
+    onsend={() => void save()}
     onback={() => void goto(form.step === 1 ? '/reports' : '/reports')}
     onfocus={focusField}
     onkeydown={onKeydown}

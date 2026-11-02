@@ -206,7 +206,7 @@
       {/snippet}
     </WizardField>
 
-    <WizardField id="wiz-campus" label="Campus" optional error={state.errors.campusId}>
+    <WizardField id="wiz-campus" label="Campus" error={state.errors.campusId}>
       {#snippet children({ describedBy, invalid })}
         <EditableSelect
           id="wiz-campus"
@@ -223,7 +223,7 @@
       {/snippet}
     </WizardField>
 
-    <WizardField id="wiz-unit" label="College or unit" optional error={state.errors.unitId}>
+    <WizardField id="wiz-unit" label="College or unit" error={state.errors.unitId}>
       {#snippet children({ describedBy, invalid })}
         <EditableSelect
           id="wiz-unit"
@@ -247,7 +247,6 @@
       entity="departments"
       entries={state.references.departments}
       error={state.errors.department}
-      optional
       {canManage}
       onchange={(value) => state.patchForm({ department: value })}
       onentrieschange={(entity, entries) => state.setDirectory(entity, entries)}
@@ -260,7 +259,6 @@
       entity="offices"
       entries={state.references.offices}
       error={state.errors.office}
-      optional
       {canManage}
       onchange={(value) => state.patchForm({ office: value })}
       onentrieschange={(entity, entries) => state.setDirectory(entity, entries)}

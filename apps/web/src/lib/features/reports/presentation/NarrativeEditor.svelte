@@ -552,4 +552,36 @@
     margin: 0;
     text-align: right;
   }
+
+  /*
+   * Narrow widths (2026-11-01). A 260 px editor on a phone pushes the signature
+   * and the submit action off the first glance; the two actions also stop
+   * sharing a row, since two 44 px buttons do not fit at 390 px.
+   */
+  @media (max-width: 1023px) {
+    .narrative-input {
+      min-height: 220px;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .narrative-input {
+      min-height: 200px;
+      padding: 10px 12px;
+    }
+
+    .editor-actions {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .editor-actions .btn {
+      justify-content: center;
+      width: 100%;
+    }
+
+    .saved-line {
+      text-align: left;
+    }
+  }
 </style>

@@ -211,4 +211,35 @@
     text-align: center;
     width: 100%;
   }
+
+  /*
+   * A phone sees a preview, not a page: the heading and the two controls stop
+   * sharing a row, and the close control keeps a 44 px target.
+   */
+  @media (max-width: 639px) {
+    .pdf-dialog {
+      max-height: calc(100dvh - 24px);
+      width: calc(100vw - 24px);
+    }
+
+    .pdf-head {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px 16px;
+    }
+
+    .pdf-actions {
+      justify-content: space-between;
+    }
+
+    .pdf-close {
+      height: 44px;
+      width: 44px;
+    }
+
+    .pdf-note {
+      padding: 32px 16px;
+    }
+  }
 </style>

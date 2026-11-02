@@ -6,6 +6,7 @@ import { api } from '$lib/api/client';
 import { ApiError, validationIssues } from '$lib/api/http';
 
 import {
+  activityDays,
   emptyWizardForm,
   formFromRecord,
   newPic,
@@ -85,6 +86,13 @@ export class RecordFormState {
   reason = $state('');
   saveError = $state<{ message: string; requestId?: string } | null>(null);
   created = $state<{ id: string; referenceNo: string; sentTo: number } | null>(null);
+  /** The pre-send review sheet; sending waits for a second, explicit click. */
+  reviewOpen = $state(false);
+  /**
+   * The step the review sheet sent the reporter back to. It marks that step as
+   * the one under correction until another navigation clears it.
+   */
+  reviewEditStep = $state<WizardStep | null>(null);
 
   /** Fields the reporter actually changed; blur only checks these. */
   private edited = new SvelteSet<string>();
@@ -209,6 +217,12 @@ export class RecordFormState {
     // A new campus cannot keep the previous campus's college or unit.
     if (patch.campusId !== undefined && before.campusId !== patch.campusId) {
       this.form = { ...this.form, unitId: '' };
+    }
+
+    // The day count follows the dates: it is read off the range, never typed.
+    if (patch.startDate !== undefined || patch.endDate !== undefined) {
+      const days = activityDays(this.form.startDate, this.form.endDate);
+      if (days !== null) this.form = { ...this.form, activityCount: String(days) };
     }
   }
 
@@ -347,6 +361,45 @@ export class RecordFormState {
     return false;
   }
 
+  /**
+   * The step 3 action, "Preview", opens the review sheet instead of sending
+   * (2026-11-01): the click that arms a record asks the reporter to read it first.
+   * Sending then happens from the sheet's own confirm button.
+   */
+  async review(): Promise<boolean> {
+    const invalid = firstInvalidStep(this.form);
+    if (invalid) {
+      this.attempted = new SvelteSet([...this.attempted, invalid.step]);
+      this.errors = invalid.errors;
+      this.saveError = null;
+      await this.setStep(invalid.step);
+      await this.focusFirstError();
+      return false;
+    }
+
+    this.saveError = null;
+    this.reviewEditStep = null;
+    this.reviewOpen = true;
+    return true;
+  }
+
+  closeReview(): void {
+    this.reviewOpen = false;
+  }
+
+  /** A pencil in the review closes it and lands on the step that owns the value. */
+  async editFromReview(step: WizardStep): Promise<void> {
+    this.reviewOpen = false;
+    this.reviewEditStep = step;
+    await this.setStep(step);
+  }
+
+  /** "Review details" returns to the sheet the reporter came from. */
+  async backToReview(): Promise<boolean> {
+    this.reviewEditStep = null;
+    return this.review();
+  }
+
   async setStep(next: WizardStep): Promise<void> {
     if (next === this.step) return;
     this.step = next;
@@ -356,6 +409,8 @@ export class RecordFormState {
 
   /** Continue validates the current step only and lands on its first problem. */
   async continue(): Promise<boolean> {
+    /* Continue leaves the correction behind; only the review's pencil sets it. */
+    this.reviewEditStep = null;
     this.attempted = new SvelteSet([...this.attempted, this.step]);
     const errors = validateStep(this.step, this.form);
     this.errors = errors;
@@ -376,6 +431,7 @@ export class RecordFormState {
   /** Clicking a later step dot validates every step it skips. */
   async goTo(target: WizardStep): Promise<void> {
     if (target === this.step) return;
+    this.reviewEditStep = null;
     if (target < this.step) {
       await this.setStep(target);
       return;
@@ -419,6 +475,10 @@ export class RecordFormState {
   /** Create or save the record. A failed advance never sends a request. */
   async save(): Promise<boolean> {
     if (this.saving) return false;
+
+    /* Sending is confirmed, not reviewed: the sheet steps aside for the request. */
+    this.reviewOpen = false;
+    this.reviewEditStep = null;
 
     const invalid = firstInvalidStep(this.form);
     if (invalid) {

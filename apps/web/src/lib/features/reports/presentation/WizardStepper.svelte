@@ -3,7 +3,16 @@
 
   import { STEP_META, WIZARD_STEPS, type WizardStep } from '../application/record-form';
 
-  let { step, onstep }: { step: WizardStep; onstep: (step: WizardStep) => void } = $props();
+  let {
+    step,
+    editing = false,
+    onstep,
+  }: {
+    step: WizardStep;
+    /** Opened from the review sheet: the current step reads as the active tab. */
+    editing?: boolean;
+    onstep: (step: WizardStep) => void;
+  } = $props();
 </script>
 
 <nav class="stepper" aria-label="Wizard steps">
@@ -11,6 +20,7 @@
     <button
       class="step"
       class:is-current={item === step}
+      class:is-editing={item === step && editing}
       class:is-complete={item < step}
       type="button"
       aria-current={item === step ? 'step' : undefined}
@@ -82,6 +92,14 @@
     font-weight: 600;
   }
 
+  /* Editing: the dot is filled and holds its ring, like the active tab. */
+  .step.is-editing .dot {
+    background: var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-subtle);
+    color: var(--on-primary);
+  }
+
   .step:hover .dot {
     border-color: var(--primary);
   }
@@ -95,5 +113,21 @@
 
   .line.is-complete {
     background: var(--primary);
+  }
+
+  /* The dot stays 22 px; the target around it grows to a thumb. */
+  @media (max-width: 1023px) {
+    .step {
+      height: 44px;
+      width: 44px;
+    }
+
+    .stepper {
+      gap: 4px;
+    }
+
+    .line {
+      width: 12px;
+    }
   }
 </style>

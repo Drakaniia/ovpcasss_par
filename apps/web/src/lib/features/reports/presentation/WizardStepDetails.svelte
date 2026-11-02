@@ -5,7 +5,7 @@
   import WizardDateField from './WizardDateField.svelte';
   import WizardField from './WizardField.svelte';
 
-  /** Step 2 — what happened, where, when, and how many sessions it covered. */
+  /** Step 2 — what happened, where, when, and how many days it covered. */
   let { state }: { state: RecordFormState } = $props();
 </script>
 
@@ -75,10 +75,9 @@
 
     <WizardField
       id="wiz-activity-count"
-      label="Number of activities"
-      required
+      label="Number of days"
       error={state.errors.activityCount}
-      hint="How many sessions or days this record covers."
+      hint="Counted from the start and end dates."
     >
       {#snippet children({ describedBy, invalid })}
         <input
@@ -88,10 +87,11 @@
           min="1"
           step="1"
           inputmode="numeric"
+          readonly
+          aria-readonly="true"
           aria-invalid={invalid ? 'true' : undefined}
           aria-describedby={describedBy}
           value={state.form.activityCount}
-          oninput={(event) => state.patchForm({ activityCount: event.currentTarget.value })}
         />
       {/snippet}
     </WizardField>
