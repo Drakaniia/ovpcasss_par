@@ -68,7 +68,7 @@ describe('sectionTabsFor', () => {
       'Users',
       'Reference data',
       'Audit',
-      'Email log',
+      'Email',
     ]);
   });
 });
