@@ -1,5 +1,8 @@
 import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFImage } from 'pdf-lib';
 
+import { BSU_SEAL_JPEG_BASE64 } from '../receipt/assets';
+import { BSU_EMBLEM_PNG_BASE64 } from '../receipt/emblem';
+import { decodeBase64 } from '../receipt/pdf';
 import {
   MARGIN,
   MUTED,
@@ -123,8 +126,8 @@ async function embedImage(
 
 /**
  * The facsimile's PDF rendering (UI spec §7.8): the same sections as the record
- * view, A4 portrait with the office's letterhead, a watermark on anything not
- * approved, and a page-numbered footer.
+ * view, A4 portrait with OVPCASSS-F-013's letterhead, a watermark on anything
+ * not approved, and a page-numbered footer.
  */
 export async function renderFacsimilePdf(data: FacsimilePdfData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
@@ -132,12 +135,15 @@ export async function renderFacsimilePdf(data: FacsimilePdfData): Promise<Uint8A
   const bold = await doc.embedFont(StandardFonts.TimesRomanBold);
   const writer = new Writer(doc, body, bold);
 
-  const [submitter, approver] = await Promise.all([
+  const [submitter, approver, seal, emblem] = await Promise.all([
     embedImage(doc, data.submitterSignature),
     embedImage(doc, data.approverSignature),
+    // The letterhead is the office form's own artwork (OVPCASSS-F-013).
+    embedImage(doc, decodeBase64(BSU_SEAL_JPEG_BASE64)),
+    embedImage(doc, decodeBase64(BSU_EMBLEM_PNG_BASE64)),
   ]);
 
-  drawLetterhead(writer, data);
+  drawLetterhead(writer, data, { seal, emblem });
   drawActivity(writer, data);
   drawParticipants(writer, data);
   drawNarrative(writer, data);
