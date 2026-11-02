@@ -150,7 +150,11 @@ export async function disableUser(
   });
 
   // No inbox row: a disabled account cannot read its inbox. The mail is the notice.
-  await sendAccountDisabledEmail(c.env, { to: updated.email, fullName: updated.fullName });
+  await sendAccountDisabledEmail(c.env, {
+    to: updated.email,
+    fullName: updated.fullName,
+    origin: appOrigin(c),
+  });
 
   return { status: 'ok', user: toAdminUser(updated) };
 }

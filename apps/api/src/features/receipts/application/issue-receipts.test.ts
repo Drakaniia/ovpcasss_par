@@ -138,6 +138,20 @@ describe('issueReceipts', () => {
     });
   });
 
+  it('stores the receipt but mails nobody when the row has no address', async () => {
+    await issueReceipts(
+      env,
+      report,
+      [pic({ id: 'p2', userId: null, name: 'J. Cruz', email: null })],
+      'https://par.example',
+    );
+
+    expect(stored.map((entry) => entry.key)).toContain('receipts/r1/p2.pdf');
+    expect(db.receipts.save).toHaveBeenCalledTimes(1);
+    expect(queued).toEqual([]);
+    expect(db.receipts.markEmailed).not.toHaveBeenCalled();
+  });
+
   it('issues nothing for a record that is not approved', async () => {
     await issueReceipts(env, { ...report, status: 'SUBMITTED' }, [pic({})], 'https://par.example');
 
