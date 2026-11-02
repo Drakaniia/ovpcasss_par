@@ -217,4 +217,35 @@
     text-align: center;
     width: 100%;
   }
+
+  /*
+   * A phone sees a preview, not a page: the heading and the two controls stop
+   * sharing a row, and the close control keeps a 44 px target.
+   */
+  @media (max-width: 639px) {
+    .receipt-dialog {
+      max-height: calc(100dvh - 24px);
+      width: calc(100vw - 24px);
+    }
+
+    .receipt-head {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px 16px;
+    }
+
+    .receipt-actions {
+      justify-content: space-between;
+    }
+
+    .receipt-close {
+      height: 44px;
+      width: 44px;
+    }
+
+    .receipt-note {
+      padding: 32px 16px;
+    }
+  }
 </style>

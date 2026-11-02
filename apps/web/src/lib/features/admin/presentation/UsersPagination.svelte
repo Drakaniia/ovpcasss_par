@@ -119,13 +119,6 @@
     gap: 8px;
   }
 
-  .size-select {
-    height: 28px;
-    min-height: 28px;
-    padding: 2px 6px;
-    width: 68px;
-  }
-
   .pages {
     align-items: center;
     display: flex;

@@ -134,4 +134,37 @@
   .btn {
     flex: none;
   }
+
+  @media (max-width: 1023px) {
+    .home-head {
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+  }
+
+  /*
+   * The letterhead becomes one column on a phone: the greeting, then the date
+   * and the single primary action on a line of their own.
+   */
+  @media (max-width: 639px) {
+    .home-head {
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 20px;
+    }
+
+    .aside {
+      align-items: center;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      width: 100%;
+    }
+  }
 </style>

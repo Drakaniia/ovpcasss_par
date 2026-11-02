@@ -267,4 +267,47 @@
     border-top: 1px solid var(--border);
     padding: 0 18px 10px;
   }
+
+  /* Search takes its own line first, so the four filters keep a readable width. */
+  @media (max-width: 1023px) {
+    .search {
+      flex-basis: 100%;
+    }
+
+    .filter {
+      flex: 1 1 140px;
+      min-width: 0;
+    }
+  }
+
+  /*
+   * One control per row on a phone. Two date fields side by side turn every
+   * calendar into a 60 px button, and the search field needs the whole width.
+   */
+  @media (max-width: 639px) {
+    .panel-head,
+    .toolbar {
+      padding-inline: 12px;
+    }
+
+    .panel-head {
+      padding-block: 12px;
+    }
+
+    .toolbar > .search,
+    .toolbar > .filter,
+    .toolbar > .clear {
+      flex: 1 1 100%;
+      width: 100%;
+    }
+
+    .clear {
+      align-self: stretch;
+      margin-bottom: 0;
+    }
+
+    .panel-foot {
+      padding: 0 12px 10px;
+    }
+  }
 </style>

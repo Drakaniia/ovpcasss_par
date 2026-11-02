@@ -143,6 +143,7 @@
     font-size: 13px;
     line-height: 1.4;
     margin: 0;
+    overflow-wrap: anywhere;
   }
 
   .reference {
@@ -157,6 +158,7 @@
     color: var(--text-secondary);
     font-size: 11.5px;
     margin: 0;
+    overflow-wrap: anywhere;
   }
 
   .receipt-actions {
@@ -171,5 +173,26 @@
     display: inline-flex;
     flex: none;
     gap: 6px;
+  }
+
+  /* Stacked full-width actions: two labelled buttons do not share 366 px. */
+  @media (max-width: 639px) {
+    .receipts-head,
+    .receipt-row,
+    .empty {
+      padding-inline: 12px;
+    }
+
+    .receipt-actions {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: minmax(0, 1fr);
+      margin-top: 8px;
+    }
+
+    .receipt-actions .btn {
+      justify-content: center;
+      width: 100%;
+    }
   }
 </style>

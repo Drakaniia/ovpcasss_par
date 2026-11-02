@@ -188,12 +188,14 @@ describe('WorkInbox', () => {
 });
 
 describe('InboxSkeleton', () => {
-  it('announces loading and reserves real row heights', () => {
+  it('announces loading and reserves the inbox the real page paints', () => {
     const html = render(InboxSkeleton, { props: {} }).body;
 
     expect(html).toContain('Loading your work inbox');
     expect(html).toContain('aria-busy="true"');
-    expect(html).toContain('skeleton row');
+    expect(html).toContain('brief-grid');
+    expect(html).toContain('skeleton-row');
+    expect(html).toContain('<aside class="rail');
   });
 
   it('can omit its own header when the real header is already rendered', () => {
