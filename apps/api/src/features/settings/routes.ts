@@ -19,6 +19,7 @@ import { consumeRateLimit } from '../../lib/rate-limit';
 import { requireSession } from '../../middleware/auth';
 import { requireRole } from '../../middleware/authorize';
 import { receiptSignatoryFor } from './application/receipt-signatory';
+import { registerEmailTemplateRoutes } from './email-template-routes';
 
 /** Five test messages an hour per admin: enough to check a new key, not a relay. */
 const EMAIL_TEST_LIMIT = 5;
@@ -235,3 +236,5 @@ settingsRoutes.post('/email-sender/test', requireRole('ADMIN'), async (c) => {
     );
   }
 });
+
+registerEmailTemplateRoutes(settingsRoutes);
