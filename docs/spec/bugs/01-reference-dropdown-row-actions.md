@@ -73,10 +73,13 @@ away from the list to the footer, and hoping the highlight stayed.
    entry the icon belongs to (soft remove via the existing API + Undo toast in
    `WizardDirectorySelect`). The value currently selected in the field is updated
    or cleared exactly as today.
-6. **The footer holds no actions.** After a rename or remove it is a one-line
-   hint, always: "Edits apply to the official list for everyone. F2 rename ·
-   Shift+Delete remove." The keyboard equivalent is stated on screen, not only in
-   a tooltip.
+6. **The footer holds one action: Add.** Rename and Remove stay on their rows;
+   the footer always ends in the one-line hint "Edits apply to the official list
+   for everyone. F2 rename · Shift+Delete remove." The keyboard equivalent is
+   stated on screen, not only in a tooltip. Beside the hint sits an **Add**
+   control (2026-11-01) that opens a name field for a new official entry, so an
+   entry can be created without first typing a name the list does not hold; it
+   saves through the same `onCreate` as the typed "Add …" row.
 7. **Keyboard parity.** With the list open, `F2` renames the highlighted row and
    `Shift+Delete` removes it. Neither key may fire while the rename input is
    focused, and neither may steal a keystroke from the search box: the search box
@@ -122,7 +125,10 @@ away from the list to the footer, and hoping the highlight stayed.
       never changes the selected value and never closes the list.
 - [ ] `F2` and `Shift+Delete` perform the same two actions from the keyboard, and
       the hint line states both.
-- [ ] No footer Rename/Remove buttons remain; the hint is the only footer content.
+- [ ] No footer Rename/Remove buttons remain; the footer holds the Add control
+      and the hint, nothing else.
+- [ ] Add opens a name field, `Enter` saves, `Escape` cancels and keeps the list
+      open, and the new entry becomes the field's value.
 - [ ] Row height, list height, and popover position are unchanged by the reveal.
 - [ ] `pnpm verify` passes and the existing dropdown tests still pass.
 

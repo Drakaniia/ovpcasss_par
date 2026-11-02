@@ -122,8 +122,11 @@ its §7.2.
    `RETURNED_BY_APPROVER`, `ENDORSED`, `APPROVED`). Never display "In progress".
 10. **English only, formal institutional voice.** No exclamation marks, "Oops",
     "Uh oh", or jokes.
-11. **Desktop widths only.** No mobile design in v1; below 1024 px shows the
-    notice defined in foundation. Auth pages are exempt.
+11. **Desktop widths are the default.** Below 1024 px shows the notice defined in
+    foundation, except the personnel-in-charge surface (2026-11-01): home for a
+    PERSONNEL account, `/reports/[id]`, `/reports/new`, and `/reports/[id]/edit`
+    reflow to a phone. Auth pages are exempt. `lib/navigation/mobile-routes.ts`
+    holds that list; adding a route to it is a spec change, not a phase liberty.
 12. **Shared primitives are owned by phase 00.** Do not fork `StatusBadge`,
     `EmptyState`, `ErrorState`, `ConfirmDialog`, `ToastRegion`, table/form
     styles, or tokens inside a page phase. Extend the shared component and note

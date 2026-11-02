@@ -413,7 +413,7 @@ Copy rules: formal institutional voice, no exclamation marks, no invented state 
 - **Create `/reports/new`** — the existing wizard with **three steps**:
   1. _Classification_ — activity type, classification, campus, college or unit, department, office, level (unchanged fields).
   2. _Activity_ — title, start date, end date, location, **number of activities**, SDGs.
-  3. _People and hand-over_ — total students, total PIC, PIC rows (name and email required, phone optional), a summary block, and the primary action **Create and send**. The action mints the AR No.; a confirmation panel shows “AR No. 0001 — sent to 2 personnel in charge” and offers “Open record” and “Create another”.
+  3. _People and hand-over_ — total students, total PIC, PIC rows (name and email required, phone optional), and the primary action **Create and send**. The action opens a **review sheet** of the whole record instead of sending (2026-11-01): each of the three sections carries a pencil that closes the sheet and returns to its step, where the pane is tinted and its stepper dot filled as the active edit, and the action bar offers **Review details** to come back. Only the sheet's own **Create and send** sends the record and mints the AR No.; a confirmation panel then shows “AR No. 0001 — sent to 2 personnel in charge” and offers “Open record” and “Create another”.
   - No narrative field, no signature card, no attachments at creation.
   - Mobile/validation behaviour stays as today: red only after an attempt to continue, never on field focus.
 - **Detail `/reports/[id]`** — activity summary, PIC list with add/remove (until approved), narrative and attachments read-only with the submitted signature, history rail, decision panel (Approve / Return with comments) only when `SUBMITTED`, receipts list when `APPROVED`. One filled navy primary action per screen: “Approve” on a submitted record, “Edit details” otherwise.
@@ -559,7 +559,7 @@ Out of scope: multi-office routing, approval chains, per-college PIC pools, bulk
 - [ ] `ROLES` is exactly `ADMIN | PERSONNEL`; reviewer/approver/submitter surfaces are gone from nav, routes, contracts, and tests.
 - [ ] Admin creates a record in three steps; all step 1–3 data is captured; no narrative field is shown to the admin.
 - [ ] The first created record is `AR No. 0001`; the next is `AR No. 0002`; deletion leaves a permanent gap.
-- [ ] At least one PIC with a valid email is required; each PIC receives their own assignment mail naming the AR No.
+- [ ] At least one PIC with a name is required; each PIC that was given an email receives their own assignment mail naming the AR No. (email optional since 2026-11-01).
 - [ ] A new PIC email gets a PERSONNEL account and a verification link; an existing account is linked, never duplicated or re-roled.
 - [ ] The PIC dashboard lists only that person’s records, AR No. first, with no create/edit/delete affordances.
 - [ ] The PIC can save a narrative draft, add attachments, sign optionally, submit, and see the submitted state read-only.

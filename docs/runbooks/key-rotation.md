@@ -31,6 +31,9 @@ That action is not an audit event, so record it in the incident log.
    ```bash
    wrangler secret put EMAIL_API_KEY
    ```
+   **If Admin → Email → Variables has a saved key, that row wins over this
+   secret.** Rotate it on that page too, or the next send still uses the old
+   key.
 3. Send a test through the product (register a throwaway account, or trigger a
    role approval) and confirm `email_outbox.status = 'SENT'`:
    ```bash

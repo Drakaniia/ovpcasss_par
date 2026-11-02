@@ -31,36 +31,36 @@ W1 and W2 are foundational; W3, W4, W5 and W7 can follow in any order; W6 depend
 
 ## 1. Decisions locked in during the interview
 
-| Topic                        | Decision                                                                                                                                                     |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Who writes the narrative     | **The named personnel in charge.** `canWriteNarrative` stays PIC-only, active in `PENDING` and `RETURNED`.                                                   |
-| Who submits                  | **A listed PIC.** The office cannot write, submit, or stand in for an unreachable PIC; it reassigns or returns the record instead.                           |
-| Who creates a record         | **The office only.** The three-step wizard, the AR No., and the PIC naming are unchanged.                                                                    |
-| Several PICs                 | **One shared narrative.** Any listed PIC may edit and submit it; the first submission records that person as the submitter. Every PIC still gets an F-013.   |
-| Narrative draft              | **Saved to the record, shared, invisible to the office until submission.** No new drafts table; the existing `reports.narrative` field is the draft.         |
+| Topic                        | Decision                                                                                                                                                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Who writes the narrative     | **The named personnel in charge.** `canWriteNarrative` stays PIC-only, active in `PENDING` and `RETURNED`.                                                                                                 |
+| Who submits                  | **A listed PIC.** The office cannot write, submit, or stand in for an unreachable PIC; it reassigns or returns the record instead.                                                                         |
+| Who creates a record         | **The office only.** The three-step wizard, the AR No., and the PIC naming are unchanged.                                                                                                                  |
+| Several PICs                 | **One shared narrative.** Any listed PIC may edit and submit it; the first submission records that person as the submitter. Every PIC still gets an F-013.                                                 |
+| Narrative draft              | **Saved to the record, shared, invisible to the office until submission.** No new drafts table; the existing `reports.narrative` field is the draft.                                                       |
 | Submitted narrative          | **Private to the PIC who submitted it and the office.** Another PIC named on the record reads the activity facts and status, never the narrative, its attachments, signature, or the office's return note. |
-| Signature                    | **Optional**, drawn or uploaded; snapshotted at submission as today.                                                                                         |
-| Statuses                     | **`PENDING`, `SUBMITTED`, `RETURNED`, `APPROVED`.** `DRAFT` is renamed to `PENDING` and nothing else changes in the state machine.                           |
-| PENDING meaning              | **The office has created the record and no PIC has submitted the narrative yet.** A half-typed narrative does not create another state.                      |
-| Rejected                     | **No `REJECTED` state.** A refusal is `RETURNED` with comments, or the record is deleted while `PENDING`.                                                    |
-| Under revision               | **No `UNDER_REVISION` state.** A correction is an edit plus a notification, not a transition.                                                                |
-| Admin edits after submission | **Activity fields and the PIC list only.** Never the narrative, attachments, or signature.                                                                   |
-| Admin edit accountability    | A correction on a submitted record **requires a reason**, is audited with the changed fields, and **notifies every retained PIC** in-app and by email.       |
-| Receipts                     | **One F-013 per PIC, on approval.** No submission receipt; the SUBMITTED mail and the in-app status acknowledge the submission.                              |
-| Receipt appearance           | **Exact facsimile; no QR code.** Verification stays inside the signed-in app.                                                                                |
-| Reference number             | **Automatic `AR No. 0001`, global, never manual, never reused.** No dated format, no override.                                                               |
-| Archive                      | **A filing flag, not a status.** `archived_at` is set on an `APPROVED` record only; the status stays `APPROVED`.                                             |
-| Archive visibility           | Archived rows leave the register by default, appear under an **Archived** tab, stay visible to their PICs with a chip, and keep their receipts downloadable. |
-| Register filters             | Add **personnel in charge** and **submitted by**, both free-text name matches, beside the existing filters.                                                  |
-| Personnel list filters       | **Status and activity date range only.** The account's identity already scopes the list.                                                                     |
-| Bulk export                  | **A filtered PDF of the register table**, for signature and filing; the monitoring `.xlsx` and the single-record PDF stay as they are.                       |
-| Attachments                  | **Unchanged:** the existing allowlist, 25 MB per file, several per record.                                                                                   |
-| Roles                        | **ADMIN and PERSONNEL only.** No viewer, no department head.                                                                                                 |
-| Retention                    | **No deletion schedule.** Archiving is the only way a record leaves the working register.                                                                    |
-| Offline                      | **Local mirror plus sync** in the narrative editor; submitting still needs a connection.                                                                     |
-| Personnel navigation         | **Home only.** `/reports` and `/search` keep redirecting a personnel account to Home.                                                                        |
-| Personnel inbox              | **None.** The account has no queue, no "my reports" inbox section, and no unread work count.                                                                 |
-| Assignment notification      | **Restore the in-app `ASSIGNED` notification** alongside the assignment mail that the working tree left in place.                                            |
+| Signature                    | **Optional**, drawn or uploaded; snapshotted at submission as today.                                                                                                                                       |
+| Statuses                     | **`PENDING`, `SUBMITTED`, `RETURNED`, `APPROVED`.** `DRAFT` is renamed to `PENDING` and nothing else changes in the state machine.                                                                         |
+| PENDING meaning              | **The office has created the record and no PIC has submitted the narrative yet.** A half-typed narrative does not create another state.                                                                    |
+| Rejected                     | **No `REJECTED` state.** A refusal is `RETURNED` with comments, or the record is deleted while `PENDING`.                                                                                                  |
+| Under revision               | **No `UNDER_REVISION` state.** A correction is an edit plus a notification, not a transition.                                                                                                              |
+| Admin edits after submission | **Activity fields and the PIC list only.** Never the narrative, attachments, or signature.                                                                                                                 |
+| Admin edit accountability    | A correction on a submitted record **requires a reason**, is audited with the changed fields, and **notifies every retained PIC** in-app and by email.                                                     |
+| Receipts                     | **One F-013 per PIC, on approval.** No submission receipt; the SUBMITTED mail and the in-app status acknowledge the submission.                                                                            |
+| Receipt appearance           | **Exact facsimile; no QR code.** Verification stays inside the signed-in app.                                                                                                                              |
+| Reference number             | **Automatic `AR No. 0001`, global, never manual, never reused.** No dated format, no override.                                                                                                             |
+| Archive                      | **A filing flag, not a status.** `archived_at` is set on an `APPROVED` record only; the status stays `APPROVED`.                                                                                           |
+| Archive visibility           | Archived rows leave the register by default, appear under an **Archived** tab, stay visible to their PICs with a chip, and keep their receipts downloadable.                                               |
+| Register filters             | Add **personnel in charge** and **submitted by**, both free-text name matches, beside the existing filters.                                                                                                |
+| Personnel list filters       | **Status and activity date range only.** The account's identity already scopes the list.                                                                                                                   |
+| Bulk export                  | **A filtered PDF of the register table**, for signature and filing; the monitoring `.xlsx` and the single-record PDF stay as they are.                                                                     |
+| Attachments                  | **Unchanged:** the existing allowlist, 25 MB per file, several per record.                                                                                                                                 |
+| Roles                        | **ADMIN and PERSONNEL only.** No viewer, no department head.                                                                                                                                               |
+| Retention                    | **No deletion schedule.** Archiving is the only way a record leaves the working register.                                                                                                                  |
+| Offline                      | **Local mirror plus sync** in the narrative editor; submitting still needs a connection.                                                                                                                   |
+| Personnel navigation         | **Home only.** `/reports` and `/search` keep redirecting a personnel account to Home.                                                                                                                      |
+| Personnel inbox              | **None.** The account has no queue, no "my reports" inbox section, and no unread work count.                                                                                                               |
+| Assignment notification      | **Restore the in-app `ASSIGNED` notification** alongside the assignment mail that the working tree left in place.                                                                                          |
 
 ---
 
@@ -253,17 +253,17 @@ Archive is a **filing action**, not a workflow state:
 
 ### 7.2 Behaviour
 
-| Surface                   | Archived record                                                                                         |
-| ------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Register `/reports`       | Hidden by default; visible under the **Archived** tab (`archived=archived`); `archived=all` shows both. |
-| Admin Home queues         | Hidden (the queues only ever show `PENDING`, `SUBMITTED`, `RETURNED`, recent `APPROVED`).               |
-| Personnel Home            | Shown with an **Archived** chip; still openable; never a work item.                                     |
-| Record detail             | Readable by the office and its PICs; "Archived on <date> by <name>"; **Unarchive** and **Delete record** (with confirmation) are the actions.  |
-| Receipts                  | Downloadable by the PIC and the office, exactly as before.                                              |
-| Single-record PDF / print | Available; the printed sheet gains the line "Archived <date>" only when archived.                       |
-| Monitoring `.xlsx`        | Excluded by default; the export dialog gains an "Include archived" checkbox.                            |
-| Register PDF (§11)        | Follows the `archived` filter in force: active only by default, archived when the tab is Archived.      |
-| Repository `/search`      | Included and marked with the chip, because retrieval must find filed records.                           |
+| Surface                   | Archived record                                                                                                                               |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Register `/reports`       | Hidden by default; visible under the **Archived** tab (`archived=archived`); `archived=all` shows both.                                       |
+| Admin Home queues         | Hidden (the queues only ever show `PENDING`, `SUBMITTED`, `RETURNED`, recent `APPROVED`).                                                     |
+| Personnel Home            | Shown with an **Archived** chip; still openable; never a work item.                                                                           |
+| Record detail             | Readable by the office and its PICs; "Archived on <date> by <name>"; **Unarchive** and **Delete record** (with confirmation) are the actions. |
+| Receipts                  | Downloadable by the PIC and the office, exactly as before.                                                                                    |
+| Single-record PDF / print | Available; the printed sheet gains the line "Archived <date>" only when archived.                                                             |
+| Monitoring `.xlsx`        | Excluded by default; the export dialog gains an "Include archived" checkbox.                                                                  |
+| Register PDF (§11)        | Follows the `archived` filter in force: active only by default, archived when the tab is Archived.                                            |
+| Repository `/search`      | Included and marked with the chip, because retrieval must find filed records.                                                                 |
 
 ### 7.3 Rules
 
@@ -407,7 +407,7 @@ No change to generation or appearance; the rules are restated because the interv
 | `SUBMITTED`        | A PIC submits or resubmits                        | All admins                | `AR No. 0001 — narrative report ready for review`      | Unchanged                                         |
 | `RETURNED`         | Office returns with comments                      | Every PIC                 | `AR No. 0001 — narrative report returned for revision` | Comments verbatim                                 |
 | `RECORD_EDITED`    | Office changes an activity field after submission | Every retained PIC        | `AR No. 0001 — activity details corrected`             | **New**: changed fields + reason; mail and in-app |
-| `APPROVED`         | Office approves                                   | Every PIC                 | `AR No. 0001 — narrative report approved`              | No attachment; the receipt is its own message      |
+| `APPROVED`         | Office approves                                   | Every PIC                 | `AR No. 0001 — narrative report approved`              | No attachment; the receipt is its own message     |
 | `RECEIPT_ISSUED`   | Office approves                                   | Each PIC                  | `AR No. 0001 — acknowledgment receipt`                 | PDF attached                                      |
 | `REMINDER`         | 7 days after creation, weekly, max three          | PICs without a submission | `AR No. 0001 — narrative report still pending`         | Now selects `PENDING` records                     |
 | `PIC_REMOVED`      | PIC removed before approval                       | Removed PIC               | `AR No. 0001 — removed as personnel in charge`         | No change summary                                 |
