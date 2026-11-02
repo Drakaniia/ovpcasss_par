@@ -1,4 +1,6 @@
 import {
+  EMAIL_LOGO_HEIGHT,
+  EMAIL_LOGO_WIDTH,
   EMAIL_SUBJECT_TAG,
   OFFICE_NAME,
   OFFICE_SHORT_NAME,
@@ -13,7 +15,8 @@ import type { EmailContent } from './provider';
 /**
  * The one shell every message is built on (email spec §6). Tables and inline
  * styles only: mail clients are not browsers, and the desktop build must work
- * offline, so there is no stylesheet, web font, image, or tracking URL.
+ * offline, so there is no stylesheet, web font, or tracking URL. The header logo
+ * is the single hosted image, and only when the caller knows the app's origin.
  */
 export interface ShellFact {
   label: string;
@@ -42,6 +45,8 @@ export interface ShellInput {
   reference?: string | undefined;
   /** Extra footer line, e.g. "The document is available in the app." */
   note?: string | undefined;
+  /** Absolute URL of the header logo; absent leaves the header to the text band. */
+  logoUrl?: string | undefined;
 }
 
 const FONT = "Montserrat, 'Segoe UI', Helvetica, Arial, sans-serif";
@@ -126,6 +131,32 @@ function actionHtml(action: ShellAction): string {
   );
 }
 
+function headerHtml(logoUrl: string | undefined): string {
+  const mark = logoUrl
+    ? `<td style="width:1%;background:${SHELL_COLORS.page};padding:14px 12px;vertical-align:middle;">` +
+      `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(OFFICE_SHORT_NAME)}" ` +
+      `width="${EMAIL_LOGO_WIDTH}" height="${EMAIL_LOGO_HEIGHT}" ` +
+      `style="display:block;border:0;width:${EMAIL_LOGO_WIDTH}px;max-width:100%;height:auto;">` +
+      `</td>`
+    : '';
+
+  // The logo spells OVPCASSS itself, so its presence drops the repeated wordmark.
+  const wordmark = logoUrl
+    ? ''
+    : `<div style="font:600 12px/16px ${FONT};color:#ffffff;letter-spacing:2px;">${escapeHtml(OFFICE_SHORT_NAME)}</div>`;
+
+  return (
+    `<tr><td style="background:${SHELL_COLORS.navy};padding:0;">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">` +
+    `<tr>${mark}` +
+    `<td style="padding:16px 24px;vertical-align:middle;">` +
+    wordmark +
+    `<div style="font:400 13px/18px ${FONT};color:#ffffff;${logoUrl ? '' : 'padding-top:4px;'}">${escapeHtml(OFFICE_NAME)}</div>` +
+    `</td></tr></table>` +
+    `</td></tr>`
+  );
+}
+
 function signatureHtml(): string {
   const [university, office, ...address] = SIGNATURE_LINES;
 
@@ -181,10 +212,7 @@ function html(input: ShellInput): string {
     `<tr><td align="center" style="padding:24px 16px;">` +
     `<table role="presentation" width="${SHELL_WIDTH}" cellpadding="0" cellspacing="0" border="0" ` +
     `style="width:100%;max-width:${SHELL_WIDTH}px;border-collapse:collapse;background:${SHELL_COLORS.page};">` +
-    `<tr><td style="background:${SHELL_COLORS.navy};padding:20px 24px;">` +
-    `<div style="font:600 12px/16px ${FONT};color:#ffffff;letter-spacing:2px;">${OFFICE_SHORT_NAME}</div>` +
-    `<div style="font:400 13px/18px ${FONT};color:#ffffff;padding-top:4px;">${escapeHtml(OFFICE_NAME)}</div>` +
-    `</td></tr>` +
+    headerHtml(input.logoUrl) +
     `<tr><td style="height:3px;background:${SHELL_COLORS.gold};font-size:0;line-height:0;">&nbsp;</td></tr>` +
     `<tr><td style="padding:24px;">` +
     `<h1 style="margin:0 0 16px;font:600 18px/26px ${FONT};color:${SHELL_COLORS.navy};">${escapeHtml(input.heading)}</h1>` +

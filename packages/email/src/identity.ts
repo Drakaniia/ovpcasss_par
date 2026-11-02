@@ -42,3 +42,19 @@ export const SHELL_COLORS = {
 
 /** Header band width, in pixels. Fluid below 600 px with 16 px side padding. */
 export const SHELL_WIDTH = 600;
+
+/**
+ * The header logo. The web build is the only host every recipient can reach, so
+ * the shell takes the message's own origin and points at this file there
+ * (email spec §6.2). A mail client that blocks remote images shows the alt text.
+ */
+export const EMAIL_LOGO_PATH = '/brand/ovpcasss-logo-email.png';
+
+/** Display size in CSS pixels; the asset is 360 × 120 for high-density screens. */
+export const EMAIL_LOGO_WIDTH = 180;
+export const EMAIL_LOGO_HEIGHT = 60;
+
+/** Absolute logo URL, or `undefined` when the app's origin is unknown. */
+export function logoUrl(origin: string | undefined): string | undefined {
+  return origin ? `${origin}${EMAIL_LOGO_PATH}` : undefined;
+}

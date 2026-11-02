@@ -1,4 +1,5 @@
 import { manilaDate, manilaDateTime } from '../format';
+import { logoUrl } from '../identity';
 import { renderShell, type ShellAction } from '../shell';
 import type { EmailContent } from '../provider';
 
@@ -65,6 +66,7 @@ export function assignedTemplate(data: NarrativeEventData): EmailContent {
     ),
     ...(link ? { action: link } : {}),
     reference: data.referenceNo,
+    logoUrl: logoUrl(data.origin),
   });
 }
 
@@ -86,6 +88,7 @@ export function submittedTemplate(data: NarrativeEventData): EmailContent {
     ),
     ...(link ? { action: link } : {}),
     reference: data.referenceNo,
+    logoUrl: logoUrl(data.origin),
   });
 }
 
@@ -103,6 +106,7 @@ export function returnedTemplate(data: NarrativeEventData): EmailContent {
     quote: data.comments ? { label: 'Comments from the office', body: data.comments } : undefined,
     ...(link ? { action: link } : {}),
     reference: data.referenceNo,
+    logoUrl: logoUrl(data.origin),
   });
 }
 
@@ -128,6 +132,7 @@ export function approvedTemplate(data: NarrativeEventData): EmailContent {
     ),
     ...(link ? { action: link } : {}),
     reference: data.referenceNo,
+    logoUrl: logoUrl(data.origin),
   });
 }
 
@@ -153,6 +158,7 @@ export function receiptIssuedTemplate(data: NarrativeEventData): EmailContent {
     ),
     ...(link ? { action: link } : {}),
     reference: data.referenceNo,
+    logoUrl: logoUrl(data.origin),
   });
 }
 
@@ -174,6 +180,7 @@ export function reminderTemplate(data: NarrativeEventData): EmailContent {
     ),
     ...(link ? { action: link } : {}),
     reference: data.referenceNo,
+    logoUrl: logoUrl(data.origin),
   });
 }
 
@@ -195,6 +202,7 @@ export function recordEditedTemplate(data: NarrativeEventData): EmailContent {
     quote: data.reason ? { label: 'Reason for the correction', body: data.reason } : undefined,
     ...(link ? { action: link } : {}),
     reference: data.referenceNo,
+    logoUrl: logoUrl(data.origin),
   });
 }
 
@@ -208,5 +216,6 @@ export function picRemovedTemplate(data: NarrativeEventData): EmailContent {
     ],
     facts: facts(fact('Reference', data.referenceNo), fact('Activity', data.title)),
     reference: data.referenceNo,
+    logoUrl: logoUrl(data.origin),
   });
 }

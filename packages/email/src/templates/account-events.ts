@@ -1,4 +1,4 @@
-import { DEFAULT_OFFICE_EMAIL } from '../identity';
+import { DEFAULT_OFFICE_EMAIL, logoUrl } from '../identity';
 import { renderShell, type ShellAction } from '../shell';
 import type { EmailContent } from '../provider';
 
@@ -15,6 +15,8 @@ export interface AccountEventData {
   roleLabel?: string;
   roleDescription?: string;
   officeEmail?: string;
+  /** Absolute app origin, for the header logo. */
+  origin?: string | undefined;
 }
 
 function action(data: AccountEventData, label: string): ShellAction | undefined {
@@ -33,6 +35,7 @@ export function verifyEmailTemplate(data: AccountEventData): EmailContent {
     ],
     ...(primary ? { action: primary } : {}),
     note: 'The link expires. Request a new message from the sign-in page if it no longer works.',
+    logoUrl: logoUrl(data.origin),
   });
 }
 
@@ -48,6 +51,7 @@ export function resetPasswordTemplate(data: AccountEventData): EmailContent {
     ],
     ...(primary ? { action: primary } : {}),
     note: 'The link can be used once and expires. Contact the office if you did not request a reset.',
+    logoUrl: logoUrl(data.origin),
   });
 }
 
@@ -63,6 +67,7 @@ export function roleAssignedTemplate(data: AccountEventData): EmailContent {
       'Sign in to continue with the work available to that role.',
     ],
     ...(primary ? { action: primary } : {}),
+    logoUrl: logoUrl(data.origin),
   });
 }
 
@@ -77,6 +82,7 @@ export function accountActivatedTemplate(data: AccountEventData): EmailContent {
       'Sign in with your university email address and the password you set at registration.',
     ],
     ...(primary ? { action: primary } : {}),
+    logoUrl: logoUrl(data.origin),
   });
 }
 
@@ -91,5 +97,6 @@ export function accountDisabledTemplate(data: AccountEventData): EmailContent {
       `You can no longer sign in. Contact the office at ${office} if you believe this is a mistake.`,
     ],
     facts: [{ label: 'Office', value: office }],
+    logoUrl: logoUrl(data.origin),
   });
 }
