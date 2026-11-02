@@ -1,9 +1,5 @@
 <script lang="ts">
-  import type {
-    ReportDeleteReceiptPolicy,
-    ReportListResponse,
-    ReportSortField,
-  } from '@par/shared';
+  import type { ReportDeleteReceiptPolicy, ReportListResponse, ReportSortField } from '@par/shared';
   import { Download } from '@lucide/svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -349,7 +345,9 @@
           <input type="radio" bind:group={receiptPolicy} value="void" />
           Delete the PDFs
         </label>
-        <p class="field-hint">The receipt PDFs are removed, and copies already with the PICs are void.</p>
+        <p class="field-hint">
+          The receipt PDFs are removed, and copies already with the PICs are void.
+        </p>
       </fieldset>
     {/if}
   </ConfirmDialog>
