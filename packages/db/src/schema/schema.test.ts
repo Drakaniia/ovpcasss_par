@@ -44,8 +44,8 @@ describe('schema', () => {
     expect(columns).toContain('sequence');
   });
 
-  it('requires an email for every person in charge', () => {
-    expect(getTableColumns(reportPics).email.notNull).toBe(true);
+  it('lets a person in charge be named without an email', () => {
+    expect(getTableColumns(reportPics).email.notNull).toBeFalsy();
   });
 
   it('keeps one global reference counter and one receipt per PIC', () => {

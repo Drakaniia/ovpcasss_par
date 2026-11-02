@@ -30,7 +30,7 @@ export interface MonitoringReportRecord {
   completedOn: string | null;
   narrative: string;
   sdgNumbers: number[];
-  pics: { name: string; email: string; phone: string | null }[];
+  pics: { name: string; email: string | null; phone: string | null }[];
 }
 
 export interface MonitoringReportFilter {

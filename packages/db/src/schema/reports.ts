@@ -111,9 +111,11 @@ export const reportSdgs = sqliteTable(
 );
 
 /**
- * The people in charge. Every row carries an email: that address is both the
- * mailbox and the account that may write the narrative. `user_id` links the
- * account, created on assignment when it does not exist.
+ * The people in charge. A row always carries a name; the email is optional
+ * (2026-11-01). When it is present that address is both the mailbox and the
+ * account that may write the narrative, and `user_id` links the account, created
+ * on assignment when it does not exist. A row without one has no account and
+ * receives no mail.
  */
 export const reportPics = sqliteTable(
   'report_pics',
@@ -122,7 +124,7 @@ export const reportPics = sqliteTable(
     reportId: text('report_id').notNull(),
     userId: text('user_id'),
     name: text('name').notNull(),
-    email: text('email').notNull(),
+    email: text('email'),
     phone: text('phone'),
     sortOrder: integer('sort_order').notNull().default(0),
     invitedAt: text('invited_at'),

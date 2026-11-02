@@ -14,5 +14,5 @@ export const settings = sqliteTable('settings', {
 });
 
 /** The keys this build knows; an unknown key is simply never read. */
-export const SETTING_KEYS = ['receipt-signatory'] as const;
+export const SETTING_KEYS = ['receipt-signatory', 'email-sender'] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
