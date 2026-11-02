@@ -1,5 +1,7 @@
 import type { ErrorEnvelope, ValidationIssue } from '@par/shared';
 
+import { cacheRead, invalidateReadCache } from './read-cache';
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
 
 /**
@@ -10,7 +12,10 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
 let sessionToken: string | null = null;
 
 export function setSessionToken(token: string | null): void {
+  if (sessionToken === token) return;
   sessionToken = token;
+  // A different account must never read the previous one's answers.
+  invalidateReadCache();
 }
 
 /** The desktop shell identifies itself so login may return the token. */
@@ -78,7 +83,8 @@ async function errorFrom(response: Response): Promise<ApiError> {
   );
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+/** One request: the auth and shell headers, the error envelope, the JSON body. */
+async function send<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     credentials: 'include',
@@ -93,6 +99,27 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (response.status === 204) return undefined as T;
 
   return (await response.json()) as T;
+}
+
+/**
+ * Reads are served from memory once a page has already loaded them, so returning
+ * to a record or the register paints it instead of a skeleton; a stale read is
+ * refreshed for the next visit. A write drops the cache, because nothing else
+ * can tell which reads it made wrong.
+ */
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const method = (init.method ?? 'GET').toUpperCase();
+
+  // A caller that brought a signal wants its own request cancelled with it, and
+  // a cached answer cannot be cancelled, so that read goes to the network.
+  if (method === 'GET' && !init.signal) {
+    return cacheRead(`${method} ${path}`, () => send<T>(path, init));
+  }
+
+  const result = await send<T>(path, init);
+  if (method !== 'GET') invalidateReadCache();
+
+  return result;
 }
 
 /** Downloads a binary response; the caller triggers the save with `saveBlob`. */
@@ -122,6 +149,7 @@ export async function apiUpload<T>(
   });
 
   if (!response.ok) throw await errorFrom(response);
+  invalidateReadCache();
 
   return (await response.json()) as T;
 }

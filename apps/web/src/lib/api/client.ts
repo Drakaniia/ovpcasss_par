@@ -16,6 +16,10 @@ import type {
   EmailMessageResponse,
   EmailPreferencesInput,
   EmailPreferencesResponse,
+  EmailSenderInput,
+  EmailSenderResponse,
+  EmailTestInput,
+  EmailTestResponse,
   ForgotPasswordInput,
   InboxResponse,
   LoginInput,
@@ -255,6 +259,19 @@ export const api = {
     saveReceiptSignatory: (input: ReceiptSignatory) =>
       apiFetch<ReceiptSignatoryResponse>('/settings/receipt-signatory', {
         method: 'PUT',
+        body: JSON.stringify(input),
+      }),
+    /** The sender and provider key saved by the administrator (email variables). */
+    emailSender: () => apiFetch<EmailSenderResponse>('/settings/email-sender'),
+    saveEmailSender: (input: EmailSenderInput) =>
+      apiFetch<EmailSenderResponse>('/settings/email-sender', {
+        method: 'PUT',
+        body: JSON.stringify(input),
+      }),
+    /** One test message through the saved pair; sent directly, never queued. */
+    testEmailSender: (input: EmailTestInput) =>
+      apiFetch<EmailTestResponse>('/settings/email-sender/test', {
+        method: 'POST',
         body: JSON.stringify(input),
       }),
   },
