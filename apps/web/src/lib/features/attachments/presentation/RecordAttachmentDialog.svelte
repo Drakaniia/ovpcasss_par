@@ -5,22 +5,26 @@
   import { trapFocus } from '$lib/a11y/focus-trap';
   import { saveBlob } from '$lib/api/http';
 
-  import { attachmentTypeLabel } from '../application/attachment-preview';
+  import { attachmentTypeLabel, type PreviewKind } from '../application/attachment-preview';
 
   /**
    * The full-size view of one attachment (report 12). The parent already holds
-   * the bytes as a blob — the image was fetched through the session, not by an
-   * `<img src>` — so Download saves exactly what is on screen.
+   * the bytes as a blob — the file was fetched through the session, not by an
+   * `<img src>` — so a PDF draws in the same modal as an image and Download
+   * saves exactly what is on screen. The office reviews what the personnel in
+   * charge filed, so nothing leaves the record to be read.
    */
   let {
     attachment,
     blob,
     src,
+    kind,
     onclose,
   }: {
     attachment: Attachment;
     blob: Blob;
     src: string;
+    kind: PreviewKind;
     onclose: () => void;
   } = $props();
 
@@ -30,6 +34,8 @@
   let dialog = $state<HTMLDialogElement | null>(null);
   let closeButton = $state<HTMLButtonElement | null>(null);
   let failed = $state(false);
+
+  const isPdf = $derived(kind === 'pdf');
 
   $effect(() => {
     if (!dialog || dialog.open) return;
@@ -83,8 +89,10 @@
     </div>
   </header>
 
-  <div class="preview-stage">
-    {#if failed}
+  <div class="preview-stage" class:paper={isPdf}>
+    {#if isPdf}
+      <iframe class="preview-frame" {src} title={`Preview of ${attachment.originalName}`}></iframe>
+    {:else if failed}
       <p class="preview-note">The image could not be displayed. Download the file instead.</p>
     {:else}
       <img
@@ -191,6 +199,19 @@
     padding: 20px;
   }
 
+  /* A PDF is its own page: the stage is the sheet, so the frame needs no inset. */
+  .preview-stage.paper {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .preview-frame {
+    background: var(--surface-card);
+    border: 0;
+    height: 100%;
+    width: 100%;
+  }
+
   .preview-image {
     background: var(--surface-card);
     border: 1px solid var(--border);
@@ -208,5 +229,30 @@
     margin: 0;
     padding: 48px 24px;
     text-align: center;
+  }
+
+  /* Phone widths: the dialog keeps its 44 px close target and less inset. */
+  @media (max-width: 639px) {
+    .preview-dialog {
+      max-height: calc(100dvh - 24px);
+      width: calc(100vw - 24px);
+    }
+
+    .preview-head {
+      padding: 14px 16px;
+    }
+
+    .preview-close {
+      height: 44px;
+      width: 44px;
+    }
+
+    .preview-stage {
+      padding: 12px;
+    }
+
+    .preview-stage.paper {
+      padding: 0;
+    }
   }
 </style>

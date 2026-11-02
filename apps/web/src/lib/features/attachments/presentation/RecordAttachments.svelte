@@ -2,7 +2,7 @@
   import type { Attachment } from '@par/shared';
   import {
     Download,
-    ExternalLink,
+    Eye,
     File as FileIcon,
     FileArchive,
     FileSpreadsheet,
@@ -25,10 +25,11 @@
 
   /**
    * Submitted attachments with a visual preview (report 12). Bytes are fetched
-   * through the session with `apiDownload` — an `<img src>` cannot carry the
-   * desktop bearer token — and only the first few images are fetched up front,
-   * so a record with many files still opens quickly. Every object URL is
-   * revoked when the page leaves.
+   * through the session with `apiDownload` — an `<img src>` or an `<iframe>`
+   * cannot carry the desktop bearer token — and only the first few images are
+   * fetched up front, so a record with many files still opens quickly. A PDF is
+   * fetched when its preview opens and draws in the same modal. Every object
+   * URL is revoked when the page leaves.
    */
   const THUMBNAIL_LIMIT = 12;
 
@@ -101,18 +102,6 @@
     try {
       const preview = await ensurePreview(attachment);
       if (preview) previewing = { attachment, preview };
-    } finally {
-      busyId = null;
-    }
-  }
-
-  async function openInTab(attachment: Attachment): Promise<void> {
-    if (busyId) return;
-    busyId = attachment.id;
-
-    try {
-      const preview = await ensurePreview(attachment);
-      if (preview) window.open(preview.url, '_blank', 'noopener,noreferrer');
     } finally {
       busyId = null;
     }
@@ -199,23 +188,15 @@
 
           {#if confirmed}
             <div class="row-actions">
-              {#if kind === 'image'}
+              {#if kind === 'image' || kind === 'pdf'}
                 <button
                   class="btn btn-outline btn-sm"
                   type="button"
+                  aria-label={`Preview ${attachment.originalName}`}
                   disabled={busyId === attachment.id}
                   onclick={() => void openPreview(attachment)}
                 >
-                  <ImageIcon size={15} aria-hidden="true" /> Preview
-                </button>
-              {:else if kind === 'pdf'}
-                <button
-                  class="btn btn-outline btn-sm"
-                  type="button"
-                  disabled={busyId === attachment.id}
-                  onclick={() => void openInTab(attachment)}
-                >
-                  <ExternalLink size={15} aria-hidden="true" /> Open
+                  <Eye size={15} aria-hidden="true" /> Preview
                 </button>
               {/if}
 
@@ -240,6 +221,7 @@
     attachment={previewing.attachment}
     blob={previewing.preview.blob}
     src={previewing.preview.url}
+    kind={previewKind(previewing.attachment)}
     onclose={() => (previewing = null)}
   />
 {/if}
@@ -388,6 +370,31 @@
   @media (prefers-reduced-motion: reduce) {
     .thumb {
       transition: none;
+    }
+  }
+
+  /*
+   * Phone widths (2026-11-01): a long file name wraps instead of being cut off,
+   * and the row's actions take a line of their own below it.
+   */
+  @media (max-width: 639px) {
+    .attachment-row {
+      flex-wrap: wrap;
+    }
+
+    .row-body {
+      flex: 1 1 160px;
+    }
+
+    .row-name {
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
+
+    .row-actions {
+      justify-content: flex-end;
+      margin-left: 0;
+      width: 100%;
     }
   }
 </style>

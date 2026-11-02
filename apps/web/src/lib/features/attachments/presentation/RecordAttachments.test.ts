@@ -43,20 +43,33 @@ describe('RecordAttachments', () => {
     expect(html).toContain('PDF document');
     expect(html).toContain('4 KB');
     expect(html).toContain('Download');
-    expect(html).toContain('Open');
+    expect(html).toContain('Preview');
   });
 
-  it('offers no preview for an office file', () => {
-    const html = render(RecordAttachments, {
+  it('offers a preview for a PDF and an image, and none for an office file', () => {
+    const supported = render(RecordAttachments, {
+      props: {
+        reportId: 'report-1',
+        attachments: [
+          attachment('a1', 'attendance.pdf', { mimeType: 'application/pdf' }),
+          attachment('a2', 'scan.png', { mimeType: 'image/png' }),
+        ],
+      },
+    }).body;
+
+    expect(supported).toContain('Preview attendance.pdf');
+    expect(supported).toContain('Preview scan.png');
+
+    const sheet = render(RecordAttachments, {
       props: {
         reportId: 'report-1',
         attachments: [attachment('a1', 'students.xlsx')],
       },
     }).body;
 
-    expect(html).toContain('Excel workbook');
-    expect(html).not.toContain('Preview');
-    expect(html).not.toContain('thumbnails');
+    expect(sheet).toContain('Excel workbook');
+    expect(sheet).not.toContain('Preview');
+    expect(sheet).not.toContain('class="thumbnails"');
   });
 
   it('marks a file that is not confirmed yet', () => {
