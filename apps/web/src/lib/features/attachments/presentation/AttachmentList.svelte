@@ -238,11 +238,6 @@
     transition: width 120ms linear;
   }
 
-  .label-select {
-    font-size: 12px;
-    min-height: 30px;
-  }
-
   .muted {
     color: var(--text-secondary);
     font-size: 12px;
@@ -327,6 +322,36 @@
 
     .row-actions {
       grid-area: 2 / 3;
+    }
+  }
+
+  /*
+   * Phone widths (2026-11-01): the label runs under the file name, a long name
+   * wraps instead of being cut off, and every action keeps a 44 px target.
+   */
+  @media (max-width: 639px) {
+    .attachment-row {
+      grid-template-columns: 24px minmax(0, 1fr) auto;
+      row-gap: 8px;
+    }
+
+    .file-name {
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
+
+    .label-cell {
+      grid-area: 2 / 1 / 3 / 3;
+      min-width: 0;
+    }
+
+    .icon-action {
+      height: 44px;
+      width: 44px;
+    }
+
+    .row-text-action {
+      min-height: 44px;
     }
   }
 </style>

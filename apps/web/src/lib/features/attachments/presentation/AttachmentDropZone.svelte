@@ -174,4 +174,24 @@
     white-space: nowrap;
     width: 1px;
   }
+
+  /*
+   * Phone widths (2026-11-01): the copy keeps the first line and the picker
+   * takes the second, so the hint is never squeezed to a sliver beside it.
+   */
+  @media (max-width: 639px) {
+    .drop-zone {
+      align-items: flex-start;
+      flex-wrap: wrap;
+      padding: 12px;
+    }
+
+    .drop-copy {
+      flex: 1 1 auto;
+    }
+
+    .drop-zone > .btn {
+      flex: 1 1 100%;
+    }
+  }
 </style>
