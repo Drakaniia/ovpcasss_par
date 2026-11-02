@@ -56,7 +56,12 @@ import {
 } from './domain/report-access';
 import { changedActivityFields } from './application/change-summary';
 import { toReportSearchItem } from './application/report-search';
-import { ensurePicAccounts, mailAssignedPics, mailRemovedPics } from './application/pic-accounts';
+import {
+  ensurePicAccounts,
+  mailAssignedPics,
+  mailRemovedPics,
+  picKey,
+} from './application/pic-accounts';
 import { buildReportDetail } from './application/report-detail';
 import { toAttachment, toReportHead, toReportListItem } from './application/record-shape';
 import {
@@ -256,6 +261,7 @@ reportRoutes.post('/', requireRole('ADMIN'), async (c) => {
   const sequence = await store.write.nextReferenceSequence();
   const referenceNo = formatReferenceNo(sequence);
   const assigned = await ensurePicAccounts(c.env, parsed.data.pics, origin);
+  const accounts = new Map(assigned.map((pic) => [pic.email, pic]));
 
   const row = await store.write.insertRecord({
     id: crypto.randomUUID(),
@@ -269,13 +275,18 @@ reportRoutes.post('/', requireRole('ADMIN'), async (c) => {
   await store.write.replaceLists(
     row.id,
     parsed.data.sdgIds,
-    assigned.map((pic) => ({
-      userId: pic.userId,
-      name: pic.name,
-      email: pic.email,
-      phone: pic.phone,
-      invitedAt: now,
-    })),
+    parsed.data.pics.map((pic) => {
+      const email = pic.email?.trim().toLowerCase() ?? null;
+      const account = email ? accounts.get(email) : undefined;
+      return {
+        userId: account?.userId ?? null,
+        name: pic.name,
+        email,
+        phone: pic.phone ?? null,
+        /* Only a row with a mailbox was invited. */
+        invitedAt: email ? now : null,
+      };
+    }),
   );
 
   await mailAssignedPics(
@@ -312,7 +323,7 @@ reportRoutes.post('/', requireRole('ADMIN'), async (c) => {
   });
 
   const pics = await store.read.listPics(row.id);
-  const created = { ...toReportHead(row), pics, sentTo: pics.length };
+  const created = { ...toReportHead(row), pics, sentTo: assigned.length };
   if (key) {
     await storeResponse(
       store.db,
@@ -364,10 +375,11 @@ reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
 
   const now = new Date().toISOString();
   const origin = appOrigin(c);
-  const byEmail = new Map(before.map((pic) => [pic.email, pic]));
+  const beforeByKey = new Map(before.map((pic) => [picKey(pic), pic]));
 
-  const fresh = form.pics.filter((pic) => !byEmail.has(pic.email.toLowerCase()));
+  const fresh = form.pics.filter((pic) => !beforeByKey.has(picKey(pic)));
   const assigned = fresh.length > 0 ? await ensurePicAccounts(c.env, fresh, origin) : [];
+  const accounts = new Map(assigned.map((pic) => [pic.email, pic]));
 
   const updated = await store.write.updateRecord({
     id: row.id,
@@ -378,27 +390,26 @@ reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
   });
   if (!updated) return conflict(c, 'This record changed on the server. Reload it and try again.');
 
-  const keep = new Map(assigned.map((pic) => [pic.email, pic]));
   await store.write.replaceLists(
     row.id,
     form.sdgIds,
     form.pics.map((pic) => {
-      const email = pic.email.toLowerCase();
-      const previous = byEmail.get(email);
-      const created = keep.get(email);
+      const email = pic.email?.trim().toLowerCase() ?? null;
+      const previous = beforeByKey.get(picKey(pic));
+      const created = email ? accounts.get(email) : undefined;
       return {
         id: previous?.id,
         userId: previous?.userId ?? created?.userId ?? null,
         name: pic.name,
         email,
         phone: pic.phone ?? previous?.phone ?? null,
-        invitedAt: previous?.invitedAt ?? now,
+        invitedAt: previous?.invitedAt ?? (email ? now : null),
       };
     }),
   );
 
-  const nowEmails = new Set(form.pics.map((pic) => pic.email.toLowerCase()));
-  const removed = before.filter((pic) => !nowEmails.has(pic.email));
+  const nowKeys = new Set(form.pics.map(picKey));
+  const removed = before.filter((pic) => !nowKeys.has(picKey(pic)));
   if (removed.length > 0) {
     await mailRemovedPics(
       c.env,
@@ -432,9 +443,10 @@ reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
     }
   }
 
-  const retained = before.filter((pic) => nowEmails.has(pic.email) && pic.userId);
+  const retained = before.filter((pic) => nowKeys.has(picKey(pic)) && pic.userId);
   if (submitted && retained.length > 0) {
     for (const pic of retained) {
+      if (!pic.email) continue;
       await notify(c.env, {
         userId: pic.userId ?? '',
         kind: 'RECORD_EDITED',
@@ -722,7 +734,10 @@ reportRoutes.post('/:id/submit', async (c) => {
   // A returned narrative is private to the PIC who submitted it: another PIC
   // never sees the words, so the same account resubmits them.
   if (!canWriteNarrative(viewer, row)) {
-    return forbidden(c, 'Only the personnel in charge who submitted this narrative may resubmit it.');
+    return forbidden(
+      c,
+      'Only the personnel in charge who submitted this narrative may resubmit it.',
+    );
   }
 
   const attachments = await store.read.listAttachments(row.id);
@@ -893,7 +908,8 @@ reportRoutes.post('/:id/decision', requireRole('ADMIN'), async (c) => {
   const origin = appOrigin(c);
 
   for (const [index, pic] of pics.entries()) {
-    if (!pic.userId) continue;
+    /* A row with no mailbox has no account either, so there is nobody to tell. */
+    if (!pic.userId || !pic.email) continue;
     // A returned narrative is private to its submitter, so the office's note
     // travels only to them; an approval is still news for every PIC.
     if (!approving && row.submittedByUserId && pic.userId !== row.submittedByUserId) continue;
@@ -977,8 +993,9 @@ reportRoutes.post('/:id/invitation', requireRole('ADMIN'), async (c) => {
   if (row.status === 'APPROVED') return conflict(c, 'This record is already approved.');
 
   const pics = await store.read.listPics(row.id);
+  const invited = pics.filter((pic): pic is ReportPicRow & { email: string } => Boolean(pic.email));
   const origin = appOrigin(c);
-  for (const pic of pics) {
+  for (const pic of invited) {
     await mailAssignedPics(
       c.env,
       [
@@ -1010,7 +1027,7 @@ reportRoutes.post('/:id/invitation', requireRole('ADMIN'), async (c) => {
     comment: row.referenceNo,
   });
 
-  return c.json({ sentTo: pics.length });
+  return c.json({ sentTo: invited.length });
 });
 
 /* ---------- Receipts ---------- */

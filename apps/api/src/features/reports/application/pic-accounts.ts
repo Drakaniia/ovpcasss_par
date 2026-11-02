@@ -25,6 +25,16 @@ export interface AssignedPic {
 }
 
 /**
+ * Identity of a PIC row across a save (2026-11-01). A row with an address is
+ * matched by that address; a person the office named without one is matched by
+ * name, so an edit keeps the stored row and its id.
+ */
+export function picKey(pic: { name: string; email?: string | null | undefined }): string {
+  const email = pic.email?.trim().toLowerCase() ?? '';
+  return email ? `email:${email}` : `name:${pic.name.trim().toLowerCase()}`;
+}
+
+/**
  * Each PIC email becomes an account (spec §9): an existing account is linked,
  * a new one is created as PERSONNEL awaiting verification. A new account also
  * gets the standard verification link; the assignment mail follows the insert.
@@ -41,7 +51,10 @@ export async function ensurePicAccounts(
   const assigned: AssignedPic[] = [];
 
   for (const pic of pics) {
-    const email = pic.email.trim().toLowerCase();
+    const email = pic.email?.trim().toLowerCase() ?? '';
+    /* No address means no account to link and no mailbox to write to. */
+    if (!email) continue;
+
     let user: UserRow | null = await users.findByEmail(email);
     let newAccount = false;
 
@@ -126,6 +139,7 @@ export async function mailRemovedPics(
   reportId: string,
 ): Promise<void> {
   for (const pic of removed) {
+    if (!pic.email) continue;
     await sendPicRemovedEmail(
       env,
       pic.email,

@@ -20,7 +20,7 @@ const FIELD_LABELS: readonly (readonly [ScalarField, string])[] = [
   ['activityStartDate', 'Start date'],
   ['activityEndDate', 'End date'],
   ['location', 'Location'],
-  ['activityCount', 'Number of activities'],
+  ['activityCount', 'Number of days'],
   ['totalStudents', 'Total students'],
   ['totalPic', 'Total personnel in charge'],
 ];
@@ -34,12 +34,12 @@ function samePics(before: readonly ReportPicRow[], after: ReportActivityInput['p
 
   const left = before
     .map((pic) =>
-      [pic.name.trim(), pic.email.trim().toLowerCase(), text(pic.phone).trim()].join('|'),
+      [pic.name.trim(), text(pic.email).trim().toLowerCase(), text(pic.phone).trim()].join('|'),
     )
     .sort();
   const right = after
     .map((pic) =>
-      [pic.name.trim(), pic.email.trim().toLowerCase(), text(pic.phone).trim()].join('|'),
+      [pic.name.trim(), text(pic.email).trim().toLowerCase(), text(pic.phone).trim()].join('|'),
     )
     .sort();
   return left.every((value, index) => value === right[index]);

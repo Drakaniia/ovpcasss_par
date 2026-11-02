@@ -23,11 +23,7 @@ export function isAdmin(viewer: Viewer): boolean {
  * office still does not read it — but once it is submitted, another PIC named
  * on the record no longer reads the words or the files.
  */
-export function canReadNarrative(
-  viewer: Viewer,
-  row: NarrativeRecord,
-  isPic: boolean,
-): boolean {
+export function canReadNarrative(viewer: Viewer, row: NarrativeRecord, isPic: boolean): boolean {
   if (row.status === 'PENDING') return !isAdmin(viewer) || isPic;
   return isAdmin(viewer) || row.submittedByUserId === viewer.userId;
 }
@@ -37,11 +33,7 @@ export function canReadNarrative(
  * the office reads every copy (watermarked before approval, spec §7.8), and a
  * PIC reads the copy of the narrative they submitted, never another's.
  */
-export function canViewFacsimile(
-  viewer: Viewer,
-  row: NarrativeRecord,
-  isPic: boolean,
-): boolean {
+export function canViewFacsimile(viewer: Viewer, row: NarrativeRecord, isPic: boolean): boolean {
   if (isAdmin(viewer)) return true;
   return isPic && row.status !== 'PENDING' && row.submittedByUserId === viewer.userId;
 }

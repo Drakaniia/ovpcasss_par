@@ -1,9 +1,4 @@
-import {
-  createDb,
-  createReceiptQueries,
-  type ReportPicRow,
-  type ReportRow,
-} from '@par/db';
+import { createDb, createReceiptQueries, type ReportPicRow, type ReportRow } from '@par/db';
 import { renderReceipt } from '@par/export';
 
 import { enqueueEmail } from '../../../email/outbox';
@@ -74,6 +69,10 @@ export async function issueReceipts(
         objectKey,
         now,
       });
+
+      // A person the office named without an address still gets a receipt row
+      // and a stored PDF; there is simply no mailbox to send it to (2026-11-01).
+      if (!pic.email) continue;
 
       // The receipt belongs to the person in charge, so it goes to the address
       // on their PIC row — not gated on an account they may never have opened.

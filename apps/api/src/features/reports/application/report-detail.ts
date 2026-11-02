@@ -32,7 +32,7 @@ function formOf(row: ReportRow, pics: readonly ReportPicRow[], sdgIds: readonly 
     pics: pics.map((pic) => ({
       id: pic.id,
       name: pic.name,
-      email: pic.email,
+      ...(pic.email ? { email: pic.email } : {}),
       ...(pic.phone ? { phone: pic.phone } : {}),
       ...(pic.userId ? { userId: pic.userId } : {}),
     })),
@@ -126,7 +126,7 @@ export async function buildReportDetail(
     pics: pics.map((pic) => ({
       id: pic.id,
       name: pic.name,
-      email: pic.email,
+      ...(pic.email ? { email: pic.email } : {}),
       ...(pic.phone ? { phone: pic.phone } : {}),
       ...(pic.userId ? { userId: pic.userId } : {}),
     })),
