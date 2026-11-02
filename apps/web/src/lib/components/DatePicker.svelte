@@ -273,6 +273,24 @@
     width: 36px;
   }
 
+  /*
+   * Phone widths (2026-11-01): the dense face is a 12 px input, which a phone
+   * answers by zooming the whole page the moment it takes focus. Both faces
+   * grow to 16 px with a 44 px target, dense or not.
+   */
+  @media (max-width: 639px) {
+    .calendar-button,
+    .date-picker.is-dense .calendar-button {
+      height: 44px;
+      width: 44px;
+    }
+
+    .date-picker.is-dense .date-input {
+      font-size: 16px;
+      min-height: 44px;
+    }
+  }
+
   .popover-anchor {
     animation: date-pop 120ms cubic-bezier(0.22, 1, 0.36, 1);
     position: fixed;

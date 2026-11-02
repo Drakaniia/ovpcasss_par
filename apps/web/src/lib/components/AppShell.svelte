@@ -14,12 +14,19 @@
   import NavigationRow from '$lib/features/window-chrome/presentation/NavigationRow.svelte';
   import TitleBar from '$lib/features/window-chrome/presentation/TitleBar.svelte';
   import ZoomIndicator from '$lib/features/window-chrome/presentation/ZoomIndicator.svelte';
+  import { mobileShell } from '$lib/navigation/mobile-routes';
   import { canSearchRepository } from '$lib/navigation/navigation';
   import { refreshInboxAttention } from '$lib/session/inbox-attention.svelte';
   import { session } from '$lib/session/session.svelte';
   import { focusSearchField, installGlobalShortcuts } from '$lib/shortcuts/keyboard';
 
   let { children } = $props();
+
+  /**
+   * The screens the personnel in charge reach from a phone draw the shell at
+   * any width; everything else keeps the foundation notice (2026-11-01).
+   */
+  const mobile = $derived(mobileShell(page.url.pathname, session.user?.role));
 
   /** Only one global tool is open at a time: opening one closes the other (phase 12 §5). */
   let helpOpen = $state(false);
@@ -82,9 +89,11 @@
 
 <a class="skip-link" href="#content">Skip to content</a>
 
-<div class="foundation-notice">This system is designed for screens 1024 px and wider.</div>
+{#if !mobile}
+  <div class="foundation-notice">This system is designed for screens 1024 px and wider.</div>
+{/if}
 
-<div class="app-shell">
+<div class="app-shell" class:is-mobile={mobile}>
   <TitleBar />
   <NavigationRow />
   <main id="content" tabindex="-1" class="page-content">
@@ -107,7 +116,7 @@
   }
 
   @media (max-width: 1023px) {
-    .app-shell {
+    .app-shell:not(.is-mobile) {
       display: none;
     }
   }

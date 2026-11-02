@@ -66,6 +66,7 @@
   let popover = $state<HTMLElement | null>(null);
   let list = $state<HTMLElement | null>(null);
   let renameInput = $state<HTMLInputElement | null>(null);
+  let createInput = $state<HTMLInputElement | null>(null);
 
   let open = $state(false);
   let closing = $state(false);
@@ -74,6 +75,8 @@
   let active = $state(0);
   let renaming = $state<string | null>(null);
   let renameText = $state('');
+  let creating = $state(false);
+  let createText = $state('');
   let busy = $state(false);
   let failure = $state<string | null>(null);
   let closeToken = 0;
@@ -96,6 +99,8 @@
     query = '';
     failure = null;
     renaming = null;
+    creating = false;
+    createText = '';
     active = initialRowIndex(rowsFor(options, '', { value, canCreate: false, allowCustom: false }));
     open = true;
 
@@ -120,6 +125,8 @@
 
     closing = true;
     renaming = null;
+    creating = false;
+    createText = '';
     failure = null;
     if (restoreFocus) trigger?.focus();
 
@@ -183,6 +190,49 @@
     }
   }
 
+  /**
+   * The footer's Add control opens the same name field the typed "Add …" row
+   * leads to, so an entry can be created without first searching for a name the
+   * list does not hold yet.
+   */
+  function startCreate(): void {
+    if (!manage || busy) return;
+
+    creating = true;
+    createText = query.trim();
+    renaming = null;
+    failure = null;
+    void tick().then(() => {
+      createInput?.focus();
+      createInput?.select();
+    });
+  }
+
+  async function commitCreate(): Promise<void> {
+    const name = createText.trim();
+    if (!manage || busy || !name) return;
+
+    busy = true;
+    failure = null;
+    try {
+      await manage.onCreate(name);
+      creating = false;
+      createText = '';
+      close(true);
+    } catch (error) {
+      failure = message(error, 'The entry was not added. Try again.');
+    } finally {
+      busy = false;
+    }
+  }
+
+  function cancelCreate(): void {
+    creating = false;
+    createText = '';
+    failure = null;
+    focusList();
+  }
+
   /** Removes the entry the control belongs to, never whichever row is lit now. */
   async function removeEntry(target: { value: string }): Promise<void> {
     if (!manage || busy) return;
@@ -237,7 +287,8 @@
     if (inRowControl(event)) {
       if (event.key !== 'Escape') return;
       event.preventDefault();
-      if (renaming) cancelRename();
+      if (creating) cancelCreate();
+      else if (renaming) cancelRename();
       else close(true);
       return;
     }
@@ -456,9 +507,56 @@
       {/if}
 
       {#if manage}
-        <p class="hint">
-          Edits apply to the official list for everyone. F2 rename · Shift+Delete remove.
-        </p>
+        <div class="footer">
+          {#if creating}
+            <form
+              class="create"
+              data-row-control="true"
+              onsubmit={(event) => {
+                event.preventDefault();
+                void commitCreate();
+              }}
+            >
+              <input
+                class="create-input"
+                bind:this={createInput}
+                bind:value={createText}
+                type="text"
+                maxlength="120"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder={`New ${label.toLowerCase()}`}
+                aria-label={`New ${label.toLowerCase()}`}
+                disabled={busy}
+              />
+              <button
+                class="row-action"
+                type="submit"
+                aria-label="Save new entry"
+                disabled={busy || !createText.trim()}
+              >
+                <Check size={14} aria-hidden="true" />
+              </button>
+              <button
+                class="row-action"
+                type="button"
+                aria-label="Cancel adding an entry"
+                disabled={busy}
+                onclick={cancelCreate}
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            </form>
+          {:else}
+            <button class="add-entry" type="button" disabled={busy} onclick={startCreate}>
+              <Plus size={13} aria-hidden="true" />
+              Add
+            </button>
+            <p class="hint">
+              Edits apply to the official list for everyone. F2 rename · Shift+Delete remove.
+            </p>
+          {/if}
+        </div>
       {/if}
     </div>
   {/if}
@@ -757,12 +855,78 @@
     opacity: 0.5;
   }
 
-  .hint {
+  /* The footer holds the one action that is not tied to an entry — Add — and the
+     hint that says what the row controls and the two shortcuts do. */
+  .footer {
+    align-items: center;
     border-top: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    padding: 8px 10px;
+  }
+
+  .add-entry {
+    align-items: center;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-primary);
+    display: inline-flex;
+    flex: none;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    gap: 3px;
+    min-height: 24px;
+    padding: 0 8px;
+  }
+
+  .add-entry:hover:not(:disabled),
+  .add-entry:focus-visible {
+    background: var(--surface-page);
+    border-color: color-mix(in srgb, var(--text-primary) 22%, var(--border));
+  }
+
+  .add-entry:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .hint {
     color: var(--text-secondary);
+    flex: 1;
     font-size: 11px;
     margin: 0;
-    padding: 8px 10px;
+    min-width: 0;
+  }
+
+  .create {
+    align-items: center;
+    display: flex;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .create-input {
+    background: var(--surface-card);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-primary);
+    flex: 1;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    height: 26px;
+    min-width: 0;
+    padding: 0 6px;
+  }
+
+  .create-input:focus-visible {
+    border-color: var(--focus-ring);
+    outline: none;
+  }
+
+  .create-input::placeholder {
+    color: var(--text-disabled);
   }
 
   .visually-hidden {
