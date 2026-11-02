@@ -4,6 +4,7 @@ import { buildMonitoringWorkbook } from '@par/export';
 import type { SendWorkbookInput } from '@par/shared';
 
 import { applyAttachmentBudget, maxAttachmentBytes } from '../../../email/attachments';
+import { loadEmailCopy } from '../../../email/copy-store';
 import { enqueueEmail } from '../../../email/outbox';
 import type { Env } from '../../../env';
 import { assembleMonitoring } from './assemble-monitoring';
@@ -71,19 +72,23 @@ export async function sendMonitoringWorkbook(
   );
 
   const term = semesterLabel(input.semester);
-  const content = workbookTemplate({
-    type: input.type,
-    schoolYear: input.schoolYear,
-    semester: input.semester,
-    term,
-    reportCount: assembled.sheet.sheet.total,
-    generatedAt: new Date().toISOString(),
-    generatedBy: sender.fullName,
-    ...(input.note ? { note: input.note } : {}),
-    ...(origin === undefined ? {} : { origin }),
-    hasAttachment: budget.refs.length > 0,
-    attachmentOmitted: budget.omitted,
-  });
+  const copy = await loadEmailCopy(env);
+  const content = workbookTemplate(
+    {
+      type: input.type,
+      schoolYear: input.schoolYear,
+      semester: input.semester,
+      term,
+      reportCount: assembled.sheet.sheet.total,
+      generatedAt: new Date().toISOString(),
+      generatedBy: sender.fullName,
+      ...(input.note ? { note: input.note } : {}),
+      ...(origin === undefined ? {} : { origin }),
+      hasAttachment: budget.refs.length > 0,
+      attachmentOmitted: budget.omitted,
+    },
+    copy.get('WORKBOOK'),
+  );
 
   for (const to of recipients) {
     await enqueueEmail(env, {

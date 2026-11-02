@@ -3,6 +3,7 @@ import { EMAIL_KIND_CATEGORIES, type EmailKind, type EmailPreferenceCategory } f
 import type { EmailAttachmentRef } from '@par/email';
 
 import { applyAttachmentBudget, maxAttachmentBytes } from '../../../email/attachments';
+import { loadEmailCopy } from '../../../email/copy-store';
 import { enqueueEmail, suppressEmail } from '../../../email/outbox';
 import type { Env } from '../../../env';
 import {
@@ -86,11 +87,16 @@ async function deliver(env: Env, input: NotifyInput, record: NotificationRecord)
   }
 
   const budget = applyAttachmentBudget(email.attachments ?? [], maxAttachmentBytes(env));
-  const content = emailForNotification(email.kind, {
-    ...email,
-    hasAttachment: budget.refs.length > 0,
-    attachmentOmitted: budget.omitted,
-  });
+  const copy = await loadEmailCopy(env);
+  const content = emailForNotification(
+    email.kind,
+    {
+      ...email,
+      hasAttachment: budget.refs.length > 0,
+      attachmentOmitted: budget.omitted,
+    },
+    copy.get(email.kind),
+  );
 
   if (!content) return skip(`the ${email.kind} message could not be completed`);
 

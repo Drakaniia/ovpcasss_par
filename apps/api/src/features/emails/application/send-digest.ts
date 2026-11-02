@@ -1,6 +1,7 @@
 import { createDb, createEmailOutboxQueries, createUserQueries } from '@par/db';
 import { failureDigestTemplate } from '@par/email';
 
+import { loadEmailCopy } from '../../../email/copy-store';
 import { createEmailProvider } from '../../../email/provider';
 import type { Env } from '../../../env';
 
@@ -23,15 +24,19 @@ export async function sendFailureDigest(env: Env, now = new Date()): Promise<num
     createUserQueries(db).listActiveByRole('ADMIN'),
   ]);
 
-  const content = failureDigestTemplate({
-    count,
-    failures: recent.rows.map((row) => ({
-      kind: row.kind,
-      to: row.to,
-      error: row.lastError ?? 'No reason was recorded',
-    })),
-    ...(env.APP_ORIGIN ? { origin: env.APP_ORIGIN } : {}),
-  });
+  const copy = await loadEmailCopy(env);
+  const content = failureDigestTemplate(
+    {
+      count,
+      failures: recent.rows.map((row) => ({
+        kind: row.kind,
+        to: row.to,
+        error: row.lastError ?? 'No reason was recorded',
+      })),
+      ...(env.APP_ORIGIN ? { origin: env.APP_ORIGIN } : {}),
+    },
+    copy.get('FAILURE_DIGEST'),
+  );
 
   const provider = await createEmailProvider(env);
   const day = now.toISOString().slice(0, 10);

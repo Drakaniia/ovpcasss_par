@@ -1,6 +1,7 @@
 import { createDb, createReceiptQueries, type ReportPicRow, type ReportRow } from '@par/db';
 import { renderReceipt } from '@par/export';
 
+import { loadEmailCopy } from '../../../email/copy-store';
 import { enqueueEmail } from '../../../email/outbox';
 import { receiptIssuedTemplate } from '@par/email';
 import type { Env } from '../../../env';
@@ -50,6 +51,7 @@ export async function issueReceipts(
   const db = createDb(env.DB);
   const receipts = createReceiptQueries(db);
   const now = new Date().toISOString();
+  const copy = await loadEmailCopy(env);
 
   for (const pic of pics) {
     try {
@@ -80,14 +82,17 @@ export async function issueReceipts(
         kind: 'RECEIPT_ISSUED',
         to: pic.email,
         reportId: report.id,
-        content: receiptIssuedTemplate({
-          referenceNo: report.referenceNo,
-          title: report.title,
-          picName: pic.name,
-          approvedAt: report.approvedAt,
-          origin,
-          hasAttachment: true,
-        }),
+        content: receiptIssuedTemplate(
+          {
+            referenceNo: report.referenceNo,
+            title: report.title,
+            picName: pic.name,
+            approvedAt: report.approvedAt,
+            origin,
+            hasAttachment: true,
+          },
+          copy.get('RECEIPT_ISSUED'),
+        ),
         attachments: [
           {
             objectKey,

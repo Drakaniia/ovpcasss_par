@@ -9,6 +9,7 @@ import {
   submittedTemplate,
   type EmailContent,
   type EmailKind,
+  type EmailTemplateCopy,
   type NarrativeEventData,
 } from '@par/email';
 
@@ -62,31 +63,33 @@ function narrativeOf(data: NotificationEmailData): NarrativeEventData | null {
 
 /**
  * Email for one outbox kind (spec §11). Account and operational kinds are built
- * by their own senders, so they return null here.
+ * by their own senders, so they return null here. `copy` is the administrator's
+ * saved copy for this kind; absent, the template's built-in words are used.
  */
 export function emailForNotification(
   kind: EmailKind,
   data: NotificationEmailData,
+  copy?: EmailTemplateCopy,
 ): EmailContent | null {
   const narrative = narrativeOf(data);
 
   switch (kind) {
     case 'ASSIGNED':
-      return narrative ? assignedTemplate(narrative) : null;
+      return narrative ? assignedTemplate(narrative, copy) : null;
     case 'SUBMITTED':
-      return narrative ? submittedTemplate(narrative) : null;
+      return narrative ? submittedTemplate(narrative, copy) : null;
     case 'RETURNED':
-      return narrative ? returnedTemplate(narrative) : null;
+      return narrative ? returnedTemplate(narrative, copy) : null;
     case 'APPROVED':
-      return narrative ? approvedTemplate(narrative) : null;
+      return narrative ? approvedTemplate(narrative, copy) : null;
     case 'RECEIPT_ISSUED':
-      return narrative ? receiptIssuedTemplate(narrative) : null;
+      return narrative ? receiptIssuedTemplate(narrative, copy) : null;
     case 'RECORD_EDITED':
-      return narrative ? recordEditedTemplate(narrative) : null;
+      return narrative ? recordEditedTemplate(narrative, copy) : null;
     case 'REMINDER':
-      return narrative ? reminderTemplate(narrative) : null;
+      return narrative ? reminderTemplate(narrative, copy) : null;
     case 'PIC_REMOVED':
-      return narrative ? picRemovedTemplate(narrative) : null;
+      return narrative ? picRemovedTemplate(narrative, copy) : null;
     case 'VERIFY':
     case 'RESET':
     case 'WORKBOOK':
