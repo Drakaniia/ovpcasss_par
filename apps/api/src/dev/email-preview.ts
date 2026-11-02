@@ -1,7 +1,15 @@
 import { EMAIL_KIND_LABELS, EMAIL_KINDS, type EmailKind } from '@par/shared';
-import { emailSamples, EMAIL_LOGO_PATH, escapeHtml, SAMPLE_ORIGIN, sampleFor } from '@par/email';
+import {
+  emailSamples,
+  EMAIL_LOGO_PATH,
+  escapeHtml,
+  previewEmail,
+  SAMPLE_ORIGIN,
+  sampleFor,
+} from '@par/email';
 import { Hono } from 'hono';
 
+import { loadEmailCopy } from '../email/copy-store';
 import type { AppEnv } from '../env';
 
 /**
@@ -49,7 +57,7 @@ devEmailRoutes.get('/emails', () => {
   );
 });
 
-devEmailRoutes.get('/emails/:kind', (c) => {
+devEmailRoutes.get('/emails/:kind', async (c) => {
   const kind = c.req.param('kind') as EmailKind;
   if (!EMAIL_KINDS.includes(kind)) {
     return c.json({ error: { code: 'NOT_FOUND', message: 'No such email kind' } }, 404);
@@ -60,8 +68,15 @@ devEmailRoutes.get('/emails/:kind', (c) => {
     return c.json({ error: { code: 'NOT_FOUND', message: 'No such email kind' } }, 404);
   }
 
+  // `?copy=saved` draws the administrator's saved words instead of the built-in
+  // ones, so a developer sees exactly what a recipient receives.
+  const stored = c.req.query('copy') === 'saved';
+  const content = stored
+    ? previewEmail(kind, (await loadEmailCopy(c.env)).get(kind), new URL(c.req.url).origin)
+    : sample.content;
+
   if (c.req.query('format') === 'text') {
-    return new Response(sample.content.text, {
+    return new Response(content.text, {
       headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' },
     });
   }
@@ -70,7 +85,7 @@ devEmailRoutes.get('/emails/:kind', (c) => {
   // build. This page comes from the Worker, which serves the web build too, so
   // the header logo loads from here while the rest of the sample stays as drawn.
   const origin = new URL(c.req.url).origin;
-  const html = sample.content.html.replaceAll(
+  const html = content.html.replaceAll(
     `${SAMPLE_ORIGIN}${EMAIL_LOGO_PATH}`,
     `${origin}${EMAIL_LOGO_PATH}`,
   );
