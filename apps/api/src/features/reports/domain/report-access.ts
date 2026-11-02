@@ -18,6 +18,18 @@ export function isAdmin(viewer: Viewer): boolean {
 }
 
 /**
+ * The record itself, before any of its words: the office reads every record,
+ * and an open one stays in the register for any PIC to claim. Once a narrative
+ * is submitted the record leaves the register for everyone else, so a reader
+ * outside the PIC list and the submitter does not learn its title or venue.
+ */
+export function canReadRecord(viewer: Viewer, row: NarrativeRecord, isPic: boolean): boolean {
+  if (isAdmin(viewer)) return true;
+  if (row.status === 'PENDING') return true;
+  return isPic || row.submittedByUserId === viewer.userId;
+}
+
+/**
  * The narrative and its attachments belong to the submitter and the office.
  * Before submission the draft stays open — any PIC may pick it up, and the
  * office still does not read it — but once it is submitted, another PIC named

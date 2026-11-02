@@ -7,6 +7,7 @@ import {
   canDeleteRecord,
   canManageRecord,
   canReadNarrative,
+  canReadRecord,
   canSetCompletedDate,
   canViewFacsimile,
   canWriteNarrative,
@@ -57,6 +58,23 @@ describe('report access', () => {
       expect(canReadNarrative(otherPic, record(status), true)).toBe(false);
       expect(canReadNarrative(admin, record(status), false)).toBe(true);
     }
+  });
+
+  it('shows a submitted record only to its PICs, its submitter, and the office', () => {
+    for (const status of ['SUBMITTED', 'RETURNED', 'APPROVED'] as const) {
+      // The submitter and a PIC named on the record may open it; the narrative
+      // itself still stays private to the submitter and the office.
+      expect(canReadRecord(personnel, record(status), true)).toBe(true);
+      expect(canReadRecord(otherPic, record(status), true)).toBe(true);
+      expect(canReadRecord(otherPic, record(status), false)).toBe(false);
+      expect(canReadRecord(admin, record(status), false)).toBe(true);
+    }
+  });
+
+  it('keeps an open record in the register for anyone to claim', () => {
+    expect(canReadRecord(personnel, record('PENDING', null), false)).toBe(true);
+    expect(canReadRecord(otherPic, record('PENDING', 'person-1'), false)).toBe(true);
+    expect(canReadRecord(admin, record('PENDING', null), false)).toBe(true);
   });
 
   it('keeps the open draft readable, and still hides it from the office', () => {

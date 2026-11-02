@@ -49,6 +49,7 @@ import {
   canDeleteRecord,
   canManageRecord,
   canReadNarrative,
+  canReadRecord,
   canSetCompletedDate,
   canWriteNarrative,
   isAdmin,
@@ -137,11 +138,10 @@ function versionFrom(c: Context<AppEnv>): number | undefined | null {
 async function detailOf(
   c: Context<AppEnv>,
   row: ReportRow,
+  isPic: boolean,
 ): Promise<Awaited<ReturnType<typeof buildReportDetail>>> {
   const viewer = viewerOf(c);
   if (!viewer) throw new Error('Sign in to continue');
-  const read = stack(c).read;
-  const isPic = await read.isPic(row.id, viewer.userId);
   return buildReportDetail(c.env, row, {
     canWriteNarrative: canWriteNarrative(viewer, row),
     canManage: canManageRecord(viewer, row.status),
@@ -662,7 +662,13 @@ reportRoutes.get('/:id', async (c) => {
   const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
 
-  return c.json(await detailOf(c, row));
+  // A submitted record is private to the PICs named on it and the account that
+  // wrote the narrative. Anyone else is told it does not exist, so a guessed
+  // URL reveals neither the title nor the venue.
+  const isPic = await store.read.isPic(row.id, viewer.userId);
+  if (!canReadRecord(viewer, row, isPic)) return notFound(c);
+
+  return c.json(await detailOf(c, row, isPic));
 });
 
 /* ---------- Narrative ---------- */
@@ -1040,6 +1046,9 @@ reportRoutes.get('/:id/receipts', async (c) => {
   const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
 
+  const isPic = await store.read.isPic(row.id, viewer.userId);
+  if (!canReadRecord(viewer, row, isPic)) return notFound(c);
+
   const rows = await store.receipts.listForReport(row.id);
   const mine = isAdmin(viewer)
     ? rows
@@ -1116,6 +1125,11 @@ reportRoutes.get('/:id/attachments/:attachmentId/url', async (c) => {
   const store = stack(c);
   const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
+
+  // The file is part of the narrative, so it follows the narrative's rule: the
+  // office reads every copy, and a PIC only the one they submitted.
+  const isPic = await store.read.isPic(row.id, viewer.userId);
+  if (!canReadNarrative(viewer, row, isPic)) return notFound(c);
 
   const attachment = await store.attachments.findById(row.id, c.req.param('attachmentId') ?? '');
   if (!attachment || attachment.status !== 'CONFIRMED') return notFound(c);
