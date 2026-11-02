@@ -1,7 +1,9 @@
-import { eq } from 'drizzle-orm';
+import { eq, like } from 'drizzle-orm';
 
 import type { Database } from '../client';
 import { settings, type SettingKey } from '../schema/settings';
+
+export type SettingsRow = typeof settings.$inferSelect;
 
 /**
  * Settings rows (report 9). The value is JSON, so a caller reads a typed object
@@ -20,6 +22,24 @@ export function createSettingsQueries(db: Database) {
       } catch {
         return null;
       }
+    },
+
+    /** Every row under one prefix, in one read (the 15 message copies). */
+    async listByPrefix(prefix: string): Promise<SettingsRow[]> {
+      return db.select().from(settings).where(like(settings.key, `${prefix}%`));
+    },
+
+    async delete(key: SettingKey): Promise<void> {
+      await db.delete(settings).where(eq(settings.key, key));
+    },
+
+    /** Restore every message at once; returns how many rows were removed. */
+    async deleteByPrefix(prefix: string): Promise<number> {
+      const removed = await db
+        .delete(settings)
+        .where(like(settings.key, `${prefix}%`))
+        .returning({ key: settings.key });
+      return removed.length;
     },
 
     async put(input: {

@@ -18,6 +18,14 @@ export * from './queries/sessions';
 export * from './queries/settings';
 export * from './queries/users';
 export * as schema from './schema';
+export {
+  EMAIL_TEMPLATE_KEY_PREFIX,
+  emailKindFromKey,
+  emailTemplateKey,
+  isEmailTemplateKey,
+  type EmailTemplateSettingKey,
+  type SettingKey,
+} from './schema/settings';
 export type {
   AttachmentRow,
   NewReportRow,

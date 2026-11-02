@@ -116,10 +116,26 @@ function chunks<T>(values: readonly T[], size: number): T[][] {
 
 export function createReportReadQueries(db: Database) {
   /**
-   * The register is no longer scoped to PIC membership (spec §5): a PIC browses
-   * every activity and claims one by writing its narrative, so every signed-in
-   * reader sees the same list, search and location suggestions.
+   * What a reader may see of the register. The office reads every record. A PIC
+   * reads every open one, because any PIC may still claim it by writing the
+   * narrative, and after that only the records that name the account or that it
+   * submitted — another PIC's narrative, files, and decision stay private.
    */
+  function visibleTo(viewer: ReportListFilter['viewer']): SQL | undefined {
+    if (viewer.isAdmin) return undefined;
+
+    return or(
+      eq(reports.status, 'PENDING'),
+      eq(reports.submittedByUserId, viewer.userId),
+      inArray(
+        reports.id,
+        db
+          .select({ id: reportPics.reportId })
+          .from(reportPics)
+          .where(eq(reportPics.userId, viewer.userId)),
+      ),
+    );
+  }
 
   async function campusOptions(): Promise<ReportFilterOption[]> {
     const rows = await db.select().from(refCampuses).orderBy(asc(refCampuses.sortOrder));
@@ -226,6 +242,7 @@ export function createReportReadQueries(db: Database) {
 
     async list(filter: ReportListFilter): Promise<ReportListPage> {
       const conditions: (SQL | undefined)[] = [
+        visibleTo(filter.viewer),
         filter.archived === 'archived'
           ? isNotNull(reports.archivedAt)
           : filter.archived === 'all'
@@ -316,20 +333,18 @@ export function createReportReadQueries(db: Database) {
     },
 
     async search(options: ReportSearchOptions): Promise<ReportSearchRow[]> {
-      const conditions: (SQL | undefined)[] = [];
+      // The palette is the same register in a smaller shape: a reader searches
+      // the records they may open, so a private narrative is never reachable
+      // through its words, reference, or title.
+      const conditions: (SQL | undefined)[] = [visibleTo(options.viewer)];
 
       if (options.q) {
         const term = likePattern(options.q);
-        // The narrative is private to its submitter and the office once
-        // submitted, so its words only match for a reader who may open it.
-        const readableNarrative = options.viewer.isAdmin
-          ? undefined
-          : or(eq(reports.status, 'PENDING'), eq(reports.submittedByUserId, options.viewer.userId));
         conditions.push(
           or(
             like(reports.referenceNo, term),
             like(reports.title, term),
-            and(readableNarrative, like(reports.narrative, term)),
+            like(reports.narrative, term),
             like(reports.location, term),
             inArray(
               reports.id,
