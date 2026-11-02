@@ -109,15 +109,15 @@
   }
 
   .page-button:disabled {
-    color: var(--text-disabled, rgba(0, 0, 0, 0.3));
+    color: var(--text-disabled);
     cursor: not-allowed;
     opacity: 0.5;
   }
 
   .page-button.is-current {
     background: var(--primary-subtle);
-    border-color: var(--primary, #1e3a8a);
-    color: var(--primary, #1e3a8a);
+    border-color: var(--primary);
+    color: var(--primary);
     font-weight: 600;
   }
 

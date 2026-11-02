@@ -233,8 +233,13 @@
     overflow: hidden;
     padding: 0;
     width: min(820px, calc(100vw - 48px));
-    /* Arrives as a material: it lifts and clears, it does not merely fade. */
+    /* Arrives as a material: it lifts and clears, it does not merely fade.
+       Opacity and transform only: an animated `filter` re-rasterizes every glyph
+       in the panel at each blur radius, which is what dropped frames on the
+       first open. `will-change` promotes the layer before the first frame, so
+       that rasterization happens once instead of during the animation. */
     animation: palette-in 180ms cubic-bezier(0.2, 0, 0, 1);
+    will-change: opacity, transform;
   }
 
   .palette.is-closing {
@@ -243,7 +248,6 @@
 
   @keyframes palette-in {
     from {
-      filter: blur(6px);
       opacity: 0;
       transform: translateY(-8px) scale(0.985);
     }
@@ -251,7 +255,6 @@
 
   @keyframes palette-out {
     to {
-      filter: blur(4px);
       opacity: 0;
       transform: translateY(-6px) scale(0.99);
     }

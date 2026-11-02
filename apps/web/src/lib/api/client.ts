@@ -16,8 +16,14 @@ import type {
   EmailMessageResponse,
   EmailPreferencesInput,
   EmailPreferencesResponse,
+  EmailKind,
   EmailSenderInput,
   EmailSenderResponse,
+  EmailTemplateCopy,
+  EmailTemplateDetailResponse,
+  EmailTemplateListResponse,
+  EmailTemplatePreviewResponse,
+  EmailTemplateRestoreAllResponse,
   EmailTestInput,
   EmailTestResponse,
   ForgotPasswordInput,
@@ -274,6 +280,33 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(input),
       }),
+    /**
+     * The administrator's message copy (email message editor spec §6). The API
+     * renders every preview: the web app never imports `@par/email`.
+     */
+    emailTemplates: {
+      list: () => apiFetch<EmailTemplateListResponse>('/settings/email-templates'),
+      get: (kind: EmailKind) =>
+        apiFetch<EmailTemplateDetailResponse>(`/settings/email-templates/${kind}`),
+      save: (kind: EmailKind, copy: EmailTemplateCopy) =>
+        apiFetch<EmailTemplateDetailResponse>(`/settings/email-templates/${kind}`, {
+          method: 'PUT',
+          body: JSON.stringify({ copy }),
+        }),
+      restore: (kind: EmailKind) =>
+        apiFetch<EmailTemplateDetailResponse>(`/settings/email-templates/${kind}`, {
+          method: 'DELETE',
+        }),
+      restoreAll: () =>
+        apiFetch<EmailTemplateRestoreAllResponse>('/settings/email-templates', {
+          method: 'DELETE',
+        }),
+      preview: (kind: EmailKind, copy: EmailTemplateCopy) =>
+        apiFetch<EmailTemplatePreviewResponse>(`/settings/email-templates/${kind}/preview`, {
+          method: 'POST',
+          body: JSON.stringify({ copy }),
+        }),
+    },
   },
   /** Per-account UI state; the API is its only store (settings spec §7.14). */
   preferences: {

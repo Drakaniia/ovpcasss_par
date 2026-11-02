@@ -635,6 +635,9 @@
 
   .popover {
     animation: pop-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    /* Opacity and transform only: an animated filter re-rasterizes the option
+       list at every blur radius; `will-change` rasterizes it once, up front. */
+    will-change: opacity, transform;
     backdrop-filter: blur(18px) saturate(150%);
     background: color-mix(in srgb, var(--surface-card) 94%, transparent);
     border: 1px solid var(--border);
@@ -664,7 +667,6 @@
 
   @keyframes pop-in {
     from {
-      filter: blur(2px);
       opacity: 0;
       transform: translateY(-4px) scale(0.97);
     }
