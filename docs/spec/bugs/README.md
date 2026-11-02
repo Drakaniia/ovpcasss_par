@@ -58,8 +58,11 @@ files and must run in order.
    "sent back" and destructive actions. State is never colour alone.
 4. **Everything is reachable by mouse and by keyboard.** A hover-only affordance
    needs a keyboard equivalent, and the equivalent is written down.
-5. **Desktop widths only.** Below 1024 px the foundation notice applies; no phase
-   introduces a mobile layout.
+5. **Desktop widths are the default.** Below 1024 px the foundation notice
+   applies, except the personnel-in-charge surface (`/` for a PERSONNEL account,
+   `/reports/[id]`, `/reports/new`, `/reports/[id]/edit`), which reflows to a
+   phone. That list is the whole of it: a mobile layout anywhere else is a spec
+   change, not a phase liberty.
 6. **No invented fields, states, or copy.** Required-ness comes from the shared
    Zod contract; a new column or field must come from an existing record.
 7. **Structure limits hold:** 400 lines per source file, 30 files per directory,

@@ -24,7 +24,7 @@ done.
    wrangler d1 execute par-db --remote --command \
      "SELECT id, kind, to, attempts, last_error FROM email_outbox WHERE status = 'FAILED' ORDER BY updated_at DESC LIMIT 20"
    ```
-3. Open **Admin → Email log** (`/admin/emails`). It opens on **Failed** and lists
+3. Open **Admin → Email → Log** (`/admin/emails`). It opens on **Failed** and lists
    every attempt with its kind, recipient, subject, attempts, and the provider's
    reason. A **Suppressed** row means nothing was sent on purpose — the reason is
    in the same column (recipient muted the category, account inactive or

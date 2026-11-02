@@ -238,7 +238,8 @@ records the precise email kind. See §12.
 ### 5.3 What each message contains
 
 Every mail has, in order: preheader (hidden first line), navy header band with
-`OVPCASSS` and the office name, gold rule, greeting, 1–3 short paragraphs, an
+the office logo at its left and the office name beside it, gold rule, greeting,
+1–3 short paragraphs, an
 optional facts block (label/value pairs), an optional single primary action
 button, the signature block, and a footer line with the tracking number and a
 "do not reply" note.
@@ -305,8 +306,12 @@ byte arrays, no DOM, no framework, no network. It must not import from
 - **No web fonts.** Montserrat is vendored for the app, not available in mail
   clients, and the app must make no external requests. Stack:
   `Montserrat, 'Segoe UI', Helvetica, Arial, sans-serif`.
-- **No images** in v1. The header band is navy `#172a4b` with white
-  `letter-spacing` text. A logo can be added later as a hosted PNG.
+- **One hosted image, and only one.** The office logo,
+  `/brand/ovpcasss-logo-email.png` (360 × 120, shown at 180 × 60, under 20 KB),
+  sits at the left of the navy header band on a white plate, with the office name
+  beside it. The logo already spells `OVPCASSS`, so the band does not repeat the
+  wordmark, and the alt text is that one word when a client blocks remote
+  images. No other image, no tracking pixel.
 - **No background-image, no CSS custom properties** (unsupported in Outlook
   desktop). Token colors are written out as literals in `shell.ts`; the values
   mirror `tokens.css` and a test asserts they match the documented hex list.
@@ -525,8 +530,38 @@ consumer is **not** added in this phase (§20).
   `409 EMAIL_MESSAGE_UNAVAILABLE`.
 - The admin inbox card's "failed emails" figure links here; it starts reading
   non-zero once §9.1 lands.
-- Tab added to the Admin section tabs (`navigation.ts`), after "Audit".
+- Tab added to the Admin section tabs (`navigation.ts`), after "Audit", labelled
+  **Email**. The section has two pages, selected by `?tab=`: **Log**
+  (`/admin/emails`) and **Variables** (`/admin/emails?tab=variables`), matching
+  the reference-data tab pattern.
 - Only `ADMIN` reaches it (`requireRole('ADMIN')`).
+
+### 9.6 Sender variables — `/admin/emails?tab=variables`
+
+- The sending address (`EMAIL_FROM`) and provider key (`EMAIL_API_KEY`) the
+  administrator maintains without a deploy. They live in the existing
+  `settings` table under the key `email-sender` as `{ from, apiKey }`; no
+  schema change and no secret in the bundle.
+- `GET /api/v1/settings/email-sender` returns the pair in effect
+  (`{ from, apiKeySet, apiKeyHint, source, provider }`), where `apiKeyHint` is
+  the last four characters only, `source` is `database` or `environment`, and
+  `provider` names the adapter `EMAIL_PROVIDER` selects. The key itself is never
+  returned; `PUT` accepts `{ from, apiKey? }`, and a blank key keeps the saved
+  one. `ADMIN` only, audited as `SETTINGS_UPDATED` with the address in the
+  comment and never the key.
+- The mail path (`createEmailProvider`) prefers the saved row; the Worker
+  variables stay as the deployment fallback, so a fresh environment sends
+  before anyone opens the page.
+- `POST /api/v1/settings/email-sender/test` takes `{ to }` and sends one message
+  **directly** through the provider, not the queue: the answer is needed now,
+  and Queues are unsupported under `wrangler dev --remote`. It writes no outbox
+  row, so a test never appears in the log. The provider's refusal returns
+  verbatim (`502 EMAIL_TEST_FAILED`); five an hour per admin
+  (`429 RATE_LIMITED`). The response names the adapter that carried it, and
+  under `console` the page says the message went to the Worker log instead, so
+  a key is never judged by a print.
+- Copy states which store and which adapter are in use and that saving takes
+  effect on the next message.
 
 ### 9.5 Failure digest
 
@@ -765,7 +800,7 @@ Respects the structure limits (<400 lines per file, <30 files per directory,
 | `src/lib/features/exports/presentation/ExportPage.svelte`         | add the action                                               |
 | `src/lib/features/profile/presentation/EmailPreferences.svelte`   | new section                                                  |
 | `src/lib/features/profile/presentation/AccountCard.svelte`        | mount the section                                            |
-| `src/lib/navigation/navigation.ts`                                | Admin tab `Email log` → `/admin/emails`                      |
+| `src/lib/navigation/navigation.ts`                                | Admin tab `Email` → `/admin/emails` (Log and Variables)      |
 
 ### `docs`
 
@@ -866,7 +901,8 @@ codes.
 
 - [ ] Every outbound kind renders the navy band, gold rule, `OVPCASSS`, and the
       four-line signature block from §4.2, in both HTML and plain text.
-- [ ] No message contains an external font, stylesheet, image, or tracking URL.
+- [ ] No message contains an external font, stylesheet, or tracking URL, and its
+      only image is the header logo served from the app origin.
 - [ ] Subjects follow `[OVPCASSS PAR] …`, ≤78 characters, no exclamation marks.
 - [ ] A report title containing `<b>x</b>` renders as literal text.
 - [ ] The acknowledgement and facsimile PDFs print the `.eml` office line.

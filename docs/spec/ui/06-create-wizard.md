@@ -102,8 +102,17 @@ Fields: total number of students, total number of PIC, PIC rows, SDG multi-selec
 - PIC rows: name, email, phone, with add/remove. The row count must stay
   consistent with "total number of PIC"; a mismatch shows a clear inline message.
   Do not silently overwrite either value.
+- Only the name is required; email and phone are optional (2026-11-01). Neither
+  field carries the word "Optional", and the email carries no asterisk: the row
+  reads as three plain labels.
 - Email validates format on blur; phone accepts digits, spaces, `+`, `-`,
   parentheses.
+- Narrow widths (2026-11-01): this step is used from a phone, so the row
+  reflows rather than shrinking. Below 1024 px name and email share a line and
+  the phone field takes the next, and every control there is a 44 px target.
+  Below 640 px each field takes its own line and the row is removed by a named
+  full-width button, not the 28 px icon; the icon still names the person it
+  removes for a screen reader. "Total number of PIC" keeps following the rows.
 - Remove row asks for confirmation only when the row has content; empty rows
   remove immediately.
 - SDG selection is a searchable multi-select with numbered chips ("1 No
@@ -260,6 +269,11 @@ Rail card (sticky; collapsed meter below 1280 px):
 - [ ] Required labels from reference data appear in the checklist, not a blocking
       modal.
 - [ ] Rail is sticky at ≥1280 px and collapses to a one-line text meter below.
+- [ ] At 390 px step 3 stacks one field per line with 44 px targets, the remove
+      action names the person it removes, and "Total number of PIC" still
+      follows the rows.
+- [ ] Below 1024 px the step's action bar sticks to the foot of the viewport and
+      covers no field; at 390 px the primary action takes the remaining width.
 - [ ] Keyboard: Alt+←/→ steps, Ctrl/Cmd+S saves, Enter does not submit early.
 - [ ] Loading, autosave-failure, validation-failure, network-failure, denied, and
       restored-draft states are implemented.

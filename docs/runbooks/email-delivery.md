@@ -8,14 +8,20 @@ finish it once DNS lands.
 
 Resend only accepts a sender on a verified domain, so while `send.buksu.edu.ph`
 waits on DNS the Worker sends through **Brevo** instead. Brevo verifies a single
-*sender address* rather than a domain, so mail reaches every real recipient with
+_sender address_ rather than a domain, so mail reaches every real recipient with
 no DNS records at all:
 
-| Var              | Value                                  | Effect                                                                |
-| ---------------- | -------------------------------------- | --------------------------------------------------------------------- |
-| `EMAIL_PROVIDER` | `brevo`                                | Selects the adapter in `apps/api/src/email/provider.ts`.               |
-| `EMAIL_FROM`     | a mailbox confirmed in Brevo → Senders | Brevo refuses the send if this address is not verified there.          |
-| `EMAIL_REPLY_TO` | `ovpcasss@buksu.edu.ph`                | Replies reach the office; the sending address above is never read.     |
+| Var              | Value                                  | Effect                                                             |
+| ---------------- | -------------------------------------- | ------------------------------------------------------------------ |
+| `EMAIL_PROVIDER` | `brevo`                                | Selects the adapter in `apps/api/src/email/provider.ts`.           |
+| `EMAIL_FROM`     | a mailbox confirmed in Brevo → Senders | Brevo refuses the send if this address is not verified there.      |
+| `EMAIL_REPLY_TO` | `ovpcasss@buksu.edu.ph`                | Replies reach the office; the sending address above is never read. |
+
+**Database override.** An administrator can save the sender and key on
+**Admin → Email → Variables** (`/admin/emails?tab=variables`); the saved row in
+`settings` (key `email-sender`) wins over the two variables above for every send.
+If mail still uses an old address after `wrangler deploy`, check that page before
+debugging the Worker.
 
 Setup, once per environment:
 

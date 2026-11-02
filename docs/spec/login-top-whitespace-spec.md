@@ -32,8 +32,8 @@ above it.
   edge sits **120 px** below the card's top edge.
 - `apps/web/src/lib/components/ScarfCorners.svelte:8-33`: the decoration layer is
   `position: absolute; inset: 0; overflow: hidden; pointer-events: none;
-  z-index: 0`. Each PNG is `width: clamp(92px, 22vw, 118px); height: auto;
-  top: -0.5rem; left/right: -0.75rem`.
+z-index: 0`. Each PNG is `width: clamp(92px, 22vw, 118px); height: auto;
+top: -0.5rem; left/right: -0.75rem`.
 - The PNGs are 300×380, so at a 440 px card they render **118 × 149 px**: the left
   scarf occupies x −12…106, the right x 334…452 (clipped by the card), both from
   y −8…141.

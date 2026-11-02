@@ -198,20 +198,20 @@ Separate D1/R2/Queue resources for **staging** and **production**. Preview deplo
 
 ### 7.3 Endpoint groups (initial)
 
-| Group          | Endpoints (sketch)                                                                                                                                                                                  |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth           | `POST /auth/register`, `POST /auth/verify-email`, `POST /auth/login`, `POST /auth/logout`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `GET /me`                                     |
-| Users (admin)  | `GET /users`, `PATCH /users/:id/role`, `POST /users/:id/approve`, `POST /users/:id/disable`                                                                                                         |
-| Reference data | `GET /ref/*` (all authenticated), `POST/PATCH/DELETE /ref/*` (admin)                                                                                                                                |
+| Group          | Endpoints (sketch)                                                                                                                                                                                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Auth           | `POST /auth/register`, `POST /auth/verify-email`, `POST /auth/login`, `POST /auth/logout`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `GET /me`                                                                                                                |
+| Users (admin)  | `GET /users`, `PATCH /users/:id/role`, `POST /users/:id/approve`, `POST /users/:id/disable`                                                                                                                                                                                    |
+| Reference data | `GET /ref/*` (all authenticated), `POST/PATCH/DELETE /ref/*` (admin)                                                                                                                                                                                                           |
 | Reports        | `POST /reports` (admin creates, mints AR No.), `GET /reports`, `GET /reports/:id`, `PATCH /reports/:id` (admin, until approved), `PATCH /reports/:id/completed-date` (admin, approved), `DELETE /reports/:id` (PENDING, or an archived record), `POST /reports/:id/invitation` |
-| Narrative      | `PUT /reports/:id/narrative` (PIC draft), `POST /reports/:id/submit` (PIC, idempotent)                                                                                                              |
-| Decision       | `POST /reports/:id/decision` (admin: `APPROVE` or `RETURN` with comments)                                                                                                                           |
-| Attachments    | `POST /reports/:id/attachments/presign`, `POST /reports/:id/attachments/:aid/confirm`, `GET /reports/:id/attachments/:aid/url`, `DELETE ...` (PIC while the narrative is open)                      |
-| Receipts       | `GET /reports/:id/receipts`, `GET /reports/:id/receipts/:receiptId/file` (F-013 PDF; admin or the named PIC), `GET /receipts` (the caller's own history)                                            |
-| Search         | `GET /search/reports` with filters, scoped to the caller's records                                                                                                                                  |
-| Exports        | `POST /exports/monitoring` (type, term) returning an `.xlsx`                                                                                                                                        |
-| Audit          | `GET /audit` (admin), `GET /reports/:id/events` (timeline)                                                                                                                                          |
-| Profile        | `PUT /me/signature`, `POST /me/password`                                                                                                                                                            |
+| Narrative      | `PUT /reports/:id/narrative` (PIC draft), `POST /reports/:id/submit` (PIC, idempotent)                                                                                                                                                                                         |
+| Decision       | `POST /reports/:id/decision` (admin: `APPROVE` or `RETURN` with comments)                                                                                                                                                                                                      |
+| Attachments    | `POST /reports/:id/attachments/presign`, `POST /reports/:id/attachments/:aid/confirm`, `GET /reports/:id/attachments/:aid/url`, `DELETE ...` (PIC while the narrative is open)                                                                                                 |
+| Receipts       | `GET /reports/:id/receipts`, `GET /reports/:id/receipts/:receiptId/file` (F-013 PDF; admin or the named PIC), `GET /receipts` (the caller's own history)                                                                                                                       |
+| Search         | `GET /search/reports` with filters, scoped to the caller's records                                                                                                                                                                                                             |
+| Exports        | `POST /exports/monitoring` (type, term) returning an `.xlsx`                                                                                                                                                                                                                   |
+| Audit          | `GET /audit` (admin), `GET /reports/:id/events` (timeline)                                                                                                                                                                                                                     |
+| Profile        | `PUT /me/signature`, `POST /me/password`                                                                                                                                                                                                                                       |
 
 ### 7.4 Authentication details
 
@@ -255,7 +255,8 @@ Rules:
 ### 7.6 Validation
 
 - One Zod schema for the activity the admin registers (three wizard steps) and one for the PIC's narrative. Validation runs inside `POST /reports`, `PATCH /reports/:id`, and `POST /reports/:id/submit`; there is no separate validate endpoint.
-- On create and edit: at least one SDG, at least one PIC with a name and email, activity count ≥ 1, and a complete activity block. The three-step UI reddens a field only after an attempt to continue, never on focus.
+- On create and edit: at least one SDG, at least one PIC with a name, activity count ≥ 1, and a complete activity block. The three-step UI reddens a field only after an attempt to continue, never on focus.
+- A PIC email is optional (2026-11-01). When it is given it must be a valid address that no other row on the record repeats, and it is the person's account and mailbox; a row without one gets no account, receives no assignment, receipt, reminder, or correction mail, and cannot write the narrative. The wizard never prints the word "Optional" beside either field.
 - On submit: the narrative is required; attachments must be in `CONFIRMED` state (uploaded and verified) to count, and the configured attachment rules still apply.
 
 ### 7.7 AR No. reference numbers
@@ -344,7 +345,7 @@ All tables: `id` (ULID/UUID text), `created_at`, `updated_at` (UTC ISO text). So
   - narrative, date_received (= first submitted_at), date_completed (= completed_on, the office's own date, falling back to approved_at)
   - submitted_at, submitted_by_user_id, narrative_signature_key, narrative_signed_at, approved_at, approved_by_user_id, approval_signature_key, approval_signed_at
 - `report_sdgs`: report_id, sdg_id (many-to-many, since a record can touch several SDGs)
-- `report_pics`: report_id, user_id (linked account, nullable), name, email (both required), phone, sort_order, invited_at (more than one PIC per record; the sheet columns export as joined text)
+- `report_pics`: report_id, user_id (linked account, nullable), name (required), email (nullable since 2026-11-01; when present it is the account and mailbox), phone, sort_order, invited_at (more than one PIC per record; the sheet columns export as joined text)
 - `report_comments`: report_id, author, body, kind (`RETURN|OFFICE_NOTE`), round, created_at
 - `attachments`: report_id, label/category, original_name, object_key, size, mime, sha256, status (`PENDING|CONFIRMED|DELETED`), uploaded_by
 - `reference_counters`: name (`'AR'`), last_seq (one global number sequence)
