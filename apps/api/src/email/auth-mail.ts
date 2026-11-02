@@ -7,6 +7,7 @@ import {
 } from '@par/email';
 
 import type { Env } from '../env';
+import { loadEmailCopy } from './copy-store';
 import { enqueueEmail } from './outbox';
 
 export interface AccountMail {
@@ -31,65 +32,92 @@ export interface AccountNotice {
  * triggered it. None of these kinds can be muted by the recipient.
  */
 export async function sendVerificationEmail(env: Env, mail: AccountMail): Promise<void> {
+  const copy = await loadEmailCopy(env);
+
   await enqueueEmail(env, {
     kind: 'VERIFY',
     to: mail.to,
-    content: verifyEmailTemplate({
-      fullName: mail.fullName,
-      origin: mail.origin,
-      actionUrl: link(mail, '/verify-email', { email: mail.to }),
-    }),
+    content: verifyEmailTemplate(
+      {
+        fullName: mail.fullName,
+        origin: mail.origin,
+        actionUrl: link(mail, '/verify-email', { email: mail.to }),
+      },
+      copy.get('VERIFY'),
+    ),
   });
 }
 
 export async function sendPasswordResetEmail(env: Env, mail: AccountMail): Promise<void> {
+  const copy = await loadEmailCopy(env);
+
   await enqueueEmail(env, {
     kind: 'RESET',
     to: mail.to,
-    content: resetPasswordTemplate({
-      fullName: mail.fullName,
-      origin: mail.origin,
-      actionUrl: link(mail, '/reset-password'),
-    }),
+    content: resetPasswordTemplate(
+      {
+        fullName: mail.fullName,
+        origin: mail.origin,
+        actionUrl: link(mail, '/reset-password'),
+      },
+      copy.get('RESET'),
+    ),
   });
 }
 
 /** Assigned, not activated: the message says the account still waits for activation. */
 export async function sendRoleAssignedEmail(env: Env, notice: AccountNotice): Promise<void> {
+  const copy = await loadEmailCopy(env);
+
   await enqueueEmail(env, {
     kind: 'ROLE_ASSIGNED',
     to: notice.to,
-    content: roleAssignedTemplate({
-      fullName: notice.fullName,
-      origin: notice.origin,
-      ...(notice.roleLabel === undefined ? {} : { roleLabel: notice.roleLabel }),
-      ...(notice.roleDescription === undefined ? {} : { roleDescription: notice.roleDescription }),
-      ...(notice.origin === undefined ? {} : { actionUrl: `${notice.origin}/login` }),
-    }),
+    content: roleAssignedTemplate(
+      {
+        fullName: notice.fullName,
+        origin: notice.origin,
+        ...(notice.roleLabel === undefined ? {} : { roleLabel: notice.roleLabel }),
+        ...(notice.roleDescription === undefined
+          ? {}
+          : { roleDescription: notice.roleDescription }),
+        ...(notice.origin === undefined ? {} : { actionUrl: `${notice.origin}/login` }),
+      },
+      copy.get('ROLE_ASSIGNED'),
+    ),
   });
 }
 
 export async function sendAccountActivatedEmail(env: Env, notice: AccountNotice): Promise<void> {
+  const copy = await loadEmailCopy(env);
+
   await enqueueEmail(env, {
     kind: 'ACCOUNT_ACTIVATED',
     to: notice.to,
-    content: accountActivatedTemplate({
-      fullName: notice.fullName,
-      origin: notice.origin,
-      ...(notice.origin === undefined ? {} : { actionUrl: `${notice.origin}/login` }),
-    }),
+    content: accountActivatedTemplate(
+      {
+        fullName: notice.fullName,
+        origin: notice.origin,
+        ...(notice.origin === undefined ? {} : { actionUrl: `${notice.origin}/login` }),
+      },
+      copy.get('ACCOUNT_ACTIVATED'),
+    ),
   });
 }
 
 export async function sendAccountDisabledEmail(env: Env, notice: AccountNotice): Promise<void> {
+  const copy = await loadEmailCopy(env);
+
   await enqueueEmail(env, {
     kind: 'ACCOUNT_DISABLED',
     to: notice.to,
-    content: accountDisabledTemplate({
-      fullName: notice.fullName,
-      origin: notice.origin,
-      ...(env.OFFICE_EMAIL ? { officeEmail: env.OFFICE_EMAIL } : {}),
-    }),
+    content: accountDisabledTemplate(
+      {
+        fullName: notice.fullName,
+        origin: notice.origin,
+        ...(env.OFFICE_EMAIL ? { officeEmail: env.OFFICE_EMAIL } : {}),
+      },
+      copy.get('ACCOUNT_DISABLED'),
+    ),
   });
 }
 

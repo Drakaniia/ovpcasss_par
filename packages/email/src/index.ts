@@ -36,7 +36,18 @@ export type {
   EmailProvider,
   EmailProviderKind,
 } from './provider';
-export { SAMPLE_ORIGIN, emailSamples, sampleFor, type EmailSample } from './samples';
+export type { EmailTemplateCopy } from '@par/shared';
+export { EMAIL_TEMPLATE_DEFAULTS, defaultCopyFor } from './copy';
+export { resolveEmailTemplate, type EmailTemplateContext } from './resolve';
+export {
+  SAMPLE_ORIGIN,
+  emailSamples,
+  previewEmail,
+  sampleContextFor,
+  sampleFor,
+  tokenOptionsFor,
+  type EmailSample,
+} from './samples';
 export {
   escapeHtml,
   renderShell,

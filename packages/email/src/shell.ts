@@ -37,6 +37,8 @@ export interface ShellInput {
   subject: string;
   /** The one h1; a sentence, never a fragment. */
   heading: string;
+  /** Editable greeting; `Good day.` is the office's own opening. */
+  greeting?: string;
   intro: readonly string[];
   facts?: readonly ShellFact[] | undefined;
   quote?: ShellQuote | undefined;
@@ -45,6 +47,8 @@ export interface ShellInput {
   reference?: string | undefined;
   /** Extra footer line, e.g. "The document is available in the app." */
   note?: string | undefined;
+  /** False when the office switched the reply line off in the copy editor. */
+  showReplyNotice?: boolean;
   /** Absolute URL of the header logo; absent leaves the header to the text band. */
   logoUrl?: string | undefined;
 }
@@ -176,9 +180,11 @@ function signatureHtml(): string {
 }
 
 function footerHtml(input: ShellInput): string {
-  const lines = [input.reference, input.note, REPLY_NOTICE].filter((line): line is string =>
-    Boolean(line),
-  );
+  const lines = [
+    input.reference,
+    input.note,
+    input.showReplyNotice === false ? undefined : REPLY_NOTICE,
+  ].filter((line): line is string => Boolean(line));
 
   return (
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:20px 0 0;">` +
@@ -216,7 +222,7 @@ function html(input: ShellInput): string {
     `<tr><td style="height:3px;background:${SHELL_COLORS.gold};font-size:0;line-height:0;">&nbsp;</td></tr>` +
     `<tr><td style="padding:24px;">` +
     `<h1 style="margin:0 0 16px;font:600 18px/26px ${FONT};color:${SHELL_COLORS.navy};">${escapeHtml(input.heading)}</h1>` +
-    `<p style="margin:0 0 12px;font:400 14px/22px ${FONT};color:${SHELL_COLORS.ink};">Good day.</p>` +
+    `<p style="margin:0 0 12px;font:400 14px/22px ${FONT};color:${SHELL_COLORS.ink};">${escapeHtml(input.greeting ?? 'Good day.')}</p>` +
     paragraphs +
     (input.facts && input.facts.length > 0 ? factsHtml(input.facts) : '') +
     (input.quote ? quoteHtml(input.quote) : '') +
@@ -228,7 +234,7 @@ function html(input: ShellInput): string {
 }
 
 function text(input: ShellInput): string {
-  const parts: string[] = ['Good day.', ''];
+  const parts: string[] = [input.greeting ?? 'Good day.', ''];
 
   for (const paragraph of input.intro) {
     parts.push(...wrapText(paragraph), '');
@@ -253,7 +259,7 @@ function text(input: ShellInput): string {
 
   if (input.reference) parts.push(input.reference, '');
   if (input.note) parts.push(...wrapText(input.note), '');
-  parts.push(...wrapText(REPLY_NOTICE));
+  if (input.showReplyNotice !== false) parts.push(...wrapText(REPLY_NOTICE));
 
   return parts
     .join('\n')

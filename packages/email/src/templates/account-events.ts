@@ -1,102 +1,62 @@
-import { DEFAULT_OFFICE_EMAIL, logoUrl } from '../identity';
-import { renderShell, type ShellAction } from '../shell';
+import type { EmailKind, EmailTemplateCopy } from '@par/shared';
+
+import { accountContext } from '../context';
+import { defaultCopyFor } from '../copy';
+import type { AccountEventData } from '../data';
 import type { EmailContent } from '../provider';
+import { resolveEmailTemplate } from '../resolve';
+import { renderShell } from '../shell';
+
+export type { AccountEventData } from '../data';
 
 /**
  * Account and security mail (email spec §5.2). These kinds have no mute switch:
  * a person cannot opt out of being told their password was reset or that their
- * account was disabled. `ROLE_ASSIGNED` takes effect immediately: no activation
- * step follows a role change.
+ * account was disabled. The words are the office's; the kind's structure,
+ * signature block, and link are not.
  */
-export interface AccountEventData {
-  fullName: string;
-  /** Absolute link, built by the API from the request origin. */
-  actionUrl?: string;
-  roleLabel?: string;
-  roleDescription?: string;
-  officeEmail?: string;
-  /** Absolute app origin, for the header logo. */
-  origin?: string | undefined;
+function content(
+  kind: EmailKind,
+  data: AccountEventData,
+  urlToken: 'verifyUrl' | 'resetUrl' | 'loginUrl',
+  copy: EmailTemplateCopy | undefined,
+): EmailContent {
+  return renderShell(
+    resolveEmailTemplate(copy ?? defaultCopyFor(kind), accountContext(data, urlToken)),
+  );
 }
 
-function action(data: AccountEventData, label: string): ShellAction | undefined {
-  return data.actionUrl ? { label, url: data.actionUrl } : undefined;
+export function verifyEmailTemplate(
+  data: AccountEventData,
+  copy?: EmailTemplateCopy,
+): EmailContent {
+  return content('VERIFY', data, 'verifyUrl', copy);
 }
 
-export function verifyEmailTemplate(data: AccountEventData): EmailContent {
-  const primary = action(data, 'Verify your email address');
-
-  return renderShell({
-    subject: 'Verify your email address',
-    heading: 'Confirm your email address',
-    intro: [
-      `Hello ${data.fullName}. An account was registered for this address with the OVPCASSS Paperless PAR system.`,
-      'Confirm the address to continue. If you did not register, you can ignore this message and the account will not be activated.',
-    ],
-    ...(primary ? { action: primary } : {}),
-    note: 'The link expires. Request a new message from the sign-in page if it no longer works.',
-    logoUrl: logoUrl(data.origin),
-  });
+export function resetPasswordTemplate(
+  data: AccountEventData,
+  copy?: EmailTemplateCopy,
+): EmailContent {
+  return content('RESET', data, 'resetUrl', copy);
 }
 
-export function resetPasswordTemplate(data: AccountEventData): EmailContent {
-  const primary = action(data, 'Reset your password');
-
-  return renderShell({
-    subject: 'Reset your password',
-    heading: 'Reset your password',
-    intro: [
-      `Hello ${data.fullName}. A password reset was requested for your account.`,
-      'If you requested it, use the link below. If not, no action is required and your password stays as it is.',
-    ],
-    ...(primary ? { action: primary } : {}),
-    note: 'The link can be used once and expires. Contact the office if you did not request a reset.',
-    logoUrl: logoUrl(data.origin),
-  });
+export function roleAssignedTemplate(
+  data: AccountEventData,
+  copy?: EmailTemplateCopy,
+): EmailContent {
+  return content('ROLE_ASSIGNED', data, 'loginUrl', copy);
 }
 
-export function roleAssignedTemplate(data: AccountEventData): EmailContent {
-  const primary = action(data, 'Sign in');
-
-  return renderShell({
-    subject: `Your role has been assigned: ${data.roleLabel ?? 'assigned role'}`,
-    heading: 'Your role has been assigned',
-    intro: [
-      `Hello ${data.fullName}. The OVPCASSS administrator assigned you the role of ${data.roleLabel ?? 'a role'}.`,
-      data.roleDescription ?? 'The role decides which reports and queues your account can reach.',
-      'Sign in to continue with the work available to that role.',
-    ],
-    ...(primary ? { action: primary } : {}),
-    logoUrl: logoUrl(data.origin),
-  });
+export function accountActivatedTemplate(
+  data: AccountEventData,
+  copy?: EmailTemplateCopy,
+): EmailContent {
+  return content('ACCOUNT_ACTIVATED', data, 'loginUrl', copy);
 }
 
-export function accountActivatedTemplate(data: AccountEventData): EmailContent {
-  const primary = action(data, 'Sign in');
-
-  return renderShell({
-    subject: 'Your account is active',
-    heading: 'Your account is active',
-    intro: [
-      `Hello ${data.fullName}. Your OVPCASSS Paperless PAR account is now active.`,
-      'Sign in with your university email address and the password you set at registration.',
-    ],
-    ...(primary ? { action: primary } : {}),
-    logoUrl: logoUrl(data.origin),
-  });
-}
-
-export function accountDisabledTemplate(data: AccountEventData): EmailContent {
-  const office = data.officeEmail ?? DEFAULT_OFFICE_EMAIL;
-
-  return renderShell({
-    subject: 'Your account has been disabled',
-    heading: 'Your account has been disabled',
-    intro: [
-      `Hello ${data.fullName}. An administrator disabled your OVPCASSS Paperless PAR account.`,
-      `You can no longer sign in. Contact the office at ${office} if you believe this is a mistake.`,
-    ],
-    facts: [{ label: 'Office', value: office }],
-    logoUrl: logoUrl(data.origin),
-  });
+export function accountDisabledTemplate(
+  data: AccountEventData,
+  copy?: EmailTemplateCopy,
+): EmailContent {
+  return content('ACCOUNT_DISABLED', data, 'loginUrl', copy);
 }
