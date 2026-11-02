@@ -827,6 +827,13 @@ Three surfaces, no more:
    existing download stays the primary.
 3. **Profile** — an Email section with two switches (§8).
 
+A fourth surface, **Admin → Email → Messages**, makes the reader-facing copy of
+every kind admin-owned rather than a string literal. That work refines §5, §6,
+and §9.4 and is specified in
+[`email-message-editor-spec.md`](email-message-editor-spec.md); it does not
+change the shell, the signature block, the subject tag, the outbox, or the
+delivery path.
+
 Constraints from `AGENTS.md` and `00-foundation.md`: Svelte 5 runes, no new
 primitives, desktop-only widths (the foundation notice applies below 1024 px),
 Asia/Manila times, English only, no exclamation marks, keyboard reachable but

@@ -232,6 +232,20 @@ least one row); a disabled state carries the same adjacent reason.
 
 ---
 
+## 7a. `/admin/emails?tab=messages` — Messages
+
+The third tab, specified in
+[`../email-message-editor-spec.md`](../email-message-editor-spec.md) (2026-11-02):
+the administrator rewrites the reader-facing copy of each of the 15 mail kinds,
+sees a live preview rendered by the API, and restores a kind or all of them to
+the built-in copy. The shell, signature block, logo, and `[OVPCASSS PAR]` tag
+stay code. The page adds no filled button of its own beyond **Save changes**.
+
+Acceptance for this tab lives in the message editor spec's §11 and §14; the
+existing log, variables, and responsive rules in this phase are unchanged.
+
+---
+
 ## 8. Acceptance checklist
 
 - [ ] `/admin/emails` exists, is reachable from the Admin section tabs and from the

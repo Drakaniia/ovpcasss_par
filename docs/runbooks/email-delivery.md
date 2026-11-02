@@ -23,6 +23,15 @@ no DNS records at all:
 If mail still uses an old address after `wrangler deploy`, check that page before
 debugging the Worker.
 
+**Message copy.** The words of every outbound message are edited on
+**Admin → Email → Messages** (`/admin/emails?tab=messages`), one `settings` row
+per kind (`email-template:<KIND>`) with the built-in copy as the default. A
+missing row means the built-in copy is sent; **Restore this message** or
+**Restore all defaults** deletes the row. Messages already queued or stored keep
+the copy they were composed with, so an edit never rewrites the log. A deploy
+that changes a default reaches every kind the office has not edited and silently
+leaves the edited ones alone — to pick up a changed default, restore that kind.
+
 Setup, once per environment:
 
 1. Brevo → Senders & IP → **Senders**: add the address used in `EMAIL_FROM` and
