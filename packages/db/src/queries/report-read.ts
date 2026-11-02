@@ -324,10 +324,7 @@ export function createReportReadQueries(db: Database) {
         // submitted, so its words only match for a reader who may open it.
         const readableNarrative = options.viewer.isAdmin
           ? undefined
-          : or(
-              eq(reports.status, 'PENDING'),
-              eq(reports.submittedByUserId, options.viewer.userId),
-            );
+          : or(eq(reports.status, 'PENDING'), eq(reports.submittedByUserId, options.viewer.userId));
         conditions.push(
           or(
             like(reports.referenceNo, term),

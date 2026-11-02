@@ -19,7 +19,8 @@ export interface PicAssignment {
   id?: string | undefined;
   userId?: string | null | undefined;
   name: string;
-  email: string;
+  /** Absent for a person the office named without inviting. */
+  email?: string | null | undefined;
   phone?: string | null | undefined;
   invitedAt?: string | null | undefined;
 }
@@ -229,7 +230,7 @@ export function createReportWriteQueries(db: Database) {
             reportId,
             userId: pic.userId ?? null,
             name: pic.name,
-            email: pic.email.toLowerCase(),
+            email: pic.email ? pic.email.toLowerCase() : null,
             phone: pic.phone ?? null,
             sortOrder: index,
             invitedAt: pic.invitedAt ?? null,
@@ -358,7 +359,11 @@ export function createReportWriteQueries(db: Database) {
      */
     async deleteRecord(id: string): Promise<{ sequence: number } | null> {
       const rows = await db
-        .select({ sequence: reports.sequence, status: reports.status, archivedAt: reports.archivedAt })
+        .select({
+          sequence: reports.sequence,
+          status: reports.status,
+          archivedAt: reports.archivedAt,
+        })
         .from(reports)
         .where(eq(reports.id, id))
         .limit(1);
