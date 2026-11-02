@@ -62,9 +62,7 @@ describe('createResendProvider', () => {
   it('routes replies to the configured address', async () => {
     const fetchMock = stubFetch(new Response('{}', { status: 200 }));
 
-    await createResendProvider('key-123', FROM, { replyTo: 'ovpcasss@buksu.edu.ph' }).send(
-      message,
-    );
+    await createResendProvider('key-123', FROM, { replyTo: 'ovpcasss@buksu.edu.ph' }).send(message);
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(String(init.body))).toMatchObject({ reply_to: 'ovpcasss@buksu.edu.ph' });

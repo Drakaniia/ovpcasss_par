@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { SHELL_COLORS, SIGNATURE_LINES } from './identity';
+import { OFFICE_NAME, SHELL_COLORS, SIGNATURE_LINES } from './identity';
 import { renderShell } from './shell';
 
 const content = renderShell({
@@ -59,10 +59,30 @@ describe('renderShell', () => {
     }
   });
 
-  it('loads no external font, stylesheet, image, or tracking pixel', () => {
+  it('loads no external font, stylesheet, image, or tracking pixel when it has no logo', () => {
     expect(content.html).not.toMatch(/<link|<img|<style|@import|url\(/);
     expect(content.html).not.toContain('fonts.');
     expect(content.html).not.toContain('http://');
+  });
+
+  it('puts the hosted logo at the left of the band and drops the repeated wordmark', () => {
+    const withLogo = renderShell({
+      subject: 'x',
+      heading: 'h',
+      intro: ['i'],
+      logoUrl: 'https://par.example.edu/brand/ovpcasss-logo-email.png',
+    });
+
+    expect(withLogo.html.match(/<img\b/g)).toHaveLength(1);
+    expect(withLogo.html).toContain('src="https://par.example.edu/brand/ovpcasss-logo-email.png"');
+    expect(withLogo.html).toContain('alt="OVPCASSS"');
+    expect(withLogo.html).toContain(OFFICE_NAME);
+    // The logo already spells the wordmark, so the band does not repeat it.
+    expect(withLogo.html).not.toContain('letter-spacing:2px');
+    expect(content.html).toContain('letter-spacing:2px');
+    // The logo is the only remote asset: still no stylesheet, style block, or CSS URL.
+    expect(withLogo.html).not.toMatch(/<link|<style|@import|url\(/);
+    expect(withLogo.text).not.toContain('.png');
   });
 
   it('has no exclamation marks in the copy', () => {

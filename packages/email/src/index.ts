@@ -12,6 +12,9 @@ export {
 } from './format';
 export {
   DEFAULT_OFFICE_EMAIL,
+  EMAIL_LOGO_HEIGHT,
+  EMAIL_LOGO_PATH,
+  EMAIL_LOGO_WIDTH,
   EMAIL_SUBJECT_TAG,
   OFFICE_ADDRESS_LINES,
   OFFICE_NAME,
@@ -22,6 +25,7 @@ export {
   SIGNATURE_LINES,
   SIGNATURE_RULE,
   UNIVERSITY_NAME,
+  logoUrl,
 } from './identity';
 export type {
   EmailAttachment,
