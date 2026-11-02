@@ -122,7 +122,8 @@ export function sectionTabsFor(section: NavId | null, role: Role | null | undefi
         { label: 'Users', href: '/admin/users' },
         { label: 'Reference data', href: referenceDataHref('campuses') },
         { label: 'Audit', href: '/admin/audit' },
-        { label: 'Email log', href: '/admin/emails', attention: 'emailFailures' },
+        // The delivery log and the sender variables are two pages inside Email.
+        { label: 'Email', href: '/admin/emails', attention: 'emailFailures' },
       ];
     default:
       return [];
