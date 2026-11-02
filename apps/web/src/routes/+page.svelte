@@ -230,11 +230,19 @@
   .personnel-main,
   .personnel-rail {
     min-width: 0;
+    max-width: 100%;
   }
 
   @media (min-width: 1280px) {
     .personnel-home {
       grid-template-columns: minmax(0, 1fr) 320px;
+    }
+  }
+
+  /* The rail already sits under the register here; give the phone its width back. */
+  @media (max-width: 639px) {
+    .personnel-home {
+      gap: 16px;
     }
   }
 </style>

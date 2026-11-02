@@ -1,5 +1,5 @@
 <script lang="ts">
-  import AdminEmailsPage from '$lib/features/email-log/presentation/AdminEmailsPage.svelte';
+  import AdminEmailPage from '$lib/features/email-log/presentation/AdminEmailPage.svelte';
 </script>
 
-<AdminEmailsPage />
+<AdminEmailPage />
