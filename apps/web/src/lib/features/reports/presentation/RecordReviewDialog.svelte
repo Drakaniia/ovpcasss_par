@@ -232,9 +232,10 @@
     overflow-wrap: anywhere;
   }
 
-  /* A blank optional field is shown, but not dressed up as a value. */
+  /* A blank optional field is shown, but not dressed up as a value. Secondary
+     keeps it muted without dropping the placeholder under AA. */
   .row.is-empty dd {
-    color: var(--text-disabled);
+    color: var(--text-secondary);
   }
 
   .review-actions {
@@ -257,6 +258,26 @@
     .row {
       gap: 2px;
       grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* The report wizard is a thumb surface: the pencil keeps a 44 px target. */
+  @media (max-width: 639px) {
+    .edit {
+      min-height: 44px;
+      padding-inline: 12px;
+    }
+
+    .review-head {
+      padding: 18px 18px 14px;
+    }
+
+    .review-body {
+      padding-inline: 18px;
+    }
+
+    .review-actions {
+      padding: 12px 18px;
     }
   }
 </style>

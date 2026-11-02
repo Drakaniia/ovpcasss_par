@@ -7,7 +7,8 @@ import { REPORT_TYPE_LABELS } from '$lib/format/report-type';
 /**
  * The personnel workspace (spec §8.2): one list of the records that name the
  * account, with a status-appropriate action and no second page. The server
- * scopes the list to PIC membership; the filters are status and activity dates.
+ * scopes the list to the open records plus the ones this account is a PIC on or
+ * submitted, so another PIC's filed narrative never appears here.
  */
 
 export type PersonnelRow = {

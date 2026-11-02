@@ -129,8 +129,10 @@
     justify-content: space-between;
   }
 
+  /* A hint is still text: `--text-disabled` (2.6:1) reads as unavailable, not as
+     a note the reader must be able to read. Secondary clears AA at 6.1:1. */
   .field-optional {
-    color: var(--text-disabled);
+    color: var(--text-secondary);
     font-weight: 400;
   }
 
@@ -388,22 +390,29 @@
     animation: backdrop-in var(--duration-base) ease-out;
   }
 
+  /* Only the scrim's opacity animates. Animating the filter radius made the
+     browser re-blur the entire viewport on every frame, so the very first
+     dialog of a session stuttered; the radius is now constant and painted once. */
   @keyframes backdrop-in {
     from {
-      -webkit-backdrop-filter: blur(0);
-      backdrop-filter: blur(0);
       opacity: 0;
     }
   }
 
-  /* Tailwind's preflight resets the UA `margin: auto`, so centre dialogs explicitly. */
+  /* Tailwind's preflight resets the UA `margin: auto`, so centre dialogs on the
+     element itself: every `<dialog>` is centred, including the ones that do not
+     use `.dialog` (the email full preview). The side drawer and the tour set
+     `margin: 0` in their own styles, so they stay pinned. */
+  dialog {
+    margin: auto;
+  }
+
   .dialog {
     background: var(--surface-card);
     border: 0;
     border-radius: var(--radius-card-lg);
     box-shadow: var(--shadow-floating);
     color: var(--text-primary);
-    margin: auto;
     max-width: 440px;
     padding: 24px;
     width: calc(100vw - 48px);
@@ -420,6 +429,19 @@
     .dialog[open] {
       opacity: 0;
       transform: translateY(8px) scale(0.985);
+    }
+  }
+
+  /* Reduced motion keeps the fade and drops the travel. */
+  @media (prefers-reduced-motion: reduce) {
+    .dialog[open] {
+      transition: opacity var(--duration-base) ease;
+    }
+
+    @starting-style {
+      .dialog[open] {
+        transform: none;
+      }
     }
   }
 
