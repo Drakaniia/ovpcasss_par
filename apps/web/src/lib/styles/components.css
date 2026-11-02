@@ -494,6 +494,45 @@
     }
   }
 
+  /* ---------- Narrow widths (the mobile screens, 2026-11-01) ---------- */
+
+  @media (max-width: 1023px) {
+    .page-content {
+      padding: 16px;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .page-content {
+      padding: 12px;
+    }
+
+    h1 {
+      font-size: 20px;
+    }
+
+    h2 {
+      font-size: 16px;
+    }
+
+    /* A thumb is not a cursor: every control keeps a 44 px target. */
+    .btn,
+    .btn-sm,
+    .btn-primary {
+      font-size: 13px;
+      height: 44px;
+      padding-inline: 14px;
+    }
+
+    /* 16 px keeps iOS from zooming the page when a field takes focus. */
+    .input,
+    .select,
+    .textarea {
+      font-size: 16px;
+      min-height: 44px;
+    }
+  }
+
   /* ---------- Print ---------- */
 
   @media print {

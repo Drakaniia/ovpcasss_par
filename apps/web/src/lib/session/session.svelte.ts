@@ -2,6 +2,7 @@ import type { Account, Role, UserStatus } from '@par/shared';
 
 import { api } from '$lib/api/client';
 import { ApiError } from '$lib/api/http';
+import { invalidateReadCache } from '$lib/api/read-cache';
 import {
   loadPreferences,
   resetPreferences,
@@ -62,6 +63,8 @@ export function clearSession(): void {
   session.user = null;
   loaded = true;
   resetPreferences();
+  // A signed-out or replaced session must not leave its reads behind.
+  invalidateReadCache();
 }
 
 /**
