@@ -17,6 +17,7 @@
   import EmailLogFilters from './EmailLogFilters.svelte';
   import EmailLogTable from './EmailLogTable.svelte';
   import EmailMessageDialog from './EmailMessageDialog.svelte';
+  import EmailTabs from './EmailTabs.svelte';
 
   const log = new EmailLogState();
 
@@ -39,7 +40,7 @@
   }
 </script>
 
-<svelte:head><title>Email log · OVPCASSS Paperless PAR</title></svelte:head>
+<svelte:head><title>Email · OVPCASSS Paperless PAR</title></svelte:head>
 
 {#if log.view === 'denied'}
   <div class="card">
@@ -63,9 +64,11 @@
   </div>
 {:else}
   <header class="page-head">
-    <h1>Email log</h1>
+    <h1>Email</h1>
     <p>Every message the system tried to send, with its delivery log.</p>
   </header>
+
+  <EmailTabs active="log" />
 
   {#if log.counts.failed > 0 || log.counts.suppressed > 0}
     <div class="callout" role="status">
