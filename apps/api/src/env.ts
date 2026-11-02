@@ -8,7 +8,10 @@ export interface Env {
   /** Comma-separated addresses that become an active Admin once verified. */
   BOOTSTRAP_ADMIN_EMAILS?: string;
   EMAIL_PROVIDER: EmailProviderKind;
-  /** Verified sender for outbound mail; the sending domain is spec §14 Q15. */
+  /**
+   * Verified sender for outbound mail; the sending domain is spec §14 Q15.
+   * The administrator's saved `email-sender` setting overrides it.
+   */
   EMAIL_FROM: string;
   /**
    * The office mailbox replies are routed to. Set because the sending address
@@ -21,6 +24,7 @@ export interface Env {
   R2_SECRET_ACCESS_KEY: string;
   /** Bucket name for the S3-compatible presign endpoint; defaults to the dev bucket. */
   R2_BUCKET_NAME?: string;
+  /** Deployment fallback for the provider key the settings page can replace. */
   EMAIL_API_KEY: string;
   /** Optional Google OAuth client; the Google button is hidden until both are set. */
   GOOGLE_CLIENT_ID?: string;

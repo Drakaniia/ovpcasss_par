@@ -3,6 +3,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Env } from '../env';
 import { createEmailProvider } from './provider';
 
+// The stored sender has its own test; these tests cover adapter selection.
+vi.mock('./sender', () => ({
+  emailSenderFor: async (env: Env) => ({
+    from: env.EMAIL_FROM,
+    apiKey: env.EMAIL_API_KEY,
+    source: 'environment' as const,
+  }),
+}));
+
 const message = {
   to: '2401115560@student.buksu.edu.ph',
   subject: '[OVPCASSS PAR] AR No. 0001 — acknowledgment receipt',
@@ -38,7 +47,10 @@ describe('createEmailProvider', () => {
   it('sends through Brevo to the real recipient and points replies at the office', async () => {
     const fetchMock = stubFetch();
 
-    await createEmailProvider(envWith({ EMAIL_REPLY_TO: 'ovpcasss@buksu.edu.ph' })).send(message);
+    const provider = await createEmailProvider(
+      envWith({ EMAIL_REPLY_TO: 'ovpcasss@buksu.edu.ph' }),
+    );
+    await provider.send(message);
 
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('https://api.brevo.com/v3/smtp/email');
@@ -52,7 +64,8 @@ describe('createEmailProvider', () => {
   it('sends through Resend when that provider is selected', async () => {
     const fetchMock = stubFetch();
 
-    await createEmailProvider(envWith({ EMAIL_PROVIDER: 'resend' })).send(message);
+    const provider = await createEmailProvider(envWith({ EMAIL_PROVIDER: 'resend' }));
+    await provider.send(message);
 
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('https://api.resend.com/emails');
@@ -63,7 +76,8 @@ describe('createEmailProvider', () => {
     const fetchMock = stubFetch();
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
-    await createEmailProvider(envWith({ EMAIL_PROVIDER: 'console' })).send(message);
+    const provider = await createEmailProvider(envWith({ EMAIL_PROVIDER: 'console' }));
+    await provider.send(message);
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(log).toHaveBeenCalledWith(expect.stringContaining('to=2401115560@student.buksu.edu.ph'));
