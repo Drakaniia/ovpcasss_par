@@ -6,11 +6,16 @@ import { emailSchema, signatureUploadSchema } from './auth';
 import { idSchema, isoDateTimeSchema } from './common';
 import { LOCATION_MAX_LENGTH } from './locations';
 
-/** Every listed PIC needs an email: that address is the account and the mailbox. */
+/**
+ * A person in charge needs a name; the email is optional (2026-11-01). When it
+ * is given it is both the account and the mailbox, and every assignment, receipt
+ * and reminder is sent there. A row without one is a person the office named but
+ * did not invite: no account, no mail, and no narrative of their own.
+ */
 export const reportPicSchema = z.object({
   id: idSchema.optional(),
   name: z.string().trim().min(1).max(200),
-  email: emailSchema,
+  email: emailSchema.optional(),
   phone: z.string().trim().max(50).optional(),
   /** Set when the address already has an account. */
   userId: idSchema.optional(),
