@@ -1,29 +1,16 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import AuthTitleBar from '$lib/features/window-chrome/presentation/AuthTitleBar.svelte';
   import BlueprintBackground from '$lib/components/BlueprintBackground.svelte';
 
   let {
     children,
     heading,
-    showMachine = true,
+    showFigure = true,
   }: {
     children: import('svelte').Snippet;
     heading: string;
-    showMachine?: boolean;
+    showFigure?: boolean;
   } = $props();
-
-  let frame: HTMLIFrameElement | undefined = $state();
-  let frameHeight = $state(520);
-
-  onMount(() => {
-    if (!frame) return;
-    const resize = new ResizeObserver(([entry]) => {
-      frameHeight = 104 + Math.max(0, entry.contentRect.width - 48) * (390 / 640);
-    });
-    resize.observe(frame);
-    return () => resize.disconnect();
-  });
 </script>
 
 <AuthTitleBar />
@@ -31,7 +18,7 @@
 <div class="auth-page">
   <BlueprintBackground />
 
-  <div class="auth-layout" class:with-machine={showMachine}>
+  <div class="auth-layout" class:with-figure={showFigure}>
     <div class="auth-stack">
       <div class="auth-brand">
         <img
@@ -52,15 +39,18 @@
       <p class="auth-footer">Authorized use only. Activity is recorded in the audit log.</p>
     </div>
 
-    {#if showMachine}
+    {#if showFigure}
+      <!-- Generated from docs/isometric/login-scene.mjs: edit the model, then run
+           `node docs/isometric/build.mjs`. Width and height carry its viewBox ratio. -->
       <figure class="auth-figure">
-        <iframe
-          bind:this={frame}
-          class="auth-figure-frame"
-          src="/brand/par-machine.html"
-          title="Figure 1. Isometric drawing of a sorting machine for the Post-Activity Report workflow: an intake tray, a tracking-number stamper, a reviewer's desk, a return chute, an approver's seal press, and a glass archive cylinder beneath a seven-position status dial."
-          style={`height:${frameHeight}px`}
-        ></iframe>
+        <img
+          class="auth-figure-image"
+          src="/brand/login-scene.svg"
+          alt="Isometric drawing of the sign-in page on a browser window, beside a brass padlock with its key, a university ID card on an envelope, a tray of report folders, and a plant."
+          width="324"
+          height="261"
+          decoding="async"
+        />
       </figure>
     {/if}
   </div>
@@ -99,7 +89,7 @@
     z-index: 1;
   }
 
-  .auth-layout.with-machine {
+  .auth-layout.with-figure {
     gap: clamp(32px, 5vw, 72px);
     grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
     justify-content: normal;
@@ -176,14 +166,18 @@
     width: 100%;
   }
 
-  .auth-figure-frame {
-    border: 0;
+  /* The drawing keeps its aspect ratio; past the cap it letterboxes rather than
+     towering over the form, and short viewports shrink it before the form does. */
+  .auth-figure-image {
     display: block;
+    height: auto;
+    max-height: min(78vh, 680px);
+    object-fit: contain;
     width: 100%;
   }
 
   @media (max-width: 1080px) {
-    .auth-layout.with-machine {
+    .auth-layout.with-figure {
       grid-template-columns: minmax(0, 440px);
       justify-content: center;
       padding-inline-start: 0;
