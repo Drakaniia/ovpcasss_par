@@ -2,6 +2,10 @@ packages:
   - apps/*
   - packages/*
 
+# Miniflare pins undici; keep the security patch until its parent updates.
+overrides:
+  'miniflare>undici': 7.30.1
+
 allowBuilds:
   esbuild: true
   workerd: true

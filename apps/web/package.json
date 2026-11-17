@@ -16,13 +16,13 @@
     "@par/shared": "workspace:*",
     "@tauri-apps/api": "2.12.4",
     "@tauri-apps/plugin-sql": "2.6.0",
-    "@tauri-apps/plugin-updater": "2.14.0",
+    "@tauri-apps/plugin-updater": "2.14.1",
     "svelte": "5.57.2"
   },
   "devDependencies": {
     "@par/config": "workspace:*",
     "@sveltejs/adapter-static": "4.0.0",
-    "@sveltejs/kit": "3.1.0",
+    "@sveltejs/kit": "3.1.1",
     "@sveltejs/vite-plugin-svelte": "7.3.1",
     "@tailwindcss/vite": "4.3.3",
     "svelte-check": "4.7.7",

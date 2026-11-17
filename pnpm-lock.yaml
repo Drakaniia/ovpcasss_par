@@ -129,6 +129,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  miniflare>undici: 7.30.1
+
 importers:
   .:
     devDependencies:
@@ -218,8 +221,8 @@ importers:
         specifier: 2.6.0
         version: 2.6.0
       '@tauri-apps/plugin-updater':
-        specifier: 2.14.0
-        version: 2.14.0
+        specifier: 2.14.1
+        version: 2.14.1
       svelte:
         specifier: 5.57.2
         version: 5.57.2(@typescript-eslint/types@8.71.2)
@@ -229,10 +232,10 @@ importers:
         version: link:../../packages/config
       '@sveltejs/adapter-static':
         specifier: 4.0.0
-        version: 4.0.0(@sveltejs/kit@3.1.0(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2(@typescript-eslint/types@8.71.2))(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))(typescript@6.0.3)(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))
+        version: 4.0.0(@sveltejs/kit@3.1.1(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2(@typescript-eslint/types@8.71.2))(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))(typescript@6.0.3)(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))
       '@sveltejs/kit':
-        specifier: 3.1.0
-        version: 3.1.0(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2(@typescript-eslint/types@8.71.2))(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))(typescript@6.0.3)(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+        specifier: 3.1.1
+        version: 3.1.1(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2(@typescript-eslint/types@8.71.2))(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))(typescript@6.0.3)(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
       '@sveltejs/vite-plugin-svelte':
         specifier: 7.3.1
         version: 7.3.1(svelte@5.57.2(@typescript-eslint/types@8.71.2))(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
@@ -1758,10 +1761,10 @@ packages:
     peerDependencies:
       '@sveltejs/kit': ^3.0.0-next.0
 
-  '@sveltejs/kit@3.1.0':
+  '@sveltejs/kit@3.1.1':
     resolution:
       {
-        integrity: sha512-JTWlq2HQlkqx6vIoxhC0R6sc4WVqbQoRyEmr5YlqKmiYbzY1U3awtSWTmjMLlS056a49AmkQR6rnNANXIE8B0Q==,
+        integrity: sha512-BiEMvekYXE9Gu/YhWJ/yJ0WDLH1PX/dmjuAeFp5rrtdmgdzkjt7DvimlSP+/U4tgposl7pkE20luHpcnc6BgRw==,
       }
     engines: { node: '>=22.17' }
     hasBin: true
@@ -2057,10 +2060,10 @@ packages:
         integrity: sha512-UfP4p3Zwh6N7ODRMgnMgXSN6rfUxFo7YXHnRjX8L3Vx7i+IV0bh+r8puwv2OnGq04SLDZFY+LvotxN+pJdZ1Zg==,
       }
 
-  '@tauri-apps/plugin-updater@2.14.0':
+  '@tauri-apps/plugin-updater@2.14.1':
     resolution:
       {
-        integrity: sha512-gdylJ9tger4hkyOn24QZd6MNOKVo2Eh53iw5th2Qj1vKTR/+u4PIwJWuiis5hohYvobn6iOvlnALfrqIPSzh7Q==,
+        integrity: sha512-Hr7nlBm1wT6xbwzjZ/S36YULazu8MNlj5vvOwMl47fXI7HTa5Bjl1PbDEwVHaZTAKzE1VZsUy35UqnbrQxmYQw==,
       }
 
   '@turbo/darwin-64@2.11.9':
@@ -3627,10 +3630,10 @@ packages:
     engines: { node: '>=14.17' }
     hasBin: true
 
-  undici@7.29.1:
+  undici@7.30.1:
     resolution:
       {
-        integrity: sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==,
+        integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==,
       }
     engines: { node: '>=20.18.1' }
 
@@ -4408,11 +4411,11 @@ snapshots:
     dependencies:
       acorn: 8.19.0
 
-  '@sveltejs/adapter-static@4.0.0(@sveltejs/kit@3.1.0(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2(@typescript-eslint/types@8.71.2))(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))(typescript@6.0.3)(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))':
+  '@sveltejs/adapter-static@4.0.0(@sveltejs/kit@3.1.1(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2(@typescript-eslint/types@8.71.2))(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))(typescript@6.0.3)(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))':
     dependencies:
-      '@sveltejs/kit': 3.1.0(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2(@typescript-eslint/types@8.71.2))(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))(typescript@6.0.3)(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+      '@sveltejs/kit': 3.1.1(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2(@typescript-eslint/types@8.71.2))(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))(typescript@6.0.3)(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
-  '@sveltejs/kit@3.1.0(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2(@typescript-eslint/types@8.71.2))(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))(typescript@6.0.3)(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))':
+  '@sveltejs/kit@3.1.1(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2(@typescript-eslint/types@8.71.2))(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))(typescript@6.0.3)(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
       '@standard-schema/spec': 1.1.0
@@ -4560,7 +4563,7 @@ snapshots:
     dependencies:
       '@tauri-apps/api': 2.12.4
 
-  '@tauri-apps/plugin-updater@2.14.0':
+  '@tauri-apps/plugin-updater@2.14.1':
     dependencies:
       '@tauri-apps/api': 2.12.4
 
@@ -5195,7 +5198,7 @@ snapshots:
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       sharp: 0.35.5
-      undici: 7.29.1
+      undici: 7.30.1
       workerd: 1.20261012.1
       ws: 8.21.0
       youch: 4.1.0-beta.10
@@ -5490,7 +5493,7 @@ snapshots:
 
   typescript@6.0.3: {}
 
-  undici@7.29.1: {}
+  undici@7.30.1: {}
 
   unenv@2.0.0-rc.24:
     dependencies:
