@@ -33,6 +33,31 @@ serves, and the Windows desktop installer.
 - The Pages project `ovpcasss-par` exists (see **Pages site** below), and
   `CLOUDFLARE_API_TOKEN` carries Pages:Edit as well as Workers and D1.
 
+## Automatic production deployment
+
+`.github/workflows/deploy.yml` deploys production on every push to `main`, on
+`v*` release tags, and on manual dispatch. The same job installs the frozen
+lockfile, runs `pnpm verify`, checks generated migrations and a fresh local D1,
+builds the web assets, and validates the Worker build before any production write.
+It then applies remote migrations, deploys the Worker, and deploys Pages with the
+API proxy. A failed step prevents the following steps from running.
+
+All production entry points share one concurrency group with cancellation off.
+GitHub's `production` environment protections still apply when configured; no
+required approval is configured at the time this workflow was enabled. Desktop
+installers remain tag-only in `desktop-release.yml`.
+
+Required GitHub Actions secrets are `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID`. The token must cover Pages deployment plus the existing
+Worker, D1, R2, and Queue operations. The job fails early when a credential is
+missing. Worker/Pages runtime secrets, including their matching `PROXY_TOKEN`,
+remain configured in Cloudflare and are not printed or copied into the build.
+
+Do not enable a second Cloudflare Pages Git-triggered production build for this
+site: it could publish the frontend before migrations and the Worker finish.
+Use the existing `ovpcasss-par` project with GitHub Actions' Wrangler upload.
+A push only deploys after this workflow change has been committed and pushed.
+
 ## Order of operations
 
 Migrations run **before** the Worker that needs them. Never the other way round.
@@ -133,7 +158,8 @@ Deploy after the Worker:
 
 ```bash
 pnpm --filter @par/web build
-pnpm --filter @par/web exec wrangler pages deploy build --project-name ovpcasss-par --branch main
+node -e "require('node:fs').cpSync('apps/web/functions','apps/web/build/functions',{recursive:true})"
+pnpm --filter @par/api exec wrangler pages deploy ../web/build --project-name ovpcasss-par --branch main
 ```
 
 A pull request deploys `--branch pr-<number>` to
@@ -145,6 +171,28 @@ known-good deployment, or redeploy the previous tag. `APP_ORIGIN` in
 `apps/api/wrangler.toml` names this host, so renaming the project or moving to a
 custom domain means editing that line, the Pages domain, and the Google redirect
 URI together, then redeploying the Worker.
+
+### Optional Pages Git build settings
+
+These settings describe the same web build if configuring a separate Pages
+project. They are not required for the existing GitHub Actions deployment and
+must not run a competing production pipeline for `ovpcasss-par`.
+
+- Git account: `Drakaniia`; repository: `ovpcasss_par`.
+- Production branch: `main`; framework preset: `None`.
+- Root directory: repository root (leave the advanced Path field empty).
+- Build output directory: `apps/web/build`.
+- Build command:
+
+  ```bash
+  pnpm --filter @par/web build && node -e "require('node:fs').cpSync('apps/web/functions','apps/web/build/functions',{recursive:true})"
+  ```
+
+- Build environment: Node `22.18.0` or newer; pnpm `12.3.4` from `packageManager`.
+- Runtime settings: `API_ORIGIN=https://par.ovpcasss.workers.dev`, with the same
+  `PROXY_TOKEN` secret as the Worker. Enter secrets in Cloudflare, never source.
+- Leave `VITE_API_BASE_URL` unset for Pages so browser requests use `/api/v1`
+  through the same-origin Function rather than bypassing it.
 
 ### Local Pages run
 

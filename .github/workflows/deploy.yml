@@ -1,18 +1,19 @@
 name: Deploy
 
-# Preview per pull request, and production only from a release tag or a manual
-# run with the `production` environment's approval. Merging to main does not
-# deploy: there is no staging resource set yet (spec §12), so an automatic
-# deploy from main would publish straight to production.
+# Pull requests get previews. Pushes to main, release tags, and manual runs
+# deploy production after verification. Migrations, Worker, and Pages ship in
+# that order so the browser never leads the API it needs.
 
 on:
   pull_request:
   push:
+    branches: [main]
     tags: ['v*']
   workflow_dispatch:
 
 concurrency:
-  group: deploy-${{ github.ref }}
+  # Serialize every production entry point; never cancel a migration mid-flight.
+  group: deploy-${{ github.event_name == 'pull_request' && github.ref || 'production' }}
   cancel-in-progress: false
 
 env:
@@ -75,12 +76,21 @@ jobs:
         run: echo "::notice::Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to publish preview URLs."
 
   production:
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    # The environment's protection rules are the human review step for a deploy.
+    # Any configured production environment protection still applies.
     environment: production
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check Cloudflare credentials
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Set CLOUDFLARE_API_TOKEN in GitHub Actions secrets."; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Set CLOUDFLARE_ACCOUNT_ID in GitHub Actions secrets."; exit 1; }
 
       - uses: pnpm/action-setup@v4
         with:
@@ -97,8 +107,21 @@ jobs:
       - name: Verify
         run: pnpm verify
 
+      - name: Schema and migrations agree
+        run: |
+          pnpm db:generate
+          test -z "$(git status --porcelain -- packages/db/migrations)"
+
+      - name: Check migrations on a fresh local D1
+        run: >-
+          pnpm --filter @par/db exec wrangler d1 migrations apply par-db --local
+          --config ../../apps/api/wrangler.toml
+
       - name: Build web assets
         run: pnpm --filter @par/web build
+
+      - name: Validate Worker build
+        run: pnpm --filter @par/api build
 
       # Migrations before the Worker that needs them (spec §12).
       - name: Apply D1 migrations

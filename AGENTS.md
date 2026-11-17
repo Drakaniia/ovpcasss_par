@@ -148,8 +148,9 @@ desktop → nothing from apps
   external font/CDN requests so the desktop build works offline.
 - Tauri icons are generated and gitignored: run
   `pnpm --filter @par/desktop exec tauri icon <png>` before `tauri build`.
-- Merging to `main` does not deploy. Production is a `v*` tag or a manual
-  dispatch, with D1 migrations applied before the Worker (`.github/workflows/deploy.yml`).
+- Pushes to `main` deploy production after verification; `v*` tags and manual
+  dispatch remain supported. Deploy D1 migrations, then the Worker, then Pages
+  (`.github/workflows/deploy.yml`); serialize production runs without cancellation.
 - `.npmrc` sets `engine-strict=true`: Node >=22.18, pnpm 12.3.4. Dependency versions
   are pinned exactly; do not bump one without checking peers.
 
