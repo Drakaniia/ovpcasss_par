@@ -1,6 +1,9 @@
 # OVPCASSS Paperless PAR System: Project Initialization Spec
 
 Status: Draft v0.1, revised **2026-10-23** for the office-created-record flow.
+
+Current authoring and permission revision: `pic-report-authoring-spec.md` supersedes
+the ADMIN-only creation, single-author narrative, and approval edit-lock rules below.
 Sources: `OVPCASSS-PAPERLESS_PROCESS_FOR_PAR.xlsx` / `.md`, the interview decisions recorded below, and `docs/spec/personnel-narrative-flow-spec.md`.
 
 The personnel-narrative flow supersedes this document where they differ: the roles are `ADMIN` and `PERSONNEL`, the AR No. replaces the per-type tracking number, the office registers the activity and decides once on the submitted narrative, and the OVPCASSS-F-013 acknowledgment receipt replaces the old approval PDF. Sections 7.5–7.10, 8 and 9 below carry the revised contract; the summary, planning, and appendix material is kept as the original project record.

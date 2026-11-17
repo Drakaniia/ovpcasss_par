@@ -44,7 +44,7 @@ export function personnelRow(item: ReportListItem): PersonnelRow {
           ? 'Write narrative'
           : item.status === 'RETURNED'
             ? 'Revise and resubmit'
-            : 'View',
+            : 'View or edit',
       href,
     },
   };

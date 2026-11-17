@@ -40,7 +40,7 @@
   const personnel = $derived(user?.role === 'PERSONNEL');
   const lede = $derived(
     personnel
-      ? 'The office registers each activity and owns its details. Open one to write its narrative report; the acknowledgment receipt arrives here once the office approves it.'
+      ? 'Create an activity record or open one to write its narrative report. Submit the narrative for ADMIN review; the acknowledgment receipt arrives here after approval.'
       : "Narratives awaiting the office's decision, records still with their personnel in charge, and the work already decided.",
   );
 

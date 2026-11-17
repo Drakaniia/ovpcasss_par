@@ -17,7 +17,9 @@ const OPEN_STATUSES: readonly ReportStatus[] = ['PENDING', 'RETURNED'];
 /** PENDING and RETURNED records are the ones a PIC may write. */
 export function previewAction(report: { id: string; status: ReportStatus }): PreviewAction {
   return {
-    label: OPEN_STATUSES.includes(report.status) ? 'Create narrative report' : 'View record',
+    label: OPEN_STATUSES.includes(report.status)
+      ? 'Create narrative report'
+      : 'View or edit record',
     href: `/reports/${report.id}`,
   };
 }

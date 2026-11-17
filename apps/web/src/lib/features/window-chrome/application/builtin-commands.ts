@@ -46,8 +46,8 @@ export function registerBuiltinCommands(): () => void {
   const disposers = [
     registerCommand({
       id: 'file.new-record',
-      enabled: () => session.user?.role === 'ADMIN',
-      disabledReason: () => 'Requires administrator access.',
+      enabled: () => session.user?.role === 'ADMIN' || session.user?.role === 'PERSONNEL',
+      disabledReason: () => 'Requires an administrator or personnel in charge account.',
       run: async () => {
         if (page.url.pathname === '/reports/new') {
           focusWizardField();

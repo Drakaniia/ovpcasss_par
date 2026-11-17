@@ -4,6 +4,7 @@ import type { Context, Hono } from 'hono';
 import type { AppEnv } from '../../env';
 import { parseSignatureImage, reportSignatureKey } from '../../lib/signature-image';
 import { rateLimit } from '../../middleware/rate-limit';
+import { recordAudit } from '../../lib/audit';
 import { buildReportDetail } from './application/report-detail';
 import { reportDependencies, viewerOf } from './application/report-context';
 import {
@@ -78,6 +79,21 @@ export function registerReportSignatureRoutes(router: Hono<AppEnv>): void {
       now: new Date().toISOString(),
     });
     if (!cleared) return notFound(c);
+    await recordAudit(c, {
+      actorUserId: viewer.userId,
+      actorRole: viewer.role,
+      action: 'SIGNATURE_REMOVED',
+      entityType: 'report',
+      entityId: row.id,
+      comment: JSON.stringify({
+        before: {
+          imagePresent: Boolean(row.narrativeSignatureKey),
+          signedAt: row.narrativeSignedAt,
+        },
+        after: { imagePresent: false, signedAt: null },
+        note: 'Narrative signature removed',
+      }),
+    });
 
     return c.json(await detailFor(c, row.id));
   });
@@ -120,7 +136,7 @@ export function registerReportSignatureRoutes(router: Hono<AppEnv>): void {
  */
 async function storeSignature(
   c: Context<AppEnv>,
-  row: { id: string; narrativeSignatureKey: string | null },
+  row: { id: string; narrativeSignatureKey: string | null; narrativeSignedAt: string | null },
   stack: ReturnType<typeof reportDependencies>,
   bytes: Uint8Array,
   mimeType: string,
@@ -141,6 +157,23 @@ async function storeSignature(
     await c.env.BUCKET.delete(row.narrativeSignatureKey).catch(() => undefined);
   }
 
+  const viewer = viewerOf(c);
+  if (viewer)
+    await recordAudit(c, {
+      actorUserId: viewer.userId,
+      actorRole: viewer.role,
+      action: 'NARRATIVE_SIGNED',
+      entityType: 'report',
+      entityId: row.id,
+      comment: JSON.stringify({
+        before: {
+          imagePresent: Boolean(row.narrativeSignatureKey),
+          signedAt: row.narrativeSignedAt,
+        },
+        after: { imagePresent: true, signedAt: now },
+        note: 'Narrative signature saved',
+      }),
+    });
   return c.json(await detailFor(c, row.id));
 }
 
@@ -166,7 +199,8 @@ async function visibleReport(c: Context<AppEnv>) {
   if (!viewer) return null;
 
   const deps = reportDependencies(c);
-  return deps.read.findById(c.req.param('id') ?? '');
+  const row = await deps.read.findById(c.req.param('id') ?? '');
+  return row && canReadNarrative(viewer, row, false) ? row : null;
 }
 
 /** The first key that still holds an object; a broken one falls through. */

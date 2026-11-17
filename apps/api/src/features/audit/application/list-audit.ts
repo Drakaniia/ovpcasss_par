@@ -1,4 +1,4 @@
-import { createAuditQueries, createDb, type AuditEventRow } from '@par/db';
+import { createAuditQueries, createDb, createUserQueries, type AuditEventRow } from '@par/db';
 import type { AdminAuditListQuery, AdminAuditListResponse, AuditEventItem } from '@par/shared';
 import type { Context } from 'hono';
 
@@ -30,9 +30,21 @@ export async function listAuditEvents(
   const audit = createAuditQueries(db);
 
   const { rows, total } = await audit.listFiltered(query);
+  const users = createUserQueries(db);
+  const actors = await Promise.all(
+    [...new Set(rows.flatMap((row) => (row.actorUserId ? [row.actorUserId] : [])))].map((id) =>
+      users.findById(id),
+    ),
+  );
+  const names = new Map(
+    actors.filter((actor) => actor !== null).map((actor) => [actor.id, actor.fullName]),
+  );
 
   return {
-    items: rows.map(mapRowToItem),
+    items: rows.map((row) => ({
+      ...mapRowToItem(row),
+      actorName: row.actorUserId ? (names.get(row.actorUserId) ?? 'Unavailable account') : 'System',
+    })),
     total,
     page: query.page ?? 1,
     pageSize: query.limit ?? 50,

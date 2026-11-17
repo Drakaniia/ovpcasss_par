@@ -8,6 +8,14 @@
 
 ---
 
+## Current authoring revision
+
+`pic-report-authoring-spec.md` supersedes the historical ADMIN-only creation,
+single-submitter narrative privacy, and approval edit-lock rules in this document.
+PICs may create reports and edit their office's shared activity and narrative in
+every status. ADMIN decides the activity and its separately submitted narrative
+together. Full change history and creator/editor/submitter attribution are required.
+
 ## 0. The change in one line
 
 The office registers the activity first and owns the register; the person in charge only writes the narrative; the office checks it and the system mails a faithful OVPCASSS-F-013 acknowledgment receipt.

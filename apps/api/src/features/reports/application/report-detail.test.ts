@@ -137,6 +137,58 @@ beforeEach(() => {
   ]);
 });
 
+describe('report attribution', () => {
+  it('uses the latest submission actor and time after another PIC resubmits', async () => {
+    db.users.findById.mockImplementation(async (id: string) => ({
+      id,
+      fullName: id,
+      role: 'PERSONNEL',
+    }));
+    db.audit.listForEntity.mockResolvedValue([
+      {
+        id: 'e2',
+        actorUserId: 'replacement-pic',
+        actorRole: 'PERSONNEL',
+        action: 'NARRATIVE_SUBMITTED',
+        entityType: 'report',
+        entityId: 'r1',
+        createdAt: '2026-03-19T01:00:00.000Z',
+      },
+    ]);
+    const detail = await buildReportDetail(env, row, options(false));
+    expect(detail.people?.submittedBy?.userId).toBe('replacement-pic');
+    expect(detail.people?.submittedBy?.actedAt).toBe('2026-03-19T01:00:00.000Z');
+  });
+
+  it('resolves editors outside the creator and submitter accounts', async () => {
+    db.users.findById.mockImplementation(async (id: string) => ({
+      id,
+      fullName: id === 'editor-2' ? 'Second Editor' : id,
+      role: 'PERSONNEL',
+    }));
+    const event = (id: string, action: string, at: string) => ({
+      id,
+      actorUserId: 'editor-2',
+      actorRole: 'PERSONNEL',
+      action,
+      entityType: 'report',
+      entityId: 'r1',
+      createdAt: at,
+    });
+    db.audit.listForEntity.mockResolvedValue([
+      event('e1', 'RECORD_UPDATED', '2026-03-12T01:00:00.000Z'),
+      event('e2', 'NARRATIVE_SAVED', '2026-03-13T01:00:00.000Z'),
+      event('e3', 'RECEIPT_DOWNLOADED', '2026-03-14T01:00:00.000Z'),
+    ]);
+    const detail = await buildReportDetail(env, row, options(false));
+    expect(detail.people?.createdBy.role).toBe('PERSONNEL');
+    expect(detail.people?.firstEditedBy?.fullName).toBe('Second Editor');
+    expect(detail.people?.lastEditedBy?.actedAt).toBe('2026-03-13T01:00:00.000Z');
+    expect(detail.people?.submittedBy?.userId).toBe('person-1');
+    expect(detail.history?.[0]?.actorName).toBe('Second Editor');
+  });
+});
+
 describe('report detail privacy', () => {
   it('hands the submitter the narrative, its files, and its signature', async () => {
     const detail = await buildReportDetail(env, row, options(false));

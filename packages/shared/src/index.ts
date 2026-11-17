@@ -22,5 +22,6 @@ export * from './contracts/users';
 export * from './narrative/markdown';
 export * from './reference/reference-number';
 export * from './validation/report';
+export * from './workflow/report-permissions';
 export * from './workflow/state-machine';
 export * from './workflow/working-days';

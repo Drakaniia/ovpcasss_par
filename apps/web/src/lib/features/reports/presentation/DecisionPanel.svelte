@@ -29,7 +29,7 @@
     error = null;
 
     try {
-      await api.reports.decide(detail.id, { decision: 'APPROVE' });
+      await api.reports.decide(detail.id, { decision: 'APPROVE' }, detail.version);
       invalidateInboxAttention();
       toast.success('Narrative approved. Acknowledgment receipts are being issued.');
       confirmOpen = false;
@@ -53,7 +53,11 @@
     error = null;
 
     try {
-      await api.reports.decide(detail.id, { decision: 'RETURN', comments: comments.trim() });
+      await api.reports.decide(
+        detail.id,
+        { decision: 'RETURN', comments: comments.trim() },
+        detail.version,
+      );
       invalidateInboxAttention();
       toast.success('Narrative returned for revision.');
       returning = false;
@@ -72,8 +76,9 @@
   <div class="decision-head">
     <h2 id="decision-title">Decision</h2>
     <p class="lede">
-      The narrative report is submitted and waiting for the office. Approving issues one
-      OVPCASSS-F-013 acknowledgment receipt for each person in charge and mails it to them.
+      The activity details and shared narrative are submitted for one ADMIN decision. Approving
+      issues one OVPCASSS-F-013 acknowledgment receipt for each person in charge and mails it to
+      them.
     </p>
   </div>
 

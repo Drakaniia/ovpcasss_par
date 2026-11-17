@@ -199,21 +199,26 @@ export const api = {
     archive: (id: string) => apiFetch<ReportHead>(`/reports/${id}/archive`, { method: 'POST' }),
     unarchive: (id: string) => apiFetch<ReportHead>(`/reports/${id}/archive`, { method: 'DELETE' }),
     /** PIC: saves the narrative draft, allowed in PENDING and RETURNED. */
-    saveNarrative: (id: string, input: ReportNarrativeInput) =>
+    saveNarrative: (id: string, input: ReportNarrativeInput, version?: number) =>
       apiFetch<ReportHead>(`/reports/${id}/narrative`, {
         method: 'PUT',
+        headers: version === undefined ? undefined : { 'if-match': String(version) },
         body: JSON.stringify(input),
       }),
     /** PIC: validates and submits, with an idempotency key (spec §7.2). */
-    submit: (id: string, idempotencyKey: string) =>
+    submit: (id: string, idempotencyKey: string, version?: number) =>
       apiFetch<SubmitNarrativeResponse>(`/reports/${id}/submit`, {
         method: 'POST',
-        headers: { 'idempotency-key': idempotencyKey },
+        headers: {
+          'idempotency-key': idempotencyKey,
+          ...(version === undefined ? {} : { 'if-match': String(version) }),
+        },
       }),
     /** Admin: one decision on a submitted narrative. */
-    decide: (id: string, input: ReportDecisionInput) =>
+    decide: (id: string, input: ReportDecisionInput, version?: number) =>
       apiFetch<ReportHead>(`/reports/${id}/decision`, {
         method: 'POST',
+        headers: version === undefined ? undefined : { 'if-match': String(version) },
         body: JSON.stringify(input),
       }),
     /** Admin: re-sends the assignment mail to every PIC. */

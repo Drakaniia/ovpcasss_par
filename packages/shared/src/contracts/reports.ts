@@ -285,6 +285,9 @@ export type ReportPerson = z.infer<typeof reportPersonSchema>;
 export const reportPeopleSchema = z.object({
   createdBy: reportPersonSchema,
   personnel: z.array(reportPersonSchema),
+  firstEditedBy: reportPersonSchema.nullable().optional(),
+  lastEditedBy: reportPersonSchema.nullable().optional(),
+  submittedBy: reportPersonSchema.nullable().optional(),
   decidedBy: reportPersonSchema.nullable().optional(),
 });
 export type ReportPeople = z.infer<typeof reportPeopleSchema>;

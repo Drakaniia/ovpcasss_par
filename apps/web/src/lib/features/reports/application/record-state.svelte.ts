@@ -496,8 +496,7 @@ export class RecordFormState {
       return false;
     }
 
-    const submitted =
-      this.edit && (this.detail?.status === 'SUBMITTED' || this.detail?.status === 'RETURNED');
+    const submitted = this.edit && this.detail?.status !== 'PENDING';
     if (submitted && !this.reason.trim()) {
       this.saveError = {
         message:

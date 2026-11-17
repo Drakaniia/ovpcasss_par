@@ -25,6 +25,27 @@ const FIELD_LABELS: readonly (readonly [ScalarField, string])[] = [
   ['totalPic', 'Total personnel in charge'],
 ];
 
+/** Stable activity values for append-only before/after history, without storage keys. */
+export function activitySnapshot(
+  row: ReportRow | ReportActivityInput,
+  pics: readonly {
+    name: string;
+    email?: string | null | undefined;
+    phone?: string | null | undefined;
+  }[],
+  sdgIds: readonly string[],
+): Record<string, unknown> {
+  return {
+    ...Object.fromEntries(FIELD_LABELS.map(([key]) => [key, row[key] ?? null])),
+    pics: pics.map((pic) => ({
+      name: pic.name,
+      email: pic.email ?? null,
+      phone: pic.phone ?? null,
+    })),
+    sdgIds: [...sdgIds],
+  };
+}
+
 function text(value: unknown): string {
   return value === null || value === undefined ? '' : String(value);
 }

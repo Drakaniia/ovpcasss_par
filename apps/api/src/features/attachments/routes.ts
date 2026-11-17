@@ -12,6 +12,7 @@ import { signedDownloadUrl } from '../../lib/download-url';
 import { toHex } from '../../lib/encoding';
 import { requireSession } from '../../middleware/auth';
 import { rateLimit } from '../../middleware/rate-limit';
+import { requireRole } from '../../middleware/authorize';
 import { canReadNarrative, canWriteNarrative } from '../reports/domain/report-access';
 import { toAttachment } from '../reports/application/record-shape';
 import {
@@ -34,7 +35,7 @@ import { PresignUnavailableError, presignPut } from './infrastructure/r2-presign
  */
 export const attachmentRoutes = new Hono<AppEnv>();
 
-attachmentRoutes.use('*', requireSession);
+attachmentRoutes.use('*', requireSession, requireRole('PERSONNEL'));
 
 function unauthorized(c: Context<AppEnv>) {
   return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sign in to manage attachments' } }, 401);
@@ -211,6 +212,20 @@ attachmentRoutes.post('/:id/attachments/:attachmentId/confirm', async (c) => {
         ? attachment
         : await stack.attachments.rename(attachment.id, parsed.data.label, now);
 
+    if (renamed && renamed.label !== attachment.label) {
+      await recordAudit(c, {
+        actorUserId: viewer.userId,
+        actorRole: viewer.role,
+        action: 'ATTACHMENT_RENAMED',
+        entityType: 'report',
+        entityId: report.id,
+        comment: JSON.stringify({
+          before: toAttachment(attachment),
+          after: toAttachment(renamed),
+          note: renamed.originalName,
+        }),
+      });
+    }
     return c.json({ attachment: toAttachment(renamed ?? attachment) });
   }
 
@@ -252,9 +267,13 @@ attachmentRoutes.post('/:id/attachments/:attachmentId/confirm', async (c) => {
     actorUserId: viewer.userId,
     actorRole: viewer.role,
     action: 'ATTACHMENT_ADDED',
-    entityType: 'attachment',
-    entityId: confirmed.id,
-    comment: `${confirmed.originalName} on report ${report.id}`,
+    entityType: 'report',
+    entityId: report.id,
+    comment: JSON.stringify({
+      before: toAttachment(attachment),
+      after: toAttachment(confirmed),
+      note: confirmed.originalName,
+    }),
   });
 
   return c.json({ attachment: toAttachment(confirmed) });
@@ -337,16 +356,21 @@ attachmentRoutes.delete('/:id/attachments/:attachmentId', async (c) => {
   const attachment = await stack.attachments.findById(report.id, c.req.param('attachmentId') ?? '');
   if (!attachment || attachment.status === 'DELETED') return notFound(c);
 
-  await stack.attachments.softDelete(attachment.id, new Date().toISOString());
+  const removed = await stack.attachments.softDelete(attachment.id, new Date().toISOString());
+  if (!removed) return notFound(c);
   await c.env.BUCKET.delete(attachment.objectKey).catch(() => undefined);
 
   await recordAudit(c, {
     actorUserId: viewer.userId,
     actorRole: viewer.role,
     action: 'ATTACHMENT_REMOVED',
-    entityType: 'attachment',
-    entityId: attachment.id,
-    comment: `${attachment.originalName} on report ${report.id}`,
+    entityType: 'report',
+    entityId: report.id,
+    comment: JSON.stringify({
+      before: toAttachment(attachment),
+      after: toAttachment(removed),
+      note: attachment.originalName,
+    }),
   });
 
   return c.body(null, 204);

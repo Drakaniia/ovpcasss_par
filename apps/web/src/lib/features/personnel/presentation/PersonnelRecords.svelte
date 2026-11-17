@@ -126,7 +126,7 @@
     {:else}
       <EmptyState
         title="No activities are registered yet"
-        description="The OVPCASSS office registers each activity. When one appears here, open it to write its narrative report."
+        description="Create a record, or open an existing activity to write its narrative report."
       />
     {/if}
   {:else}

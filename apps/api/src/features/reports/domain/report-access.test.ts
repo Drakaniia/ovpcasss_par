@@ -28,45 +28,45 @@ function record(
 }
 
 describe('report access', () => {
-  it('lets only the office edit the activity, and never after approval', () => {
+  it('lets both shared-office roles edit activity details, including after approval', () => {
     expect(canManageRecord(admin, 'PENDING')).toBe(true);
     expect(canManageRecord(admin, 'SUBMITTED')).toBe(true);
-    expect(canManageRecord(admin, 'APPROVED')).toBe(false);
-    expect(canManageRecord(personnel, 'PENDING')).toBe(false);
+    expect(canManageRecord(admin, 'APPROVED')).toBe(true);
+    expect(canManageRecord(personnel, 'PENDING')).toBe(true);
   });
 
   it('lets any PIC write an open narrative, assigned or not', () => {
     expect(canWriteNarrative(personnel, record('PENDING', null))).toBe(true);
     expect(canWriteNarrative(otherPic, record('PENDING', 'person-1'))).toBe(true);
-    expect(canWriteNarrative(personnel, record('SUBMITTED'))).toBe(false);
-    expect(canWriteNarrative(personnel, record('APPROVED'))).toBe(false);
+    expect(canWriteNarrative(personnel, record('SUBMITTED'))).toBe(true);
+    expect(canWriteNarrative(personnel, record('APPROVED'))).toBe(true);
     // The office stands in for every role (spec §9).
     expect(canWriteNarrative(admin, record('PENDING', null))).toBe(true);
     expect(canWriteNarrative({ userId: 'x', role: undefined }, record('PENDING'))).toBe(false);
   });
 
-  it('keeps a returned narrative with the PIC who submitted it', () => {
+  it('lets another PIC revise the shared returned narrative', () => {
     expect(canWriteNarrative(personnel, record('RETURNED'))).toBe(true);
-    expect(canWriteNarrative(otherPic, record('RETURNED'))).toBe(false);
+    expect(canWriteNarrative(otherPic, record('RETURNED'))).toBe(true);
     expect(canWriteNarrative(personnel, record('RETURNED', null))).toBe(true);
     expect(canWriteNarrative(admin, record('RETURNED'))).toBe(true);
   });
 
-  it('closes a submitted narrative to every PIC but its submitter', () => {
+  it('shares submitted narratives with all PICs and ADMIN', () => {
     for (const status of ['SUBMITTED', 'RETURNED', 'APPROVED'] as const) {
       expect(canReadNarrative(personnel, record(status), true)).toBe(true);
-      expect(canReadNarrative(otherPic, record(status), true)).toBe(false);
+      expect(canReadNarrative(otherPic, record(status), true)).toBe(true);
       expect(canReadNarrative(admin, record(status), false)).toBe(true);
     }
   });
 
-  it('shows a submitted record only to its PICs, its submitter, and the office', () => {
+  it('shows submitted records to the entire shared office', () => {
     for (const status of ['SUBMITTED', 'RETURNED', 'APPROVED'] as const) {
       // The submitter and a PIC named on the record may open it; the narrative
       // itself still stays private to the submitter and the office.
       expect(canReadRecord(personnel, record(status), true)).toBe(true);
       expect(canReadRecord(otherPic, record(status), true)).toBe(true);
-      expect(canReadRecord(otherPic, record(status), false)).toBe(false);
+      expect(canReadRecord(otherPic, record(status), false)).toBe(true);
       expect(canReadRecord(admin, record(status), false)).toBe(true);
     }
   });
@@ -77,21 +77,21 @@ describe('report access', () => {
     expect(canReadRecord(admin, record('PENDING', null), false)).toBe(true);
   });
 
-  it('keeps the open draft readable, and still hides it from the office', () => {
+  it('shares draft narratives with PIC and ADMIN accounts', () => {
     expect(canReadNarrative(otherPic, record('PENDING', null), true)).toBe(true);
-    expect(canReadNarrative(admin, record('PENDING', null), false)).toBe(false);
+    expect(canReadNarrative(admin, record('PENDING', null), false)).toBe(true);
     expect(canReadNarrative(admin, record('PENDING', null), true)).toBe(true);
   });
 
-  it('shows the facsimile to the submitter and the office, and nobody else', () => {
-    expect(canViewFacsimile(personnel, record('PENDING', null), true)).toBe(false);
+  it('shows the facsimile throughout the shared office', () => {
+    expect(canViewFacsimile(personnel, record('PENDING', null), true)).toBe(true);
     expect(canViewFacsimile(personnel, record('SUBMITTED'), true)).toBe(true);
     expect(canViewFacsimile(personnel, record('RETURNED'), true)).toBe(true);
     expect(canViewFacsimile(personnel, record('APPROVED'), true)).toBe(true);
     // Another PIC on the same record never gets the copy of a private narrative.
-    expect(canViewFacsimile(otherPic, record('SUBMITTED'), true)).toBe(false);
+    expect(canViewFacsimile(otherPic, record('SUBMITTED'), true)).toBe(true);
     // A reader who is not named on the record never gets the office copy.
-    expect(canViewFacsimile(personnel, record('APPROVED'), false)).toBe(false);
+    expect(canViewFacsimile(personnel, record('APPROVED'), false)).toBe(true);
     // The office reads the draft too, watermarked NOT_SUBMITTED.
     expect(canViewFacsimile(admin, record('PENDING', null), false)).toBe(true);
   });

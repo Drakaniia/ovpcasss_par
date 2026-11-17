@@ -52,11 +52,11 @@ describe('HowReportsWorkPage', () => {
     expect(html).toContain('href="/reports/new"');
   });
 
-  it('sends the personnel in charge to their own records instead', () => {
+  it('gives personnel in charge the record-creation action too', () => {
     signIn('PERSONNEL');
     const html = renderPage();
 
-    expect(html).not.toContain('href="/reports/new"');
-    expect(html).toContain('href="/reports"');
+    expect(html).toContain('href="/reports/new"');
+    expect((html.match(/btn-primary/g) ?? []).length).toBe(1);
   });
 });

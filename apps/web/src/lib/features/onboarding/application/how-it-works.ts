@@ -30,11 +30,11 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
   {
     key: 'prepare',
     title: 'The office registers the activity',
-    owner: 'Administrator',
+    owner: 'Administrator or personnel in charge',
     summary:
       'OVPCASSS records the activity and assigns the personnel in charge before anyone writes a word.',
     points: [
-      'The administrator captures the activity type, classification, campus, title, dates, location, and the people in charge.',
+      'An administrator or PIC captures the activity type, classification, campus, title, dates, location, and the people in charge.',
       'Saving issues the AR No. — a global sequence starting at 0001 that never resets or repeats.',
       'Each person in charge is emailed the reference, and an account is created or linked for them.',
     ],
@@ -49,13 +49,13 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
     summary:
       'Each named person opens the record by AR No. from Home, writes the narrative, and submits it.',
     points: [
-      'Home lists the records that name the account, by AR No. and activity facts; the account cannot create, edit, or delete a record.',
+      'Home lists every record in the shared OVPCASSS office. PICs may create and edit reports; deletion remains ADMIN-only.',
       'The narrative is typed against the record, with the attachments the office requires and an optional signature.',
       'A draft stays with the account until it is submitted. Submitting notifies the office that the narrative is ready.',
     ],
     statuses: ['SUBMITTED'],
     mail: 'A notice to the office when a narrative is submitted.',
-    note: 'One narrative per person in charge; the record itself was settled by the office.',
+    note: 'One shared narrative per activity, submitted separately for one combined ADMIN decision.',
   },
   {
     key: 'decision',
@@ -70,7 +70,7 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
     ],
     statuses: ['RETURNED', 'APPROVED'],
     mail: 'A message when the narrative is approved, with the acknowledgment receipt attached.',
-    note: 'Approval is final. A correction after approval needs a new record.',
+    note: 'Approved content remains editable. Every change is audited without altering approval or requiring renewed review.',
   },
 ];
 

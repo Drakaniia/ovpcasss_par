@@ -55,6 +55,7 @@ export const AUDIT_ACTIONS = [
   'REFERENCE_ACTIVATED',
   'ATTACHMENT_ADDED',
   'ATTACHMENT_REMOVED',
+  'ATTACHMENT_RENAMED',
   'DRAFT_DELETED',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

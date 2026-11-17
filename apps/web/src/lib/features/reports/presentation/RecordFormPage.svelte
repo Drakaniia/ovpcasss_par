@@ -41,7 +41,7 @@
       return;
     }
 
-    if (account.role !== 'ADMIN') {
+    if (account.role !== 'ADMIN' && account.role !== 'PERSONNEL') {
       await goto('/reports', { replaceState: true });
       return;
     }
@@ -109,7 +109,7 @@
     <p class="created-copy">
       Sent to {form.created.sentTo}
       {form.created.sentTo === 1 ? 'personnel in charge' : 'personnel in charge'}. They will write
-      and submit the narrative report.
+      and submit the narrative report. You can also open the record to write its narrative.
     </p>
     <div class="created-actions">
       <a class="btn btn-primary" href="/reports/{form.created.id}">Open record</a>
@@ -137,7 +137,7 @@
 {:else if !form.ready}
   <SkeletonDocument />
 {:else}
-  {#if mode === 'edit' && detail && (detail.status === 'SUBMITTED' || detail.status === 'RETURNED')}
+  {#if mode === 'edit' && detail && detail.status !== 'PENDING'}
     <div class="reason-card">
       <label class="reason-label" for="edit-reason">Reason for the correction</label>
       <p class="reason-hint">

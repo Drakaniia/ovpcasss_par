@@ -57,9 +57,9 @@ describe('previewAction', () => {
     expect(previewAction({ id: 'r1', status: 'RETURNED' }).label).toBe('Create narrative report');
   });
 
-  it('only offers a read for submitted and approved records', () => {
-    expect(previewAction({ id: 'r1', status: 'SUBMITTED' }).label).toBe('View record');
-    expect(previewAction({ id: 'r1', status: 'APPROVED' }).label).toBe('View record');
+  it('offers editing for submitted and approved records', () => {
+    expect(previewAction({ id: 'r1', status: 'SUBMITTED' }).label).toBe('View or edit record');
+    expect(previewAction({ id: 'r1', status: 'APPROVED' }).label).toBe('View or edit record');
   });
 });
 

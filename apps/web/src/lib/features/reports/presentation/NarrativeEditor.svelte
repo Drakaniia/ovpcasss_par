@@ -1,5 +1,6 @@
 <script lang="ts">
   import {
+    canSubmitReport,
     parseNarrative,
     validateNarrative,
     type NarrativeBlock,
@@ -19,6 +20,7 @@
   import AttachmentUploader from '$lib/features/attachments/presentation/AttachmentUploader.svelte';
   import { invalidateInboxAttention } from '$lib/session/inbox-attention.svelte';
   import { toast } from '$lib/toast/toast.svelte';
+  import { session } from '$lib/session/session.svelte';
 
   import { narrativeFromEditor, type NarrativeCommand } from '../application/narrative-editor';
   import NarrativeToolbar from './NarrativeToolbar.svelte';
@@ -40,9 +42,11 @@
   let {
     detail,
     onreload,
+    primarySave = true,
   }: {
     detail: ReportDetail;
     onreload: () => Promise<void>;
+    primarySave?: boolean;
   } = $props();
 
   /** The one thing the editor asks of the signature card: save what is drawn. */
@@ -61,6 +65,8 @@
   let signatureCard = $state<SignatureCardHandle | null>(null);
   let editor = $state<HTMLElement | null>(null);
   let attachmentsBlock = $state<HTMLElement | null>(null);
+  let version = $state(0);
+  let lastDetailVersion = 0;
   let lastExternal = detail.form.narrative;
   const idempotencyKey = crypto.randomUUID();
 
@@ -76,6 +82,10 @@
   // A reloaded record (or one replaced under the panel) refills the surface;
   // typing never reaches this branch because the draft, not the prop, changes.
   $effect(() => {
+    if (lastDetailVersion !== detail.version) {
+      lastDetailVersion = detail.version;
+      version = detail.version;
+    }
     const external = detail.form.narrative;
     if (external === lastExternal) return;
 
@@ -84,7 +94,8 @@
     if (editor) fillNarrative(editor, external);
   });
 
-  const editable = $derived(detail.status === 'PENDING' || detail.status === 'RETURNED');
+  const editable = $derived(Boolean(detail.canWriteNarrative));
+  const submittable = $derived(canSubmitReport(session.user?.role ?? 'PERSONNEL', detail.status));
   const dirty = $derived(narrative !== detail.form.narrative);
   const narrativeIssue = $derived(
     issues.find((issue) => issue.field === 'narrative')?.message ?? null,
@@ -260,7 +271,9 @@
       // text alone never strands the image. Its failure does not cost the draft.
       const signatureSaved = (await signatureCard?.savePending()) ?? true;
 
-      await api.reports.saveNarrative(detail.id, { narrative });
+      const saved = await api.reports.saveNarrative(detail.id, { narrative }, version);
+      version = saved.version;
+      if (detail.status === 'SUBMITTED') await onreload();
       savedAt = new Date().toISOString();
       toast.success(
         signatureSaved ? 'Narrative draft saved.' : 'Narrative draft saved. The signature was not.',
@@ -298,8 +311,11 @@
         return;
       }
 
-      if (dirty) await api.reports.saveNarrative(detail.id, { narrative });
-      await api.reports.submit(detail.id, idempotencyKey);
+      if (dirty) {
+        const saved = await api.reports.saveNarrative(detail.id, { narrative }, version);
+        version = saved.version;
+      }
+      await api.reports.submit(detail.id, idempotencyKey, version);
       invalidateInboxAttention();
       toast.success('Narrative submitted. The office will review it.');
       await onreload();
@@ -331,7 +347,8 @@
   {#if editable}
     <p class="lede">
       Write what happened, what the activity achieved, and anything the office should know. You can
-      save a draft and come back before submitting.
+      save and return later. Changes are audited. Saving does not change submission or approval
+      status.
     </p>
 
     <div class="field-head">
@@ -401,22 +418,24 @@
 
     <div class="editor-actions">
       <button
-        class="btn btn-outline"
+        class={submittable || !primarySave ? 'btn btn-outline' : 'btn btn-primary'}
         type="button"
         disabled={saving || submitting}
         onclick={() => void saveDraft()}
       >
-        {saving ? 'Saving…' : 'Save draft'}
+        {saving ? 'Saving…' : submittable ? 'Save draft' : 'Save changes'}
       </button>
-      <button
-        class="btn btn-primary"
-        type="button"
-        disabled={saving || submitting}
-        onclick={() => void submit()}
-      >
-        <Send size={16} aria-hidden="true" />
-        {submitting ? 'Submitting…' : 'Submit narrative'}
-      </button>
+      {#if submittable}
+        <button
+          class="btn btn-primary"
+          type="button"
+          disabled={saving || submitting}
+          onclick={() => void submit()}
+        >
+          <Send size={16} aria-hidden="true" />
+          {submitting ? 'Submitting…' : 'Submit narrative'}
+        </button>
+      {/if}
     </div>
 
     {#if savedAt}

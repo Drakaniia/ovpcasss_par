@@ -121,20 +121,9 @@ export function createReportReadQueries(db: Database) {
    * narrative, and after that only the records that name the account or that it
    * submitted — another PIC's narrative, files, and decision stay private.
    */
-  function visibleTo(viewer: ReportListFilter['viewer']): SQL | undefined {
-    if (viewer.isAdmin) return undefined;
-
-    return or(
-      eq(reports.status, 'PENDING'),
-      eq(reports.submittedByUserId, viewer.userId),
-      inArray(
-        reports.id,
-        db
-          .select({ id: reportPics.reportId })
-          .from(reportPics)
-          .where(eq(reportPics.userId, viewer.userId)),
-      ),
-    );
+  function visibleTo(_viewer: ReportListFilter['viewer']): SQL | undefined {
+    // All authorized accounts share one OVPCASSS office, in every status.
+    return undefined;
   }
 
   async function campusOptions(): Promise<ReportFilterOption[]> {

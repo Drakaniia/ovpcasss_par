@@ -11,6 +11,7 @@ import {
 import type { ReportDetail, ReportHistoryEvent } from '@par/shared';
 
 import type { Env } from '../../../env';
+import { auditNote } from './audit-note';
 import { toAttachment } from './record-shape';
 
 function formOf(row: ReportRow, pics: readonly ReportPicRow[], sdgIds: readonly string[]) {
@@ -95,19 +96,49 @@ export async function buildReportDetail(
     .reverse()
     .find((comment) => comment.kind === 'RETURN');
 
+  const actorIds = [
+    ...new Set(history.flatMap((event) => (event.actorUserId ? [event.actorUserId] : []))),
+  ];
+  const actors = await Promise.all(actorIds.map((id) => users.findById(id)));
+  const actorById = new Map(
+    actors.filter((actor) => actor !== null).map((actor) => [actor.id, actor]),
+  );
+  const edits = history.filter((event) =>
+    [
+      'RECORD_UPDATED',
+      'NARRATIVE_SAVED',
+      'NARRATIVE_SIGNED',
+      'SIGNATURE_REMOVED',
+      'ATTACHMENT_ADDED',
+      'ATTACHMENT_REMOVED',
+      'ATTACHMENT_RENAMED',
+    ].includes(event.action),
+  );
+  const submission = history.findLast((event) => event.action === 'NARRATIVE_SUBMITTED');
+  const editorOf = (event: (typeof history)[number] | undefined) => {
+    if (!event?.actorUserId) return null;
+    const actor = actorById.get(event.actorUserId);
+    return {
+      userId: event.actorUserId,
+      fullName: actor?.fullName ?? 'Unavailable account',
+      role: event.actorRole === 'ADMIN' ? ('ADMIN' as const) : ('PERSONNEL' as const),
+      actedAt: event.createdAt,
+    };
+  };
+
   const events: ReportHistoryEvent[] = history.map((event) => ({
     id: event.id,
     at: event.createdAt,
     actorName:
-      [createdBy, submittedBy, decidedBy].find((user) => user?.id === event.actorUserId)
-        ?.fullName ?? 'Office',
+      (event.actorUserId ? actorById.get(event.actorUserId) : undefined)?.fullName ??
+      'Unavailable account',
     actorRole: event.actorRole ?? 'ADMIN',
     action: event.action,
     ...(event.fromStatus
       ? { fromStatus: event.fromStatus as ReportHistoryEvent['fromStatus'] }
       : {}),
     ...(event.toStatus ? { toStatus: event.toStatus as ReportHistoryEvent['toStatus'] } : {}),
-    ...(event.comment && !options.concealNarrative ? { comment: event.comment } : {}),
+    ...(event.comment && !options.concealNarrative ? { comment: auditNote(event.comment) } : {}),
   }));
 
   return {
@@ -155,8 +186,21 @@ export async function buildReportDetail(
       createdBy: {
         userId: row.createdByUserId,
         fullName: createdBy?.fullName ?? 'Office',
-        role: 'ADMIN',
+        role: createdBy?.role === 'ADMIN' ? 'ADMIN' : 'PERSONNEL',
+        actedAt: row.createdAt,
       },
+      firstEditedBy: editorOf(edits[0]),
+      lastEditedBy: editorOf(edits.at(-1)),
+      submittedBy: submission
+        ? editorOf(submission)
+        : submittedBy && row.submittedAt
+          ? {
+              userId: row.submittedByUserId ?? submittedBy.id,
+              fullName: submittedBy.fullName,
+              role: submittedBy.role === 'ADMIN' ? 'ADMIN' : 'PERSONNEL',
+              actedAt: row.submittedAt,
+            }
+          : null,
       personnel: pics.map((pic) => ({
         ...(pic.userId ? { userId: pic.userId } : {}),
         fullName: pic.name,

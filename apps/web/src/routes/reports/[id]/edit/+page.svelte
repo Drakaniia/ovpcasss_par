@@ -44,7 +44,7 @@
     <ErrorState
       variant="permission"
       title="You cannot edit this record"
-      description="Only an administrator may change the office register."
+      description="An ADMIN or personnel in charge account is required to edit reports."
       backHref="/reports"
       backLabel="Back to reports"
     />
@@ -59,11 +59,11 @@
     />
   {/if}
 {:else if detail}
-  {#if detail.status === 'APPROVED' || detail.canManage === false}
+  {#if !detail.canManage}
     <ErrorState
       variant="permission"
       title="This record can no longer be changed"
-      description="An approved record locks its activity details, personnel in charge, narrative, and deletion."
+      description="Your account does not have permission to edit this record."
       backHref="/reports/{detail.id}"
       backLabel="Back to the record"
     />

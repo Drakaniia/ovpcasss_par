@@ -10,6 +10,8 @@ import {
   type ReportRow,
 } from '@par/db';
 import {
+  canSubmitReport,
+  REPORT_STATUSES,
   formatReferenceNo,
   reportActivitySchema,
   reportCompletedDateSchema,
@@ -55,7 +57,7 @@ import {
   isAdmin,
   type Viewer,
 } from './domain/report-access';
-import { changedActivityFields } from './application/change-summary';
+import { activitySnapshot, changedActivityFields } from './application/change-summary';
 import { toReportSearchItem } from './application/report-search';
 import {
   ensurePicAccounts,
@@ -75,7 +77,7 @@ import { registerReportSignatureRoutes } from './signature-routes';
 
 export const reportRoutes = new Hono<AppEnv>();
 
-reportRoutes.use('*', requireSession);
+reportRoutes.use('*', requireSession, requireRole('PERSONNEL'));
 
 function viewerOf(c: Context<AppEnv>): Viewer | null {
   const userId = c.get('userId');
@@ -181,13 +183,7 @@ reportRoutes.get('/search', async (c) => {
   });
 
   return c.json({
-    items: rows.map((row) =>
-      toReportSearchItem(
-        row,
-        term,
-        admin || row.status === 'PENDING' || row.submittedByUserId === viewer.userId,
-      ),
-    ),
+    items: rows.map((row) => toReportSearchItem(row, term, true)),
   });
 });
 
@@ -235,7 +231,7 @@ reportRoutes.get('/', async (c) => {
   });
 });
 
-reportRoutes.post('/', requireRole('ADMIN'), async (c) => {
+reportRoutes.post('/', requireRole('PERSONNEL'), async (c) => {
   const viewer = viewerOf(c);
   if (!viewer) return unauthorized(c);
 
@@ -319,7 +315,7 @@ reportRoutes.post('/', requireRole('ADMIN'), async (c) => {
     entityType: 'report',
     entityId: row.id,
     toStatus: 'PENDING',
-    comment: referenceNo,
+    comment: JSON.stringify({ after: { ...parsed.data, referenceNo }, note: referenceNo }),
   });
 
   const pics = await store.read.listPics(row.id);
@@ -335,7 +331,7 @@ reportRoutes.post('/', requireRole('ADMIN'), async (c) => {
   return c.json(created, 201);
 });
 
-reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
+reportRoutes.patch('/:id', requireRole('PERSONNEL'), async (c) => {
   const viewer = viewerOf(c);
   if (!viewer) return unauthorized(c);
 
@@ -343,7 +339,7 @@ reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
   const row = await store.read.findById(c.req.param('id') ?? '');
   if (!row) return notFound(c);
   if (!canManageRecord(viewer, row.status)) {
-    return forbidden(c, 'An approved record can no longer be changed.');
+    return forbidden(c, 'An ADMIN or personnel in charge account is required to edit reports.');
   }
 
   const parsed = reportUpdateSchema.safeParse(await c.req.json().catch(() => null));
@@ -364,7 +360,7 @@ reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
     return c.json({ ...toReportHead(row), changedFields: [] });
   }
 
-  const submitted = row.status === 'SUBMITTED' || row.status === 'RETURNED';
+  const submitted = row.status !== 'PENDING';
   if (submitted && !reason) {
     return invalid(
       c,
@@ -385,8 +381,8 @@ reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
     id: row.id,
     form,
     now,
-    ...(version === undefined ? {} : { version }),
-    from: ['PENDING', 'SUBMITTED', 'RETURNED'],
+    version: version ?? row.version,
+    from: REPORT_STATUSES,
   });
   if (!updated) return conflict(c, 'This record changed on the server. Reload it and try again.');
 
@@ -474,7 +470,11 @@ reportRoutes.patch('/:id', requireRole('ADMIN'), async (c) => {
     entityId: row.id,
     fromStatus: row.status,
     toStatus: updated.status,
-    comment: reason ? `${changedFields.join(', ')}: ${reason}` : row.referenceNo,
+    comment: JSON.stringify({
+      before: activitySnapshot(row, before, beforeSdgIds),
+      after: activitySnapshot(updated, form.pics, form.sdgIds),
+      note: reason ? `${changedFields.join(', ')}: ${reason}` : row.referenceNo,
+    }),
   });
 
   return c.json({ ...toReportHead(updated), changedFields });
@@ -638,7 +638,7 @@ reportRoutes.patch('/:id/completed-date', requireRole('ADMIN'), async (c) => {
     id: row.id,
     completedOn,
     now: new Date().toISOString(),
-    ...(version === undefined ? {} : { version }),
+    version: version ?? row.version,
   });
   if (!updated) return conflict(c, 'This record changed on the server. Reload it and try again.');
 
@@ -694,8 +694,8 @@ reportRoutes.put('/:id/narrative', async (c) => {
     id: row.id,
     narrative: parsed.data.narrative,
     now: new Date().toISOString(),
-    ...(version === undefined ? {} : { version }),
-    from: ['PENDING', 'RETURNED'],
+    version: version ?? row.version,
+    from: REPORT_STATUSES,
   });
   if (!updated) return conflict(c, 'This record changed on the server. Reload it and try again.');
 
@@ -705,7 +705,11 @@ reportRoutes.put('/:id/narrative', async (c) => {
     action: 'NARRATIVE_SAVED',
     entityType: 'report',
     entityId: row.id,
-    comment: row.referenceNo,
+    comment: JSON.stringify({
+      before: { narrative: row.narrative },
+      after: { narrative: updated.narrative },
+      note: row.referenceNo,
+    }),
   });
 
   return c.json(toReportHead(updated));
@@ -733,7 +737,7 @@ reportRoutes.post('/:id/submit', async (c) => {
     }
   }
 
-  if (row.status !== 'PENDING' && row.status !== 'RETURNED') {
+  if (!canSubmitReport(viewer.role, row.status)) {
     return conflict(c, 'This narrative has already been submitted.');
   }
 
@@ -785,7 +789,7 @@ reportRoutes.post('/:id/submit', async (c) => {
   const updated = await store.write.changeStatus(row.id, {
     to: 'SUBMITTED',
     from: sourcesFor('SUBMITTED'),
-    ...(version === undefined ? {} : { version }),
+    version: version ?? row.version,
     now,
     patch: {
       narrative: row.narrative,
@@ -870,6 +874,13 @@ reportRoutes.post('/:id/decision', requireRole('ADMIN'), async (c) => {
     return invalid(c, [{ field: 'comments', message: 'Write what the PIC should change.' }]);
   }
 
+  const requestedVersion = versionFrom(c);
+  if (
+    requestedVersion === null ||
+    (requestedVersion !== undefined && requestedVersion !== row.version)
+  ) {
+    return conflict(c, 'This record changed. Reload it before making a decision.');
+  }
   const now = new Date().toISOString();
   const approving = parsed.data.decision === 'APPROVE';
   const approver = approving ? await store.users.findById(viewer.userId) : null;
@@ -885,6 +896,7 @@ reportRoutes.post('/:id/decision', requireRole('ADMIN'), async (c) => {
   const updated = await store.write.changeStatus(row.id, {
     to: approving ? 'APPROVED' : 'RETURNED',
     from: sourcesFor(approving ? 'APPROVED' : 'RETURNED'),
+    version: row.version,
     now,
     patch: approving
       ? {
@@ -918,7 +930,7 @@ reportRoutes.post('/:id/decision', requireRole('ADMIN'), async (c) => {
     if (!pic.userId || !pic.email) continue;
     // A returned narrative is private to its submitter, so the office's note
     // travels only to them; an approval is still news for every PIC.
-    if (!approving && row.submittedByUserId && pic.userId !== row.submittedByUserId) continue;
+    // Shared-office revision: all listed PICs now receive return notices too.
     await notify(c.env, {
       userId: pic.userId,
       kind: approving ? 'APPROVED' : 'RETURNED',

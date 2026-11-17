@@ -25,6 +25,7 @@
   import { session } from '$lib/session/session.svelte';
   import { toast } from '$lib/toast/toast.svelte';
 
+  import RecordAttribution from './RecordAttribution.svelte';
   import CompletedDateField from './CompletedDateField.svelte';
   import DecisionPanel from './DecisionPanel.svelte';
   import NarrativeEditor from './NarrativeEditor.svelte';
@@ -68,10 +69,10 @@
    * the narrative; another PIC on the record never receives it.
    */
   const canPreviewPdf = $derived(
-    Boolean(detail && !detail.narrativePrivate && (admin || (viewerIsPic && detail.submittedAt))),
+    Boolean(detail && !detail.narrativePrivate && (admin || detail.canManage)),
   );
 
-  const canEditHeader = $derived(Boolean(admin && detail && detail.status !== 'APPROVED'));
+  const canEditHeader = $derived(Boolean(detail?.canManage));
   const approvedReceipt = $derived(
     detail?.status === 'APPROVED' && !admin ? (detail.receipts[0] ?? null) : null,
   );
@@ -201,7 +202,7 @@
     onready={() => (printReady = true)}
   />
 {:else}
-  <a class="back" href="/reports">
+  <a class="back" href={admin ? '/reports' : '/'}>
     <ArrowLeft size={15} aria-hidden="true" /> Reports
   </a>
 
@@ -232,7 +233,7 @@
         </a>
       {/if}
       {#if canEditHeader && detail.status !== 'SUBMITTED'}
-        <a class="btn btn-primary btn-sm" href="/reports/{detail.id}/edit">
+        <a class="btn btn-outline btn-sm" href="/reports/{detail.id}/edit">
           <Pencil size={15} aria-hidden="true" /> Edit details
         </a>
       {:else if canEditHeader}
@@ -256,7 +257,7 @@
       {/if}
       {#if approvedReceipt}
         <button
-          class="btn btn-primary btn-sm"
+          class="btn btn-outline btn-sm"
           type="button"
           onclick={() => (receiptPreview = approvedReceipt)}
         >
@@ -328,7 +329,11 @@
 
       {#if detail.canWriteNarrative}
         <section class="panel">
-          <NarrativeEditor {detail} onreload={load} />
+          <NarrativeEditor
+            {detail}
+            onreload={load}
+            primarySave={!(admin && detail.status === 'SUBMITTED')}
+          />
         </section>
       {:else if detail.narrativePrivate}
         <section class="panel" aria-labelledby="narrative-heading">
@@ -356,7 +361,7 @@
             </p>
             {#if viewerIsPic && !admin}
               <p class="privacy-line">
-                Only you and the OVPCASSS office can read this narrative and its attachments.
+                This narrative and its attachments are shared with the OVPCASSS office.
               </p>
             {/if}
           {/if}
@@ -381,6 +386,9 @@
     </div>
 
     <aside class="rail">
+      {#if admin && detail.people}
+        <RecordAttribution people={detail.people} />
+      {/if}
       <section class="rail-block">
         <h2>Details</h2>
         <dl class="rail-facts">

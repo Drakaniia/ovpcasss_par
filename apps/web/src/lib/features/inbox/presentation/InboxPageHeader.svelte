@@ -28,7 +28,7 @@
   const roleText = $derived(
     roles.length > 0 ? roles.map((role) => ROLE_LABELS[role]).join(' · ') : 'Role not yet assigned',
   );
-  const canCreate = $derived(roles.includes('ADMIN'));
+  const canCreate = $derived(roles.includes('ADMIN') || roles.includes('PERSONNEL'));
 </script>
 
 <header class="home-head">

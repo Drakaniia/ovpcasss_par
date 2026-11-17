@@ -83,6 +83,18 @@ describe('NarrativeMarkdown', () => {
 });
 
 describe('NarrativeEditor', () => {
+  it.each(['SUBMITTED', 'APPROVED'] as const)(
+    'edits %s content without another submission',
+    (status) => {
+      const { body } = render(NarrativeEditor, {
+        props: { detail: detail({ status, canWriteNarrative: true }), onreload: async () => {} },
+      });
+      expect(body).toContain('contenteditable="true"');
+      expect(body).toContain('Save changes');
+      expect(body).not.toContain('Submit narrative');
+    },
+  );
+
   it('offers one formatted surface while editable', () => {
     const { body } = render(NarrativeEditor, {
       props: { detail: detail(), onreload: async () => {} },

@@ -62,6 +62,22 @@ const detail = {
 } as const;
 
 describe('record contracts', () => {
+  it('retains optional editor and submitter attribution', () => {
+    const person = { fullName: 'PIC Editor', role: 'PERSONNEL', actedAt: detail.updatedAt };
+    const parsed = reportDetailSchema.parse({
+      ...detail,
+      people: {
+        ...detail.people,
+        firstEditedBy: person,
+        lastEditedBy: person,
+        submittedBy: person,
+      },
+    });
+    expect(parsed.people?.firstEditedBy?.fullName).toBe('PIC Editor');
+    expect(parsed.people?.lastEditedBy?.actedAt).toBe(detail.updatedAt);
+    expect(parsed.people?.submittedBy?.role).toBe('PERSONNEL');
+  });
+
   it('accepts an activity with no campus or college/unit', () => {
     const form: Record<string, unknown> = { ...detail.form };
     delete form.campusId;

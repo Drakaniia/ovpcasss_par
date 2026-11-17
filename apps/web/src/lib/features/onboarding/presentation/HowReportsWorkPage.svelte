@@ -15,7 +15,7 @@
   let active = $state(0);
 
   const stage = $derived(WORKFLOW_STAGES[active]);
-  const canCreate = $derived(session.user?.role === 'ADMIN');
+  const canCreate = $derived(session.user?.role === 'ADMIN' || session.user?.role === 'PERSONNEL');
 
   function focusStage(index: number): void {
     active = index;

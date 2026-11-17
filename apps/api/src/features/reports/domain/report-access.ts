@@ -1,4 +1,7 @@
-import type { ReportStatus, Role } from '@par/shared';
+import { canAuthorReport, canEditReport, type ReportStatus, type Role } from '@par/shared';
+
+// Shared-office authoring supersedes the historical ownership comments below.
+// Decisions, deletion, archiving, and completion dates remain ADMIN-only.
 
 /** The signed-in account and what the route knows about it. */
 export interface Viewer {
@@ -23,10 +26,8 @@ export function isAdmin(viewer: Viewer): boolean {
  * is submitted the record leaves the register for everyone else, so a reader
  * outside the PIC list and the submitter does not learn its title or venue.
  */
-export function canReadRecord(viewer: Viewer, row: NarrativeRecord, isPic: boolean): boolean {
-  if (isAdmin(viewer)) return true;
-  if (row.status === 'PENDING') return true;
-  return isPic || row.submittedByUserId === viewer.userId;
+export function canReadRecord(viewer: Viewer, _row: NarrativeRecord, _isPic: boolean): boolean {
+  return canAuthorReport(viewer.role);
 }
 
 /**
@@ -35,9 +36,8 @@ export function canReadRecord(viewer: Viewer, row: NarrativeRecord, isPic: boole
  * office still does not read it — but once it is submitted, another PIC named
  * on the record no longer reads the words or the files.
  */
-export function canReadNarrative(viewer: Viewer, row: NarrativeRecord, isPic: boolean): boolean {
-  if (row.status === 'PENDING') return !isAdmin(viewer) || isPic;
-  return isAdmin(viewer) || row.submittedByUserId === viewer.userId;
+export function canReadNarrative(viewer: Viewer, _row: NarrativeRecord, _isPic: boolean): boolean {
+  return canAuthorReport(viewer.role);
 }
 
 /**
@@ -45,14 +45,13 @@ export function canReadNarrative(viewer: Viewer, row: NarrativeRecord, isPic: bo
  * the office reads every copy (watermarked before approval, spec §7.8), and a
  * PIC reads the copy of the narrative they submitted, never another's.
  */
-export function canViewFacsimile(viewer: Viewer, row: NarrativeRecord, isPic: boolean): boolean {
-  if (isAdmin(viewer)) return true;
-  return isPic && row.status !== 'PENDING' && row.submittedByUserId === viewer.userId;
+export function canViewFacsimile(viewer: Viewer, _row: NarrativeRecord, _isPic: boolean): boolean {
+  return canAuthorReport(viewer.role);
 }
 
 /** The office owns the activity fields and the PIC list until approval. */
 export function canManageRecord(viewer: Viewer, status: ReportStatus): boolean {
-  return isAdmin(viewer) && status !== 'APPROVED';
+  return canEditReport(viewer.role, status);
 }
 
 /**
@@ -62,12 +61,7 @@ export function canManageRecord(viewer: Viewer, status: ReportStatus): boolean {
  * office stands in for every role (spec §9).
  */
 export function canWriteNarrative(viewer: Viewer, row: NarrativeRecord): boolean {
-  if (viewer.role !== 'PERSONNEL' && !isAdmin(viewer)) return false;
-  if (row.status === 'PENDING') return true;
-  if (row.status !== 'RETURNED') return false;
-  return (
-    isAdmin(viewer) || row.submittedByUserId === null || row.submittedByUserId === viewer.userId
-  );
+  return canEditReport(viewer.role, row.status);
 }
 
 /** One office decision on a submitted narrative. */
