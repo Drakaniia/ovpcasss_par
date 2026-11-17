@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "pages:proxy": "pnpm --filter @par/api exec wrangler pages functions build ../web/functions --outdir ../web/build/_worker.js --output-routes-path ../web/build/_routes.json --compatibility-date 2026-10-01",
+    "pages:check": "node scripts/check-pages.mjs",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

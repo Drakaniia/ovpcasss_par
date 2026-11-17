@@ -154,11 +154,17 @@ The API accepts the proxy's `x-par-proxy-token` only when it matches, and reads
 the browser's address from the same request. A mismatch fails closed: every
 signed-in write from Pages answers 403.
 
-Deploy after the Worker:
+Deploy after the Worker. `pnpm pages:proxy` compiles the source Function into
+`apps/web/build/_worker.js` and writes `_routes.json` for `/api/*`. Copying the
+`functions/` directory into assets does not compile it when Wrangler runs from
+`apps/api`; deployment can succeed while API routes serve HTML. The production
+workflow rejects this with `pnpm pages:check https://ovpcasss-par.pages.dev`.
+
+Deploy commands:
 
 ```bash
 pnpm --filter @par/web build
-node -e "require('node:fs').cpSync('apps/web/functions','apps/web/build/functions',{recursive:true})"
+pnpm pages:proxy
 pnpm --filter @par/api exec wrangler pages deploy ../web/build --project-name ovpcasss-par --branch main
 ```
 
@@ -185,7 +191,7 @@ must not run a competing production pipeline for `ovpcasss-par`.
 - Build command:
 
   ```bash
-  pnpm --filter @par/web build && node -e "require('node:fs').cpSync('apps/web/functions','apps/web/build/functions',{recursive:true})"
+  pnpm --filter @par/web build && pnpm pages:proxy
   ```
 
 - Build environment: Node `22.18.0` or newer; pnpm `12.3.4` from `packageManager`.
