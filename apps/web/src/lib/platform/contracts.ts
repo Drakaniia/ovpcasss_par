@@ -17,8 +17,8 @@ export interface SavedAccountIdentity {
 
 /**
  * The credential store behind sign-in. The desktop shell keeps each account's
- * token in the OS store so it can switch instantly; the browser keeps only the
- * names and emails it may prefill, because its session is one HttpOnly cookie.
+ * token in the OS store so it can switch instantly; the browser switches
+ * HttpOnly sessions through the API without reading their tokens.
  */
 export interface SecureTokenStore {
   read(): Promise<string | null>;
@@ -26,8 +26,8 @@ export interface SecureTokenStore {
   /** Ends the active account's session; other saved accounts stay. */
   clear(): Promise<void>;
   list(): Promise<SavedAccount[]>;
-  /** Returns the account's token on desktop; null when only the metadata is known. */
-  switchTo(id: string): Promise<string | null>;
+  /** Desktop returns a token; web returns true after the API switches its cookie. */
+  switchTo(id: string): Promise<string | true | null>;
   forget(id: string): Promise<void>;
   /** Records the signed-in account's name and email, with or without a token. */
   remember(account: SavedAccountIdentity): Promise<void>;

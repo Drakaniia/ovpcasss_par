@@ -12,7 +12,8 @@ describe('switchStep', () => {
     expect(switchStep('desktop', 'sign-in')).toBe('expired');
   });
 
-  it('always returns to sign-in in the browser', () => {
+  it('restores a switched browser session and only requests sign-in when unavailable', () => {
+    expect(switchStep('web', 'switched')).toBe('restore');
     expect(switchStep('web', 'sign-in')).toBe('sign-in');
     expect(switchStep('web', 'failed')).toBe('sign-in');
   });

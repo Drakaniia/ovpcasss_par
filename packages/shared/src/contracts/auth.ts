@@ -34,6 +34,26 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
+/** A display identity never grants access; the browser must hold its session cookie. */
+export const switchAccountSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .max(128)
+    .regex(/^[A-Za-z0-9_-]+$/),
+});
+export const browserAccountsSchema = z.object({
+  accounts: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      email: emailSchema,
+      active: z.boolean(),
+    }),
+  ),
+});
+export type BrowserAccounts = z.infer<typeof browserAccountsSchema>;
+
 export const verifyEmailSchema = z.object({
   token: z.string().min(1),
 });

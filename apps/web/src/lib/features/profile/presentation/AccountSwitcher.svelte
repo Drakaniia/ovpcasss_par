@@ -80,6 +80,8 @@
       }
 
       openSignIn(account.email);
+    } catch {
+      toast.error('Could not switch accounts. Try again.');
     } finally {
       busy = null;
     }
@@ -118,8 +120,10 @@
       toast.success(
         desktop
           ? 'Account removed from this device.'
-          : 'Account removed from your remembered list.',
+          : 'Account signed out and removed from this browser.',
       );
+    } catch {
+      toast.error('Could not remove the account. Try again.');
     } finally {
       busy = null;
     }
@@ -137,8 +141,8 @@
       {#if desktop}
         Accounts saved on this device. Choosing one signs in without a password.
       {:else}
-        Remembered accounts follow your account across devices. Switching requires signing in again.
-        Your current account stays signed in until the new sign-in succeeds.
+        Accounts signed in on this browser. Switch instantly while their saved sessions remain
+        valid.
       {/if}
     </p>
   </div>

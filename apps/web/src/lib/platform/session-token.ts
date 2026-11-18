@@ -1,4 +1,4 @@
-import { setSessionToken } from '$lib/api/http';
+import { ApiError, setSessionToken } from '$lib/api/http';
 
 import type { SavedAccount, SavedAccountIdentity } from './contracts';
 import { platform } from './index';
@@ -63,33 +63,31 @@ export function savedAccounts(): Promise<SavedAccount[]> {
 }
 
 /**
- * Switches to a saved account. `switched` means a desktop token is now in
- * memory; `sign-in` means the browser must sign out and prefill the form;
- * `failed` means the stored token was gone or rejected.
+ * Switches to a saved account. `switched` means the cookie or desktop token
+ * changed; `sign-in` means a saved browser session expired. Network failures
+ * propagate so they cannot be mistaken for expired credentials.
  */
 export async function switchToAccount(id: string): Promise<'switched' | 'sign-in' | 'failed'> {
   try {
     const current = await platform();
     const token = await current.tokens.switchTo(id);
 
-    if (token) {
+    if (token === true) return 'switched';
+    if (typeof token === 'string') {
       setSessionToken(token);
       return 'switched';
     }
 
     return current.shell === 'web' ? 'sign-in' : 'failed';
-  } catch {
-    return 'failed';
+  } catch (error) {
+    if (error instanceof ApiError && error.code === 'SESSION_EXPIRED') return 'sign-in';
+    throw error;
   }
 }
 
 export async function forgetAccount(id: string): Promise<void> {
-  try {
-    const current = await platform();
-    await current.tokens.forget(id);
-  } catch {
-    // The list is a convenience; a failed prune leaves it for the next attempt.
-  }
+  const current = await platform();
+  await current.tokens.forget(id);
 }
 
 export async function forgetSessionToken(): Promise<void> {

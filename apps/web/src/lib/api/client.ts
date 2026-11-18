@@ -119,6 +119,17 @@ export const api = {
     login: (input: LoginInput) =>
       apiFetch<LoginResult>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
     logout: () => apiFetch<void>('/auth/logout', { method: 'POST' }),
+    accounts: () =>
+      apiFetch<import('@par/shared').BrowserAccounts>('/auth/accounts', {
+        signal: new AbortController().signal,
+      }),
+    switchAccount: (id: string) =>
+      apiFetch<void>('/auth/accounts/switch', {
+        method: 'POST',
+        body: JSON.stringify({ id }),
+      }),
+    forgetAccount: (id: string) =>
+      apiFetch<void>(`/auth/accounts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
     forgotPassword: (input: ForgotPasswordInput) =>
       apiFetch<void>('/auth/forgot-password', { method: 'POST', body: JSON.stringify(input) }),
     resetPassword: (input: ResetPasswordInput) =>

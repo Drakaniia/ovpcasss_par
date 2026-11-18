@@ -15,13 +15,17 @@ export function readSessionCookie(c: Context<AppEnv>): string | undefined {
   return getCookie(c, SESSION_COOKIE);
 }
 
-export function setSessionCookie(c: Context<AppEnv>, token: string): void {
+export function setSessionCookie(
+  c: Context<AppEnv>,
+  token: string,
+  maxAge = SESSION_TTL_SECONDS,
+): void {
   setCookie(c, SESSION_COOKIE, token, {
     httpOnly: true,
     secure: true,
     sameSite: 'Lax',
     path: '/',
-    maxAge: SESSION_TTL_SECONDS,
+    maxAge,
   });
 }
 

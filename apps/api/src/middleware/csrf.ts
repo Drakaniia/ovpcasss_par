@@ -18,7 +18,12 @@ import { SESSION_COOKIE } from '../lib/session-cookie';
  */
 export const requireSameOrigin = createMiddleware<AppEnv>(async (c, next) => {
   if (isReadOnly(c.req.method)) return next();
-  if (getCookie(c, SESSION_COOKIE) === undefined) return next();
+  const cookies = getCookie(c);
+  if (
+    cookies[SESSION_COOKIE] === undefined &&
+    !Object.keys(cookies).some((name) => name.startsWith('__Host-par_account_'))
+  )
+    return next();
   if (isTrustedProxy(c)) return next();
 
   const origin = c.req.header('origin');

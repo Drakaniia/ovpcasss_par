@@ -8,12 +8,18 @@ import {
   resendVerificationSchema,
   resetPasswordSchema,
   verifyEmailSchema,
+  switchAccountSchema,
 } from '@par/shared';
 
 import type { AppEnv } from '../../env';
 import { requireSession } from '../../middleware/auth';
 import { rateLimit } from '../../middleware/rate-limit';
 import { authConfig } from './application/config';
+import {
+  listBrowserAccounts,
+  switchBrowserAccount,
+  forgetBrowserAccount,
+} from './application/browser-accounts';
 import { completeGoogleSignIn, startGoogleSignIn } from './application/google';
 import { login } from './application/login';
 import { logout } from './application/logout';
@@ -51,6 +57,27 @@ function rateLimited(c: Context<AppEnv>, retryAfterSeconds: number) {
 }
 
 authRoutes.get('/config', (c) => c.json(authConfig(c.env)));
+
+authRoutes.get('/accounts', async (c) => {
+  c.header('cache-control', 'no-store');
+  return c.json(await listBrowserAccounts(c));
+});
+
+authRoutes.post('/accounts/switch', async (c) => {
+  const parsed = switchAccountSchema.safeParse(await readJson(c));
+  if (!parsed.success) return invalid(c, 'Choose a saved account.', parsed.error);
+  if (!(await switchBrowserAccount(c, parsed.data.id))) {
+    return reject(c, 'SESSION_EXPIRED', 'That saved session has expired. Sign in again.', 401);
+  }
+  return c.body(null, 204);
+});
+
+authRoutes.delete('/accounts/:id', async (c) => {
+  const parsed = switchAccountSchema.safeParse({ id: c.req.param('id') });
+  if (!parsed.success) return invalid(c, 'Choose a saved account.', parsed.error);
+  await forgetBrowserAccount(c, parsed.data.id);
+  return c.body(null, 204);
+});
 
 /** Google sign-in is a browser navigation, so failures return to the login page. */
 authRoutes.get('/google', (c) => startGoogleSignIn(c));

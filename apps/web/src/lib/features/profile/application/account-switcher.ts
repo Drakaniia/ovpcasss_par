@@ -9,8 +9,9 @@ export type SwitchOutcome = 'switched' | 'sign-in' | 'failed';
 export type SwitchStep = 'restore' | 'sign-in' | 'expired';
 
 export function switchStep(shell: 'web' | 'desktop', outcome: SwitchOutcome): SwitchStep {
+  if (outcome === 'switched') return 'restore';
   if (shell === 'web') return 'sign-in';
-  return outcome === 'switched' ? 'restore' : 'expired';
+  return 'expired';
 }
 
 /** The sign-in address carries the chosen account so the field is ready. */
