@@ -115,7 +115,11 @@
     try {
       await forgetAccount(account.id);
       await load();
-      toast.success('Account removed from this device.');
+      toast.success(
+        desktop
+          ? 'Account removed from this device.'
+          : 'Account removed from your remembered list.',
+      );
     } finally {
       busy = null;
     }
@@ -133,8 +137,8 @@
       {#if desktop}
         Accounts saved on this device. Choosing one signs in without a password.
       {:else}
-        A browser session is one account at a time. Signing in with another address replaces this
-        one without signing you out first.
+        Remembered accounts follow your account across devices. Switching requires signing in again.
+        Your current account stays signed in until the new sign-in succeeds.
       {/if}
     </p>
   </div>
@@ -154,7 +158,11 @@
     </p>
   {:else}
     {#if accounts.length === 0}
-      <p class="note">No other accounts are saved on this device.</p>
+      <p class="note">
+        {desktop
+          ? 'No other accounts are saved on this device.'
+          : 'No accounts have been remembered yet.'}
+      </p>
     {:else}
       <ul class="accounts">
         {#each accounts as account (account.id)}
@@ -189,7 +197,7 @@
                   class="btn btn-ghost btn-sm forget"
                   type="button"
                   disabled={busy !== null}
-                  aria-label={`Forget ${account.email || account.name} on this device`}
+                  aria-label={`Forget ${account.email || account.name}${desktop ? ' on this device' : ''}`}
                   onclick={() => void forget(account)}
                 >
                   Forget

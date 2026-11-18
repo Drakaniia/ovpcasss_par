@@ -1,10 +1,11 @@
+import { api } from '$lib/api/client';
+
 import type { SecureTokenStore } from '../contracts';
 
 /**
  * Web sessions live in an HttpOnly cookie, so the app never holds a token and
- * keeps no account list: browser storage is not used at all (settings spec
- * §7.14). Switching accounts is a sign-in, not a switch, and the account's own
- * settings are read from `/me/preferences` instead of the device.
+ * reads remembered identities from `/me/preferences`, not browser storage
+ * (settings spec §7.14). Switching accounts still requires a fresh sign-in.
  */
 export function createTokenStore(): SecureTokenStore {
   return {
@@ -21,19 +22,31 @@ export function createTokenStore(): SecureTokenStore {
     },
 
     async list() {
-      return [];
+      const [{ preferences }, account] = await Promise.all([
+        api.preferences.get(),
+        api.profile.get(),
+      ]);
+      return (preferences.rememberedAccounts ?? []).map((identity) => ({
+        ...identity,
+        active: identity.id === account.id,
+      }));
     },
 
     async switchTo() {
       return null;
     },
 
-    async forget() {
-      // There is no list to forget from.
+    async forget(id) {
+      const { preferences } = await api.preferences.get();
+      await api.preferences.save({
+        rememberedAccounts: (preferences.rememberedAccounts ?? []).filter(
+          (account) => account.id !== id,
+        ),
+      });
     },
 
     async remember() {
-      // Nothing is written to the device.
+      // The API records identities when it issues the successful sign-in cookie.
     },
   };
 }

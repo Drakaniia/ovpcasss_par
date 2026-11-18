@@ -6,6 +6,7 @@ import { createId } from '../../../lib/ids';
 import { clientIp, clientUserAgent } from '../../../lib/request-context';
 import { setSessionCookie, SESSION_TTL_SECONDS } from '../../../lib/session-cookie';
 import { createOpaqueToken, hashToken } from '../../../lib/tokens';
+import { rememberBrowserAccounts } from './remember-browser-accounts';
 
 /**
  * Creates the session row, plants the cookie, and returns the opaque token
@@ -33,6 +34,9 @@ export async function issueSession(
     updatedAt: at,
   });
 
-  if (options.cookie !== false) setSessionCookie(c, token);
+  if (options.cookie !== false) {
+    await rememberBrowserAccounts(c, user, at);
+    setSessionCookie(c, token);
+  }
   return token;
 }

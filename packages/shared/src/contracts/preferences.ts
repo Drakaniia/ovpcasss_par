@@ -24,11 +24,23 @@ const hiddenLocationsSchema = z
   .array(z.string().trim().min(1).max(300))
   .max(HIDDEN_LOCATIONS_LIMIT);
 
+/** Display identities only; switching still requires authentication. */
+export const rememberedAccountsSchema = z
+  .array(
+    z.object({
+      id: z.string().min(1).max(128),
+      name: z.string().max(300),
+      email: z.email().max(254),
+    }),
+  )
+  .max(20);
+
 export const preferencesSchema = z.object({
   zoom: z.number().min(0.5).max(2).optional(),
   updater: z.object({ autoCheck: z.boolean(), autoInstall: z.boolean() }).optional(),
   tour: tourRecordSchema.optional(),
   hiddenLocations: hiddenLocationsSchema.optional(),
+  rememberedAccounts: rememberedAccountsSchema.optional(),
 });
 
 /**
@@ -40,6 +52,7 @@ export const preferencesPatchSchema = z.object({
   updater: z.object({ autoCheck: z.boolean(), autoInstall: z.boolean() }).optional(),
   tour: tourRecordSchema.nullable().optional(),
   hiddenLocations: hiddenLocationsSchema.optional(),
+  rememberedAccounts: rememberedAccountsSchema.optional(),
 });
 
 export const preferencesResponseSchema = z.object({ preferences: preferencesSchema });
