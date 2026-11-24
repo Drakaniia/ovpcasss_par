@@ -31,6 +31,8 @@ export const reports = sqliteTable(
     id: text('id').primaryKey(),
     /** Formatted reference, e.g. `AR No. 0001`; unique and never reissued. */
     referenceNo: text('reference_no').notNull(),
+    /** Optional office tracking slip number entered on the PAR form. */
+    trackingNumber: text('tracking_number'),
     /** Plain sequence for ordering; the counter never goes backwards. */
     sequence: integer('sequence').notNull(),
     type: text('type', { enum: REPORT_TYPES }).$type<ReportType>().notNull(),

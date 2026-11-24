@@ -18,10 +18,11 @@ describe('monitoring workbook shape', () => {
     expect(MONITORING_COLUMNS[0]).toEqual({ key: 'index', label: 'No.' });
   });
 
-  it('heads the receipt number and appends Date Requested last', () => {
-    expect(MONITORING_COLUMNS).toHaveLength(19);
-    expect(MONITORING_COLUMNS[2]).toEqual({ key: 'referenceNo', label: 'Receipt No. / AR No.' });
-    expect(MONITORING_COLUMNS[18]).toEqual({ key: 'dateRequested', label: 'Date Requested' });
+  it('heads Tracking Number at col 3 and appends AR Number and Date Released after Date Completed', () => {
+    expect(MONITORING_COLUMNS).toHaveLength(20);
+    expect(MONITORING_COLUMNS[2]).toEqual({ key: 'trackingNumber', label: 'Tracking Number' });
+    expect(MONITORING_COLUMNS[18]).toEqual({ key: 'referenceNo', label: 'Receipt No. / AR No.' });
+    expect(MONITORING_COLUMNS[19]).toEqual({ key: 'dateReleased', label: 'Date Released' });
   });
 
   it('has a sheet title for every report type', () => {

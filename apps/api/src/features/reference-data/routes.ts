@@ -109,9 +109,19 @@ referenceDataRoutes.get('/:entity/:id', async (c) => {
   return c.json(entry);
 });
 
-referenceDataRoutes.post('/:entity', requireRole('ADMIN'), async (c) => {
+const FORM_MANAGED_ENTITIES = new Set<ReferenceEntityKey>([
+  'campuses',
+  'units',
+  'departments',
+  'offices',
+]);
+
+referenceDataRoutes.post('/:entity', requireRole('PERSONNEL'), async (c) => {
   const entity = entityParam(c);
   if (!entity) return unknownEntity(c);
+  if (c.get('role') !== 'ADMIN' && !FORM_MANAGED_ENTITIES.has(entity)) {
+    return c.json({ error: { code: 'FORBIDDEN', message: 'Administrator access required.' } }, 403);
+  }
 
   const body = await c.req.json().catch(() => null);
   const parsed = parseReferenceInput(entity, body);
@@ -123,9 +133,12 @@ referenceDataRoutes.post('/:entity', requireRole('ADMIN'), async (c) => {
   return c.json(entry, 201);
 });
 
-referenceDataRoutes.patch('/:entity/:id', requireRole('ADMIN'), async (c) => {
+referenceDataRoutes.patch('/:entity/:id', requireRole('PERSONNEL'), async (c) => {
   const entity = entityParam(c);
   if (!entity) return unknownEntity(c);
+  if (c.get('role') !== 'ADMIN' && !FORM_MANAGED_ENTITIES.has(entity)) {
+    return c.json({ error: { code: 'FORBIDDEN', message: 'Administrator access required.' } }, 403);
+  }
 
   const body = await c.req.json().catch(() => null);
   const parsed = parseReferenceInput(entity, body);

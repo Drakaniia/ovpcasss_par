@@ -27,7 +27,7 @@ export function toMonitoringRow(report: MonitoringReportRecord, index: number): 
   return {
     index,
     dateReceived: manilaDate(report.submittedAt),
-    referenceNo: report.referenceNo,
+    trackingNumber: report.trackingNumber ?? '',
     classification: CLASSIFICATION_LABELS[report.classification],
     campus: report.campusName,
     college: report.unitName,
@@ -50,7 +50,8 @@ export function toMonitoringRow(report: MonitoringReportRecord, index: number): 
       .join('; '),
     /** The office's own date wins; a record without one prints its approval day. */
     dateCompleted: report.completedOn ?? manilaDate(report.approvedAt),
-    dateRequested: manilaDate(report.createdAt),
+    referenceNo: report.referenceNo,
+    dateReleased: manilaDate(report.approvedAt),
   };
 }
 

@@ -17,6 +17,7 @@ import { toAttachment } from './record-shape';
 function formOf(row: ReportRow, pics: readonly ReportPicRow[], sdgIds: readonly string[]) {
   return {
     type: row.type,
+    ...(row.trackingNumber ? { trackingNumber: row.trackingNumber } : {}),
     classification: row.classification,
     ...(row.campusId ? { campusId: row.campusId } : {}),
     ...(row.unitId ? { unitId: row.unitId } : {}),

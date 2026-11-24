@@ -10,6 +10,7 @@ export interface MonitoringReportRecord {
   id: string;
   type: ReportType;
   referenceNo: string;
+  trackingNumber: string | null;
   status: ReportStatus;
   classification: ReportRow['classification'];
   campusName: string;
@@ -138,6 +139,7 @@ export function createMonitoringQueries(db: Database) {
           id: reports.id,
           type: reports.type,
           referenceNo: reports.referenceNo,
+          trackingNumber: reports.trackingNumber,
           status: reports.status,
           classification: reports.classification,
           campusName: refCampuses.name,

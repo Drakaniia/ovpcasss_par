@@ -25,6 +25,7 @@ export type ReportPic = z.infer<typeof reportPicSchema>;
 /** Steps 1-3 of the office's record: everything the admin owns (spec §12.1). */
 export const reportActivitySchema = z.object({
   type: z.enum(REPORT_TYPES),
+  trackingNumber: z.string().trim().max(80).optional(),
   classification: z.enum(CLASSIFICATIONS),
   /** Campus and college/unit are optional: the office fills them in when known. */
   campusId: idSchema.optional(),
@@ -139,6 +140,7 @@ export type ReportListQuery = z.infer<typeof reportListQuerySchema>;
 export const reportListItemSchema = z.object({
   id: idSchema,
   referenceNo: z.string().min(1),
+  trackingNumber: z.string().nullable().optional(),
   title: z.string().min(1),
   type: z.enum(REPORT_TYPES),
   status: z.enum(REPORT_STATUSES),
@@ -214,6 +216,13 @@ export const reportSearchResponseSchema = z.object({ items: z.array(reportSearch
 export type ReportSearchResponse = z.infer<typeof reportSearchResponseSchema>;
 
 /* ---------- Create, narrative, decisions ---------- */
+
+export const picDirectoryEntrySchema = z.object({
+  id: idSchema,
+  name: z.string(),
+  email: z.string(),
+});
+export type PicDirectoryEntry = z.infer<typeof picDirectoryEntrySchema>;
 
 export const reportHeadSchema = z.object({
   id: idSchema,

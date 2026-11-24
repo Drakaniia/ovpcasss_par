@@ -39,7 +39,6 @@ export const REFERENCE_ENTITY_CONFIGS: Record<ReferenceEntityKey, ReferenceEntit
 export const REFERENCE_ENTITY_ORDER: readonly ReferenceEntityKey[] = [
   'campuses',
   'units',
-  'programs',
   'departments',
   'offices',
   'sdgs',

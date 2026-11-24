@@ -28,6 +28,7 @@ import { issueReceipts } from './issue-receipts';
 const report: ReportRow = {
   id: 'r1',
   referenceNo: 'AR No. 0001',
+  trackingNumber: null,
   sequence: 1,
   type: 'OFF_CAMPUS',
   status: 'APPROVED',

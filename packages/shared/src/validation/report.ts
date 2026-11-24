@@ -33,6 +33,7 @@ export interface ValidateReportOptions {
 
 const STEP_BY_FIELD: Record<string, number> = {
   type: 1,
+  trackingNumber: 1,
   classification: 1,
   campusId: 1,
   unitId: 1,

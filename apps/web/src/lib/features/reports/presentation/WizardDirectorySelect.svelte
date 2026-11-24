@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import EditableSelect from '$lib/components/EditableSelect.svelte';
   import {
     createDirectoryEntry,
@@ -32,6 +33,8 @@
     flagged = false,
     disabled = false,
     canManage = false,
+    canRemove = false,
+    confirmManage = false,
     onchange,
     onentrieschange,
   }: {
@@ -44,11 +47,40 @@
     optional?: boolean;
     flagged?: boolean;
     disabled?: boolean;
-    /** The signed-in account may maintain the official list (admin). */
+    /** The signed-in account may add or rename entries in the official list. */
     canManage?: boolean;
+    /** Only administrators may remove entries from the official list. */
+    canRemove?: boolean;
+    confirmManage?: boolean;
     onchange: (value: string) => void;
     onentrieschange?: (entity: DirectoryEntity, entries: readonly DirectoryEntry[]) => void;
   } = $props();
+
+  let pending = $state<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    run: () => Promise<void>;
+    resolve: (err?: unknown) => void;
+  } | null>(null);
+
+  function askConfirm(
+    title: string,
+    description: string,
+    confirmLabel: string,
+    run: () => Promise<void>,
+  ): Promise<void> {
+    if (!confirmManage) return run();
+    return new Promise((resolve, reject) => {
+      pending = {
+        title,
+        description,
+        confirmLabel,
+        run,
+        resolve: (err) => (err ? reject(err) : resolve()),
+      };
+    });
+  }
 
   const options = $derived(
     sortDirectory(entries).map((entry) => ({
@@ -63,18 +95,32 @@
   }
 
   async function create(name: string): Promise<void> {
-    const entry = await createDirectoryEntry(entity, name, entries);
-    publish(entry);
-    onchange(entry.name);
+    await askConfirm(
+      `Add ${label.toLowerCase()}`,
+      `Add "${name.trim()}" to the shared ${label.toLowerCase()} list?`,
+      'Add entry',
+      async () => {
+        const entry = await createDirectoryEntry(entity, name, entries);
+        publish(entry);
+        onchange(entry.name);
+      },
+    );
   }
 
   async function rename(current: string, name: string): Promise<void> {
     const target = entries.find((entry) => entry.name === current);
     if (!target) throw new Error('That entry is no longer in the list.');
 
-    const entry = await renameDirectoryEntry(entity, target, name);
-    publish(entry);
-    if (value === current) onchange(entry.name);
+    await askConfirm(
+      `Update ${label.toLowerCase()}`,
+      `Rename "${current}" to "${name.trim()}" in the shared ${label.toLowerCase()} list?`,
+      'Save change',
+      async () => {
+        const entry = await renameDirectoryEntry(entity, target, name);
+        publish(entry);
+        if (value === current) onchange(entry.name);
+      },
+    );
   }
 
   async function remove(name: string): Promise<void> {
@@ -99,10 +145,35 @@
 
   const manage = $derived(
     canManage && onentrieschange
-      ? { onCreate: create, onRename: rename, onRemove: remove }
+      ? {
+          onCreate: create,
+          onRename: rename,
+          ...(canRemove ? { onRemove: remove } : {}),
+        }
       : undefined,
   );
 </script>
+
+<ConfirmDialog
+  open={Boolean(pending)}
+  title={pending?.title ?? ''}
+  description={pending?.description ?? ''}
+  confirmLabel={pending?.confirmLabel ?? 'Confirm'}
+  onconfirm={() => {
+    const job = pending;
+    pending = null;
+    if (!job) return;
+    void job.run().then(
+      () => job.resolve(),
+      (err) => job.resolve(err),
+    );
+  }}
+  oncancel={() => {
+    const job = pending;
+    pending = null;
+    job?.resolve();
+  }}
+/>
 
 <WizardField {id} {label} {error} {optional} {flagged}>
   {#snippet children({ describedBy, invalid })}

@@ -63,6 +63,7 @@
 
   <PicRows
     pics={state.form.pics}
+    directory={state.picDirectory}
     errors={state.errors}
     onpatch={(id, patch) => state.patchPic(id, patch)}
     onadd={() => state.addPic()}

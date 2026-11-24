@@ -127,6 +127,13 @@
       "when": 1793543774546,
       "tag": "0017_goofy_fantastic_four",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1795495874468,
+      "tag": "0018_lively_dreadnoughts",
+      "breakpoints": true
     }
   ]
 }

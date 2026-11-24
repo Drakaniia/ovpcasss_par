@@ -187,6 +187,29 @@ reportRoutes.get('/search', async (c) => {
   });
 });
 
+/* ---------- PIC directory ---------- */
+
+reportRoutes.get('/pic-directory', async (c) => {
+  const viewer = viewerOf(c);
+  if (!viewer) return unauthorized(c);
+
+  const page = await stack(c).users.list({
+    status: 'ACTIVE',
+    sort: 'name',
+    dir: 'asc',
+    page: 1,
+    pageSize: 200,
+  });
+
+  return c.json({
+    items: page.rows.map((user) => ({
+      id: user.id,
+      name: user.fullName,
+      email: user.email,
+    })),
+  });
+});
+
 /* ---------- Register ---------- */
 
 reportRoutes.get('/', async (c) => {

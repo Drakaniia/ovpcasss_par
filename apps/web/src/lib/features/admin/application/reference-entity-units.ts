@@ -14,9 +14,9 @@ import type { ReferenceEntityConfig } from './reference-types';
 
 export const units: ReferenceEntityConfig = {
   key: 'units',
-  label: 'Units & colleges',
-  singular: 'unit',
-  usage: 'Units and colleges appear in the report header and the monitoring exports.',
+  label: 'Colleges / Satellite Campuses',
+  singular: 'college or satellite campus',
+  usage: 'Colleges and satellite campuses appear in the report header and the monitoring exports.',
   duplicateFields: ['code', 'name'],
   fields: [
     {

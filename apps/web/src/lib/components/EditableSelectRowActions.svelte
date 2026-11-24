@@ -19,7 +19,7 @@
     name: string;
     disabled?: boolean;
     onrename: () => void;
-    onremove: () => void;
+    onremove?: () => void;
   } = $props();
 
   /** A row control never selects its entry and never closes the list. */
@@ -40,16 +40,18 @@
   >
     <Pencil size={14} aria-hidden="true" />
   </button>
-  <button
-    class="row-action is-danger"
-    type="button"
-    tabindex="-1"
-    aria-label="Remove {name}"
-    {disabled}
-    onclick={(event) => act(event, onremove)}
-  >
-    <Trash2 size={14} aria-hidden="true" />
-  </button>
+  {#if onremove}
+    <button
+      class="row-action is-danger"
+      type="button"
+      tabindex="-1"
+      aria-label="Remove {name}"
+      {disabled}
+      onclick={(event) => act(event, onremove)}
+    >
+      <Trash2 size={14} aria-hidden="true" />
+    </button>
+  {/if}
 </span>
 
 <style>
