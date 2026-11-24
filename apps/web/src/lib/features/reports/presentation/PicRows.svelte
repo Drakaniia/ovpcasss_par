@@ -1,5 +1,8 @@
 <script lang="ts">
+  import type { PicDirectoryEntry } from '@par/shared';
   import { Plus, Trash2 } from '@lucide/svelte';
+
+  import EditableSelect from '$lib/components/EditableSelect.svelte';
 
   import type { WizardPic } from '../application/record-form';
   import type { FieldErrors } from '../application/record-validation';
@@ -12,6 +15,7 @@
    */
   let {
     pics,
+    directory = [],
     errors,
     disabled = false,
     onpatch,
@@ -19,12 +23,29 @@
     onremove,
   }: {
     pics: readonly WizardPic[];
+    directory?: readonly PicDirectoryEntry[];
     errors: FieldErrors;
     disabled?: boolean;
     onpatch: (id: string, patch: Partial<WizardPic>) => void;
     onadd: () => void;
     onremove: (id: string) => void;
   } = $props();
+
+  const nameOptions = $derived(
+    directory.map((entry) => ({
+      value: entry.name,
+      label: entry.name,
+    })),
+  );
+
+  function selectPicName(picId: string, selectedName: string): void {
+    const match = directory.find((entry) => entry.name === selectedName);
+    if (match) {
+      onpatch(picId, { name: match.name, email: match.email });
+    } else {
+      onpatch(picId, { name: selectedName });
+    }
+  }
 
   function errorText(id: string, field: 'name' | 'email' | 'phone'): string | undefined {
     return errors[`pic.${id}.${field}`];
@@ -45,19 +66,34 @@
           <label class="field-label" for="pic-{pic.id}-name">
             {label(index, 'Name')}<span class="required" aria-hidden="true"> *</span>
           </label>
-          <input
-            id="pic-{pic.id}-name"
-            class="input"
-            type="text"
-            maxlength="200"
-            autocomplete="off"
-            placeholder="Full name"
-            {disabled}
-            aria-invalid={errorText(pic.id, 'name') ? 'true' : undefined}
-            aria-describedby={errorText(pic.id, 'name') ? `pic-${pic.id}-name-error` : undefined}
-            value={pic.name}
-            oninput={(event) => onpatch(pic.id, { name: event.currentTarget.value })}
-          />
+          {#if nameOptions.length > 0}
+            <EditableSelect
+              id="pic-{pic.id}-name"
+              label={label(index, 'Name')}
+              value={pic.name}
+              options={nameOptions}
+              placeholder="Select or type full name"
+              allowCustom
+              {disabled}
+              invalid={Boolean(errorText(pic.id, 'name'))}
+              describedBy={errorText(pic.id, 'name') ? `pic-${pic.id}-name-error` : undefined}
+              onchange={(value) => selectPicName(pic.id, value)}
+            />
+          {:else}
+            <input
+              id="pic-{pic.id}-name"
+              class="input"
+              type="text"
+              maxlength="200"
+              autocomplete="off"
+              placeholder="Full name"
+              {disabled}
+              aria-invalid={errorText(pic.id, 'name') ? 'true' : undefined}
+              aria-describedby={errorText(pic.id, 'name') ? `pic-${pic.id}-name-error` : undefined}
+              value={pic.name}
+              oninput={(event) => onpatch(pic.id, { name: event.currentTarget.value })}
+            />
+          {/if}
           {#if errorText(pic.id, 'name')}
             <p class="field-error" id="pic-{pic.id}-name-error">{errorText(pic.id, 'name')}</p>
           {/if}

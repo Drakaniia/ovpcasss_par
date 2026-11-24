@@ -351,7 +351,7 @@ describe('deactivation copy', () => {
     const rows = rowsFromEntries(configFor('departments'), [department()]);
     const copy = deactivationFor(configFor('departments'), rows[0]);
 
-    expect(copy.description).toContain('4 reports use this department.');
+    expect(copy.description).toContain('4 reports use this department or program.');
     expect(copy.description).toContain(
       'Deactivated entries stay in existing reports but no longer appear in new forms.',
     );

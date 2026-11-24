@@ -52,7 +52,7 @@
     manage?: {
       onCreate: (name: string) => Promise<void>;
       onRename: (value: string, name: string) => Promise<void>;
-      onRemove: (value: string) => Promise<void>;
+      onRemove?: (value: string) => Promise<void>;
     };
     emptyMessage?: string;
     onchange: (value: string) => void;
@@ -235,7 +235,7 @@
 
   /** Removes the entry the control belongs to, never whichever row is lit now. */
   async function removeEntry(target: { value: string }): Promise<void> {
-    if (!manage || busy) return;
+    if (!manage?.onRemove || busy) return;
 
     busy = true;
     failure = null;
@@ -484,7 +484,7 @@
                     name={row.value}
                     disabled={busy}
                     onrename={() => startRename(row)}
-                    onremove={() => void removeEntry(row)}
+                    onremove={manage.onRemove ? () => void removeEntry(row) : undefined}
                   />
                 {/if}
               {:else}

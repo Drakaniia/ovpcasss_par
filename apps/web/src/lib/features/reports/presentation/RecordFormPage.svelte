@@ -5,13 +5,13 @@
   import { onMount } from 'svelte';
 
   import ErrorState from '$lib/components/ErrorState.svelte';
-  import SkeletonDocument from '$lib/components/SkeletonDocument.svelte';
   import { loadSession } from '$lib/session/session.svelte';
   import { toast } from '$lib/toast/toast.svelte';
 
   import { wizardKeyAction, type WizardStep } from '../application/record-form';
   import { RecordFormState } from '../application/record-state.svelte';
   import RecordFormWizard from './RecordFormWizard.svelte';
+  import WizardSkeleton from './WizardSkeleton.svelte';
 
   let {
     mode,
@@ -135,7 +135,7 @@
     backLabel="Back to reports"
   />
 {:else if !form.ready}
-  <SkeletonDocument />
+  <WizardSkeleton />
 {:else}
   {#if mode === 'edit' && detail && detail.status !== 'PENDING'}
     <div class="reason-card">

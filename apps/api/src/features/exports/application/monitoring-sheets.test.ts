@@ -9,6 +9,7 @@ function record(overrides: Partial<MonitoringReportRecord>): MonitoringReportRec
     id: 'rep_1',
     type: 'OFF_CAMPUS',
     referenceNo: 'AR No. 0042',
+    trackingNumber: 'TRK-2026-001',
     status: 'APPROVED',
     classification: 'CURRICULAR',
     campusName: 'MAIN',
@@ -46,7 +47,7 @@ describe('monitoring sheet', () => {
     const { sheet } = buildMonitoringSheet([record({})], REQUEST);
 
     expect(sheet.sheetName).toBe('OFF-CAMPUS');
-    expect(sheet.columns).toHaveLength(19);
+    expect(sheet.columns).toHaveLength(20);
     expect(sheet.title).toBe('LOCAL OFF-CAMPUS  ACTIVITIES MONITORING\n2nd SEMESTER, SY 2025-2026');
   });
 
@@ -68,14 +69,14 @@ describe('monitoring sheet', () => {
     expect(sheet.total).toBe(1);
   });
 
-  it('maps a report onto the 19 monitoring values', () => {
+  it('maps a report onto the 20 monitoring values', () => {
     const { sheet, rows } = buildMonitoringSheet([record({})], REQUEST);
     const row = sheet.rows[0]!;
 
     expect(row).toMatchObject({
       index: 1,
       dateReceived: '2026-03-14',
-      referenceNo: 'AR No. 0042',
+      trackingNumber: 'TRK-2026-001',
       classification: 'Curricular',
       campus: 'MAIN',
       college: 'COLLEGE OF EDUCATION',
@@ -85,7 +86,8 @@ describe('monitoring sheet', () => {
       picName: 'Maria Santos',
       picContact: 'maria.santos@example.edu',
       dateCompleted: '2026-03-20',
-      dateRequested: '2026-03-10',
+      referenceNo: 'AR No. 0042',
+      dateReleased: '2026-03-20',
     });
     expect(rows[0]).toEqual(row);
   });
@@ -103,9 +105,9 @@ describe('monitoring sheet', () => {
     );
 
     expect(sheet.rows[0]).toMatchObject({
-      dateRequested: '2026-10-22',
       dateReceived: '2026-10-22',
       dateCompleted: '2026-10-22',
+      dateReleased: '2026-10-22',
     });
   });
 

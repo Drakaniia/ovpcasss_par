@@ -11,8 +11,8 @@ import {
 import type { ReferenceColumn, ReferenceEntityConfig } from './reference-types';
 
 function directoryEntity(kind: 'departments' | 'offices'): ReferenceEntityConfig {
-  const singular = kind === 'departments' ? 'department' : 'office';
-  const label = kind === 'departments' ? 'Departments' : 'Offices';
+  const singular = kind === 'departments' ? 'department or program' : 'office or unit';
+  const label = kind === 'departments' ? 'Departments / Programs' : 'Offices / Units';
 
   return {
     key: kind,

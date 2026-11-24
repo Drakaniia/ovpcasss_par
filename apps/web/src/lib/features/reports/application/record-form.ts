@@ -32,6 +32,7 @@ export type WizardPic = { id: string; name: string; email: string; phone: string
 
 export type WizardForm = {
   type: ReportType | '';
+  trackingNumber: string;
   classification: Classification | '';
   campusId: string;
   unitId: string;
@@ -108,6 +109,7 @@ export function newPic(): WizardPic {
 export function emptyWizardForm(): WizardForm {
   return {
     type: '',
+    trackingNumber: '',
     classification: '',
     campusId: '',
     unitId: '',
@@ -172,6 +174,7 @@ export function formFromRecord(form: ReportFormInput): WizardForm {
   return {
     ...base,
     type: form.type,
+    trackingNumber: form.trackingNumber ?? '',
     classification: form.classification,
     campusId: form.campusId ?? '',
     unitId: form.unitId ?? '',
@@ -226,6 +229,7 @@ export function toRecordInput(form: WizardForm): ReportActivityInput | null {
 
   return {
     type: form.type,
+    ...(form.trackingNumber.trim() ? { trackingNumber: form.trackingNumber.trim() } : {}),
     classification: form.classification,
     ...(form.campusId ? { campusId: form.campusId } : {}),
     ...(form.unitId ? { unitId: form.unitId } : {}),

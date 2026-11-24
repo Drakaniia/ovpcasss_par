@@ -28,10 +28,9 @@ describe('ReferenceDataPage', () => {
 
     const labels = [
       'Campuses',
-      'Units &amp; colleges',
-      'Programs',
-      'Departments',
-      'Offices',
+      'Colleges / Satellite Campuses',
+      'Departments / Programs',
+      'Offices / Units',
       'SDGs',
       'Terms',
       'Attachment requirements',

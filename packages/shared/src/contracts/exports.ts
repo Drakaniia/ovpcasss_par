@@ -11,7 +11,7 @@ import { isoDateTimeSchema } from './common';
 export const monitoringSheetRowSchema = z.object({
   index: z.number().int().min(1),
   dateReceived: z.string(),
-  referenceNo: z.string(),
+  trackingNumber: z.string(),
   classification: z.string(),
   campus: z.string(),
   college: z.string(),
@@ -27,8 +27,9 @@ export const monitoringSheetRowSchema = z.object({
   picName: z.string(),
   picContact: z.string(),
   dateCompleted: z.string(),
-  /** The Manila date the office registered the request (`reports.created_at`). */
-  dateRequested: z.string(),
+  referenceNo: z.string(),
+  /** The Manila date the record was approved / receipt released. */
+  dateReleased: z.string(),
 });
 export type MonitoringSheetRow = z.infer<typeof monitoringSheetRowSchema>;
 

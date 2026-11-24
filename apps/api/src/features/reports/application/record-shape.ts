@@ -32,6 +32,7 @@ export function toReportListItem(
   return {
     id: row.id,
     referenceNo: row.referenceNo,
+    ...(row.trackingNumber ? { trackingNumber: row.trackingNumber } : {}),
     title: row.title,
     type: row.type,
     status: row.status,

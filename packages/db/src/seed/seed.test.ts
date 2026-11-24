@@ -24,7 +24,7 @@ describe('seed reference data', () => {
     expect(unitsOf('COLLEGE')).toHaveLength(8);
     expect(unitsOf('GRADUATE_SCHOOL_GROUP')).toHaveLength(2);
     expect(unitsOf('SATELLITE_CAMPUS')).toHaveLength(15);
-    expect(unitsOf('OTHER_UNIT')).toHaveLength(3);
+    expect(unitsOf('OTHER_UNIT')).toHaveLength(0);
   });
 
   it('resolves every unit campusCode to a campus', () => {
@@ -34,28 +34,22 @@ describe('seed reference data', () => {
     }
   });
 
-  it('derives ten academic departments from the units', () => {
-    expect(SEED_DEPARTMENTS).toHaveLength(10);
-
-    const academic = SEED_UNITS.filter(
-      (unit) => unit.kind === 'COLLEGE' || unit.kind === 'GRADUATE_SCHOOL_GROUP',
-    ).map((unit) => unit.name);
-    expect(SEED_DEPARTMENTS.map((entry) => entry.name)).toEqual(academic);
+  it('seeds departments/programs from the 44 degree programs', () => {
+    expect(SEED_DEPARTMENTS).toHaveLength(44);
+    expect(SEED_DEPARTMENTS[0]?.name).toBe(`${SEED_PROGRAMS[0]?.code} - ${SEED_PROGRAMS[0]?.name}`);
     expect(SEED_DEPARTMENTS.map((entry) => entry.sortOrder)).toEqual(
-      Array.from({ length: 10 }, (_, index) => index + 1),
+      Array.from({ length: 44 }, (_, index) => index + 1),
     );
   });
 
-  it('derives eighteen support offices from the units', () => {
-    expect(SEED_OFFICES).toHaveLength(18);
-
-    const support = SEED_UNITS.filter(
-      (unit) => unit.kind === 'SATELLITE_CAMPUS' || unit.kind === 'OTHER_UNIT',
-    ).map((unit) => unit.name);
-    expect(SEED_OFFICES.map((entry) => entry.name)).toEqual(support);
-    expect(SEED_OFFICES.map((entry) => entry.sortOrder)).toEqual(
-      Array.from({ length: 18 }, (_, index) => index + 1),
-    );
+  it('seeds offices/units with the non-college units', () => {
+    expect(SEED_OFFICES).toHaveLength(3);
+    expect(SEED_OFFICES.map((entry) => entry.name)).toEqual([
+      'SECONDARY LABORATORY SCHOOL',
+      'ELEMENTARY LABORATORY SCHOOL',
+      'NATIONAL SERVICE TRAINING PROGRAM',
+    ]);
+    expect(SEED_OFFICES.map((entry) => entry.sortOrder)).toEqual([1, 2, 3]);
   });
 
   it('has 44 programs and resolves every unitCode to a unit', () => {

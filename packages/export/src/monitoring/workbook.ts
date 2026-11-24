@@ -28,7 +28,7 @@ function bodyCells(row: MonitoringSheetRow): SheetCell[] {
   return [
     row.index,
     dateCell(row.dateReceived),
-    row.referenceNo,
+    row.trackingNumber,
     row.classification,
     row.campus,
     row.college,
@@ -44,7 +44,8 @@ function bodyCells(row: MonitoringSheetRow): SheetCell[] {
     row.picName,
     row.picContact,
     dateCell(row.dateCompleted),
-    dateCell(row.dateRequested),
+    row.referenceNo,
+    dateCell(row.dateReleased),
   ];
 }
 

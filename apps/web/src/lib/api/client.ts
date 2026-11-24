@@ -39,6 +39,7 @@ import type {
   NotificationListResponse,
   NotificationReadAllResponse,
   NotificationReadResponse,
+  PicDirectoryEntry,
   Preferences,
   PreferencesPatch,
   PresignRequest,
@@ -173,6 +174,7 @@ export const api = {
       return apiFetch<ReportSearchResponse>(`/reports/search${search ? `?${search}` : ''}`);
     },
     get: (id: string) => apiFetch<ReportDetail>(`/reports/${id}`),
+    picDirectory: () => apiFetch<{ items: PicDirectoryEntry[] }>('/reports/pic-directory'),
     /** Admin: mints the AR No. and mails every personnel in charge. */
     create: (input: ReportActivityInput, idempotencyKey?: string) =>
       apiFetch<ReportHead & { sentTo: number }>('/reports', {

@@ -46,6 +46,7 @@ export interface ReportCommentInput {
 type ActivityProjection = Pick<
   NewReportRow,
   | 'type'
+  | 'trackingNumber'
   | 'classification'
   | 'campusId'
   | 'unitId'
@@ -64,6 +65,7 @@ type ActivityProjection = Pick<
 function projection(form: ReportActivityInput): ActivityProjection {
   return {
     type: form.type,
+    trackingNumber: form.trackingNumber?.trim() || null,
     classification: form.classification,
     campusId: form.campusId ?? null,
     unitId: form.unitId ?? null,

@@ -282,17 +282,19 @@
       <section class="panel" aria-labelledby="activity-title">
         <h2 id="activity-title">Activity</h2>
         <dl class="facts">
+          <dt>Tracking number</dt>
+          <dd>{detail.form.trackingNumber || '—'}</dd>
           <dt>Classification</dt>
           <dd>{detail.form.classification === 'CURRICULAR' ? 'Curricular' : 'Non-curricular'}</dd>
           <dt>Campus</dt>
           <dd>{names.campus || '—'}</dd>
-          <dt>College or unit</dt>
+          <dt>Colleges / Satellite Campus</dt>
           <dd>{names.unit || '—'}</dd>
-          <dt>Department</dt>
+          <dt>Department / Program</dt>
           <dd>{detail.form.department || '—'}</dd>
-          <dt>Office</dt>
+          <dt>Office / Unit</dt>
           <dd>{detail.form.office || '—'}</dd>
-          <dt>Level</dt>
+          <dt>Graduate / Undergraduate</dt>
           <dd>{detail.form.level === 'GRADUATE' ? 'Graduate' : 'Undergraduate'}</dd>
           <dt>Date of activity</dt>
           <dd>{formatDateRange(detail.form.activityStartDate, detail.form.activityEndDate)}</dd>

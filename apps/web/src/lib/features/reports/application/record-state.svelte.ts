@@ -1,9 +1,18 @@
-import type { Campus, Department, Office, ReportDetail, Sdg, Unit } from '@par/shared';
+import type {
+  Campus,
+  Department,
+  Office,
+  PicDirectoryEntry,
+  ReportDetail,
+  Sdg,
+  Unit,
+} from '@par/shared';
 import { tick } from 'svelte';
 import { SvelteSet } from 'svelte/reactivity';
 
 import { api } from '$lib/api/client';
 import { ApiError, validationIssues } from '$lib/api/http';
+import { session } from '$lib/session/session.svelte';
 
 import {
   activityDays,
@@ -75,6 +84,7 @@ export class RecordFormState {
   auth = $state<'loading' | 'ready' | 'denied' | 'error'>('loading');
   ready = $state(false);
   references = $state<RecordReferences>(EMPTY_REFERENCES);
+  picDirectory = $state<PicDirectoryEntry[]>([]);
   referencesError = $state<{ requestId?: string } | null>(null);
 
   form = $state<WizardForm>(emptyWizardForm());
@@ -130,6 +140,12 @@ export class RecordFormState {
       }
       this.form = formFromRecord(this.detail.form);
       this.seedEdited();
+    } else if (session.user?.role === 'PERSONNEL' && this.form.pics[0] && !this.form.pics[0].name) {
+      const [first, ...rest] = this.form.pics;
+      this.form = {
+        ...this.form,
+        pics: [{ ...first, name: session.user.fullName, email: session.user.email }, ...rest],
+      };
     }
 
     try {
@@ -153,12 +169,13 @@ export class RecordFormState {
     this.referencesError = null;
 
     try {
-      const [campuses, units, departments, offices, sdgs] = await Promise.all([
+      const [campuses, units, departments, offices, sdgs, picDir] = await Promise.all([
         api.reference.list('campuses'),
         api.reference.list('units'),
         api.reference.list('departments'),
         api.reference.list('offices'),
         api.reference.list('sdgs'),
+        api.reports.picDirectory().catch(() => ({ items: [] })),
       ]);
 
       this.references = {
@@ -168,6 +185,7 @@ export class RecordFormState {
         offices: offices.items,
         sdgs: sdgs.items,
       };
+      this.picDirectory = picDir.items;
     } catch (error) {
       this.referencesError = { requestId: error instanceof ApiError ? error.requestId : undefined };
       throw error;
