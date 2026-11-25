@@ -34,6 +34,23 @@ describe('requireSameOrigin', () => {
     expect(response.status).toBe(200);
   });
 
+  it('lets a configured APP_ORIGIN write through when a proxy rewrites Host', async () => {
+    const response = await app.request(
+      '/reports',
+      {
+        method: 'POST',
+        headers: {
+          cookie: 'par_session=abc',
+          origin: 'http://localhost:5173',
+          host: 'par.ovpcassss.workers.dev',
+        },
+      },
+      { APP_ORIGIN: 'http://localhost:5173' } as unknown as AppEnv['Bindings'],
+    );
+
+    expect(response.status).toBe(200);
+  });
+
   it('refuses a write from another origin', async () => {
     const response = await submit({
       origin: 'https://evil.example',

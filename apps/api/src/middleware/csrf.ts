@@ -28,7 +28,10 @@ export const requireSameOrigin = createMiddleware<AppEnv>(async (c, next) => {
 
   const origin = c.req.header('origin');
   const host = c.req.header('host');
-  if (!origin || !host || !isSameHost(origin, host)) {
+  const appOrigin = c.env.APP_ORIGIN?.trim();
+  const matchesHost = Boolean(origin && host && isSameHost(origin, host));
+  const matchesAppOrigin = Boolean(origin && appOrigin && isSameOrigin(origin, appOrigin));
+  if (!matchesHost && !matchesAppOrigin) {
     return c.json({ error: { code: 'FORBIDDEN', message: 'Request origin not permitted' } }, 403);
   }
 
@@ -42,6 +45,14 @@ function isReadOnly(method: string): boolean {
 function isSameHost(origin: string, host: string): boolean {
   try {
     return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
+function isSameOrigin(origin: string, expected: string): boolean {
+  try {
+    return new URL(origin).origin === new URL(expected).origin;
   } catch {
     return false;
   }
