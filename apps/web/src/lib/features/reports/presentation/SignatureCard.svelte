@@ -104,7 +104,7 @@
     <p class="signature-label">Your signature</p>
     <p class="signature-hint">
       Optional. Draw or upload it here; it is saved with the draft or the submission, or use Save
-      signature to keep it now. A signature saved in Settings is still used if this card stays
+      signature to keep it now. A signature saved in Profile is still used if this card stays
       empty.
     </p>
   </div>

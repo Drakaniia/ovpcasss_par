@@ -101,7 +101,10 @@
         class="btn btn-ghost"
         type="button"
         disabled={busy}
-        onclick={() => (returning = false)}
+        onclick={() => {
+          returning = false;
+          error = null;
+        }}
       >
         Cancel
       </button>

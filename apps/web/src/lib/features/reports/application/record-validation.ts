@@ -25,7 +25,7 @@ const FIXED_LABELS: Record<string, string> = {
   unitId: 'College or unit',
   department: 'Department',
   office: 'Office',
-  level: 'Level',
+  level: 'Graduate / Undergraduate',
   title: 'Title of the activity',
   startDate: 'Start date',
   endDate: 'End date',

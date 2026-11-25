@@ -64,7 +64,7 @@
       <div class="pic-grid">
         <div class="field" class:has-error={Boolean(errorText(pic.id, 'name'))}>
           <label class="field-label" for="pic-{pic.id}-name">
-            {label(index, 'Name')}<span class="required" aria-hidden="true"> *</span>
+            <span>{label(index, 'Name')}<span class="required" aria-hidden="true"> *</span></span>
           </label>
           {#if nameOptions.length > 0}
             <EditableSelect

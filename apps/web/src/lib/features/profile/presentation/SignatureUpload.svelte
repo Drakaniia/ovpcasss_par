@@ -5,7 +5,7 @@
   import { api } from '$lib/api/client';
   import { ApiError } from '$lib/api/http';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-  import { loadSession } from '$lib/session/session.svelte';
+  import { loadSession, session } from '$lib/session/session.svelte';
   import { toast } from '$lib/toast/toast.svelte';
 
   import SignatureCapture from './SignatureCapture.svelte';
@@ -166,8 +166,12 @@
         <img class="preview" src={preview} alt="Your signature" width="240" />
       {:else}
         <p class="preview-empty">
-          Approving a report requires a signature. Draw or upload one below, or add one later while
-          editing a report.
+          {#if session.user?.role === 'ADMIN'}
+            Approving a report requires a signature. Draw or upload one below, or add one later
+            while editing a report.
+          {:else}
+            Add your signature below so it is ready when you submit a report.
+          {/if}
         </p>
       {/if}
     </div>

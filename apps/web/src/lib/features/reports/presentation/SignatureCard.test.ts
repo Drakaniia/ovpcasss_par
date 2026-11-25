@@ -58,7 +58,7 @@ describe('SignatureCard', () => {
   it('names the profile copy as a fallback, never as a button', () => {
     const html = renderCard({ signed: false, canEdit: true });
 
-    expect(text(html)).toContain('A signature saved in Settings is still used');
+    expect(text(html)).toContain('A signature saved in Profile is still used');
     expect(html).not.toContain('fromProfile');
     expect(html).not.toContain('Use my signature on file');
   });
