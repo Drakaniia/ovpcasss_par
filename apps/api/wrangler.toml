@@ -47,12 +47,9 @@ BOOTSTRAP_ADMIN_EMAILS = "ovpcasss@buksu.edu.ph,2401117078@student.buksu.edu.ph"
 R2_BUCKET_NAME = "par-attachments"
 # The office mailbox: default workbook recipient and failure-digest fallback.
 OFFICE_EMAIL = "ovpcasss@buksu.edu.ph"
-# The address the browser uses: the Pages site, whose `/api/*` Function proxies
-# to this Worker (apps/web/functions). Mailed links, receipts, and the Google
-# redirect URI are built from it, so a custom domain edits this line, the Pages
-# project domain, and the Google client together. Locally, .dev.vars wins. The
-# Worker still serves the app on its own origin as the rollback path.
-APP_ORIGIN = "https://ovpcasss-par.pages.dev"
+# The address the browser uses. Mailed links, receipts, and the Google redirect
+# URI are built from it; locally, .dev.vars wins.
+APP_ORIGIN = "https://par.ovpcasss.workers.dev"
 # OVPCASSS-F-013 signatory block; defaults to the printed form.
 # RECEIPT_SIGNATORY_NAME = "DR. LINCOLN V. TAN"
 # RECEIPT_SIGNATORY_TITLE = "VPCASSS"

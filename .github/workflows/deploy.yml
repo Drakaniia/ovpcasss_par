@@ -1,8 +1,7 @@
 name: Deploy
 
 # Pull requests get previews. Pushes to main, release tags, and manual runs
-# deploy production after verification. Migrations, Worker, and Pages ship in
-# that order so the browser never leads the API it needs.
+# deploy production after verification. Migrations and Worker ship in that order.
 
 on:
   pull_request:
@@ -53,22 +52,6 @@ jobs:
         run: >-
           pnpm --filter @par/api exec wrangler versions upload
           --preview-alias pr-${{ github.event.number }}
-
-      # Compile explicitly: Wrangler runs from apps/api, so it does not discover
-      # apps/web/functions automatically. Advanced-mode output travels with assets.
-      - name: Add the Pages API proxy
-        if: env.CLOUDFLARE_API_TOKEN != ''
-        run: >-
-          pnpm pages:proxy
-
-      # The Pages site is what the browser opens; its `/api/*` Function proxies to
-      # the Worker. A branch deployment is its preview URL, and the R2 bucket's
-      # CORS policy already allows every pages.dev origin.
-      - name: Deploy Pages preview
-        if: env.CLOUDFLARE_API_TOKEN != ''
-        run: >-
-          pnpm --filter @par/api exec wrangler pages deploy ../web/build
-          --project-name ovpcasss-par --branch pr-${{ github.event.number }}
 
       - name: Preview not configured
         if: env.CLOUDFLARE_API_TOKEN == ''
@@ -130,22 +113,3 @@ jobs:
 
       - name: Deploy Worker
         run: pnpm --filter @par/api exec wrangler deploy
-
-      # Compile explicitly: Wrangler runs from apps/api, so it does not discover
-      # apps/web/functions automatically. Advanced-mode output travels with assets.
-      - name: Add the Pages API proxy
-        run: >-
-          pnpm pages:proxy
-
-      # The Worker is the API and the rollback copy of the app; Pages is the
-      # address in mail and the origin the browser uses (`APP_ORIGIN`).
-      - name: Deploy Pages site
-        run: >-
-          pnpm --filter @par/api exec wrangler pages deploy ../web/build
-          --project-name ovpcasss-par --branch main
-
-      - name: Verify Pages smoke checker
-        run: node --test scripts/check-pages.test.mjs
-
-      - name: Verify Pages API proxy
-        run: pnpm pages:check https://ovpcasss-par.pages.dev
