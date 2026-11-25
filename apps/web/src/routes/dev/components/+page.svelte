@@ -69,11 +69,23 @@
     <p class="hint">Sets the session placeholder so the header and section tabs update.</p>
     <div class="row">
       {#each Object.entries(ROLE_LABELS) as [role, label] (role)}
-        <button class="btn btn-outline" type="button" onclick={() => preview(role as Role)}>
+        <button
+          class="btn btn-outline"
+          type="button"
+          aria-pressed={session.user?.role === role}
+          onclick={() => preview(role as Role)}
+        >
           {label}
         </button>
       {/each}
-      <button class="btn btn-ghost" type="button" onclick={clearPreview}>Signed out</button>
+      <button
+        class="btn btn-outline"
+        type="button"
+        aria-pressed={!session.user}
+        onclick={clearPreview}
+      >
+        Signed out
+      </button>
     </div>
   </section>
 
@@ -152,7 +164,7 @@
             <td class="mono">INC-2026-0003</td>
             <td>Lecture series on coastal management</td>
             <td class="table-col-secondary">In campus</td>
-            <td class="num">120</td>
+            <td class="mono">08 Mar 2026</td>
             <td><StatusBadge status="APPROVED" /></td>
           </tr>
         </tbody>
@@ -191,7 +203,7 @@
           <span class="field-optional">Optional</span>
         </label>
         <textarea class="textarea" id="demo-notes"></textarea>
-        <p class="field-hint">Format: DD MMM YYYY</p>
+        <p class="field-hint">Optional notes for the office.</p>
       </div>
       <div class="row">
         <button class="btn btn-primary" type="submit">Save</button>

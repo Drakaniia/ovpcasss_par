@@ -42,9 +42,9 @@
     font-size: 13px;
     font-weight: 500;
     gap: 8px;
-    height: 32px;
     justify-content: center;
-    padding: 0 12px;
+    min-height: 32px;
+    padding: 4px 12px;
     transition:
       background-color var(--duration-fast) ease,
       border-color var(--duration-fast) ease,
@@ -65,8 +65,8 @@
   .btn-primary {
     background: var(--primary);
     color: var(--on-primary);
-    height: 36px;
-    padding: 0 16px;
+    min-height: 36px;
+    padding: 6px 16px;
   }
 
   .btn-primary:hover:not(:disabled) {
@@ -107,8 +107,8 @@
 
   .btn-sm {
     font-size: 12px;
-    height: 28px;
-    padding: 0 8px;
+    min-height: 28px;
+    padding: 4px 8px;
   }
 
   /* ---------- Forms ---------- */
@@ -542,7 +542,7 @@
     .btn-sm,
     .btn-primary {
       font-size: 13px;
-      height: 44px;
+      min-height: 44px;
       padding-inline: 14px;
     }
 
