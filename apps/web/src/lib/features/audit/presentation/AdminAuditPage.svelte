@@ -227,7 +227,7 @@
       </aside>
 
       <!-- Right pane: Event List -->
-      <main class="events-main-pane" aria-label="Audit events">
+      <section class="events-main-pane" aria-label="Audit events">
         <AuditChips
           {filters}
           total={list?.total ?? 0}
@@ -276,7 +276,7 @@
 
           <AuditPagination total={list.total} page={filters.page} onpage={handlePageChange} />
         {/if}
-      </main>
+      </section>
     </div>
   {/if}
 </div>

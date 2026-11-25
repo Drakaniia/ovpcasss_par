@@ -68,7 +68,7 @@
               class="tab"
               data-tab-key={tab.href}
               class:is-active={active}
-              href={tabHref(tab.href, page.url.search)}
+              href={tabHref(tab.href, section === 'reports' ? page.url.search : '')}
               aria-current={active ? 'page' : undefined}
               aria-label={count > 0
                 ? `${tab.label}, ${count} ${count === 1 ? 'item needs' : 'items need'} attention`

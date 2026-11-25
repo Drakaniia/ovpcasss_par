@@ -127,7 +127,10 @@ function rowsFor(
 
 /** Narratives waiting for the office's decision. */
 export function awaitingReviewRows(section: InboxSection, now: Date): InboxRow[] {
-  return rowsFor(section, now, (item) => `Submitted · ${ageOf(item, now)} ago`);
+  return rowsFor(section, now, (item) => {
+    const age = ageOf(item, now);
+    return age === 'today' ? 'Submitted · today' : `Submitted · ${age} ago`;
+  });
 }
 
 /** Records created but not yet submitted; overdue after seven days. */

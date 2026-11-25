@@ -70,6 +70,7 @@
       <input
         class="search-input"
         type="search"
+        data-search-field
         placeholder="Search AR No., title, or location"
         value={filters.q}
         oninput={(event) => onchange({ q: event.currentTarget.value })}

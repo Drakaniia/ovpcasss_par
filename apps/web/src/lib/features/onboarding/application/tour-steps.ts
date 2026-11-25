@@ -60,7 +60,7 @@ export const TOUR_STEPS: readonly TourStepConfig[] = [
     id: 'welcome',
     title: () => 'Welcome to Paperless PAR',
     description: () =>
-      "Paperless PAR is the Office of the Vice President for Curriculum and Academic Standards and Services' system for post-activity reports. This short tour shows where each task begins. It takes about a minute.",
+      "Paperless PAR is the Office of the Vice President for Culture, Arts, Sports and Student Services' system for post-activity reports. This short tour shows where each task begins. It takes about a minute.",
   },
   {
     id: 'primary-nav',

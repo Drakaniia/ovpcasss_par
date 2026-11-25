@@ -83,6 +83,8 @@
   }
 </script>
 
+<svelte:head><title>Notifications · OVPCASSS Paperless PAR</title></svelte:head>
+
 <div class="page-content">
   {#if gate === 'loading'}
     <NotificationsSkeleton />

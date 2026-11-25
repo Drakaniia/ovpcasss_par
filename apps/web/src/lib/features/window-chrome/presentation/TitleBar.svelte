@@ -127,6 +127,7 @@
     <button
       class="search"
       type="button"
+      aria-label="Search"
       data-tour="titlebar-search"
       aria-keyshortcuts="Control+K"
       onclick={openPalette}
