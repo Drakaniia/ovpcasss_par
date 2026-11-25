@@ -177,16 +177,17 @@
             onblur={checkNewPassword}
             aria-invalid={errors.newPassword ? 'true' : undefined}
             aria-describedby={[
-              errors.newPassword ? 'newPassword-error' : '',
+              errors.newPassword ? 'newPassword-error' : 'newPassword-rule',
               strength ? 'newPassword-strength' : '',
-              'newPassword-rule',
             ]
               .filter(Boolean)
               .join(' ')}
           />
           {@render revealToggle('new', 'new password')}
         </div>
-        <p class="field-hint" id="newPassword-rule">Use at least 12 characters.</p>
+        {#if !errors.newPassword}
+          <p class="field-hint" id="newPassword-rule">Use at least 12 characters.</p>
+        {/if}
         {#if strength}
           <p class="field-hint" id="newPassword-strength" aria-live="polite">{strength}</p>
         {/if}
@@ -270,17 +271,17 @@
     padding-right: 44px;
   }
 
-  /* Matches the field primitive: the reveal waits for hover or focus. */
+  /* Matches the field primitive: subtly visible for touch, full on hover or focus. */
   .reveal {
     align-items: center;
     background: transparent;
     border: 0;
     border-radius: var(--radius-card);
-    color: var(--text-disabled);
+    color: var(--text-secondary);
     display: inline-flex;
     height: 30px;
     justify-content: center;
-    opacity: 0;
+    opacity: 0.72;
     position: absolute;
     right: 8px;
     top: 50%;

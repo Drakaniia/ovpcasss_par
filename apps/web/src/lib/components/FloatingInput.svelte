@@ -156,17 +156,17 @@
     padding-right: 44px;
   }
 
-  /* The reveal appears with the field's own hover or focus, never before. */
+  /* Keep the reveal control subtly visible for touch and discoverability, full on hover/focus. */
   .reveal {
     align-items: center;
     background: transparent;
     border: 0;
     border-radius: var(--radius-card);
-    color: var(--text-disabled);
+    color: var(--text-secondary);
     display: inline-flex;
     height: 30px;
     justify-content: center;
-    opacity: 0;
+    opacity: 0.72;
     position: absolute;
     right: 8px;
     top: 50%;

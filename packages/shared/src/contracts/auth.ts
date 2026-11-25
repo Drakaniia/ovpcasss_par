@@ -30,7 +30,7 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1).max(128),
+  password: z.string().min(1, 'Enter your password.').max(128),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 

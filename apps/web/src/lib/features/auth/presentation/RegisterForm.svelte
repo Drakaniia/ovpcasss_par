@@ -96,7 +96,9 @@
     });
 
     const nextErrors: FieldErrors = { ...(result.ok ? {} : result.errors) };
-    if (confirmPassword !== password) {
+    if (!confirmPassword) {
+      nextErrors.confirmPassword = 'Confirm your password.';
+    } else if (confirmPassword !== password) {
       nextErrors.confirmPassword = 'Passwords do not match.';
     }
 
@@ -252,14 +254,15 @@
       onblur={checkPassword}
       aria-invalid={errors.password ? 'true' : undefined}
       aria-describedby={[
-        errors.password ? 'password-error' : '',
+        errors.password ? 'password-error' : 'password-rule',
         strength ? 'password-strength' : '',
-        'password-rule',
       ]
         .filter(Boolean)
         .join(' ')}
     />
-    <p class="field-hint" id="password-rule">Use at least 12 characters.</p>
+    {#if !errors.password}
+      <p class="field-hint" id="password-rule">Use at least 12 characters.</p>
+    {/if}
     {#if strength}
       <p class="field-hint" id="password-strength" aria-live="polite">{strength}</p>
     {/if}
