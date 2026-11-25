@@ -24,7 +24,7 @@ describe('seed reference data', () => {
     expect(unitsOf('COLLEGE')).toHaveLength(8);
     expect(unitsOf('GRADUATE_SCHOOL_GROUP')).toHaveLength(2);
     expect(unitsOf('SATELLITE_CAMPUS')).toHaveLength(15);
-    expect(unitsOf('OTHER_UNIT')).toHaveLength(0);
+    expect(unitsOf('OTHER_UNIT')).toHaveLength(3);
   });
 
   it('resolves every unit campusCode to a campus', () => {
@@ -42,14 +42,8 @@ describe('seed reference data', () => {
     );
   });
 
-  it('seeds offices/units with the non-college units', () => {
-    expect(SEED_OFFICES).toHaveLength(3);
-    expect(SEED_OFFICES.map((entry) => entry.name)).toEqual([
-      'SECONDARY LABORATORY SCHOOL',
-      'ELEMENTARY LABORATORY SCHOOL',
-      'NATIONAL SERVICE TRAINING PROGRAM',
-    ]);
-    expect(SEED_OFFICES.map((entry) => entry.sortOrder)).toEqual([1, 2, 3]);
+  it('leaves offices/units empty by default', () => {
+    expect(SEED_OFFICES).toHaveLength(0);
   });
 
   it('has 44 programs and resolves every unitCode to a unit', () => {

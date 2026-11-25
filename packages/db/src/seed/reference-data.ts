@@ -186,6 +186,27 @@ export const SEED_UNITS: SeedUnit[] = [
     campusCode: 'SATELLITE',
     sortOrder: 15,
   },
+  {
+    code: 'SLS',
+    name: 'SECONDARY LABORATORY SCHOOL',
+    kind: 'OTHER_UNIT',
+    campusCode: 'MAIN',
+    sortOrder: 1,
+  },
+  {
+    code: 'ELS',
+    name: 'ELEMENTARY LABORATORY SCHOOL',
+    kind: 'OTHER_UNIT',
+    campusCode: 'MAIN',
+    sortOrder: 2,
+  },
+  {
+    code: 'NSTP',
+    name: 'NATIONAL SERVICE TRAINING PROGRAM',
+    kind: 'OTHER_UNIT',
+    campusCode: 'MAIN',
+    sortOrder: 3,
+  },
 ];
 
 // The workbook has no program->college mapping (spec §14 Q4); the unitCode below
@@ -497,7 +518,7 @@ export const SEED_PROGRAMS: SeedProgram[] = [
 
 /**
  * Departments/Programs are seeded from the workbook's degree programs;
- * Offices/Units hold the non-college institutional units (SLS, ELS, NSTP).
+ * Offices/Units starts empty so the office can maintain non-academic units separately.
  */
 export const SEED_DEPARTMENTS: SeedDirectoryEntry[] = SEED_PROGRAMS.map((program, index) => ({
   key: program.code.toLowerCase(),
@@ -505,11 +526,7 @@ export const SEED_DEPARTMENTS: SeedDirectoryEntry[] = SEED_PROGRAMS.map((program
   sortOrder: index + 1,
 }));
 
-export const SEED_OFFICES: SeedDirectoryEntry[] = [
-  { key: 'sls', name: 'SECONDARY LABORATORY SCHOOL', sortOrder: 1 },
-  { key: 'els', name: 'ELEMENTARY LABORATORY SCHOOL', sortOrder: 2 },
-  { key: 'nstp', name: 'NATIONAL SERVICE TRAINING PROGRAM', sortOrder: 3 },
-];
+export const SEED_OFFICES: SeedDirectoryEntry[] = [];
 
 export const SEED_SDGS: SeedSdg[] = [
   { number: 1, title: 'No Poverty' },
